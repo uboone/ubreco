@@ -1,18 +1,21 @@
 
 art_make(	
 	  LIB_LIBRARIES
+
 			${ART_FRAMEWORK_CORE}
 			art_Utilities canvas
 			${MF_MESSAGELOGGER}
 			${MF_UTILITIES}
 			cetlib cetlib_except
-                   	larpandora_LArPandoraInterface	
                         ${Boost_SYSTEM_LIBRARY}
 			${ROOT_BASIC_LIB_LIST}
           MODULE_LIBRARIES 
-		   	larpandora_LArPandoraInterface	
+			uboone_MichelReco_Fmwk
+			uboone_MichelReco_Algo
 			larcore_Geometry
 			larcore_Geometry_Geometry_service
+			larsim_MCCheater_BackTracker_service
+			larsim_Simulation nutools_ParticleNavigation lardataobj_Simulation
 			lardataobj_RecoBase
 			lardataobj_AnalysisBase	
 			lardata_RecoObjects larreco_Deprecated  
@@ -28,9 +31,10 @@ art_make(
 			${ART_FRAMEWORK_SERVICES_OPTIONAL}
 			${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
 			${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-			art_Persistency_Common canvas
-			art_Persistency_Provenance canvas
-			art_Utilities canvas
+			art_Persistency_Common
+			art_Persistency_Provenance
+			art_Utilities
+                        canvas
 			${MF_MESSAGELOGGER}
 			${MF_UTILITIES}
 	                ${FHICLCPP}
@@ -41,6 +45,9 @@ art_make(
                         ${ROOT_GDML}
 			${ROOT_BASIC_LIB_LIST}
         )
+
+add_subdirectory(Fmwk)
+add_subdirectory(Algo)
 
 install_headers()
 install_fhicl()
