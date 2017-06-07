@@ -1,14 +1,14 @@
 #include "services_microboone.fcl"
 #include "triggeralgo_service.fcl"
-#include "T0RecoAnodeCathodePiercingAna.fcl"
+#include "michelrecodriver.fcl"
 
-process_name: T0RecoAnodeCathodePiercingAna
+process_name: MichelReco
 
 services:
 {
   scheduler:               { defaultExceptions: false }    # Make all uncaught exceptions fatal.
   # Load the service that manages root files for histograms.
-  TFileService:            { fileName: "T0RecoAna_ana.root" }
+  TFileService:            { fileName: "michelreco_ana.root" }
   TimeTracker:             {}
   ExptGeoHelperInterface:         @local::microboone_geometry_helper
   Geometry:                       @local::microboone_geo
@@ -26,17 +26,8 @@ source:
 {
   module_type: RootInput
   maxEvents:   -1        # Number of events to create
-}
+  #inputCommands: ["keep *_*_*_*","drop *_*_*_DetSim", "drop *_*_*_G4"]#, "keep sim::MCTrack_*_*_*", "keep recob::Track_*_pandoraCosmic_*" ]
 
-outputs:{
-
- out1:
- {
-   module_type: RootOutput
-   fileName:    "T0RecoAna.root"
-   dataTier:    "ana"
-   compressionLevel: 1
- }
 }
 
 # Define and configure some modules to do work on each event.
@@ -45,22 +36,48 @@ outputs:{
 physics:
 {
 
+    producers:
+ {
+
+  ### random number saver
+  rns:                 { module_type: RandomNumberSaver }
+
+  ### flash finders
+  michel : @local::MichelReco
+ }
  analyzers:
  {
-        t0ana : @local::T0RecoAnodeCathodePiercingAna
  }
 
- ana:       [ t0ana ]
- end_paths: [ ana ]
+ #reco: [ rns, ophit, opflash, simpleFlash, opflashfilter ]
+ reco: [ rns, michel ]
+ ana: []
+
+ #define the output stream, there could be more than one if using filters 
+ stream1:  [ out1 ]
+
+ #trigger_paths is a keyword and contains the paths that modify the art::event, 
+ #ie filters and producers
+ #trigger_paths: [reco] 
+
+ #end_paths is a keyword and contains the paths that do not modify the art::Event, 
+ #ie analyzers and output streams.  these all run simultaneously
+ end_paths:     [stream1,ana]
 }
 
 #block to define where the output goes.  if you defined a filter in the physics
 #block and put it in the trigger_paths then you need to put a SelectEvents: {SelectEvents: [XXX]}
 #entry in the output stream you want those to go to, where XXX is the label of the filter module(s)
-
-physics.analyzers.t0ana.UseMC: false
-physics.analyzers.t0ana.FlashProducer: pandoraCosmicT0Reco
-physics.analyzers.t0ana.T0Producer: pandoraCosmicT0Reco
+outputs:
+{
+ out1:
+ {
+   module_type: RootOutput
+   fileName:    "michels.root"
+   dataTier:    "reco"
+   compressionLevel: 1
+   }
+}
 
 services.DetectorProperties.NumberTimeSamples:                             6400
 services.DetectorProperties.ReadOutWindowSize:                             6400
