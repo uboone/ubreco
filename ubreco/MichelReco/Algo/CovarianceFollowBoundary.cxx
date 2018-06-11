@@ -92,7 +92,7 @@ namespace michel {
     if((dqdscandidate_loc >= cluster._hits.size()))
       return false;
     
-    if(abs(dqdscandidate_loc - candidate_loc) > _maxDistance)
+    if(std::abs(int(dqdscandidate_loc) - int(candidate_loc)) > _maxDistance)
       return false;
     
     /// Loop over covariance array in both directions, if you see something...
