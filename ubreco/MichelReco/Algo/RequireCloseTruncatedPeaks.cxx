@@ -42,7 +42,6 @@ namespace michel {
       return false;
     
     if(std::abs(int(dqdscandidate_loc) - int(candidate_loc)) > _maxDistance)
-xx
       return false;
 
     return true;
