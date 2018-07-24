@@ -1,0 +1,20 @@
+#include "mergeTools.fcl"
+#include "matchTools.fcl"
+#include "priorityTools.fcl"
+
+BEGIN_PROLOG
+
+ClusterMerger: {
+ module_type: "ClusterMerger"  
+ ClusterProducer: "proximity"
+ VertexProducer:  "ccvertex"
+ MergeTools:
+     {
+        Tool0: @local::merge_cbalgopolar
+        Tool1: @local::merge_cbalgovtxalign
+     }
+ #PriorityTool: @local::priority_cpalgonhits
+ PriorityTool: @local::priority_cpalgoqsum
+}
+
+END_PROLOG
