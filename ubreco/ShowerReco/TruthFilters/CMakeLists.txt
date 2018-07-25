@@ -6,7 +6,7 @@ art_make(
 			${MF_MESSAGELOGGER}
 			${MF_UTILITIES}
 			cetlib cetlib_except
-                   	larpandora_LArPandoraInterface	
+                   	#larpandora_LArPandoraInterface	
                         ${Boost_SYSTEM_LIBRARY}
 			${ROOT_BASIC_LIB_LIST}
 			larcorealg_Geometry
@@ -18,7 +18,7 @@ art_make(
 			larcore_Geometry_Geometry_service
           MODULE_LIBRARIES 
 	  		ubreco_ShowerReco_Pi0Ana_Selection
-		   	larpandora_LArPandoraInterface	
+		   	#larpandora_LArPandoraInterface	
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
 			lardataobj_RecoBase

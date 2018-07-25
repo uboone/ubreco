@@ -13,7 +13,7 @@ art_make(
 			art_Utilities canvas
                         ${MF_MESSAGELOGGER}
                         ${MF_UTILITIES}
-                        ${CETLIB}
+                        ${CETLIB} cetlib_except
 			${Boost_FILESYSTEM_LIBRARY}
                         ${Boost_SYSTEM_LIBRARY}
                         ${ROOT_BASIC_LIB_LIST}
@@ -46,7 +46,7 @@ art_make(
 			  ${MF_MESSAGELOGGER}
 			  ${MF_UTILITIES}
 			  ${FHICLCPP}
-			  ${CETLIB}
+			  ${CETLIB} cetlib_except
 			  ${Boost_FILESYSTEM_LIBRARY}
 			  ${Boost_SYSTEM_LIBRARY}
                           ${CLHEP}

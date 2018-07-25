@@ -7,8 +7,8 @@
 #include "ubreco/ShowerReco/ShowerReco3D/Base/ShowerRecoModuleBase.h"
 #include "ubreco/ShowerReco/ShowerReco3D/Base/Calorimetry.h"
 
-#include "ubreco/Database/TPCEnergyCalib/TPCEnergyCalibService.h"
-#include "ubreco/Database/TPCEnergyCalib/TPCEnergyCalibProvider.h"
+//#include "ubreco/Database/TPCEnergyCalib/TPCEnergyCalibService.h"
+//#include "ubreco/Database/TPCEnergyCalib/TPCEnergyCalibProvider.h"
 
 #include "TTree.h"
 #include "art/Framework/Services/Optional/TFileService.h"
@@ -40,8 +40,10 @@ namespace showerreco {
     
   private:
 
+    /*
     float ChargeCorrection(const double& q, const double& w, const double& t, const TVector3& dir, const TVector3& vtx,
 			   const int& pl, const lariov::TPCEnergyCalibProvider& energyCalibProvider);
+    */
 
     //double _recomb, _ADC_to_e, _e_to_MeV;
     TTree* _energy_tree;
@@ -164,6 +166,7 @@ namespace showerreco {
     return;
   }
 
+  /*
   float LinearEnergy::ChargeCorrection(const double& q, const double& w, const double& t, const TVector3& dir, const TVector3& vtx,
 				       const int& pl, const lariov::TPCEnergyCalibProvider& energyCalibProvider){
 
@@ -185,6 +188,7 @@ namespace showerreco {
 
     return yzcorrection * xcorrection;
   }
+  */
 
   DEFINE_ART_CLASS_TOOL(LinearEnergy)
 } //showerreco

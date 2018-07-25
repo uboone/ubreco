@@ -8,7 +8,7 @@ art_make(
 			${ART_FRAMEWORK_CORE}
 			larcorealg_Geometry	
 			lardata_Utilities # added now
-		   	uboone_Geometry		
+		   	#uboone_Geometry		
 			larcore_Geometry_Geometry_service	
 			art_Utilities canvas
                         ${MF_MESSAGELOGGER}
