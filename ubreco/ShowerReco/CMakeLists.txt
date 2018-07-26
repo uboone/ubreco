@@ -52,6 +52,5 @@ add_subdirectory(Pi0Ana)
 add_subdirectory(TruthFilters)
 
 install_headers()
-install_fhicl()
 install_source()
 
