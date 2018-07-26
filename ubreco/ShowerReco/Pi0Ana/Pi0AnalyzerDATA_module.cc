@@ -73,7 +73,7 @@ private:
 			 const std::vector<sim::MCShower>& pi0_shower_v);
 			 
   
-  double _w2cm, _t2cm;
+  // unused double _w2cm, _t2cm;
 
   selection::SelectionAlg _pi0selection;
 
@@ -102,9 +102,9 @@ private:
   double _rc_shr_dedx;
   double _rcradlen;
   // shower-by-shower variables, comparisons
-  double _angle;
-  double _strtdiff;
-  double _dwallmin;
+  // unused double _angle;
+  // unused double _strtdiff;
+  // unused double _dwallmin;
 
   // pi0 tree information
   double _rc_shr1_x,  _rc_shr1_y,  _rc_shr1_z;
@@ -112,18 +112,18 @@ private:
   double _rc_shr1_e;
   double _rc_shr1_dedx;
   double _rcradlen1;
-  double _angle1;
-  double _strtdiff1;
-  double _dwallmin1;
+  // unused double _angle1;
+  // unused double _strtdiff1;
+  // unused double _dwallmin1;
 
   double _rc_shr2_x,  _rc_shr2_y,  _rc_shr2_z;
   double _rc_shr2_px, _rc_shr2_py, _rc_shr2_pz;
   double _rc_shr2_e;
   double _rc_shr2_dedx;
   double _rcradlen2;
-  double _angle2;
-  double _strtdiff2;
-  double _dwallmin2;
+  // unused double _angle2;
+  // unused double _strtdiff2;
+  // unused double _dwallmin2;
 
   double _rcmass;
   double _rcangle;
