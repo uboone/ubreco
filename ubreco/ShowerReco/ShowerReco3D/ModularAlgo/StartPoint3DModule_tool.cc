@@ -101,8 +101,11 @@ namespace showerreco {
     }
 
     // check start/end point range
-    if ( (wireStarts.at(0) < 0) or (wireStarts.at(0) > geom->Nwires(planes.at(0))) or
-	 (wireStarts.at(1) < 0) or (wireStarts.at(1) > geom->Nwires(planes.at(1))) ) {
+    // wireStarts is a vector of unsigned ints, so the first check is always true
+    //if ( (wireStarts.at(0) < 0) or (wireStarts.at(0) > geom->Nwires(planes.at(0))) or
+ //	 (wireStarts.at(1) < 0) or (wireStarts.at(1) > geom->Nwires(planes.at(1))) ) {
+    if (  (wireStarts.at(0) > geom->Nwires(planes.at(0))) or
+	  (wireStarts.at(1) > geom->Nwires(planes.at(1))) ) {
       std::stringstream ss;
       ss << "Fail @ algo " << this->name() << " due to wires out of range";
       throw ShowerRecoException(ss.str());
