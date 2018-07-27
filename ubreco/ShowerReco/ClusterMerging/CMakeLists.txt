@@ -58,6 +58,5 @@ add_subdirectory(CMTAlgPriority)
 add_subdirectory(CMToolApp)
 
 install_headers()
-install_fhicl()
 install_source()
 
