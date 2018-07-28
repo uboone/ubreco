@@ -129,8 +129,6 @@ namespace showerreco {
     _py = dir3D[1];
     _pz = dir3D[2];
 
-    auto const& geomH = ::util::GeometryUtilities();
-
     // loop through planes
     for (size_t n = 0; n < clusters.size(); n++) {
       
