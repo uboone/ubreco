@@ -1,0 +1,15 @@
+BEGIN_PROLOG
+
+priority_cpalgonhits:
+{
+  tool_type: CPAlgoNHits
+  min_hits: 10
+}
+
+priority_cpalgoqsum:
+{
+ tool_type: CPAlgoQSum
+ qsum_cut: 0
+}
+
+END_PROLOG

@@ -1,0 +1,15 @@
+#include "mergeTools.fcl"
+#include "matchTools.fcl"
+#include "priorityTools.fcl"
+
+BEGIN_PROLOG
+
+ClusterMatcher: {
+ module_type: "ClusterMatcher"  
+ ClusterProducer: "cmerger"
+ VertexProducer:  "ccvertex"
+ MatchTool: @local::match_cfalgoiou
+ PriorityTool: @local::priority_cpalgonhits
+}
+
+END_PROLOG

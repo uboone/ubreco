@@ -1,0 +1,65 @@
+BEGIN_PROLOG
+
+emptymodule:
+{
+    tool_type: EmptyModule
+}
+
+angle3dformula:
+{
+    tool_type: Angle3DFormula
+    max_err: 0.1
+    validate_dir: true
+    dot_min: 0.
+}
+
+filterpfpart:
+{
+    tool_type: FilterPFPart
+    min_nhits_absolute: 5
+    min_nhits_largest: 10
+}
+
+angle3dfromvtxqweighted:
+{
+    tool_type: Angle3DFromVtxQweighted
+    verbose: false
+}
+
+yplanestartpoint3d:
+{
+    tool_type: YPlaneStartPoint3D
+}
+
+startpointfromy2d:
+{
+    tool_type: StartPointfromY2D
+}
+
+filllength:
+{
+    tool_type: FillLength
+}
+
+linearenergy:
+{
+    tool_type: LinearEnergy
+    recomb: 0.596
+    ADC_to_e: 243.0
+    verbose: false
+}
+
+dedxmodule:
+{
+    tool_type: dEdxModule
+    dtrunk: 4.
+}
+
+filtershowers:
+{
+    tool_type: FilterShowers
+    anglecut: 25.
+}
+
+
+END_PROLOG
