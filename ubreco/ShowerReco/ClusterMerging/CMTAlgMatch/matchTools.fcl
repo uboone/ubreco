@@ -1,0 +1,25 @@
+BEGIN_PROLOG
+
+match_cfalgoiou:
+{
+ tool_type: CFAlgoIoU
+ iou_min: 0.25
+ verbose: false
+}
+
+match_cfalgotimeoverlap:
+{
+ tool_type: CFAlgoTimeOverlap
+ timetolerance: 0.5 # cm
+ verbose: false
+}
+
+match_cfalgodevel:
+{
+ tool_type: CFAlgoDevel
+ timetolerance: 0.5 # cm
+ minoverlap: 0.5
+ verbose: false
+}
+
+END_PROLOG

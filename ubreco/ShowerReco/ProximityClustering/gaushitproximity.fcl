@@ -1,0 +1,14 @@
+BEGIN_PROLOG
+
+GausHitProximity: {
+ module_type   : "ProximityClustering"  
+ HitProducer   : "gaushit"
+ VtxProducer   : "ccvertex"
+ CellSize      : 2.0
+ ClusterRadius : 0.8
+ ROI           : 10000.
+ BeamDriftTickMin : 780
+ BeamDriftTickMax : 5500
+}
+
+END_PROLOG
