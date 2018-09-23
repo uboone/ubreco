@@ -100,7 +100,7 @@ ClusterMerger::ClusterMerger(fhicl::ParameterSet const & pset)
   // get detector specific properties
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
   auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-  _wire2cm = geom->WirePitch(0,1,0);
+  _wire2cm = geom->WirePitch(0,0,0);
   _time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
 
   fClusterProducer = pset.get<std::string>("ClusterProducer");
