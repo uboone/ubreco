@@ -1,7 +1,7 @@
 art_make(
           LIB_LIBRARIES
 			ubreco_ShowerReco_ShowerReco3D_Base
-			ubreco_ShowerReco_ShowerReco3D_ProtoShower
+			#ubreco_ShowerReco_ShowerReco3D_ProtoShower
 			${ART_FRAMEWORK_CORE}
 			art_Framework_Services_Registry
 			larcorealg_Geometry	
@@ -53,7 +53,7 @@ art_make(
 			  ${ROOT_BASIC_LIB_LIST}
         )
 
-
+install_fhicl()
 install_headers()
 install_source()
 

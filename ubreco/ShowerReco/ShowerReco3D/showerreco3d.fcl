@@ -29,4 +29,16 @@ ShrReco3Dmcc8: @local::ShrReco3D
 ShrReco3Dmcc8.ADCtoE: [193.,197.,197.] # e-/ADC
 
 
+ShrReco3DPandora: @local::ShrReco3Dmcc8
+ShrReco3DPandora.PFPproducer : "pandora"
+ShrReco3DPandora.Clusproducer : "pandora"
+ShrReco3DPandora.Vtxproducer : "pandora"
+ShrReco3DPandora.ProtoShowerTool: 
+ {
+ tool_type: "ProtoShowerPandora"
+ PFPproducer  : "pandora"
+ ClusterProducer : "pandora"
+ Vtxproducer  : "pandora"     
+ }
+
 END_PROLOG

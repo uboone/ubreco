@@ -15,7 +15,7 @@ art_make(
 			larcore_Geometry_Geometry_service
           MODULE_LIBRARIES 
 	  		ubreco_ShowerReco_ShowerReco3D_Base
-	  		ubreco_ShowerReco_ShowerReco3D_ProtoShower
+	  		#ubreco_ShowerReco_ShowerReco3D_ProtoShower
 		   	#larpandora_LArPandoraInterface	
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
@@ -52,7 +52,7 @@ add_subdirectory(ProtoShower)
 add_subdirectory(Base)
 add_subdirectory(ModularAlgo)
 
-
+install_fhicl()
 install_headers()
 install_source()
 

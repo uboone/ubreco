@@ -25,7 +25,17 @@
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardata/Utilities/FindManyInChainP.h"
 
+#include "larcore/Geometry/Geometry.h"
+#include "larcorealg/Geometry/GeometryCore.h"
+#include "lardata/Utilities/GeometryUtilities.h"
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
+
 #include "ProtoShower.h"
+
+// art TOOLS
+#include "art/Utilities/ToolMacros.h"
+#include "art/Utilities/make_tool.h"
+#include "fhiclcpp/ParameterSet.h"
 
 /**
    \class ProtoShowerAlgBase
@@ -40,10 +50,12 @@ class ProtoShowerAlgBase {
 public:
 
   /// Default constructor
-  ProtoShowerAlgBase();
+  virtual ~ProtoShowerAlgBase() noexcept = default;
 
+  void configure(const fhicl::ParameterSet& pset){};
+    
   /// Default destructor
-  virtual ~ProtoShowerAlgBase() {}
+  //virtual ~ProtoShowerAlgBase() {}
 
   /**
      @brief Generate ProtoShower objects starting with from art event
@@ -54,17 +66,8 @@ public:
      @input proto_shower_v -> vector of protoshowers passed by reference. Filled by function
    */
   virtual void GenerateProtoShowers(::art::Event & e,
-				    const std::string& fPFPproducer,
-				    const std::string& fClusterproducer,
-				    const std::string& fVtxproducer,
 				    std::vector<protoshower::ProtoShower> & proto_shower_v) = 0;
 
-  /**
-     @brief function which takes recob::Cluster and vector of recob::Hits to create cluster2d::Cluster2D object
-     @input art::Ptr to cluster
-     @input vector of art::Ptr to hits associated to the cluster
-  */
-  cluster2d::Cluster2D MakeCluster2D( const art::Ptr<recob::Cluster>& clus, const std::vector< art::Ptr<recob::Hit> >& hit_v);
 
 
   std::string name() { return _name; }
