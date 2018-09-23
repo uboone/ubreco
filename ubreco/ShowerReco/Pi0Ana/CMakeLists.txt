@@ -54,6 +54,7 @@ art_make(
 
 add_subdirectory(Selection)
 
+install_fhicl()
 install_headers()
 install_source()
 

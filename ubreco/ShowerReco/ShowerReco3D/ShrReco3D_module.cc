@@ -21,9 +21,10 @@
 #include "ProtoShower/ProtoShowerAlgBase.h"
 #include "Base/ShowerRecoManager.h"
 // include specific protoshower and recomanager instances
-#include "ProtoShower/ProtoShowerCMTool.h"
 
 #include "art/Framework/Services/Optional/TFileService.h"
+
+#include "art/Utilities/make_tool.h"
 
 // larsoft data-products
 #include "lardataobj/RecoBase/Cluster.h"
@@ -32,8 +33,6 @@
 #include "lardataobj/RecoBase/Vertex.h"
 #include "lardataobj/RecoBase/Shower.h"
 #include "lardata/Utilities/AssociationUtil.h"
-
-#include "art/Utilities/make_tool.h"
 
 #include "art/Persistency/Common/PtrMaker.h"
 
@@ -70,11 +69,14 @@ private:
   std::string fClusproducer;
   std::string fVtxproducer;
   
+  
+  
   /// Shower reco core class instance
   ::showerreco::ShowerRecoManager* _manager;
   
   // ProtoShowerAlgBase to make protoshowers
-  ::protoshower::ProtoShowerAlgBase* _psalg;
+  std::unique_ptr<::protoshower::ProtoShowerAlgBase> _psalg;
+  //::protoshower::ProtoShowerAlgBase* _psalg;
 
   // reconstruction ttree
   TTree* _rcshr_tree;
@@ -124,6 +126,8 @@ ShrReco3D::ShrReco3D(fhicl::ParameterSet const & p)
   fPFPproducer  = p.get<std::string>("PFPproducer" );
   fClusproducer = p.get<std::string>("Clusproducer");
   fVtxproducer  = p.get<std::string>("Vtxproducer" );
+  
+  const fhicl::ParameterSet& protoshower_pset = p.get<fhicl::ParameterSet>("ProtoShowerTool");  
 
   // grab algorithms for merging
   _manager = new showerreco::ShowerRecoManager();
@@ -140,7 +144,7 @@ ShrReco3D::ShrReco3D(fhicl::ParameterSet const & p)
   _manager->SetDebug(false);
 
   //_manager = new ::showerreco::Pi0RecoAlgorithm();
-  _psalg   = new ::protoshower::ProtoShowerCMTool();
+  _psalg = art::make_tool<::protoshower::ProtoShowerAlgBase>(protoshower_pset);
 
   produces<std::vector<recob::Shower> >();
   produces<art::Assns <recob::Shower, recob::PFParticle> >();
@@ -162,6 +166,8 @@ ShrReco3D::ShrReco3D(fhicl::ParameterSet const & p)
   //std::cout << "Calibration constant : " << calib << std::endl;
   _psalg->setCalorimetry(calib);
 
+  SetTTree();
+  
 }
 
 void ShrReco3D::produce(art::Event & e)
@@ -179,7 +185,9 @@ void ShrReco3D::produce(art::Event & e)
   // pass event to ProtoShowerAlgBase to create ProtoShower objects
   // which will then be fed to shower reco algorithm chain
   std::vector<protoshower::ProtoShower> event_protoshower_v;
-  _psalg->GenerateProtoShowers(e, fPFPproducer, fClusproducer, fVtxproducer, event_protoshower_v);
+  std::cout << "About to generate proto-showers" << std::endl;
+  _psalg->GenerateProtoShowers(e, event_protoshower_v);
+  std::cout << "Done generating proto-showers" << std::endl;
   
   // set protoshowers for algorithms
   _manager->SetProtoShowers(event_protoshower_v);
