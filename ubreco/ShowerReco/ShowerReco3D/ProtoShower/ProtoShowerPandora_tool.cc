@@ -39,6 +39,10 @@ namespace protoshower {
 
     std::string fPFPproducer, fClusterproducer, fVtxproducer;
 
+    bool fNeutrino;
+    double fNeutrinoScoreMin;
+    double fTrackScoreMax;
+
   };
 
   ProtoShowerPandora::ProtoShowerPandora(const fhicl::ParameterSet& pset) {
@@ -50,6 +54,9 @@ namespace protoshower {
     fPFPproducer     = pset.get<std::string>("PFPproducer"    );
     fClusterproducer = pset.get<std::string>("ClusterProducer");
     fVtxproducer     = pset.get<std::string>("Vtxproducer"    );
+    fNeutrino        = pset.get<bool       >("Neutrino"       );
+    fNeutrinoScoreMin  = pset.get<double     >("NeutrinoScoreMin" );
+    fTrackScoreMax     = pset.get<double     >("TrackScoreMax"    );
 
     // get detector specific properties
     auto const* geom = ::lar::providerFrom<geo::Geometry>();
@@ -69,6 +76,7 @@ namespace protoshower {
     art::FindManyP<recob::Cluster> pfp_clus_assn_v(pfp_h, e, fPFPproducer);
 
     // grab associated metadata
+    art::FindManyP< larpandoraobj::PFParticleMetadata > pfPartToMetadataAssoc(pfp_h, e, fPFPproducer);
     //art::FindManyP< larpandoraobj::PFParticleMetadata > pfp_meta_assn_v(pfp_h, e, fPFPproducer);
 
     // grab vertices associated
@@ -102,8 +110,40 @@ namespace protoshower {
 
       std::cout << "Now I have a PFP! " << std::endl;
 
+
+
       // get metadata for this PFP
+      const std::vector< art::Ptr<larpandoraobj::PFParticleMetadata> > &pfParticleMetadataList(pfPartToMetadataAssoc.at(p));
+
+      // we need to decide if to skip this particle based on user settings
+      bool skip = false;
       
+      if (!pfParticleMetadataList.empty()) {
+	std::cout << "metadata!" << std::endl;
+	
+	for (unsigned int j=0; j<pfParticleMetadataList.size(); ++j)
+	  {
+	    const art::Ptr<larpandoraobj::PFParticleMetadata> &pfParticleMetadata(pfParticleMetadataList.at(j));
+	    const pandora::PropertiesMap &pfParticlePropertiesMap(pfParticleMetadata->GetPropertiesMap());
+	    if (!pfParticlePropertiesMap.empty())
+	      std::cout << " Found PFParticle " << pfp.Self() << " with: " << std::endl;
+	    for (pandora::PropertiesMap::const_iterator it = pfParticlePropertiesMap.begin(); it != pfParticlePropertiesMap.end(); ++it) {
+	      std::cout << "  - " << it->first << " = " << it->second << std::endl;
+	      if ( (it->first == "IsClearCosmic") && (it->second == 1) && (fNeutrino == true) ) {
+		std::cout << "\t SKIPPING because ClearCosmic " << std::endl;
+		skip = true;
+	      }// if this is  not a neutrino
+	      if ( (it->first == "TrackScore") && (it->second > fTrackScoreMax) ){
+		std::cout << "\t SKIPPING because TrackScore is  " << it->second << std::endl;
+		skip = true;
+	      }// if this is not a shower
+	    }
+	  }
+      }// if PFP metadata exists!
+      
+      if (skip == true)
+	continue;
+
       /*
       const std::vector< art::Ptr<larpandoraobj::PFParticleMetadata> > &pfp_meta_v(pfp_meta_assn_v.at(p));
       if (pfp_meta_v.empty() == true) continue;
@@ -122,15 +162,28 @@ namespace protoshower {
       if (parentIdx > pfp_h->size() ) continue;
 
       auto parent = pfp_h->at( parentIdx );
-      //const auto pfp_parent_iter = pfp_map.find(pfp.Parent());
-      //if (pfp_parent_iter == pfp_map.end())
-      //throw cet::exception("WorkshopAnalyzer") << "PFParticle parent not found" << std::endl;
-      
-      // Check if the parent is primary. If not, skip the particle
-      //if (!pfp_parent_iter->second->IsPrimary()) continue;
-      if (parent.IsPrimary() == false) continue;
 
-      std::cout << "Parent particle is primary! " << std::endl;
+      // get metadata for parent
+      const std::vector< art::Ptr<larpandoraobj::PFParticleMetadata> > &parentMetadataList(pfPartToMetadataAssoc.at(parent.Self()));
+
+      if (!parentMetadataList.empty()) {
+	std::cout << "parent metadata!" << std::endl;
+	
+	for (unsigned int j=0; j<parentMetadataList.size(); ++j)
+	  {
+	    const art::Ptr<larpandoraobj::PFParticleMetadata> &parentMetadata(parentMetadataList.at(j));
+	    const pandora::PropertiesMap &parentPropertiesMap(parentMetadata->GetPropertiesMap());
+	    if (!parentPropertiesMap.empty())
+	      std::cout << " Found PFParticle " << parent.Self() << " with: " << std::endl;
+	    for (pandora::PropertiesMap::const_iterator it = parentPropertiesMap.begin(); it != parentPropertiesMap.end(); ++it) {
+	      std::cout << "  - " << it->first << " = " << it->second << std::endl;
+	      if ( (it->first == "NuScore") && (it->second <= fNeutrinoScoreMin) && (fNeutrino == true) ) {
+		std::cout << "\t SKIPPING because IsNeutrino Score is " << it->second << std::endl;
+		skip = true;
+	      }// if this is  not a neutrino
+	    }
+	  }
+      }// if PFP metadata exists!
       
       // find vertex defined as the vertex of the primary
 
