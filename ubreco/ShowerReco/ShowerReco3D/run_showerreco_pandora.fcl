@@ -2,7 +2,7 @@
 #include "triggeralgo_service.fcl"
 #include "showerreco3d.fcl"
 
-process_name: ShrReco3Dbis
+process_name: ShrReco
 
 services:
 {
