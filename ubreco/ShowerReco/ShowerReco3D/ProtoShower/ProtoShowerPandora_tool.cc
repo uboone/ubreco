@@ -110,6 +110,8 @@ namespace protoshower {
 
       std::cout << "Now I have a PFP! " << std::endl;
 
+
+
       // get metadata for this PFP
       const std::vector< art::Ptr<larpandoraobj::PFParticleMetadata> > &pfParticleMetadataList(pfPartToMetadataAssoc.at(p));
 
