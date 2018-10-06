@@ -52,7 +52,7 @@ art_make(
 			  ${ROOT_BASIC_LIB_LIST}
         )
 
-
+install_fhicl()
 install_headers()
 install_source()
 
