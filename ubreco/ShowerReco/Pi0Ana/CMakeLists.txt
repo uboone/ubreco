@@ -14,7 +14,6 @@ art_make(
 			lardataobj_RecoBase
 			lardataobj_MCBase
 			lardataobj_Simulation	
-			lardataobj_MCBase
 			larcore_Geometry_Geometry_service
           MODULE_LIBRARIES 
 	  		ubreco_ShowerReco_Pi0Ana_Selection
