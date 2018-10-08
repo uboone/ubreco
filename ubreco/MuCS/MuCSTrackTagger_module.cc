@@ -126,45 +126,34 @@ void MuCSTrackTagger::produce(art::Event & e) {
 
   for (auto trk: TrkVec){
     if(length(trk)<fMinTrackLength) continue;
+
     
     //choose highest edge as track start
-    TVector3 start, end, startDir, endDir;
-    if(trk->Vertex()[1]>trk->End()[1]){
-      start=trk->Vertex();
-      end=trk->End();
-      startDir=trk->VertexDirection();
-      endDir=trk->EndDirection();
-    }else{
-      start=trk->End();
-      end=trk->Vertex();
-      startDir=trk->EndDirection();
-      endDir=trk->VertexDirection();
-    }
-    
-    //find which end of the trajectory to use to get direction
-    unsigned int pStart;
+    TVector3 start;
     TVector3 dir;
-    int pSign;
-    if(trk->LocationAtPoint(0)==start){
-      pStart=0;
-      pSign=1; //go forward for track direction
-    }else if(trk->LocationAtPoint(trk->NumberTrajectoryPoints()-1)==start){
-      pStart=trk->NumberTrajectoryPoints()-1;
-      pSign=-1; //go backward for track direction
-    }else{
-      throw cet::exception("MuCSTrackTagger") << "Start seems to be in wrong position!\n";
+
+    //use diff between pstart and pstart+psign*(fDirFromNPoints-1)
+    if(fDirFromNPoints>trk->NumberTrajectoryPoints())
+      mf::LogInfo("MuCSTrackTagger") << "Track has too few trajectory points ("<<trk->NumberTrajectoryPoints()<<"), skipping it.\n";
+
+    auto firstPt = trk->TrajectoryPoint( trk->FirstValidPoint() ).position;
+    auto lastPt  = trk->TrajectoryPoint( trk->LastValidPoint()  ).position;
+
+    if (firstPt.Y() > lastPt.Y() ) {
+      start = TVector3( firstPt.X(), firstPt.Y(), firstPt.Z() );
+      auto secondPt = trk->TrajectoryPoint( trk->NextValidPoint( fDirFromNPoints - 1 + trk->FirstValidPoint() ) ).position;
+      auto direction = -(secondPt - firstPt);
+      auto mag = sqrt(direction.Mag2());
+      dir = TVector3( direction.X() / mag, direction.Y() / mag, direction.Z() / mag);
+    }// if firt point is higher up then last point
+    else {
+      start = TVector3( lastPt.X(), lastPt.Y(), lastPt.Z() );
+      auto secondPt = trk->TrajectoryPoint( trk->PreviousValidPoint( fDirFromNPoints - 1 + trk->LastValidPoint() ) ).position;
+      auto direction = -(secondPt - lastPt);
+      auto mag = sqrt(direction.Mag2());
+      dir = TVector3( direction.X() / mag, direction.Y() / mag, direction.Z() / mag);
     }
-    
-    if(fDirFromNPoints==0){
-      //use reversed track start direction
-      dir=-startDir;
-    }else{
-      //use diff between pstart and pstart+psign*(fDirFromNPoints-1)
-      if(fDirFromNPoints>trk->NumberTrajectoryPoints())
-        mf::LogInfo("MuCSTrackTagger") << "Track has too few trajectory points ("<<trk->NumberTrajectoryPoints()<<"), skipping it.\n";
-      dir=(trk->LocationAtPoint(pStart) - trk->LocationAtPoint(pStart+pSign*(fDirFromNPoints-1))).Unit();
-    }
-    
+
     //find interesections and generate tags if appropriate
     bool btag=intersectsBoxes(start,dir);
     
