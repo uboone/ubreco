@@ -133,7 +133,7 @@ void ClusterMerger::produce(art::Event & e)
   std::unique_ptr< art::Assns <recob::Cluster, recob::Hit> > Cluster_Hit_assn_v(new art::Assns<recob::Cluster,recob::Hit>);
 
   // cluster pointer maker for later to create associations
-  art::PtrMaker<recob::Cluster> ClusPtrMaker(e, *this);
+  art::PtrMaker<recob::Cluster> ClusPtrMaker(e);
 
   // load data products needed
 

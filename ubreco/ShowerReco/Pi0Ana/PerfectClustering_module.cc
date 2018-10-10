@@ -233,9 +233,9 @@ void PerfectClustering::produce(art::Event & e)
   // now lets create some actual clusters
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
   // cluster pointer maker for later to create associations
-  art::PtrMaker<recob::Cluster> ClusPtrMaker(e, *this);
+  art::PtrMaker<recob::Cluster> ClusPtrMaker(e);
   // pfp pointer maker
-  art::PtrMaker<recob::PFParticle> PFPPtrMaker(e, *this);
+  art::PtrMaker<recob::PFParticle> PFPPtrMaker(e);
 
   int ctr = 0;
   for (auto const& showerinfo : shower_cluster_v) {

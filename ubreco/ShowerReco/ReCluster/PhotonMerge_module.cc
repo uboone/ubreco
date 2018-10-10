@@ -167,11 +167,11 @@ void PhotonMerge::produce(art::Event & e)
   //auto shr_hit_assn_v = lar::FindManyInChainP<recob::Hit, recob::Cluster>::find(shr_h, e, fShrProducer);
 
   // pfparticle pointer maker for later to create associations
-  art::PtrMaker<recob::PFParticle> PFPartPtrMaker(e, *this);
+  art::PtrMaker<recob::PFParticle> PFPartPtrMaker(e);
   // cluster pointer maker for later to create associations
-  art::PtrMaker<recob::Cluster>    ClusPtrMaker  (e, *this);
+  art::PtrMaker<recob::Cluster>    ClusPtrMaker  (e);
   // hit pointer maker for later to create associations
-  art::PtrMaker<recob::Hit>        HitPtrMaker   (e, *this);
+  art::PtrMaker<recob::Hit>        HitPtrMaker   (e);
 
   _photon_poly_map.clear();
   _photon_lin_map.clear();
