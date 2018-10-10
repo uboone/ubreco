@@ -25,8 +25,6 @@ art_make( BASENAME_ONLY
 			SignalShapingServiceMicroBooNE_service
 			lardataobj_AnalysisBase
       nusimdata_SimulationBase
-      ${LARRECO_LIB}
-      ${LARDATA_LIB}
       ${ART_FRAMEWORK_CORE}
 			${ART_FRAMEWORK_PRINCIPAL}
 			${ART_FRAMEWORK_SERVICES_REGISTRY}
