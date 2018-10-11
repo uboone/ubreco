@@ -17,6 +17,9 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
+#include "art/Framework/Services/Optional/TFileService.h"
+#include <TTree.h>
+
 // services etc...
 #include "larcore/Geometry/Geometry.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
@@ -103,6 +106,19 @@ private:
   // (positive pek)
   double fT0posMin, fT0posMax;
 
+  TTree* _tree;
+  double _rc_time;
+  double _t_match;
+  double _dt_flash;
+  double _pe_flash;
+  double _length;
+  double _rc_x_start, _rc_x_end;
+  double _rc_y_start, _rc_y_end;
+  double _rc_z_start, _rc_z_end;
+  int    _anode;
+  int    _cathode;
+  int    _run, _subrun, _event;
+
   // functions to be used throughout module
   bool   TrackEntersTop     (const std::vector<TVector3>& sorted_trk);
   bool   TrackEntersFront   (const std::vector<TVector3>& sorted_trk);
@@ -173,6 +189,27 @@ T0RecoAnodeCathodePiercing::T0RecoAnodeCathodePiercing(fhicl::ParameterSet const
   // Determine the drift velocity from 'efield' and 'temp'
   fDriftVelocity = _detp -> DriftVelocity(efield,temp);
 
+  art::ServiceHandle<art::TFileService> tfs;
+  _tree = tfs->make<TTree>("_tree","T0 reco performance");
+  _tree->Branch("_rc_time",&_rc_time,"rc_time/D");
+  _tree->Branch("_t_match",&_t_match,"t_match/D");
+  _tree->Branch("_dt_flash",&_dt_flash,"dt_flash/D");
+  _tree->Branch("_pe_flash",&_pe_flash,"pe_flash/D");
+  _tree->Branch("_length", &_length, "length/D");
+  // reco positions
+  _tree->Branch("_rc_x_start",&_rc_x_start,"rc_x_start/D");
+  _tree->Branch("_rc_y_start",&_rc_y_start,"rc_y_start/D");
+  _tree->Branch("_rc_z_start",&_rc_z_start,"rc_z_start/D");
+  _tree->Branch("_rc_x_end",&_rc_x_end,"rc_x_end/D");
+  _tree->Branch("_rc_y_end",&_rc_y_end,"rc_y_end/D");
+  _tree->Branch("_rc_z_end",&_rc_z_end,"rc_z_end/D");
+  // information on whether track enters/exits which sides
+  _tree->Branch("_anode"  ,&_anode  ,"anode/I"  );
+  _tree->Branch("_cathode",&_cathode,"cathode/I");
+  _tree->Branch("_run",&_run,"run/I");
+  _tree->Branch("_subrun",&_subrun,"subrun/I");
+  _tree->Branch("_event",&_event,"event/I");
+
 }
 
 void T0RecoAnodeCathodePiercing::produce(art::Event & e)
@@ -181,6 +218,10 @@ void T0RecoAnodeCathodePiercing::produce(art::Event & e)
 
   _flash_times.clear();
   _flash_idx_v.clear();
+
+  _event  = e.event();
+  _subrun = e.subRun();
+  _run    = e.run();
 
   // produce OpFlash data-product to be filled within module
   std::unique_ptr< std::vector<anab::T0> > T0_v(new std::vector<anab::T0>);
@@ -238,6 +279,17 @@ void T0RecoAnodeCathodePiercing::produce(art::Event & e)
     // get sorted points for the track object [assuming downwards going]
     std::vector<TVector3> sorted_trk;
     SortTrackPoints(*track,sorted_trk);
+
+    auto const& top    = sorted_trk.at(0);
+    auto const& bottom = sorted_trk.at(sorted_trk.size() - 1);
+    
+    _rc_x_start = top.X();
+    _rc_y_start = top.Y();
+    _rc_z_start = top.Z();
+    _rc_x_end   = bottom.X();
+    _rc_y_end   = bottom.Y();
+    _rc_z_end   = bottom.Z();
+    //_length     = track.Length();
 
     // Declare the variable 'trkT' up here so that I can continue and not fill the t0 object if trkT is still equal to 0
     double trkT = 0.;
@@ -347,6 +399,31 @@ void T0RecoAnodeCathodePiercing::produce(art::Event & e)
 
     // if the time does not match one from optical flashes -> don't reconstruct
     auto const& flash_match_result = FlashMatch(trkT);
+    
+    // absolutely no match -> continue
+    if (flash_match_result.second == flash_h->size())
+      continue;
+
+    // get associated flash
+    const art::Ptr<recob::OpFlash> flash_ptr(flash_h, flash_match_result.second );
+    if (_debug)
+    std::cout << "\t mathed to flash w/ index " << flash_match_result.second << " w/ PE " << flash_ptr->TotalPE() << " and time " << flash_ptr->Time() << " vs reco time " << trkT << std::endl;
+
+    
+    _rc_time  = trkT;
+    _pe_flash = flash_ptr->TotalPE();
+    _t_match  = flash_ptr->Time();
+    _dt_flash = fabs( flash_ptr->Time() - _rc_time );
+    
+    _anode = 0;
+    _cathode = 0;
+    if (anode == true)
+      _anode = 1;
+    else
+      _cathode = 1;
+
+    _tree->Fill();
+    
     // flash_match_result is std::pair
     // 1st element is dt w.r.t. closest flash of light in PMTs
     // 2nd element is index of PMT flash matched to
@@ -372,9 +449,7 @@ void T0RecoAnodeCathodePiercing::produce(art::Event & e)
 
     // get pointer to individual track
     // TMP const art::Ptr<recob::Track>   trk_ptr(track_h,trk_ctr-1);
-    const art::Ptr<recob::OpFlash> flash_ptr(flash_h, flash_match_result.second );
-    if (_debug)
-    std::cout << "\t mathed to flash w/ index " << flash_match_result.second << " w/ PE " << flash_ptr->TotalPE() << " and time " << flash_ptr->Time() << " vs reco time " << trkT << std::endl;
+
     trk_flash_assn_v->addSingle( track, flash_ptr );
 
     }
@@ -625,18 +700,20 @@ void   T0RecoAnodeCathodePiercing::SortTrackPoints(const recob::Track& track, st
   // which point is further up in Y coord?                                                                                                                  
   // start or end?                                                                                                                 
   auto const&N = track.NumberTrajectoryPoints();
-  auto const&start = track.LocationAtPoint(0);
-  auto const&end   = track.LocationAtPoint( N - 1 );
+  auto const&start = track.LocationAtPoint( track.FirstValidPoint() );
+  auto const&end   = track.LocationAtPoint( track.LastValidPoint()  );
 
   // if points are ordered correctly                                                                                                                                       
   if (start.Y() > end.Y()){
     for (size_t i=0; i < N; i++)
-      sorted_trk.push_back( track.LocationAtPoint(i) );
+      if (track.LocationAtPoint(i).X() != -999)
+	sorted_trk.push_back( track.LocationAtPoint(i) );
   }
   
   // otherwise flip order                                                                                                                                                 
   else {
     for (size_t i=0; i < N; i++)
+      if (track.LocationAtPoint(N-i-1).X() != -999)
       sorted_trk.push_back( track.LocationAtPoint( N - i - 1) );
   }
 }
