@@ -6,8 +6,8 @@ T0RecoAnodeCathodePiercing: {
  FlashProducer     : "simpleFlashCosmic"
  Resolution        : 20    # centimeters
  PEmin             : 10    # PE
- TimeResA          : 1     # microseconds
- TimeResC          : 1     # microseconds
+ TimeResA          : 10    # microseconds
+ TimeResC          : 10    # microseconds
  RecoT0TimeOffsetA : 0     # microseconds
  RecoT0TimeOffsetC : 0     # microseconds
  T0negMin          : -406. # microseconds
