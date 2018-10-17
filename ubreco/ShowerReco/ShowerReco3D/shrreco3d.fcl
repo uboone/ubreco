@@ -7,6 +7,15 @@ ShrReco3D: {
  PFPproducer  : "cmatcher"
  Clusproducer : "cmerger"
  Vtxproducer  : "ccvertex"
+
+ ProtoShowerTool: 
+  {
+  tool_type: "ProtoShowerCMTool"
+  PFPproducer  : "cmatcher"
+  ClusterProducer : "cmerger"
+  Vtxproducer  : "ccvertex"     
+  }
+ 
  ShowerRecoTools:
      {
         Algo0: @local::filterpfpart
