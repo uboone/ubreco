@@ -172,6 +172,10 @@ void StopMu::analyze(art::Event const & e)
         mcparticle.StatusCode() == 1 &&
         abs(mcparticle.PdgCode()) == 13)
     {
+      //std::cout << "Muon with end energy " << mcparticle.EndE() << std::endl;
+      if (insideTPCvolume(mcparticle.EndX(),mcparticle.EndY(),mcparticle.EndZ()) == false)
+	continue;
+      //std::cout << "\t end : [" << mcparticle.EndX() << ", " << mcparticle.EndY() << ", " << mcparticle.EndZ() << "]" << std::endl;
       if (mcparticle.EndE() == mcparticle.Mass())
       {
         // _mc_start_x = mcparticle.StartX();
