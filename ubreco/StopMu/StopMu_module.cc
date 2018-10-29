@@ -33,6 +33,11 @@
 #include "TTree.h"
 #include "TVector3.h"
 
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
+#include "lardata/DetectorInfoServices/DetectorClocksService.h"
+#include "larevt/SpaceChargeServices/SpaceChargeService.h"
+
+
 class StopMu;
 
 
@@ -61,6 +66,7 @@ public:
   void fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<double> rr);
   bool insideTPCvolume(float x, float y, float z);
   float getPitch(const TVector3 &direction, const int &pl);
+  void shiftTruePosition(double true_point[3], double true_time, double true_point_shifted[3]);
 
 private:
 
@@ -170,23 +176,19 @@ void StopMu::analyze(art::Event const & e)
   {
     if (mcparticle.Process() == "primary" &&
         mcparticle.StatusCode() == 1 &&
-        abs(mcparticle.PdgCode()) == 13)
+        abs(mcparticle.PdgCode()) == 13 &&
+        (mcparticle.EndE() == mcparticle.Mass()) &&
+        insideTPCvolume(mcparticle.EndX(), mcparticle.EndY(), mcparticle.EndZ()) == true)
     {
-      //std::cout << "Muon with end energy " << mcparticle.EndE() << std::endl;
-      if (insideTPCvolume(mcparticle.EndX(),mcparticle.EndY(),mcparticle.EndZ()) == false)
-	continue;
-      //std::cout << "\t end : [" << mcparticle.EndX() << ", " << mcparticle.EndY() << ", " << mcparticle.EndZ() << "]" << std::endl;
+      double true_end[3], true_end_shifted[3];
+      true_end[0] = mcparticle.EndX();
+      true_end[1] = mcparticle.EndY();
+      true_end[2] = mcparticle.EndZ();
+      shiftTruePosition(true_end, mcparticle.EndT(), true_end_shifted);
       if (mcparticle.EndE() == mcparticle.Mass())
       {
-        // _mc_start_x = mcparticle.StartX();
-        // _mc_start_y = mcparticle.StartY();
-        // _mc_start_z = mcparticle.StartZ();
-        // _mc_end_x = mcparticle.EndX();
-        float _mc_end_y = mcparticle.EndY();
-        float _mc_end_z = mcparticle.EndZ();
-
-        mc_muon_end_y.push_back(_mc_end_y);
-        mc_muon_end_z.push_back(_mc_end_z);
+        mc_muon_end_y.push_back(true_end_shifted[1]);
+        mc_muon_end_z.push_back(true_end_shifted[2]);
       }
     }
   }
@@ -345,6 +347,40 @@ float StopMu::getPitch(const TVector3 &direction, const int &pl)
   float pitch = minWireSpacing / cos;
   return pitch;
 }
+
+void StopMu::shiftTruePosition(double true_point[3], double true_time, double true_point_shifted[3])
+{
+  true_point_shifted[0] = true_point[0];
+  true_point_shifted[1] = true_point[1];
+  true_point_shifted[2] = true_point[2];
+
+  ::detinfo::DetectorProperties const* _detector_properties;
+  ::detinfo::DetectorClocks const* _detector_clocks;
+
+  _detector_properties = lar::providerFrom<detinfo::DetectorPropertiesService>();
+  _detector_clocks = lar::providerFrom<detinfo::DetectorClocksService>();
+
+  double g4Ticks = _detector_clocks->TPCG4Time2Tick(true_time)
+                       + _detector_properties->GetXTicksOffset(0,0,0)
+                       - _detector_properties->TriggerOffset();
+  double xOffset = _detector_properties->ConvertTicksToX(g4Ticks, 0, 0, 0);
+
+  true_point_shifted[0] += xOffset;
+
+  auto const *SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
+  // auto offset = SCE->GetPosOffsets(true_point[0], true_point[1], true_point[2]);
+  // if (offset.size() == 3)
+  // {
+  //   true_point_shifted[0] -= offset[0];
+  //   true_point_shifted[1] += offset[1];
+  //   true_point_shifted[2] += offset[2];
+  // }
+  auto offset = SCE->GetPosOffsets(geo::Point_t(true_point[0], true_point[1], true_point[2]));
+  true_point_shifted[0] -= offset.X();
+  true_point_shifted[1] += offset.Y();
+  true_point_shifted[2] += offset.Z();
+}
+
 
 void StopMu::beginJob()
 {
