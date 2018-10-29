@@ -247,10 +247,10 @@ void StopMu::analyze(art::Event const & e)
     {
       std::cout << "iteration beg" << f << " delta t " << _delta_t_closest_flash << std::endl;
       auto const& flash = optical_handle->at(f);
-      float ttrk = fabs(_trk_end_x / 0.1114 - flash.Time());
-      if (ttrk < _delta_t_closest_flash) _delta_t_closest_flash = ttrk;
-      ttrk = fabs((_trk_end_x-256.) / 0.1114 - flash.Time());
-      if (ttrk < _delta_t_closest_flash) _delta_t_closest_flash = ttrk;
+      float ttrk = _trk_end_x / 0.1114 - flash.Time() - 6.0;
+      if (fabs(ttrk) < fabs(_delta_t_closest_flash)) _delta_t_closest_flash = ttrk;
+      ttrk = (_trk_end_x-256.35) / 0.1114 - flash.Time() - 19.3;
+      if (fabs(ttrk) < fabs(_delta_t_closest_flash)) _delta_t_closest_flash = ttrk;
 
       std::cout << "iteration " << f << " delta t " << _delta_t_closest_flash << " ttrk " << ttrk << std::endl;
     }
