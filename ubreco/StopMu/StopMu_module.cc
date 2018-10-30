@@ -455,7 +455,10 @@ void StopMu::analyze(art::Event const & e)
       float aux_distance = yzDistance(_trk_end_y, _trk_end_z, mc_muon_end_y[k], mc_muon_end_z[k]);
       yz_distances.push_back(aux_distance);
     }
-    _yz_true_reco_distance = *min_element(yz_distances.begin(), yz_distances.end());
+    if (yz_distances.size() == 0)
+      _yz_true_reco_distance = 1500;
+    else
+      _yz_true_reco_distance = *min_element(yz_distances.begin(), yz_distances.end());
 
     TVector3 track_direction(_trk_end_x - _trk_start_x,
                              _trk_end_y - _trk_start_y,
