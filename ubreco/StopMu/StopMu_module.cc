@@ -304,6 +304,7 @@ private:
   TruncMean _tmean;
 
   TTree* _reco_tree;
+  int _run, _sub, _evt;
   float _trk_len;
   float _trk_start_x;
   float _trk_start_y;
@@ -358,6 +359,9 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   // _mc_tree->Branch("_rr_v",  "std::vector<float>",&_rr_v  );
 
   _reco_tree = tfs->make<TTree>("reco_tree", "Reco Track Tree");
+  _reco_tree->Branch("_run",&_run,"run/I");
+  _reco_tree->Branch("_sub",&_sub,"sub/I");
+  _reco_tree->Branch("_evt",&_evt,"evt/I");
   _reco_tree->Branch("_trk_len",&_trk_len,"trk_len/F");
   _reco_tree->Branch("_trk_start_x",&_trk_start_x,"trk_start_x/F");
   _reco_tree->Branch("_trk_start_y",&_trk_start_y,"trk_start_y/F");
@@ -387,6 +391,11 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
 
 void StopMu::analyze(art::Event const & e)
 {
+
+  _run = e.run();
+  _sub = e.subRun();
+  _evt = e.event();
+
   // consider only events with an interaction outside of the TPC
   auto const &generator_handle = e.getValidHandle<std::vector<simb::MCTruth>>(fMCProducer);
   auto const &generator(*generator_handle);
