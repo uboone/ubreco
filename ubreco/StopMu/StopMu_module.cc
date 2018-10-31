@@ -26,6 +26,10 @@
 #include "nusimdata/SimulationBase/MCParticle.h"
 #include "nusimdata/SimulationBase/MCTruth.h"
 #include "nusimdata/SimulationBase/MCFlux.h"
+#include "lardataobj/RecoBase/Hit.h"
+#include "nusimdata/SimulationBase/MCParticle.h"
+#include "lardataobj/AnalysisBase/BackTrackerMatchingData.h"
+
 
 #include "lardataobj/RecoBase/OpFlash.h"
 
@@ -300,6 +304,7 @@ private:
   TruncMean _tmean;
 
   TTree* _reco_tree;
+  int _run, _sub, _evt;
   float _trk_len;
   float _trk_start_x;
   float _trk_start_y;
@@ -308,6 +313,9 @@ private:
   float _trk_end_y;
   float _trk_end_z;
   float _yz_true_reco_distance;
+  int _yz_trackid; // track id of closest stopping muon by YZ distance
+  float _matchscore; // fraction of track hits associated to a true stopping muon MCParticle
+  int   _matchtrackid; // track id of best match stopping muon from backtracker
   float _pitch_u, _pitch_v, _pitch_y;
   std::vector<float> _dqdx_u;
   std::vector<float> _dqdx_tm_u;
@@ -351,6 +359,9 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   // _mc_tree->Branch("_rr_v",  "std::vector<float>",&_rr_v  );
 
   _reco_tree = tfs->make<TTree>("reco_tree", "Reco Track Tree");
+  _reco_tree->Branch("_run",&_run,"run/I");
+  _reco_tree->Branch("_sub",&_sub,"sub/I");
+  _reco_tree->Branch("_evt",&_evt,"evt/I");
   _reco_tree->Branch("_trk_len",&_trk_len,"trk_len/F");
   _reco_tree->Branch("_trk_start_x",&_trk_start_x,"trk_start_x/F");
   _reco_tree->Branch("_trk_start_y",&_trk_start_y,"trk_start_y/F");
@@ -359,6 +370,9 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   _reco_tree->Branch("_trk_end_y",  &_trk_end_y,  "trk_end_y/F"  );
   _reco_tree->Branch("_trk_end_z",  &_trk_end_z,  "trk_end_z/F"  );
   _reco_tree->Branch("_yz_true_reco_distance",  &_yz_true_reco_distance,  "yz_true_reco_distance/F"  );
+  _reco_tree->Branch("_yz_trackid",  &_yz_trackid,  "yz_trackid/I"  );
+  _reco_tree->Branch("_matchtrackid",  &_matchtrackid,  "matchtrackid/I"  );
+  _reco_tree->Branch("_matchscore",  &_matchscore,  "matchscore/F"  );
   _reco_tree->Branch("_pitch_u",  &_pitch_u,  "pitch_u/F"  );
   _reco_tree->Branch("_pitch_v",  &_pitch_v,  "pitch_v/F"  );
   _reco_tree->Branch("_pitch_y",  &_pitch_y,  "pitch_y/F"  );
@@ -377,6 +391,11 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
 
 void StopMu::analyze(art::Event const & e)
 {
+
+  _run = e.run();
+  _sub = e.subRun();
+  _evt = e.event();
+
   // consider only events with an interaction outside of the TPC
   auto const &generator_handle = e.getValidHandle<std::vector<simb::MCTruth>>(fMCProducer);
   auto const &generator(*generator_handle);
@@ -405,7 +424,11 @@ void StopMu::analyze(art::Event const & e)
   auto const &mcparticles_handle = e.getValidHandle<std::vector<simb::MCParticle>>(fMCParticleLabel);
   auto const &mcparticles(*mcparticles_handle);
 
+
+
   std::vector<float> mc_muon_end_y, mc_muon_end_z;
+  // vector of track ids for stopping muons
+  std::vector<size_t> stop_mu_trackid_v;
 
   for (auto &mcparticle : mcparticles)
   {
@@ -421,10 +444,11 @@ void StopMu::analyze(art::Event const & e)
       true_end[2] = mcparticle.EndZ();
       shiftTruePosition(true_end, mcparticle.EndT(), true_end_shifted);
       if (mcparticle.EndE() == mcparticle.Mass())
-      {
-        mc_muon_end_y.push_back(true_end_shifted[1]);
-        mc_muon_end_z.push_back(true_end_shifted[2]);
-      }
+	{
+	  mc_muon_end_y.push_back(true_end_shifted[1]);
+	  mc_muon_end_z.push_back(true_end_shifted[2]);
+	  stop_mu_trackid_v.push_back( mcparticle.TrackId() );
+	}
     }
   }
 
@@ -432,6 +456,12 @@ void StopMu::analyze(art::Event const & e)
   auto const& trk_h = e.getValidHandle<std::vector<recob::Track>>(fTrkProducer);
   // grab calorimetry objects associated to tracks
   art::FindMany<anab::Calorimetry> trk_calo_assn_v(trk_h, e, fCaloProducer);
+  // grab hits associated to tracks
+  art::FindManyP<recob::Hit> trk_hit_assn_v(trk_h, e, "pandora");
+
+  // load backtracker info associated to mcparticles via hits
+  auto const& gaushit_h = e.getValidHandle<std::vector<recob::Hit> > ("gaushit");
+  art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> backtrack_h(gaushit_h,e,"gaushitTruthMatch");
 
   for (size_t t=0; t < trk_h->size(); t++)
   {
@@ -450,16 +480,17 @@ void StopMu::analyze(art::Event const & e)
     _trk_end_z   = end.Z();
 
     // look for the closest mc muon track
-    std::vector<float> yz_distances;
+    _yz_true_reco_distance = 1500.;
+    _yz_trackid = 0;
     for (size_t k=0; k<mc_muon_end_y.size(); k++)
     {
-      float aux_distance = yzDistance(_trk_end_y, _trk_end_z, mc_muon_end_y[k], mc_muon_end_z[k]);
-      yz_distances.push_back(aux_distance);
-    }
-    if (yz_distances.size() == 0)
-      _yz_true_reco_distance = -1;
-    else
-      _yz_true_reco_distance = *min_element(yz_distances.begin(), yz_distances.end());
+      float this_distance = yzDistance(_trk_end_y, _trk_end_z, mc_muon_end_y[k], mc_muon_end_z[k]);
+      if (this_distance < _yz_true_reco_distance)
+      {
+        _yz_true_reco_distance = this_distance;
+        _yz_trackid = stop_mu_trackid_v.at(k);
+      }// if closest
+    }// for all distances
 
     TVector3 track_direction(_trk_end_x - _trk_start_x,
                              _trk_end_y - _trk_start_y,
@@ -478,6 +509,49 @@ void StopMu::analyze(art::Event const & e)
       auto const& rr   = calo->ResidualRange();
       fillCalorimetry(plane, dqdx, rr);
     }
+
+    // get associated hits
+    const std::vector<art::Ptr<recob::Hit> > hit_v = trk_hit_assn_v.at(t);
+
+    _matchscore = 0.;
+    _matchtrackid = 0;
+
+    for (art::Ptr<recob::Hit> hit : hit_v) {
+
+      auto hitidx = hit.key();
+
+      std::vector<simb::MCParticle const*> particle_vec;
+      std::vector<anab::BackTrackerHitMatchingData const*> match_vec;
+
+      backtrack_h.get(hitidx, particle_vec, match_vec);
+
+      // does this trackID match that of the MCShower?
+      bool matchedID = false;
+
+      for(size_t i_p=0; i_p<particle_vec.size(); ++i_p)
+      {
+
+        auto mctrkid = particle_vec.at(i_p)->TrackId();
+
+        // does this trackID match that of the MCShower?
+        for (auto const& stopmu_trkid : stop_mu_trackid_v)
+        if ( stopmu_trkid == (unsigned int)mctrkid )
+        {
+          _matchtrackid = stopmu_trkid;
+          matchedID = true;
+          break;
+        }
+
+      }
+
+      // this way of filling the score assumes if we find a match it will be with one of the identified true stopping muons
+      if (matchedID)
+      {
+        _matchscore += 1;
+      }// for all particles associated to this hit
+    }// for all hits
+
+    _matchscore /= hit_v.size();
 
 
     // closest flash time
@@ -625,11 +699,6 @@ void StopMu::shiftTruePosition(double true_point[3], double true_time, double tr
   true_point_shifted[1] += offset.Y();
   true_point_shifted[2] += offset.Z();
 }
-
-// bool StopMu::isreconstructedAsCosmic()
-// {
-//   art::FindManyP<recob::Track> track_pfp_assn(trk_h, e, label);
-// }
 
 void StopMu::beginJob()
 {
