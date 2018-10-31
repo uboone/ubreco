@@ -533,16 +533,17 @@ void StopMu::analyze(art::Event const & e)
 	// does this trackID match that of the MCShower?
 	for (auto const& stopmu_trkid : stop_mu_trackid_v)  
 	  if ( stopmu_trkid == (unsigned int)mctrkid ) { _matchtrackid = stopmu_trkid; matchedID = true; break; }
+
+      }
+      
+      // this way of filling the score assumes if we find a match it will be with one of the identified true stopping muons
+      if (matchedID) {
 	
-	// this way of filling the score assumes if we find a match it will be with one of the identified true stopping muons
-	if (matchedID) {
-
-	  _matchscore += 1;
-
-	}// if the mcparticle belongs to the shower
+	_matchscore += 1;
+	
       }// for all particles associated to this hit
     }// for all hits
-
+    
     _matchscore /= hit_v.size();
 
 
