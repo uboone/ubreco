@@ -24,6 +24,7 @@
 #include "larcorealg/Geometry/geo.h"
 
 #include "lardataobj/RecoBase/Track.h"
+#include "lardataobj/RecoBase/Flash.h"
 
 #include "lardataobj/AnalysisBase/CosmicTag.h"
 #include "lardata/Utilities/AssociationUtil.h"
@@ -55,6 +56,7 @@ private:
   bool intersectsBoxes(const TVector3 & start, const TVector3& dir);
 
   std::string fTrackModuleLabel; //< Track label to find MuCS tags in
+  std::string fFlashModuleLabel; //< flash producer to be used
   std::vector<float> fMuCSTopBox, fMuCSBottomBox; //< Box Edge Positions (x1,x2,y1,y2,z1,z2)
   float fBoxExtension; //< Amount to extend acceptance for box interception [cm]
   unsigned int fDirFromNPoints; //< Number of points to use to determine track direction (0=use track end direction)
@@ -63,6 +65,18 @@ private:
   //hists
   TH2F* fTopBoxPosHist;
   TH2F* fBottomBoxPosHist;
+
+  TTree* _tree;
+  
+  int _run, _sub, _evt;
+  int _ntag;
+  float _trk_start_x, _trk_start_y, _trk_start_z;
+  float _trk_end_x, _trk_end_y, _trk_end_z;
+  float _trk_dir_x, _trk_dir_y, _trk_dir_z;
+  float _trk_len;
+  std::vector<float> _trk_x_v, _trk_y_v, _trk_z_v;
+  
+
 };
 
 MuCSTrackTagger::MuCSTrackTagger(fhicl::ParameterSet const & p){
@@ -70,6 +84,7 @@ MuCSTrackTagger::MuCSTrackTagger(fhicl::ParameterSet const & p){
   // Call appropriate Produces<>() functions here.
   produces< std::vector<anab::CosmicTag> >();
   produces< art::Assns<recob::Track, anab::CosmicTag> >();
+  produces< art::Assns<recob::Track, recob::OpFlash> >();
 }
 
 MuCSTrackTagger::~MuCSTrackTagger() {}
@@ -84,6 +99,26 @@ void MuCSTrackTagger::beginJob(){
   fBottomBoxPosHist  = tfs->make<TH2F>("bottomboxpos","BottomBoxPositions;X;Z",100, 
                                   0.9*(fMuCSBottomBox[0]-fBoxExtension), 1.1*(fMuCSBottomBox[1]+fBoxExtension)
                                   ,100, 0.9*(fMuCSBottomBox[4]-fBoxExtension), 1.1*(fMuCSBottomBox[5]+fBoxExtension));
+
+  _tree = tfs->make<TTree>("tree","MuCS tagged tracks");
+  _tree->Branch("_run",&_run,"run/I");
+  _tree->Branch("_sub",&_sub,"sub/I");
+  _tree->Branch("_evt",&_evt,"evt/I");
+  _tree->Branch("_ntag",&_ntag,"ntag/I");
+  _tree->Branch("_trk_len",&_trk_len,"_trk_len/F");
+  _tree->Branch("_trk_start_x",&_trk_start_x,"_trk_start_x/F");
+  _tree->Branch("_trk_start_y",&_trk_start_y,"_trk_start_y/F");
+  _tree->Branch("_trk_start_z",&_trk_start_z,"_trk_start_z/F");
+  _tree->Branch("_trk_end_x",&_trk_end_x,"_trk_end_x/F");
+  _tree->Branch("_trk_end_y",&_trk_end_y,"_trk_end_y/F");
+  _tree->Branch("_trk_end_z",&_trk_end_z,"_trk_end_z/F");
+  _tree->Branch("_trk_dir_x",&_trk_dir_x,"_trk_dir_x/F");
+  _tree->Branch("_trk_dir_y",&_trk_dir_y,"_trk_dir_y/F");
+  _tree->Branch("_trk_dir_z",&_trk_dir_z,"_trk_dir_z/F");
+  _tree->Branch("_trk_x_v","std::vector<float>",&_trk_x_v);
+  _tree->Branch("_trk_y_v","std::vector<float>",&_trk_y_v);
+  _tree->Branch("_trk_z_v","std::vector<float>",&_trk_z_v);
+
                                                                     
 }
 
@@ -116,58 +151,123 @@ bool MuCSTrackTagger::intersectsBoxes(const TVector3 & start, const TVector3& di
 void MuCSTrackTagger::produce(art::Event & e) {
   // Implementation of required member function here.
 
-  std::unique_ptr< std::vector< anab::CosmicTag > >              cosmicTagTrackVector( new std::vector<anab::CosmicTag> );
-  std::unique_ptr< art::Assns<recob::Track, anab::CosmicTag > >  assnOutCosmicTagTrack( new art::Assns<recob::Track, anab::CosmicTag>);
+  std::unique_ptr< std::vector< anab::CosmicTag > >              cosmicTagTrackVector ( new std::vector<anab::CosmicTag> );
+  std::unique_ptr< art::Assns<recob::Track, anab::CosmicTag > >  assnOutCosmicTagTrack( new art::Assns<recob::Track, anab::CosmicTag> );
+  std::unique_ptr< art::Assns<recob::Track, recob::OpFlash  > >  assnOutOpFlashTrack  ( new art::Assns<recob::Track, recob::OpFlash>  );
+
+  _run = e.run();
+  _sub = e.subRun();
+  _evt = e.event();
+  _ntag = 0;
+
+  _trk_x_v.clear();
+  _trk_y_v.clear();
+  _trk_z_v.clear();
 
   art::Handle<std::vector<recob::Track> > Trk_h;
   e.getByLabel( fTrackModuleLabel, Trk_h );
   std::vector<art::Ptr<recob::Track> > TrkVec;
   art::fill_ptr_vector(TrkVec, Trk_h);
 
+  art::Handle<std::vector<recob::OpFlash> > Flash_h;
+  e.getByLabel( fFlashModuleLabel, Flash_h );
+  std::vector<art::Ptr<recob::OpFlash> > FlashVec;
+  art::fill_ptr_vector(FlashVec, Flash_h);
+
+  // find flash in time with MuCS
+  for (auto flash: FlashVec) {
+    
+    // flash time
+
+  }// for all flashes
+
   for (auto trk: TrkVec){
     if(length(trk)<fMinTrackLength) continue;
 
-    
+    std::cout << std::endl << "New track" << std::endl;
     //choose highest edge as track start
-    TVector3 start;
-    TVector3 dir;
-
-    //use diff between pstart and pstart+psign*(fDirFromNPoints-1)
-    if(fDirFromNPoints>trk->NumberTrajectoryPoints())
-      mf::LogInfo("MuCSTrackTagger") << "Track has too few trajectory points ("<<trk->NumberTrajectoryPoints()<<"), skipping it.\n";
-
-    auto firstPt = trk->TrajectoryPoint( trk->FirstValidPoint() ).position;
-    auto lastPt  = trk->TrajectoryPoint( trk->LastValidPoint()  ).position;
-
-    if (firstPt.Y() > lastPt.Y() ) {
-      start = TVector3( firstPt.X(), firstPt.Y(), firstPt.Z() );
-      auto secondPt = trk->TrajectoryPoint( trk->NextValidPoint( fDirFromNPoints - 1 + trk->FirstValidPoint() ) ).position;
-      auto direction = -(secondPt - firstPt);
-      auto mag = sqrt(direction.Mag2());
-      dir = TVector3( direction.X() / mag, direction.Y() / mag, direction.Z() / mag);
-    }// if firt point is higher up then last point
-    else {
-      start = TVector3( lastPt.X(), lastPt.Y(), lastPt.Z() );
-      auto secondPt = trk->TrajectoryPoint( trk->PreviousValidPoint( fDirFromNPoints - 1 + trk->LastValidPoint() ) ).position;
-      auto direction = -(secondPt - lastPt);
-      auto mag = sqrt(direction.Mag2());
-      dir = TVector3( direction.X() / mag, direction.Y() / mag, direction.Z() / mag);
+    TVector3 start, end, startDir, endDir;
+    if(trk->Vertex()[1]>trk->End()[1]){
+      start=trk->Vertex();
+      end=trk->End();
+      startDir=trk->VertexDirection();
+      endDir=trk->EndDirection();
+    }else{
+      start=trk->End();
+      end=trk->Vertex();
+      startDir=trk->EndDirection();
+      endDir=trk->VertexDirection();
     }
+    
+    //find which end of the trajectory to use to get direction
+    unsigned int pStart;
+    TVector3 dir;
+    int pSign;
+    if(trk->LocationAtPoint(trk->FirstValidPoint())==start){
+      pStart=0;
+      pSign=1; //go forward for track direction
+    }else if(trk->LocationAtPoint(trk->LastValidPoint())==start){
+      pStart=trk->LastValidPoint();
+      pSign=-1; //go backward for track direction
+    }else{
+      throw cet::exception("MuCSTrackTagger") << "Start seems to be in wrong position!\n";
+    }
+    
+    if(fDirFromNPoints==0){
+      //use reversed track start direction
+      dir=-startDir;
+    }else{
+      //use diff between pstart and pstart+psign*(fDirFromNPoints-1)
+      if(fDirFromNPoints>trk->CountValidPoints())
+	mf::LogInfo("MuCSTrackTagger") << "Track has too few trajectory points ("<<trk->CountValidPoints()<<"), skipping it.\n";
+      dir=(trk->LocationAtPoint(pStart) - trk->LocationAtPoint(trk->NextValidPoint(pStart+pSign*(fDirFromNPoints-1) ) ) ).Unit();
+    }
+
+    std::cout << "start @ [" << start.X() << ", " << start.Y() << ", " << start.Z() << "]" 
+	      << "\t w dir   [" << dir.X()   << ", " << dir.Y()   << ", " << dir.Z()   << "]"  << std::endl;
+
 
     //find interesections and generate tags if appropriate
     bool btag=intersectsBoxes(start,dir);
-    
+
     if (btag){
+      std::cout << "\t ***** this track intersects boxes!   *****" << std::endl;
       cosmicTagTrackVector->emplace_back(-999.);
       util::CreateAssn(*this, e, *cosmicTagTrackVector, trk, *assnOutCosmicTagTrack );
-    }
-    
-  }
 
- /*std::cout<<"\n"<<Trk_h->size()<<"\t"<<(*cosmicTagTrackVector).size();
-   for(unsigned int f=0;f<Trk_h->size();f++){
-   	std::cout<<"\n\t"<<f<<"\t"<<(*cosmicTagTrackVector)[f].CosmicScore()<<"\t"<<(*cosmicTagTrackVector)[f].CosmicType();
-   }*/
+      // save info to TTree
+      _ntag += 1;
+
+      _trk_len = length(trk);
+      
+      _trk_start_x = start.X();
+      _trk_start_y = start.Y();
+      _trk_start_z = start.Z();
+
+      _trk_end_x = end.X();
+      _trk_end_y = end.Y();
+      _trk_end_z = end.Z();
+
+      _trk_dir_x = dir.X();
+      _trk_dir_y = dir.Y();
+      _trk_dir_z = dir.Z();
+
+      _trk_x_v.clear();
+      _trk_y_v.clear();
+      _trk_z_v.clear();
+
+      for (size_t p=0; p < trk->CountValidPoints(); p++) {
+	auto pt = trk->LocationAtPoint( trk->NextValidPoint(pStart+pSign*p) );
+	_trk_x_v.push_back( pt.X() );
+	_trk_y_v.push_back( pt.Y() );
+	_trk_z_v.push_back( pt.Z() );
+      }// for all trajectory points
+
+    }// if tagged
+    
+  }// for all tracks
+
+  _tree->Fill();
  
   // e.put( std::move(outTracksForTags) );
   e.put( std::move(cosmicTagTrackVector) );
@@ -195,6 +295,7 @@ double MuCSTrackTagger::length(art::Ptr<recob::Track> track){
 void MuCSTrackTagger::reconfigure(fhicl::ParameterSet const & p) {
 
   fTrackModuleLabel = p.get< std::string >("TrackModuleLabel", "track");
+  fFlashModuleLabel = p.get< std::string >("FlashModuleLabel", "simpleFlashCosmic");
 
   fMuCSBottomBox=p.get< std::vector< float > >("MuCSBottomBox");
   fMuCSTopBox=p.get< std::  vector< float > >("MuCSTopBox");
