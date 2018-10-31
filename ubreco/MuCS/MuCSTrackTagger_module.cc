@@ -24,7 +24,7 @@
 #include "larcorealg/Geometry/geo.h"
 
 #include "lardataobj/RecoBase/Track.h"
-#include "lardataobj/RecoBase/Flash.h"
+#include "lardataobj/RecoBase/OpFlash.h"
 
 #include "lardataobj/AnalysisBase/CosmicTag.h"
 #include "lardata/Utilities/AssociationUtil.h"
@@ -52,7 +52,6 @@ public:
 private:
 
   
-  double length(const art::Ptr<recob::Track> track); //< Length of reconstructed track, trajectory by trajectory.
   bool intersectsBoxes(const TVector3 & start, const TVector3& dir);
 
   std::string fTrackModuleLabel; //< Track label to find MuCS tags in
@@ -75,6 +74,10 @@ private:
   float _trk_dir_x, _trk_dir_y, _trk_dir_z;
   float _trk_len;
   std::vector<float> _trk_x_v, _trk_y_v, _trk_z_v;
+  int _nflash;
+  float _flash_t, _flash_pe;
+  float _flash_z, _flash_zw, _flash_y, _flash_yw;
+  std::vector<double> _flash_pe_v;
   
 
 };
@@ -84,7 +87,7 @@ MuCSTrackTagger::MuCSTrackTagger(fhicl::ParameterSet const & p){
   // Call appropriate Produces<>() functions here.
   produces< std::vector<anab::CosmicTag> >();
   produces< art::Assns<recob::Track, anab::CosmicTag> >();
-  produces< art::Assns<recob::Track, recob::OpFlash> >();
+  //produces< art::Assns<recob::Track, recob::OpFlash> >();
 }
 
 MuCSTrackTagger::~MuCSTrackTagger() {}
@@ -118,6 +121,14 @@ void MuCSTrackTagger::beginJob(){
   _tree->Branch("_trk_x_v","std::vector<float>",&_trk_x_v);
   _tree->Branch("_trk_y_v","std::vector<float>",&_trk_y_v);
   _tree->Branch("_trk_z_v","std::vector<float>",&_trk_z_v);
+  _tree->Branch("_nflash",&_nflash,"nflash/I");
+  _tree->Branch("_flash_pe",&_flash_pe,"_flash_pe/F");
+  _tree->Branch("_flash_t",&_flash_t,"_flash_t/F");
+  _tree->Branch("_flash_z",&_flash_z,"_flash_z/F");
+  _tree->Branch("_flash_y",&_flash_y,"_flash_y/F");
+  _tree->Branch("_flash_zw",&_flash_zw,"_flash_zw/F");
+  _tree->Branch("_flash_yw",&_flash_yw,"_flash_yw/F");
+  _tree->Branch("_flash_pe_v","std::vector<double>",&_flash_pe_v);
 
                                                                     
 }
@@ -153,7 +164,7 @@ void MuCSTrackTagger::produce(art::Event & e) {
 
   std::unique_ptr< std::vector< anab::CosmicTag > >              cosmicTagTrackVector ( new std::vector<anab::CosmicTag> );
   std::unique_ptr< art::Assns<recob::Track, anab::CosmicTag > >  assnOutCosmicTagTrack( new art::Assns<recob::Track, anab::CosmicTag> );
-  std::unique_ptr< art::Assns<recob::Track, recob::OpFlash  > >  assnOutOpFlashTrack  ( new art::Assns<recob::Track, recob::OpFlash>  );
+  //std::unique_ptr< art::Assns<recob::Track, recob::OpFlash  > >  assnOutOpFlashTrack  ( new art::Assns<recob::Track, recob::OpFlash>  );
 
   _run = e.run();
   _sub = e.subRun();
@@ -175,14 +186,34 @@ void MuCSTrackTagger::produce(art::Event & e) {
   art::fill_ptr_vector(FlashVec, Flash_h);
 
   // find flash in time with MuCS
+  
+  _nflash = 0;
+  //size_t whichflash = 0; // which flash is in time? this is needed to store association
+  //size_t flash_ctr = 0;
+
   for (auto flash: FlashVec) {
     
-    // flash time
+    if ( (flash->Time() > -1.5) && (flash->Time() < -0.5) ) {
+
+      _nflash += 1;
+      _flash_t    = flash->Time();
+      _flash_pe_v = flash->PEs();
+      _flash_pe   = flash->TotalPE();
+      _flash_z    = flash->ZCenter();
+      _flash_y    = flash->YCenter();
+      _flash_zw   = flash->ZWidth();
+      _flash_yw   = flash->YWidth();
+      
+      //whichflash = flash_ctr;
+
+    }// if flash in time
+
+    //flash_ctr+= 1;
 
   }// for all flashes
 
   for (auto trk: TrkVec){
-    if(length(trk)<fMinTrackLength) continue;
+    if((trk->Length())<fMinTrackLength) continue;
 
     std::cout << std::endl << "New track" << std::endl;
     //choose highest edge as track start
@@ -234,11 +265,12 @@ void MuCSTrackTagger::produce(art::Event & e) {
       std::cout << "\t ***** this track intersects boxes!   *****" << std::endl;
       cosmicTagTrackVector->emplace_back(-999.);
       util::CreateAssn(*this, e, *cosmicTagTrackVector, trk, *assnOutCosmicTagTrack );
+      //util::CreateAssn(*this, e, *cosmicTagTrackVector, trk, *assnOutCosmicTagTrack );
 
       // save info to TTree
       _ntag += 1;
 
-      _trk_len = length(trk);
+      _trk_len = trk->Length();
       
       _trk_start_x = start.X();
       _trk_start_y = start.Y();
@@ -275,21 +307,6 @@ void MuCSTrackTagger::produce(art::Event & e) {
 
 
 } // end of produce
-
-// Length of reconstructed track, trajectory by trajectory.
-double MuCSTrackTagger::length(art::Ptr<recob::Track> track){
-  double result = 0.;
-  TVector3 disp = track->LocationAtPoint(0);
-  int n = track->NumberTrajectoryPoints();
-  for(int i = 1; i < n; ++i) {
-    const TVector3& pos = track->LocationAtPoint(i);
-    disp -= pos;
-    result += disp.Mag();
-    disp = pos;
-  }
-  return result;
-}
-
 
 
 void MuCSTrackTagger::reconfigure(fhicl::ParameterSet const & p) {
