@@ -63,6 +63,7 @@ microboone_MuCSTrackTaggers_bs30: {
   MuCSTrackTaggerpandoraCosmicKHit: @local::microboone_MuCSTrackTagger_bs30
   MuCSTrackTaggerpmtrack:           @local::microboone_MuCSTrackTagger_bs30
   MuCSTrackTaggerpandoraCosmic:     @local::microboone_MuCSTrackTagger_bs30
+  MuCSTrackTaggerpandora:     @local::microboone_MuCSTrackTagger_bs30
 }
 
 microboone_MuCSTrackTaggers_bs30.MuCSTrackTaggertrackkalmanhit.TrackModuleLabel: "trackkalmanhit"
@@ -70,12 +71,14 @@ microboone_MuCSTrackTaggers_bs30.MuCSTrackTaggerstitchkalmanhit.TrackModuleLabel
 microboone_MuCSTrackTaggers_bs30.MuCSTrackTaggerpandoraCosmicKHit.TrackModuleLabel: "pandoraCosmicKHit"
 microboone_MuCSTrackTaggers_bs30.MuCSTrackTaggerpmtrack.TrackModuleLabel: "pmtrack"
 microboone_MuCSTrackTaggers_bs30.MuCSTrackTaggerpandoraCosmic.TrackModuleLabel: "pandoraCosmic"
+microboone_MuCSTrackTaggers_bs30.MuCSTrackTaggerpandora.TrackModuleLabel: "pandora"
 
-microboone_MuCSTrackTaggers_bs30_seq: [ MuCSTrackTaggertrackkalmanhit,
-                                        MuCSTrackTaggerstitchkalmanhit,
-                                        MuCSTrackTaggerpandoraCosmicKHit,
-                                        MuCSTrackTaggerpmtrack,
-                                        MuCSTrackTaggerpandoraCosmic]
+microboone_MuCSTrackTaggers_bs30_seq: [ #MuCSTrackTaggertrackkalmanhit,
+                                        #MuCSTrackTaggerstitchkalmanhit,
+                                        #MuCSTrackTaggerpandoraCosmicKHit,
+                                        #MuCSTrackTaggerpmtrack,
+                                        #MuCSTrackTaggerpandoraCosmic,
+                                        MuCSTrackTaggerpandora]
 
 #box setup 33 configurations
 microboone_MuCSTrackTaggers_bs33: {
