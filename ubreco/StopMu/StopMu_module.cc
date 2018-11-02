@@ -62,7 +62,7 @@
    doxygen documentation!
 */
 
-static const float kINVALID_FLOAT = std::numeric_limits<float>::max();
+static const double kINVALID_DOUBLE = std::numeric_limits<double>::max();
 
 class TruncMean;
 
@@ -87,42 +87,42 @@ class TruncMean{
      1) the median and rms of these values is calculated.
      2) the subset of local dq values within the range [median-rms, median+rms] is selected.
      3) the resulting local truncated dq is the average of this truncated subset.
-     @input std::vector<float> rr_v -> vector of x-axis coordinates (i.e. position for track profile)
-     @input std::vector<float> dq_v -> vector of measured values for which truncated profile is requested
+     @input std::vector<double> rr_v -> vector of x-axis coordinates (i.e. position for track profile)
+     @input std::vector<double> dq_v -> vector of measured values for which truncated profile is requested
      (i.e. charge profile of a track)
-     @input std::vector<float> dq_trunc_v -> passed by reference -> output stored here
-     @input float nsigma -> optional parameter, number of sigma to keep around RMS for TM calculation
+     @input std::vector<double> dq_trunc_v -> passed by reference -> output stored here
+     @input double nsigma -> optional parameter, number of sigma to keep around RMS for TM calculation
   */
-  void CalcTruncMeanProfile(const std::vector<float>& rr_v, const std::vector<float>& dq_v,
-			    std::vector<float>& dq_trunc_v, const float& nsigma = 1);
+  void CalcTruncMeanProfile(const std::vector<double>& rr_v, const std::vector<double>& dq_v,
+			    std::vector<double>& dq_trunc_v, const double& nsigma = 1);
 
   /**
      @brief Iteratively calculate the truncated mean of a distribution
-     @input std::vector<float> v -> vector of values for which truncated mean is asked
+     @input std::vector<double> v -> vector of values for which truncated mean is asked
      @input size_t nmin -> minimum number of iterations to converge on truncated mean
      @input size_t nmax -> maximum number of iterations to converge on truncated mean
      @input size_t lmin -> minimum number of entries in vector before exiting and returning current value
      @input size_t currentiteration -> current iteration
-     @input float convergencelimit -> fractional difference between successive iterations
+     @input double convergencelimit -> fractional difference between successive iterations
      under which the iteration is completed, provided nmin iterations have occurred.
      @input nsigma -> number of sigma around the median value to keep when the distribution is trimmed.
    */
-  float CalcIterativeTruncMean(std::vector<float> v, const size_t& nmin,
+  double CalcIterativeTruncMean(std::vector<double> v, const size_t& nmin,
 			       const size_t& nmax, const size_t& currentiteration,
 			       const size_t& lmin,
-			       const float& convergencelimit,
-			       const float& nsigma, const float& oldmed = kINVALID_FLOAT);
+			       const double& convergencelimit,
+			       const double& nsigma, const double& oldmed = kINVALID_DOUBLE);
 
   /**
      @brief Set the smearing radius over which to take hits for truncated mean computaton.
    */
-  void setRadius(const float& rad) { _rad = rad; }
+  void setRadius(const double& rad) { _rad = rad; }
 
  private:
 
-  float Mean  (const std::vector<float>& v);
-  float Median(const std::vector<float>& v);
-  float RMS   (const std::vector<float>& v);
+  double Mean  (const std::vector<double>& v);
+  double Median(const std::vector<double>& v);
+  double RMS   (const std::vector<double>& v);
 
   /**
      Smearing radius over which charge from neighboring hits is scanned to calculate local
@@ -132,11 +132,11 @@ class TruncMean{
 
 };
 
-float TruncMean::CalcIterativeTruncMean(std::vector<float> v, const size_t& nmin,
+double TruncMean::CalcIterativeTruncMean(std::vector<double> v, const size_t& nmin,
 					const size_t& nmax, const size_t& currentiteration,
 					const size_t& lmin,
-					const float& convergencelimit,
-					const float& nsigma, const float& oldmed)
+					const double& convergencelimit,
+					const double& nsigma, const double& oldmed)
 {
 
   auto const& mean = Mean(v);
@@ -152,7 +152,7 @@ float TruncMean::CalcIterativeTruncMean(std::vector<float> v, const size_t& nmin
     return mean;
 
   // if we passed the minimum number of iterations and the mean is close enough to the old value
-  float fracdiff = fabs(med-oldmed) / oldmed;
+  double fracdiff = fabs(med-oldmed) / oldmed;
   if ( (currentiteration >= nmin) && (fracdiff < convergencelimit) )
     return mean;
 
@@ -162,14 +162,14 @@ float TruncMean::CalcIterativeTruncMean(std::vector<float> v, const size_t& nmin
   // use erase-remove : https://en.wikipedia.org/wiki/Erase%E2%80%93remove_idiom
   // https://stackoverflow.com/questions/17270837/stdvector-removing-elements-which-fulfill-some-conditions
   v.erase( std::remove_if( v.begin(), v.end(),
-			   [med,nsigma,rms](const float& x) { return ( (x < (med-nsigma*rms)) || (x > (med+nsigma*rms)) ); }), // lamdda condition for events to be removed
+			   [med,nsigma,rms](const double& x) { return ( (x < (med-nsigma*rms)) || (x > (med+nsigma*rms)) ); }), // lamdda condition for events to be removed
 	   v.end());
 
   return CalcIterativeTruncMean(v, nmin, nmax, lmin, currentiteration+1, convergencelimit, nsigma, med);
 }
 
-void TruncMean::CalcTruncMeanProfile(const std::vector<float>& rr_v, const std::vector<float>& dq_v,
-				     std::vector<float>& dq_trunc_v, const float& nsigma)
+void TruncMean::CalcTruncMeanProfile(const std::vector<double>& rr_v, const std::vector<double>& dq_v,
+				     std::vector<double>& dq_trunc_v, const double& nsigma)
 {
 
   // how many points to sample
@@ -183,7 +183,7 @@ void TruncMean::CalcTruncMeanProfile(const std::vector<float>& rr_v, const std::
   for (size_t n=0; n < dq_v.size(); n++) {
 
     // current residual range
-    float rr = rr_v.at(n);
+    double rr = rr_v.at(n);
 
     int nmin = n - Nneighbor;
     int nmax = n + Nneighbor;
@@ -192,11 +192,11 @@ void TruncMean::CalcTruncMeanProfile(const std::vector<float>& rr_v, const std::
     if (nmax > Nmax) nmax = Nmax;
 
     // vector for local dq values
-    std::vector<float> dq_local_v;
+    std::vector<double> dq_local_v;
 
     for (int i=nmin; i < nmax; i++) {
 
-      float dr = rr - rr_v[i];
+      double dr = rr - rr_v[i];
       if (dr < 0) dr *= -1;
 
       if (dr > _rad) continue;
@@ -211,10 +211,10 @@ void TruncMean::CalcTruncMeanProfile(const std::vector<float>& rr_v, const std::
     }
 
     // calculate median and rms
-    float median = Median(dq_local_v);
-    float rms    = RMS(dq_local_v);
+    double median = Median(dq_local_v);
+    double rms    = RMS(dq_local_v);
 
-    float truncated_dq = 0.;
+    double truncated_dq = 0.;
     int npts = 0;
     for (auto const& dq : dq_local_v) {
       if ( ( dq < (median+rms * nsigma) ) && ( dq > (median-rms * nsigma) ) ){
@@ -229,37 +229,37 @@ void TruncMean::CalcTruncMeanProfile(const std::vector<float>& rr_v, const std::
   return;
 }
 
-float TruncMean::Mean(const std::vector<float>& v)
+double TruncMean::Mean(const std::vector<double>& v)
 {
 
-  float mean = 0.;
+  double mean = 0.;
   for (auto const& n : v) mean += n;
   mean /= v.size();
 
   return mean;
 }
 
-float TruncMean::Median(const std::vector<float>& v)
+double TruncMean::Median(const std::vector<double>& v)
 {
 
   if (v.size() == 1) return v[0];
 
-  std::vector<float> vcpy = v;
+  std::vector<double> vcpy = v;
 
   std::sort(vcpy.begin(), vcpy.end());
 
-  float median = vcpy[ vcpy.size() / 2 ];
+  double median = vcpy[ vcpy.size() / 2 ];
 
   return median;
 }
 
-float TruncMean::RMS(const std::vector<float>& v)
+double TruncMean::RMS(const std::vector<double>& v)
 {
 
-  float avg = 0.;
+  double avg = 0.;
   for (auto const& val : v) avg += val;
   avg /= v.size();
-  float rms = 0.;
+  double rms = 0.;
   for (auto const& val : v) rms += (val-avg)*(val-avg);
   rms = sqrt( rms / ( v.size() -  1 ) );
 
@@ -290,11 +290,11 @@ public:
   void endJob() override;
 
   // Additional functions
-  float yzDistance(float y1, float z1, float y2, float z2);
+  double yzDistance(double y1, double z1, double y2, double z2);
   void clear();
   void fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<double> rr);
-  bool insideTPCvolume(float x, float y, float z);
-  float getPitch(const TVector3 &direction, const int &pl);
+  bool insideTPCvolume(double x, double y, double z);
+  double getPitch(const TVector3 &direction, const int &pl);
   void shiftTruePosition(double true_point[3], double true_time, double true_point_shifted[3]);
 
 private:
@@ -305,28 +305,28 @@ private:
 
   TTree* _reco_tree;
   int _run, _sub, _evt;
-  float _trk_len;
-  float _trk_start_x;
-  float _trk_start_y;
-  float _trk_start_z;
-  float _trk_end_x;
-  float _trk_end_y;
-  float _trk_end_z;
-  float _yz_true_reco_distance;
+  double _trk_len;
+  double _trk_start_x;
+  double _trk_start_y;
+  double _trk_start_z;
+  double _trk_end_x;
+  double _trk_end_y;
+  double _trk_end_z;
+  double _yz_true_reco_distance;
   int _yz_trackid; // track id of closest stopping muon by YZ distance
-  float _matchscore; // fraction of track hits associated to a true stopping muon MCParticle
+  double _matchscore; // fraction of track hits associated to a true stopping muon MCParticle
   int   _matchtrackid; // track id of best match stopping muon from backtracker
-  float _pitch_u, _pitch_v, _pitch_y;
-  std::vector<float> _dqdx_u;
-  std::vector<float> _dqdx_tm_u;
-  std::vector<float> _rr_u;
-  std::vector<float> _dqdx_v;
-  std::vector<float> _dqdx_tm_v;
-  std::vector<float> _rr_v;
-  std::vector<float> _dqdx_y;
-  std::vector<float> _dqdx_tm_y;
-  std::vector<float> _rr_y;
-  float _delta_t_closest_flash;
+  double _pitch_u, _pitch_v, _pitch_y;
+  std::vector<double> _dqdx_u;
+  std::vector<double> _dqdx_tm_u;
+  std::vector<double> _rr_u;
+  std::vector<double> _dqdx_v;
+  std::vector<double> _dqdx_tm_v;
+  std::vector<double> _rr_v;
+  std::vector<double> _dqdx_y;
+  std::vector<double> _dqdx_tm_y;
+  std::vector<double> _rr_y;
+  double _delta_t_closest_flash;
 };
 
 
@@ -353,10 +353,10 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   // _mc_tree->Branch("_trk_end_x",  &_mc_end_x,  "trk_end_x/F"  );
   // _mc_tree->Branch("_trk_end_y",  &_mc_end_y,  "trk_end_y/F"  );
   // _mc_tree->Branch("_trk_end_z",  &_mc_end_z,  "trk_end_z/F"  );
-  // _mc_tree->Branch("_dqdx_u","std::vector<float>",&_dqdx_u);
-  // _mc_tree->Branch("_dqdx_v","std::vector<float>",&_dqdx_v);
-  // _mc_tree->Branch("_dqdx_y","std::vector<float>",&_dqdx_y);
-  // _mc_tree->Branch("_rr_v",  "std::vector<float>",&_rr_v  );
+  // _mc_tree->Branch("_dqdx_u","std::vector<double>",&_dqdx_u);
+  // _mc_tree->Branch("_dqdx_v","std::vector<double>",&_dqdx_v);
+  // _mc_tree->Branch("_dqdx_y","std::vector<double>",&_dqdx_y);
+  // _mc_tree->Branch("_rr_v",  "std::vector<double>",&_rr_v  );
 
   _reco_tree = tfs->make<TTree>("reco_tree", "Reco Track Tree");
   _reco_tree->Branch("_run",&_run,"run/I");
@@ -376,15 +376,15 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   _reco_tree->Branch("_pitch_u",  &_pitch_u,  "pitch_u/F"  );
   _reco_tree->Branch("_pitch_v",  &_pitch_v,  "pitch_v/F"  );
   _reco_tree->Branch("_pitch_y",  &_pitch_y,  "pitch_y/F"  );
-  _reco_tree->Branch("_dqdx_u","std::vector<float>",&_dqdx_u);
-  _reco_tree->Branch("_dqdx_v","std::vector<float>",&_dqdx_v);
-  _reco_tree->Branch("_dqdx_y","std::vector<float>",&_dqdx_y);
-  _reco_tree->Branch("_dqdx_tm_u","std::vector<float>",&_dqdx_tm_u);
-  _reco_tree->Branch("_dqdx_tm_v","std::vector<float>",&_dqdx_tm_v);
-  _reco_tree->Branch("_dqdx_tm_y","std::vector<float>",&_dqdx_tm_y);
-  _reco_tree->Branch("_rr_u",  "std::vector<float>",&_rr_u  );
-  _reco_tree->Branch("_rr_v",  "std::vector<float>",&_rr_v  );
-  _reco_tree->Branch("_rr_y",  "std::vector<float>",&_rr_y  );
+  _reco_tree->Branch("_dqdx_u","std::vector<double>",&_dqdx_u);
+  _reco_tree->Branch("_dqdx_v","std::vector<double>",&_dqdx_v);
+  _reco_tree->Branch("_dqdx_y","std::vector<double>",&_dqdx_y);
+  _reco_tree->Branch("_dqdx_tm_u","std::vector<double>",&_dqdx_tm_u);
+  _reco_tree->Branch("_dqdx_tm_v","std::vector<double>",&_dqdx_tm_v);
+  _reco_tree->Branch("_dqdx_tm_y","std::vector<double>",&_dqdx_tm_y);
+  _reco_tree->Branch("_rr_u",  "std::vector<double>",&_rr_u  );
+  _reco_tree->Branch("_rr_v",  "std::vector<double>",&_rr_v  );
+  _reco_tree->Branch("_rr_y",  "std::vector<double>",&_rr_y  );
   _reco_tree->Branch("_delta_t_closest_flash",  &_delta_t_closest_flash,  "delta_t_closest_flash/F"  );
 
 }
@@ -399,7 +399,7 @@ void StopMu::analyze(art::Event const & e)
   // consider only events with an interaction outside of the TPC
   auto const &generator_handle = e.getValidHandle<std::vector<simb::MCTruth>>(fMCProducer);
   auto const &generator(*generator_handle);
-  float _true_vx=-1000, _true_vy=-1000, _true_vz=-1000;
+  double _true_vx=-1000, _true_vy=-1000, _true_vz=-1000;
   size_t n_nu = 0;
   for (auto &gen : generator)
   {
@@ -426,7 +426,7 @@ void StopMu::analyze(art::Event const & e)
 
 
 
-  std::vector<float> mc_muon_end_y, mc_muon_end_z;
+  std::vector<double> mc_muon_end_y, mc_muon_end_z;
   // vector of track ids for stopping muons
   std::vector<size_t> stop_mu_trackid_v;
 
@@ -484,7 +484,7 @@ void StopMu::analyze(art::Event const & e)
     _yz_trackid = 0;
     for (size_t k=0; k<mc_muon_end_y.size(); k++)
     {
-      float this_distance = yzDistance(_trk_end_y, _trk_end_z, mc_muon_end_y[k], mc_muon_end_z[k]);
+      double this_distance = yzDistance(_trk_end_y, _trk_end_z, mc_muon_end_y[k], mc_muon_end_z[k]);
       if (this_distance < _yz_true_reco_distance)
       {
         _yz_true_reco_distance = this_distance;
@@ -562,7 +562,7 @@ void StopMu::analyze(art::Event const & e)
     {
       //std::cout << "iteration beg" << f << " delta t " << _delta_t_closest_flash << std::endl;
       auto const& flash = optical_handle->at(f);
-      float ttrk = _trk_end_x / 0.1114 - flash.Time() - 6.0;
+      double ttrk = _trk_end_x / 0.1114 - flash.Time() - 6.0;
       if (fabs(ttrk) < fabs(_delta_t_closest_flash)) _delta_t_closest_flash = ttrk;
       ttrk = (_trk_end_x-256.35) / 0.1114 - flash.Time() - 19.3;
       if (fabs(ttrk) < fabs(_delta_t_closest_flash)) _delta_t_closest_flash = ttrk;
@@ -574,7 +574,7 @@ void StopMu::analyze(art::Event const & e)
   return;
 }
 
-float StopMu::yzDistance(float y1, float z1, float y2, float z2)
+double StopMu::yzDistance(double y1, double z1, double y2, double z2)
 {
   return sqrt((y1-y2)*(y1-y2) + (z1-z2)*(z1-z2));
 }
@@ -600,8 +600,8 @@ void StopMu::fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<doubl
   {
     for (size_t n=0; n < dqdx.size(); n++)
     {
-    _dqdx_u.push_back((float)dqdx[n]);
-    _rr_u.push_back(  (float)rr[n]  );
+    _dqdx_u.push_back((double)dqdx[n]);
+    _rr_u.push_back(  (double)rr[n]  );
     _tmean.CalcTruncMeanProfile(_rr_u, _dqdx_u, _dqdx_tm_u);
     }
   }
@@ -609,8 +609,8 @@ void StopMu::fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<doubl
   {
     for (size_t n=0; n < dqdx.size(); n++)
     {
-    _dqdx_v.push_back((float)dqdx[n]);
-    _rr_v.push_back(  (float)rr[n]  );
+    _dqdx_v.push_back((double)dqdx[n]);
+    _rr_v.push_back(  (double)rr[n]  );
     _tmean.CalcTruncMeanProfile(_rr_v, _dqdx_v, _dqdx_tm_v);
     }
   }
@@ -618,14 +618,14 @@ void StopMu::fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<doubl
   {
     for (size_t n=0; n < dqdx.size(); n++)
     {
-    _dqdx_y.push_back((float)dqdx[n]);
-    _rr_y.push_back(  (float)rr[n]  );
+    _dqdx_y.push_back((double)dqdx[n]);
+    _rr_y.push_back(  (double)rr[n]  );
     _tmean.CalcTruncMeanProfile(_rr_y, _dqdx_y, _dqdx_tm_y);
     }
   }
 }
 
-bool StopMu::insideTPCvolume(float x, float y, float z)
+bool StopMu::insideTPCvolume(double x, double y, double z)
 {
   // hardcoded
   if (x>0 && x<256.35 && y>-116.5 && y<116.5 && z>0 && z<1036.8)
@@ -638,7 +638,7 @@ bool StopMu::insideTPCvolume(float x, float y, float z)
   }
 }
 
-float StopMu::getPitch(const TVector3 &direction, const int &pl)
+double StopMu::getPitch(const TVector3 &direction, const int &pl)
 {
   // prepare a direction vector for the plane
   TVector3 wireDir = {0., 0., 0.};
@@ -663,7 +663,7 @@ float StopMu::getPitch(const TVector3 &direction, const int &pl)
   // infinite
   if (cos == 0)
     return std::numeric_limits<double>::max();
-  float pitch = minWireSpacing / cos;
+  double pitch = minWireSpacing / cos;
   return pitch;
 }
 
