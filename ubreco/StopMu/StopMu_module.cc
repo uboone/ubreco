@@ -362,20 +362,20 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   _reco_tree->Branch("_run",&_run,"run/I");
   _reco_tree->Branch("_sub",&_sub,"sub/I");
   _reco_tree->Branch("_evt",&_evt,"evt/I");
-  _reco_tree->Branch("_trk_len",&_trk_len,"trk_len/F");
-  _reco_tree->Branch("_trk_start_x",&_trk_start_x,"trk_start_x/F");
-  _reco_tree->Branch("_trk_start_y",&_trk_start_y,"trk_start_y/F");
-  _reco_tree->Branch("_trk_start_z",&_trk_start_z,"trk_start_z/F");
-  _reco_tree->Branch("_trk_end_x",  &_trk_end_x,  "trk_end_x/F"  );
-  _reco_tree->Branch("_trk_end_y",  &_trk_end_y,  "trk_end_y/F"  );
-  _reco_tree->Branch("_trk_end_z",  &_trk_end_z,  "trk_end_z/F"  );
-  _reco_tree->Branch("_yz_true_reco_distance",  &_yz_true_reco_distance,  "yz_true_reco_distance/F"  );
+  _reco_tree->Branch("_trk_len",&_trk_len,"trk_len/D");
+  _reco_tree->Branch("_trk_start_x",&_trk_start_x,"trk_start_x/D");
+  _reco_tree->Branch("_trk_start_y",&_trk_start_y,"trk_start_y/D");
+  _reco_tree->Branch("_trk_start_z",&_trk_start_z,"trk_start_z/D");
+  _reco_tree->Branch("_trk_end_x",  &_trk_end_x,  "trk_end_x/D"  );
+  _reco_tree->Branch("_trk_end_y",  &_trk_end_y,  "trk_end_y/D"  );
+  _reco_tree->Branch("_trk_end_z",  &_trk_end_z,  "trk_end_z/D"  );
+  _reco_tree->Branch("_yz_true_reco_distance",  &_yz_true_reco_distance,  "yz_true_reco_distance/D"  );
   _reco_tree->Branch("_yz_trackid",  &_yz_trackid,  "yz_trackid/I"  );
   _reco_tree->Branch("_matchtrackid",  &_matchtrackid,  "matchtrackid/I"  );
-  _reco_tree->Branch("_matchscore",  &_matchscore,  "matchscore/F"  );
-  _reco_tree->Branch("_pitch_u",  &_pitch_u,  "pitch_u/F"  );
-  _reco_tree->Branch("_pitch_v",  &_pitch_v,  "pitch_v/F"  );
-  _reco_tree->Branch("_pitch_y",  &_pitch_y,  "pitch_y/F"  );
+  _reco_tree->Branch("_matchscore",  &_matchscore,  "matchscore/D"  );
+  _reco_tree->Branch("_pitch_u",  &_pitch_u,  "pitch_u/D"  );
+  _reco_tree->Branch("_pitch_v",  &_pitch_v,  "pitch_v/D"  );
+  _reco_tree->Branch("_pitch_y",  &_pitch_y,  "pitch_y/D"  );
   _reco_tree->Branch("_dqdx_u","std::vector<double>",&_dqdx_u);
   _reco_tree->Branch("_dqdx_v","std::vector<double>",&_dqdx_v);
   _reco_tree->Branch("_dqdx_y","std::vector<double>",&_dqdx_y);
@@ -385,7 +385,7 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   _reco_tree->Branch("_rr_u",  "std::vector<double>",&_rr_u  );
   _reco_tree->Branch("_rr_v",  "std::vector<double>",&_rr_v  );
   _reco_tree->Branch("_rr_y",  "std::vector<double>",&_rr_y  );
-  _reco_tree->Branch("_delta_t_closest_flash",  &_delta_t_closest_flash,  "delta_t_closest_flash/F"  );
+  _reco_tree->Branch("_delta_t_closest_flash",  &_delta_t_closest_flash,  "delta_t_closest_flash/D"  );
 
 }
 
