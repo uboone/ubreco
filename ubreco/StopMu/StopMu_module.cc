@@ -335,7 +335,7 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   EDAnalyzer(p)  // ,
  // More initializers here.
 {
-  fTrkProducer  = p.get<std::string>("TrkProducer", "pandora");
+  fTrkProducer  = p.get<std::string>("TrkProducer");
   fCaloProducer = p.get<std::string>("CaloProducer");
   fMCProducer = p.get<std::string>("MCProducer", "generator");
   fMCParticleLabel = p.get<std::string>("MCParticleLabel", "largeant");
@@ -457,7 +457,7 @@ void StopMu::analyze(art::Event const & e)
   // grab calorimetry objects associated to tracks
   art::FindMany<anab::Calorimetry> trk_calo_assn_v(trk_h, e, fCaloProducer);
   // grab hits associated to tracks
-  art::FindManyP<recob::Hit> trk_hit_assn_v(trk_h, e, "pandora");
+  art::FindManyP<recob::Hit> trk_hit_assn_v(trk_h, e, fTrkProducer);
 
   // load backtracker info associated to mcparticles via hits
   auto const& gaushit_h = e.getValidHandle<std::vector<recob::Hit> > ("gaushit");
