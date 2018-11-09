@@ -1,7 +1,5 @@
 #include "services_microboone.fcl"
 #include "triggeralgo_service.fcl"
-#include "calorimetry_microboone.fcl"
-
 
 process_name: ThroughMu
 
@@ -51,42 +49,38 @@ physics:
 {
 
     producers:
-    {
-      rns:                 { module_type: RandomNumberSaver }
-      pandoracaloN: @local::microboone_calodata
-    }
-    analyzers:
-    {
+ {
+
+  ### random number saver
+  rns:                 { module_type: RandomNumberSaver }
+  ### gamma catcher
+
+ }
+ analyzers:
+ {
         stopmu: { module_type: StopMu
-                      TrkProducer: "pandoraTrack"
-                      CaloProducer: "pandoracaloN"
+                      TrkProducer: "pandoraKalmanTrack"
+                      CaloProducer: "pandoraKalmanTrackcalo"
                       MCProducer: "generator"
                       MCParticleLabel: "largeant"
                      }
-    }
+ }
 
-  reco: [ rns, pandoracaloN ]
-  ana: [ stopmu ]
-
-
+ reco: [ rns ]
+ ana: [ stopmu ]
 
  #define the output stream, there could be more than one if using filters
  stream1:  [ out1 ]
 
  #trigger_paths is a keyword and contains the paths that modify the art::event,
  #ie filters and producers
- trigger_paths: [reco]
+ #trigger_paths: [reco]
 
  #end_paths is a keyword and contains the paths that do not modify the art::Event,
  #ie analyzers and output streams.  these all run simultaneously
  #end_paths:     [stream1,ana]
  end_paths:     [ana]
 }
-
-physics.producers.pandoracaloN.TrackModuleLabel: "pandoraTrack"
-physics.producers.pandoracaloN.SpacePointModuleLabel: "pandora"
-
-
 
 #block to define where the output goes.  if you defined a filter in the physics
 #block and put it in the trigger_paths then you need to put a SelectEvents: {SelectEvents: [XXX]}

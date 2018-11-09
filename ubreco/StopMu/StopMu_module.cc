@@ -292,7 +292,7 @@ public:
   // Additional functions
   double yzDistance(double y1, double z1, double y2, double z2);
   void clear();
-  void fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<double> rr);
+  void fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<double> rr, std::vector<TVector3> xyz);
   bool insideTPCvolume(double x, double y, double z);
   double getPitch(const TVector3 &direction, const int &pl);
   void shiftTruePosition(double true_point[3], double true_time, double true_point_shifted[3]);
@@ -305,6 +305,7 @@ private:
 
   TTree* _reco_tree;
   int _run, _sub, _evt;
+  unsigned int _trk_id;
   double _trk_len;
   double _trk_start_x;
   double _trk_start_y;
@@ -320,12 +321,21 @@ private:
   std::vector<double> _dqdx_u;
   std::vector<double> _dqdx_tm_u;
   std::vector<double> _rr_u;
+  std::vector<double> _x_position_u;
+  std::vector<double> _y_position_u;
+  std::vector<double> _z_position_u;
   std::vector<double> _dqdx_v;
   std::vector<double> _dqdx_tm_v;
   std::vector<double> _rr_v;
+  std::vector<double> _x_position_v;
+  std::vector<double> _y_position_v;
+  std::vector<double> _z_position_v;
   std::vector<double> _dqdx_y;
   std::vector<double> _dqdx_tm_y;
   std::vector<double> _rr_y;
+  std::vector<double> _x_position_y;
+  std::vector<double> _y_position_y;
+  std::vector<double> _z_position_y;
   double _delta_t_closest_flash;
 };
 
@@ -362,6 +372,7 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   _reco_tree->Branch("_run",&_run,"run/I");
   _reco_tree->Branch("_sub",&_sub,"sub/I");
   _reco_tree->Branch("_evt",&_evt,"evt/I");
+  _reco_tree->Branch("_trk_id",&_trk_id,"trk_id/i");
   _reco_tree->Branch("_trk_len",&_trk_len,"trk_len/D");
   _reco_tree->Branch("_trk_start_x",&_trk_start_x,"trk_start_x/D");
   _reco_tree->Branch("_trk_start_y",&_trk_start_y,"trk_start_y/D");
@@ -385,6 +396,18 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   _reco_tree->Branch("_rr_u",  "std::vector<double>",&_rr_u  );
   _reco_tree->Branch("_rr_v",  "std::vector<double>",&_rr_v  );
   _reco_tree->Branch("_rr_y",  "std::vector<double>",&_rr_y  );
+  _reco_tree->Branch("_x_position_u",  "std::vector<double>", &_x_position_u  );
+  _reco_tree->Branch("_x_position_v",  "std::vector<double>", &_x_position_v  );
+  _reco_tree->Branch("_x_position_y",  "std::vector<double>", &_x_position_y  );
+
+  _reco_tree->Branch("_y_position_u",  "std::vector<double>", &_y_position_u  );
+  _reco_tree->Branch("_y_position_v",  "std::vector<double>", &_y_position_v  );
+  _reco_tree->Branch("_y_position_y",  "std::vector<double>", &_y_position_y  );
+
+  _reco_tree->Branch("_z_position_u",  "std::vector<double>", &_z_position_u  );
+  _reco_tree->Branch("_z_position_v",  "std::vector<double>", &_z_position_v  );
+  _reco_tree->Branch("_z_position_y",  "std::vector<double>", &_z_position_y  );
+
   _reco_tree->Branch("_delta_t_closest_flash",  &_delta_t_closest_flash,  "delta_t_closest_flash/D"  );
 
 }
@@ -442,12 +465,9 @@ void StopMu::analyze(art::Event const & e)
       true_end[1] = mcparticle.EndY();
       true_end[2] = mcparticle.EndZ();
       shiftTruePosition(true_end, mcparticle.EndT(), true_end_shifted);
-      if (mcparticle.EndE() == mcparticle.Mass())
-	{
-	  mc_muon_end_y.push_back(true_end_shifted[1]);
-	  mc_muon_end_z.push_back(true_end_shifted[2]);
-	  stop_mu_trackid_v.push_back( mcparticle.TrackId() );
-	}
+      mc_muon_end_y.push_back(true_end_shifted[1]);
+      mc_muon_end_z.push_back(true_end_shifted[2]);
+      stop_mu_trackid_v.push_back( mcparticle.TrackId() );
     }
   }
 
@@ -464,12 +484,12 @@ void StopMu::analyze(art::Event const & e)
 
   for (size_t t=0; t < trk_h->size(); t++)
   {
-    // if (isreconstructedAsCosmic() == false) continue;
     clear();
     auto const& trk = trk_h->at(t);
     auto const& beg = trk.Vertex();
     auto const& end = trk.End();
 
+    _trk_id = t;
     _trk_len = trk.Length();
     _trk_start_x = beg.X();
     _trk_start_y = beg.Y();
@@ -506,7 +526,8 @@ void StopMu::analyze(art::Event const & e)
       auto const& plane = calo->PlaneID().Plane;
       auto const& dqdx = calo->dQdx();
       auto const& rr   = calo->ResidualRange();
-      fillCalorimetry(plane, dqdx, rr);
+      auto const& xyz   = calo->XYZ();
+      fillCalorimetry(plane, dqdx, rr, xyz);
     }
 
     // get associated hits
@@ -515,8 +536,7 @@ void StopMu::analyze(art::Event const & e)
     _matchscore = 0.;
     _matchtrackid = 0;
 
-    for (art::Ptr<recob::Hit> hit : hit_v) {
-      
+    for (art::Ptr<recob::Hit> hit : hit_v)  {
       auto hitidx = hit.key();
       
       std::vector<simb::MCParticle const*> particle_vec;
@@ -578,17 +598,28 @@ void StopMu::clear()
   _dqdx_u.clear();
   _dqdx_tm_u.clear();
   _rr_u.clear();
+  _x_position_u.clear();
+  _y_position_u.clear();
+  _z_position_u.clear();
+
   _dqdx_v.clear();
   _dqdx_tm_v.clear();
   _rr_v.clear();
+  _x_position_v.clear();
+  _y_position_v.clear();
+  _z_position_v.clear();
+
   _dqdx_y.clear();
   _dqdx_tm_y.clear();
   _rr_y.clear();
+  _x_position_y.clear();
+  _y_position_y.clear();
+  _z_position_y.clear();
 
   _delta_t_closest_flash = 10000.;
 }
 
-void StopMu::fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<double> rr)
+void StopMu::fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<double> rr, std::vector<TVector3> xyz)
 {
   if (pl==0)
   {
@@ -597,6 +628,9 @@ void StopMu::fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<doubl
     _dqdx_u.push_back((double)dqdx[n]);
     _rr_u.push_back(  (double)rr[n]  );
     _tmean.CalcTruncMeanProfile(_rr_u, _dqdx_u, _dqdx_tm_u);
+    _x_position_u.push_back((double)(xyz[n].X()));
+    _y_position_u.push_back((double)(xyz[n].Y()));
+    _z_position_u.push_back((double)(xyz[n].Z()));
     }
   }
   else if (pl==1)
@@ -606,6 +640,9 @@ void StopMu::fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<doubl
     _dqdx_v.push_back((double)dqdx[n]);
     _rr_v.push_back(  (double)rr[n]  );
     _tmean.CalcTruncMeanProfile(_rr_v, _dqdx_v, _dqdx_tm_v);
+    _x_position_v.push_back((double)(xyz[n].X()));
+    _y_position_v.push_back((double)(xyz[n].Y()));
+    _z_position_v.push_back((double)(xyz[n].Z()));
     }
   }
   else if (pl==2)
@@ -615,6 +652,9 @@ void StopMu::fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<doubl
     _dqdx_y.push_back((double)dqdx[n]);
     _rr_y.push_back(  (double)rr[n]  );
     _tmean.CalcTruncMeanProfile(_rr_y, _dqdx_y, _dqdx_tm_y);
+    _x_position_y.push_back((double)(xyz[n].X()));
+    _y_position_y.push_back((double)(xyz[n].Y()));
+    _z_position_y.push_back((double)(xyz[n].Z()));
     }
   }
 }
