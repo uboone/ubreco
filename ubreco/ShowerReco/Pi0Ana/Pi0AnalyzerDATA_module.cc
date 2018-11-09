@@ -166,7 +166,7 @@ void Pi0AnalyzerDATA::analyze(art::Event const & e)
   }
 
   // track portion of this analysis
-  TVector3 nuvtx(_rc_vtx_x,_rc_vtx_y,_rc_vtx_z);
+  recob::Track::Point_t nuvtx(_rc_vtx_x,_rc_vtx_y,_rc_vtx_z);
   for (size_t t=0; t < trk_h->size(); t++) {
     
     auto const& trk = trk_h->at(t);
@@ -182,10 +182,10 @@ void Pi0AnalyzerDATA::analyze(art::Event const & e)
 
     double dvtx = 1000.;
     // which one is closest?
-    if ( (nuvtx-beg).Mag() < (nuvtx-end).Mag() ) 
-      dvtx = (nuvtx-beg).Mag();
+    if ( (nuvtx-beg).R() < (nuvtx-end).R() ) 
+      dvtx = (nuvtx-beg).R();
     else 
-      dvtx = (nuvtx-end).Mag();
+      dvtx = (nuvtx-end).R();
 
     if (dvtx < 5.0) {
 
