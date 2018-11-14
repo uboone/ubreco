@@ -68,12 +68,16 @@ public:
 private:
 
   // Declare member data here.
+  typedef enum {kBeamHighGain=0,kBeamLowGain,kCosmicHighGain,kCosmicLowGain} OpDiscrTypes;
   std::string _OpDataProducer;
+  std::vector<std::string> _OpDataTypes;
   std::vector<float> pmt_gain;
   std::vector<float> pmt_gainerr;
   bool _usePmtGainDB;
   bool _swap_ch;
   float _OpDetFreq;
+  std::string _flashProductsStem;
+  std::vector<std::string> _flashProducts;
   ::wcopreco::Config_Params flash_pset;
   ::wcopreco::UBAlgo flash_algo;
 
@@ -98,18 +102,25 @@ UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
 // Initialize member data here.
 {
   _OpDataProducer   = p.get<std::string>("OpDataProducer", "pmtreadout" );   // Waveform Module name, to get waveforms
+  _OpDataTypes      = p.get<std::vector<std::string> >("OpDataTypes");
+  _flashProductsStem = p.get<std::string>( "FlashProductsStem", "wcopreco");
+  _flashProducts    = p.get<std::vector<std::string> >("FlashProducts");
   pmt_gain          = p.get<std::vector<float> >("PMTGains");
   pmt_gainerr       = p.get<std::vector<float> >("PMTGainErrors");
   _usePmtGainDB     = p.get<bool>("usePmtGainDB");
   _swap_ch          = p.get<bool>("SwapCh");
   _OpDetFreq        = p.get<float>("OpDetFreq");
+
   // configure
   flash_pset.set_do_swap_channels(_swap_ch);
   flash_pset.set_tick_width_us(1./_OpDetFreq*1.e6);
   flash_pset.Check_common_parameters();
   flash_algo.Configure(flash_pset);
 
-  produces< std::vector<recob::OpFlash>   >();
+  //produces< std::vector<recob::OpFlash>   >();
+  for ( unsigned int cat=0; cat<2; cat++ ) {
+    produces< std::vector<recob::OpFlash> >( _flashProducts[cat] );
+  }
 
 }
 
@@ -143,13 +154,13 @@ void UBWCFlashFinder::produce(art::Event & evt)
     }
   }
 
-  evt.getByLabel( _OpDataProducer, "OpdetBeamHighGain", wfBHGHandle);
+  evt.getByLabel( _OpDataProducer, _OpDataTypes[kBeamHighGain], wfBHGHandle);
   std::vector<raw::OpDetWaveform> const& opwfms_bhg(*wfBHGHandle);
-  evt.getByLabel( _OpDataProducer, "OpdetBeamLowGain", wfBLGHandle);
+  evt.getByLabel( _OpDataProducer, _OpDataTypes[kBeamLowGain], wfBLGHandle);
   std::vector<raw::OpDetWaveform> const& opwfms_blg(*wfBLGHandle);
-  evt.getByLabel( _OpDataProducer, "OpdetCosmicHighGain", wfCHGHandle);
+  evt.getByLabel( _OpDataProducer, _OpDataTypes[kCosmicHighGain], wfCHGHandle);
   std::vector<raw::OpDetWaveform> const& opwfms_chg(*wfCHGHandle);
-  evt.getByLabel( _OpDataProducer, "OpdetCosmicLowGain", wfCLGHandle);
+  evt.getByLabel( _OpDataProducer, _OpDataTypes[kCosmicLowGain], wfCLGHandle);
   std::vector<raw::OpDetWaveform> const& opwfms_clg(*wfCLGHandle);
 
   //ub_PMT_channel_map->SetOpMapRun( evt.run() ); 
@@ -204,8 +215,8 @@ void UBWCFlashFinder::produce(art::Event & evt)
 
   flash_algo.clear_flashes();
 
-  evt.put(std::move(opflashes_beam));
-  //evt.put(std::move(opflashes_cosmic),"cosmic");
+  evt.put(std::move(opflashes_beam),_flashProducts[0]);
+  evt.put(std::move(opflashes_cosmic),_flashProducts[1]);
 }
 
 

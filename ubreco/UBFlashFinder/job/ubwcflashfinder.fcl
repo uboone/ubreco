@@ -5,6 +5,9 @@ UBWCFlashFinder:
 {
   module_type: UBWCFlashFinder
   OpDataProducer: "pmtreadout"
+  OpDataTypes:	  ["OpdetBeamHighGain","OpdetBeamLowGain","OpdetCosmicHighGain","OpdetCosmicLowGain"]
+  FlashProductsStem:	"wcopreco"
+  FlashProducts:	["beam","cosmic"]
   usePmtGainDB:  false
   SwapCh:         true
   OpDetFreq:     64.e6
