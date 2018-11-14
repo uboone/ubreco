@@ -203,7 +203,7 @@ void UBWCFlashFinder::produce(art::Event & evt)
     double Ycenter, Zcenter, Ywidth, Zwidth;
     GetFlashLocation(lflash->get_pe_v(), Ycenter, Zcenter, Ywidth, Zwidth);
 
-    recob::OpFlash flash(lflash->get_time(), 0.0,
+    recob::OpFlash flash(lflash->get_time(), lflash->get_high_time()-lflash->get_low_time(),
 			 triggerTime + lflash->get_time(),
 			 (triggerTime + lflash->get_time()) / 1600.,
 			 lflash->get_pe_v(),
@@ -216,7 +216,7 @@ void UBWCFlashFinder::produce(art::Event & evt)
     double Ycenter, Zcenter, Ywidth, Zwidth;
     GetFlashLocation(lflash->get_pe_v(), Ycenter, Zcenter, Ywidth, Zwidth);
 
-    recob::OpFlash flash(lflash->get_time(), 0.0,
+    recob::OpFlash flash(lflash->get_time(), lflash->get_high_time()-lflash->get_low_time(),
 			 triggerTime + lflash->get_time(),
 			 (triggerTime + lflash->get_time()) / 1600.,
 			 lflash->get_pe_v(),
