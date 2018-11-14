@@ -31,6 +31,8 @@
 
 //RawDigits
 #include "lardataobj/RawData/raw.h"
+#include "lardataobj/RawData/DAQHeader.h"
+#include "lardataobj/RawData/TriggerData.h"
 #include "lardataobj/RawData/RawDigit.h"
 #include "lardataobj/RawData/OpDetWaveform.h"
 //OpFlash
@@ -71,6 +73,7 @@ private:
   typedef enum {kBeamHighGain=0,kBeamLowGain,kCosmicHighGain,kCosmicLowGain} OpDiscrTypes;
   std::string _OpDataProducer;
   std::vector<std::string> _OpDataTypes;
+  std::string _TriggerProducer;
   std::vector<float> pmt_gain;
   std::vector<float> pmt_gainerr;
   bool _usePmtGainDB;
@@ -105,6 +108,7 @@ UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
   _OpDataTypes      = p.get<std::vector<std::string> >("OpDataTypes");
   _flashProductsStem = p.get<std::string>( "FlashProductsStem", "wcopreco");
   _flashProducts    = p.get<std::vector<std::string> >("FlashProducts");
+  _TriggerProducer  = p.get<std::string>("TriggerProducer","daq");
   pmt_gain          = p.get<std::vector<float> >("PMTGains");
   pmt_gainerr       = p.get<std::vector<float> >("PMTGainErrors");
   _usePmtGainDB     = p.get<bool>("usePmtGainDB");
@@ -117,7 +121,6 @@ UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
   flash_pset.Check_common_parameters();
   flash_algo.Configure(flash_pset);
 
-  //produces< std::vector<recob::OpFlash>   >();
   for ( unsigned int cat=0; cat<2; cat++ ) {
     produces< std::vector<recob::OpFlash> >( _flashProducts[cat] );
   }
@@ -173,7 +176,16 @@ void UBWCFlashFinder::produce(art::Event & evt)
       if(opwfms_blg.at(i).size()<1500) sort_clg.push_back(opwfms_blg.at(i));
     }
   }
-  double triggerTime = ts->TriggerTime(); // usec from beginning of run (or subrun?)
+  double triggerTime = ts->TriggerTime();
+
+  //double fTriggertime = 0;
+  art::Handle< std::vector< raw::Trigger > > trigHandle;
+  if(evt.getByLabel( _TriggerProducer, trigHandle )){
+    const std::vector< raw::Trigger >& trigvec = (*trigHandle);
+    const raw::Trigger& trig = trigvec.at(0);
+    triggerTime = trig.TriggerTime();
+  }
+  //std::cout << triggerTime <<" "<< fTriggertime << std::endl;
 
   flash_algo.Configure(flash_pset);
   ::wcopreco::UBEventWaveform UB_evt_wf;
@@ -280,14 +292,14 @@ void UBWCFlashFinder::fill_wfmcollection(double triggerTime,
   for(auto &opwfm : opwfms)  {
     int ch = opwfm.ChannelNumber();
     double timestamp = opwfm.TimeStamp();
-    int size = opwfm.size();
-    if( size<0) size=0;
+
     if ( ch%100>=32 )
       continue;
 
     if ( (type == ::wcopreco::kbeam_hg)||(type==::wcopreco::kbeam_lg) ){
       ::wcopreco::OpWaveform wfm(ch%100, timestamp-triggerTime, type, flash_pset._get_cfg_deconvolver()._get_nbins_beam());
-      for (int bin=0; bin<1500; bin++) {
+      //std::cout <<timestamp <<" "<<triggerTime << std::endl;
+      for (int bin=0; bin<flash_pset._get_cfg_deconvolver()._get_nbins_beam(); bin++) {
 	wfm[bin]=(double)opwfm[bin];
       }
       wfm_collection.add_waveform(wfm);
@@ -295,7 +307,7 @@ void UBWCFlashFinder::fill_wfmcollection(double triggerTime,
 
     if ( (type == ::wcopreco::kcosmic_hg)||(type==::wcopreco::kcosmic_lg) ){
       ::wcopreco::OpWaveform wfm(ch%100, timestamp-triggerTime, type, flash_pset._get_cfg_cophit()._get_nbins_cosmic());
-      for (int bin=0; bin<40; bin++) {
+      for (int bin=0; bin<flash_pset._get_cfg_cophit()._get_nbins_cosmic(); bin++) {
 	wfm[bin]=(double)opwfm[bin];
       }
       wfm_collection.add_waveform(wfm);

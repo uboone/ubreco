@@ -8,6 +8,7 @@ UBWCFlashFinder:
   OpDataTypes:	  ["OpdetBeamHighGain","OpdetBeamLowGain","OpdetCosmicHighGain","OpdetCosmicLowGain"]
   FlashProductsStem:	"wcopreco"
   FlashProducts:	["beam","cosmic"]
+  TriggerProducer:	"daq"
   usePmtGainDB:  false
   SwapCh:         true
   OpDetFreq:     64.e6
