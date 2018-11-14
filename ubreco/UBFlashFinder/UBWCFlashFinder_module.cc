@@ -178,14 +178,12 @@ void UBWCFlashFinder::produce(art::Event & evt)
   }
   double triggerTime = ts->TriggerTime();
 
-  //double fTriggertime = 0;
   art::Handle< std::vector< raw::Trigger > > trigHandle;
   if(evt.getByLabel( _TriggerProducer, trigHandle )){
     const std::vector< raw::Trigger >& trigvec = (*trigHandle);
     const raw::Trigger& trig = trigvec.at(0);
     triggerTime = trig.TriggerTime();
   }
-  //std::cout << triggerTime <<" "<< fTriggertime << std::endl;
 
   flash_algo.Configure(flash_pset);
   ::wcopreco::UBEventWaveform UB_evt_wf;
@@ -332,7 +330,7 @@ std::vector<wcopreco::kernel_fourier_container> UBWCFlashFinder::fill_kernel_con
     kernel_container_v.at(i).add_kernel(spe);
     kernel_container_v.at(i).add_kernel(rc);
   }
-  std::cout << "kernel container size: " << kernel_container_v.size() << std::endl;
+
   return kernel_container_v;
 }
 
@@ -344,8 +342,7 @@ void UBWCFlashFinder::GetFlashLocation(std::vector<double> pePerOpChannel,
 				       double& Ycenter, 
 				       double& Zcenter, 
 				       double& Ywidth, 
-				       double& Zwidth)
-{
+				       double& Zwidth){
 
   // Reset variables
   Ycenter = Zcenter = 0.;
