@@ -1,0 +1,90 @@
+#include "services_microboone.fcl"
+#include "opticaldetectormodules_microboone.fcl"
+#include "time_memory_tracker_microboone.fcl"
+#include "messageservice.fcl"
+#include "detectorclocks_microboone.fcl"
+#include "database_microboone.fcl"
+#include "databaseutil_microboone.fcl"
+#include "ubwcflashfinder.fcl"
+
+process_name: testwcopreco 
+
+services:
+{
+  scheduler:               { defaultExceptions: false }    # Make all uncaught exceptions fatal.
+  # Load the service that manages root files for histograms.
+  TFileService:            { fileName: "output.root" }
+  TimeTracker:             @local::microboone_time_tracker
+  MemoryTracker:           @local::microboone_memory_tracker
+  message:                 @local::microboone_message_services_prod_debug
+  FileCatalogMetadata:     @local::art_file_catalog_mc
+  @table::microboone_simulation_services
+  #ExptGeoHelperInterface: @local::microboone_geometry_helper
+  #Geometry:               @local::microboone_geo
+  DetectorClocksService:  @local::microboone_detectorclocks
+  PmtGainService: @local::microboone_pmtgain_service
+
+}
+
+services.DetectorPropertiesService.NumberTimeSamples:        6400
+services.DetectorPropertiesService.ReadOutWindowSize:        6400
+services.DetectorClocksService.InheritClockConfig:           false
+services.DetectorClocksService.TriggerOffsetTPC:             -0.400e3
+services.DetectorClocksService.TrigModuleName:               "daq"
+
+services.Geometry.ForceUseFCLOnly: true
+
+services.TimeTracker.printSummary: false
+services.TimeTracker.dbOutput: {}
+
+services.MemoryTracker.includeMallocInfo: false
+services.MemoryTracker.dbOutput.filename: ""
+
+#source is now a root file
+source:
+{
+  module_type: RootInput
+  maxEvents:   -1        # Number of events to create
+  inputCommands: ["keep raw::OpDetWaveforms_*_*_*", "drop raw::OpDetWaveforms_*_Uncategorized_*", "drop raw::OpDetWaveforms_*_BNBLogic*_*", 
+  		 	"drop raw::OpDetWaveforms_*_Uncategorized_*", "drop raw::OpDetWaveforms_*_NUMILogic*_*",
+			"drop raw::OpDetWaveforms_*_Uncategorized_*", "drop raw::OpDetWaveforms_*_StrobeLogic*_*",
+			"drop raw::OpDetWaveforms_*_Uncategorized_*", "drop raw::OpDetWaveforms_*_UncategorizedLogic*_*",
+			"drop raw::OpDetWaveforms_*_Uncategorized_*", "drop raw::OpDetWaveforms_*_UnspecifiedLogic*_*"]
+}
+
+physics:
+{
+
+ producers:
+ {
+   wcopreco:   @local::UBWCFlashFinder
+ }
+
+ analyzers:
+ {
+ }
+
+ reco: [ wcopreco ]
+
+ stream1:  [ out1 ]
+
+ trigger_paths: [reco] 
+
+ end_paths:     [stream1]
+}
+
+outputs:
+{
+ out1:
+ {
+   module_type: RootOutput
+   fileName:    "art-root-simple-flash.root"
+   dataTier:    "reco"
+   compressionLevel: 1
+   outputCommands: [
+            "keep *_*_*_*"]
+   }
+}
+
+
+
