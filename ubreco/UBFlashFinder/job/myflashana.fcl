@@ -1,0 +1,27 @@
+
+BEGIN_PROLOG
+
+###################################################################
+
+myopflashana:
+{
+  module_type:            "myOpFlashAna"
+  OpFlashModuleLabel:     "wcopreco"  
+  OpFlashInstanceLabel:   "cosmic"  
+  YMin:                    -50
+  YMax:                    50
+  ZMin:                    0
+  ZMax:                    1200
+	
+  MakeFlashTimeHist:       false
+  MakeFlashPosHist:        false
+  MakePerFlashHists:       false
+
+  MakeFlashBreakdownTree:  true
+  MakePerEventFlashTree:   false
+
+}
+
+###################################################################
+
+END_PROLOG

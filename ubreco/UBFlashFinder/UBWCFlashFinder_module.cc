@@ -16,28 +16,20 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 //LArSoft 
+#include "larcore/Geometry/Geometry.h"
 #include "larcoreobj/SimpleTypesAndConstants/RawTypes.h"
 #include "larcoreobj/SimpleTypesAndConstants/geo_types.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
-//Optical Channel Maps
-#include "ubcore/Geometry/UBOpChannelTypes.h"
-#include "ubcore/Geometry/UBOpReadoutMap.h"
 //DB
 #include "larevt/CalibrationDBI/Interface/PmtGainService.h"
 #include "larevt/CalibrationDBI/Interface/PmtGainProvider.h"
 #include "larevt/CalibrationDBI/IOVData/CalibrationExtraInfo.h"
-#include "larevt/CalibrationDBI/IOVData/IOVDataError.h"
-#include "larcore/Geometry/Geometry.h"
-
 //RawDigits
 #include "lardataobj/RawData/raw.h"
-#include "lardataobj/RawData/DAQHeader.h"
 #include "lardataobj/RawData/TriggerData.h"
-#include "lardataobj/RawData/RawDigit.h"
 #include "lardataobj/RawData/OpDetWaveform.h"
 //OpFlash
 #include "lardataobj/RecoBase/OpFlash.h"
-
 #include <memory>
 #include <string>
 #include "FlashFinderFMWKInterface.h" //pmtana
@@ -135,7 +127,7 @@ void UBWCFlashFinder::produce(art::Event & evt)
   // initialize data handles and services
   art::ServiceHandle<geo::Geometry> geo;
   auto const* ts = lar::providerFrom<detinfo::DetectorClocksService>();
-  art::ServiceHandle<geo::UBOpReadoutMap> ub_PMT_channel_map;
+  //art::ServiceHandle<geo::UBOpReadoutMap> ub_PMT_channel_map;
 
   art::Handle< std::vector< raw::OpDetWaveform > > wfCHGHandle;
   art::Handle< std::vector< raw::OpDetWaveform > > wfBHGHandle;
