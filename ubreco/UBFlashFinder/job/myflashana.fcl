@@ -17,7 +17,8 @@ myopflashana:
   MakeFlashPosHist:        false
   MakePerFlashHists:       false
 
-  MakeFlashBreakdownTree:  true
+  MakePerFlashTree:        true
+  MakeFlashBreakdownTree:  false
   MakePerEventFlashTree:   false
 
 }

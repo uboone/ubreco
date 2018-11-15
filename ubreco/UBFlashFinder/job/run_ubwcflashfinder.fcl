@@ -79,7 +79,6 @@ physics:
 #physics.analyzers.opflashana.OpFlashInstanceLabel:  ""
 physics.analyzers.opflashana.MakeFlashTimeHist:       true
 physics.analyzers.opflashana.MakeFlashPosHist:        true
-physics.analyzers.opflashana.MakePerFlashTree:        false
 
 outputs:
 {
