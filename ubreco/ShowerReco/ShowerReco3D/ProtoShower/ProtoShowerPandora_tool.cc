@@ -1,6 +1,6 @@
 #include "ProtoShowerAlgBase.h"
 
-#include "larpandora/LArPandoraObjects/PFParticleMetadata.h"
+#include "lardataobj/RecoBase/PFParticleMetadata.h"
 
 namespace protoshower {
 
@@ -124,10 +124,11 @@ namespace protoshower {
 	for (unsigned int j=0; j<pfParticleMetadataList.size(); ++j)
 	  {
 	    const art::Ptr<larpandoraobj::PFParticleMetadata> &pfParticleMetadata(pfParticleMetadataList.at(j));
-	    const pandora::PropertiesMap &pfParticlePropertiesMap(pfParticleMetadata->GetPropertiesMap());
+	    auto pfParticlePropertiesMap = pfParticleMetadata->GetPropertiesMap();
+	    //const larpandoraobj::PropertiesMap &pfParticlePropertiesMap(pfParticleMetadata->GetPropertiesMap());
 	    if (!pfParticlePropertiesMap.empty())
 	      std::cout << " Found PFParticle " << pfp.Self() << " with: " << std::endl;
-	    for (pandora::PropertiesMap::const_iterator it = pfParticlePropertiesMap.begin(); it != pfParticlePropertiesMap.end(); ++it) {
+	    for (std::map<std::string, float>::const_iterator it = pfParticlePropertiesMap.begin(); it != pfParticlePropertiesMap.end(); ++it) {
 	      std::cout << "  - " << it->first << " = " << it->second << std::endl;
 	      if ( (it->first == "IsClearCosmic") && (it->second == 1) && (fNeutrino == true) ) {
 		std::cout << "\t SKIPPING because ClearCosmic " << std::endl;
@@ -172,10 +173,11 @@ namespace protoshower {
 	for (unsigned int j=0; j<parentMetadataList.size(); ++j)
 	  {
 	    const art::Ptr<larpandoraobj::PFParticleMetadata> &parentMetadata(parentMetadataList.at(j));
-	    const pandora::PropertiesMap &parentPropertiesMap(parentMetadata->GetPropertiesMap());
+	    auto parentPropertiesMap = parentMetadata->GetPropertiesMap();
+	    //const larpandoraobj::PropertiesMap &parentPropertiesMap(parentMetadata->GetPropertiesMap());
 	    if (!parentPropertiesMap.empty())
 	      std::cout << " Found PFParticle " << parent.Self() << " with: " << std::endl;
-	    for (pandora::PropertiesMap::const_iterator it = parentPropertiesMap.begin(); it != parentPropertiesMap.end(); ++it) {
+	    for (std::map<std::string, float>::const_iterator it = parentPropertiesMap.begin(); it != parentPropertiesMap.end(); ++it) {
 	      std::cout << "  - " << it->first << " = " << it->second << std::endl;
 	      if ( (it->first == "NuScore") && (it->second <= fNeutrinoScoreMin) && (fNeutrino == true) ) {
 		std::cout << "\t SKIPPING because IsNeutrino Score is " << it->second << std::endl;
