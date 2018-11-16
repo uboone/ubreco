@@ -59,8 +59,8 @@ namespace showerreco {
   }
   
   void Angle3DFromVtxQweighted::do_reconstruction(const ::protoshower::ProtoShower & proto_shower,
-					 Shower_t& resultShower) {
-
+						  Shower_t& resultShower) {
+    
     //if the module does not have 2D cluster info -> fail the reconstruction
     if (!proto_shower.hasVertex()){
       std::stringstream ss;

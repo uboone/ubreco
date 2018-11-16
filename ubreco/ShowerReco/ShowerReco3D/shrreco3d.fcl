@@ -43,5 +43,15 @@ ShrReco3DPandora.ProtoShowerTool:
  NeutrinoScoreMin : 0.1 
  TrackScoreMax : 0.5 # 0 means all particles reconstructed as showers
  }
+ShrReco3DPandora.ShowerRecoTools:
+     {
+        Algo0: @local::filterpfpart
+        Algo1: @local::angle3dfromvtxqweighted
+        Algo2: @local::startpoint3dfromvtx
+        Algo3: @local::linearenergy
+        Algo4: @local::dedxmodule
+        Algo5: @local::filllength
+        #Algo6: @local::filtershowers
+     }
 
 END_PROLOG

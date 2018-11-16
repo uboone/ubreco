@@ -123,7 +123,8 @@ namespace showerreco {
     // grab shower direction
     auto const& dir3D = resultShower.fDCosStart;
 
-    std::cout << "3D shower direction : " << dir3D[0] << ", " << dir3D[1] << ", " << dir3D[2] << std::endl;
+    if (_verbose)
+      std::cout << "3D shower direction : " << dir3D[0] << ", " << dir3D[1] << ", " << dir3D[2] << std::endl;
 
     _px = dir3D[0];
     _py = dir3D[1];
@@ -143,26 +144,31 @@ namespace showerreco {
       // get start point on pllane
       auto& start2D = clus._start;
       
-      std::cout << std::endl << "PLANE : " << pl << std::endl;
+      if (_verbose)
+	std::cout << std::endl << "PLANE : " << pl << std::endl;
 
       auto const* geom = ::lar::providerFrom<geo::Geometry>();
       const geo::WireGeo& wire = geom->TPC().Plane(pl).MiddleWire();
       TVector3 wireunitperp = wire.Direction();//(wire.GetStart()-wire.GetEnd()).Unit();
       // rotate by 90 degrees around x
       TVector3 wireunit = {wireunitperp[0], -wireunitperp[2], wireunitperp[1]}; 
-      std::cout << "wire unit on plane : " << pl << " is " << wireunit[0] << ", " << wireunit[1] << ", " << wireunit[2] << std::endl;
+      if (_verbose)
+	std::cout << "wire unit on plane : " << pl << " is " << wireunit[0] << ", " << wireunit[1] << ", " << wireunit[2] << std::endl;
       double cosPlane = fabs(cos(wireunit.Angle(dir3D)));
 
       std::vector<double> dedx_v;
-      std::cout << "dtrunk is " << _dtrunk << std::endl;
+      if (_verbose)
+	std::cout << "dtrunk is " << _dtrunk << std::endl;
       dedx_v.resize(3 * _dtrunk);
       for (size_t jj=0; jj < dedx_v.size(); jj++) 
 	dedx_v.at(jj) = 0.;
-      std::cout << "dedx_v size is " << dedx_v.size() << std::endl;
+      if (_verbose)
+	std::cout << "dedx_v size is " << dedx_v.size() << std::endl;
       //double dedx;
       int nhits = 0;
       double pitch = 0.3 / cosPlane;
-      std::cout << " dEdx Module : pitch = " << pitch << " from function" <<  std::endl;      
+      if (_verbose)
+	std::cout << " dEdx Module : pitch = " << pitch << " from function" <<  std::endl;      
 
       // loop through hits and find those within some radial distance of the start point
       // loop over hits
@@ -176,9 +182,10 @@ namespace showerreco {
 
 	if (d3Delement >= dedx_v.size()) continue;
 
-	std::cout << "\t d2D : " << d2D << "\t d3D : " << d3D << " \t d3D int : " << d3Delement 
-		  << "\t dEdx : " << dEdx
-		  << std::endl;
+	if (_verbose)
+	  std::cout << "\t d2D : " << d2D << "\t d3D : " << d3D << " \t d3D int : " << d3Delement 
+		    << "\t dEdx : " << dEdx
+		    << std::endl;
 
 	dedx_v.at( d3Delement ) += dEdx;
 	nhits += 1;
@@ -190,15 +197,13 @@ namespace showerreco {
 
       for (size_t n=0; n < dedx_v.size(); n++) {
 	if (dedx_v.at(n) != 0){
-	  std::cout << "\t adding an element..." << std::endl;
 	  dedx_empty_v.push_back(dedx_v.at(n));
 	  resultShower.fdEdx_v_v.at(pl).push_back(dedx_v.at(n));
-	  std::cout << "\t added..." << std::endl;
 	}
       }// for all dedx values
-      std::cout << "done erasing" << std::endl;
-      
-      std::cout << "number of dedx points :  " << dedx_empty_v.size() << std::endl;
+
+      if (_verbose)
+	std::cout << "number of dedx points :  " << dedx_empty_v.size() << std::endl;
       
       if (dedx_empty_v.size() == 0)
 	dedx = 0.;
@@ -210,8 +215,10 @@ namespace showerreco {
       }
 
       for (auto const& aa : dedx_empty_v)
-	std::cout << "dedx Module : \t dedx = " << aa << std::endl;
-      std::cout << "dedx Module : Final dEdx = " << dedx << std::endl;
+	if (_verbose) {
+	  std::cout << "dedx Module : \t dedx = " << aa << std::endl;
+	  std::cout << "dedx Module : Final dEdx = " << dedx << std::endl;
+	}
 
       if (pl == 0) {
 	_pitch0 = pitch;

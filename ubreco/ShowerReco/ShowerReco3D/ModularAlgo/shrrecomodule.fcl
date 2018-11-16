@@ -31,6 +31,11 @@ yplanestartpoint3d:
     tool_type: YPlaneStartPoint3D
 }
 
+startpoint3dfromvtx:
+{
+    tool_type: StartPoint3DfromVtx
+}
+
 startpointfromy2d:
 {
     tool_type: StartPointfromY2D
