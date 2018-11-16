@@ -13,7 +13,7 @@ art_make(
 		   	larcorealg_Geometry		
 			#larpandora_LArPandoraObjects
                         #LArPandoraContent
-                        larpandoraobj
+                        #larpandoraobj
             		${PANDORASDK}	
 			larcore_Geometry_Geometry_service	
 			art_Utilities canvas
@@ -39,7 +39,7 @@ art_make(
 			  lardata_Utilities
 			#larpandora_LArPandoraObjects
                         #LArPandoraContent
-                        larpandoraobj
+                        #larpandoraobj
             		${PANDORASDK}	
 			  nutools_RandomUtils_NuRandomService_service
   			  ${ART_FRAMEWORK_CORE}
