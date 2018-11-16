@@ -54,11 +54,16 @@ physics:
  }
  analyzers:
  { 
+ nueana: { module_type: Pi0Analyzer
+           ShrProducer: "showerreco3dpandora"
+           VtxProducer: "pandora"
+           PDG: 11
+           }
 }
 
  #reco: [ rns, ophit, opflash, simpleFlash, opflashfilter ]
  reco: [ rns, showerreco3dpandora ]
- ana: [ ]
+ ana: [ nueana ]
 
  #define the output stream, there could be more than one if using filters 
  stream1:  [ out1 ]
