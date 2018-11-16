@@ -38,6 +38,8 @@
 
 #include "TTree.h"
 
+#include "Base/ShowerRecoException.h"
+
 #include <memory>
 
 class ShrReco3D;
@@ -207,12 +209,21 @@ void ShrReco3D::produce(art::Event & e)
   // grab the hits associated to the PFParticles
   auto pfp_hit_assn_v = lar::FindManyInChainP<recob::Hit, recob::Cluster>::find(pfp_h, e, fPFPproducer);
 
+  std::cout << "getting ready to save " << output_shower_v.size() << " showers" << std::endl;
+
   // save output showers
   for (size_t s=0; s < output_shower_v.size(); s++) {
-    SaveShower(s, output_shower_v.at(s), Shower_v, ShowerPtrMaker,
-	       pfp_h, pfp_clus_assn_v, pfp_hit_assn_v,
-	       Shower_PFP_assn_v, Shower_Cluster_assn_v, Shower_Hit_assn_v);
+    try {
+      SaveShower(s, output_shower_v.at(s), Shower_v, ShowerPtrMaker,
+		 pfp_h, pfp_clus_assn_v, pfp_hit_assn_v,
+		 Shower_PFP_assn_v, Shower_Cluster_assn_v, Shower_Hit_assn_v);
+    }
+    catch (showerreco::ShowerRecoException e) {
+      std::cout << e.what() << std::endl;
+    }
   }// for all output reconstructed showers
+  
+  std::cout << "There are " << Shower_v->size() << " showers to be saved" << std::endl;
 
   e.put(std::move(Shower_v));
   e.put(std::move(Shower_PFP_assn_v));
@@ -246,15 +257,21 @@ void ShrReco3D::SaveShower(const size_t idx,
 {
   
   if (shower.fPassedReconstruction == false) {
-    return;
+    std::stringstream ss;
+    ss << "Shower " << idx << " did not pass reconstruction.";
+    throw showerreco::ShowerRecoException(ss.str());
   }
   
   // filter out showers with garbage values
   if (shower.fXYZStart.Mag2()  == 0) {
-    return;
+    std::stringstream ss;
+    ss << "Shower " << idx << " does not have a valid XYZ start point";
+    throw showerreco::ShowerRecoException(ss.str());
   }
   if (shower.fDCosStart.Mag2() == 0) {
-    return;
+    std::stringstream ss;
+    ss << "Shower " << idx << " does not have a valid 3D direction";
+    throw showerreco::ShowerRecoException(ss.str());
   }
 
   // save shower variables to TTree
