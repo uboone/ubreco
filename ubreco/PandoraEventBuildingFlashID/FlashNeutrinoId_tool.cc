@@ -63,19 +63,18 @@ void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
     }
     try
     {
-        // Find the slice - if any that matches best with the beamFlash
         this->GetSliceCandidates(evt, slices, sliceCandidates);
         if (m_outputEvent.m_hasBeamFlash)
         {
+            // Find the slice - if any that matches best with the beamFlash
             bestSliceIndex = this->GetBestSliceIndex(beamFlash, sliceCandidates);
             slices.at(bestSliceIndex).TagAsTarget();
         }
         else
         {
-            for (auto slice : sliceCandidates)
+            for (auto &slice : sliceCandidates)
             {
-                slice.m_isConsideredByFlashId = false;
-                std::cout << "slice.m_isConsideredByFlashId " << slice.m_isConsideredByFlashId << std::endl;
+                slice.m_isConsideredByFlashId = 0;
             }
         }
     }
@@ -246,18 +245,6 @@ void FlashNeutrinoId::FillSliceTree(const art::Event &evt, const SliceVector &sl
 
     SliceCandidateVector allSliceCandidates(sliceCandidates);
 
-    /*
-    if (!m_outputEvent.m_hasBeamFlash)
-    {
-        if (!allSliceCandidates.empty())
-            throw cet::exception("FlashNeutrinoId") << "There were slice candidates made even though there wasn't a beam flash!" << std::endl;
-
-        // ATTN this code is only required for monitoring to compare with the topological score
-        for (const auto &slice : slices)
-            allSliceCandidates.emplace_back(evt, slice);
-    }
-    */
-
     if (slices.size() != allSliceCandidates.size())
         throw cet::exception("FlashNeutrinoId") << "The number of slice candidates doesn't match the number of slices" << std::endl;
 
@@ -292,7 +279,6 @@ void FlashNeutrinoId::FillSliceTree(const art::Event &evt, const SliceVector &sl
     for (unsigned int sliceIndex = 0; sliceIndex < slices.size(); ++sliceIndex)
     {
         m_outputSlice = allSliceCandidates.at(sliceIndex);
-
         if (m_hasMCNeutrino)
             m_outputSliceMetadata = sliceMetadata.at(sliceIndex);
 

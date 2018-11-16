@@ -64,6 +64,7 @@ physics:
 # Configuration
 physics.producers.pandoraAllOutcomesTrack.PFParticleLabel:  "pandoraPatRec:allOutcomes"
 physics.producers.pandoraAllOutcomesShower.PFParticleLabel: "pandoraPatRec:allOutcomes"
+physics.producers.pandoraFlashEventBuilding.ShouldUseTestBeamMode: false
 
 outputs:
 {
