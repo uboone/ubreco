@@ -19,7 +19,7 @@ END_PROLOG
 services:
 {
   scheduler:               {defaultExceptions: false}
-  TFileService:            {fileName: "pandora_event_analyser_hist.root"}
+  TFileService:            {fileName: "flashID_tree.root"}
   TimeTracker:             @local::microboone_time_tracker
   MemoryTracker:           @local::microboone_memory_tracker
   RandomNumberGenerator:   {}
