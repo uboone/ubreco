@@ -1,7 +1,7 @@
 #include "services_microboone.fcl"
 #include "triggeralgo_service.fcl"
 #include "calorimetry_microboone.fcl"
-
+#include "stopmu.fcl"
 
 process_name: ThroughMu
 
@@ -57,12 +57,7 @@ physics:
     }
     analyzers:
     {
-        stopmu: { module_type: StopMu
-                      TrkProducer: "pandoraTrack"
-                      CaloProducer: "pandoracaloN"
-                      MCProducer: "generator"
-                      MCParticleLabel: "largeant"
-                     }
+        stopmu: @local::StopMu
     }
 
   reco: [ rns, pandoracaloN ]

@@ -300,6 +300,8 @@ public:
 private:
 
   std::string fTrkProducer, fCaloProducer, fMCProducer, fMCParticleLabel, fOpticalFlashFinderLabel;
+  bool fGeoCuts, fUseTruth;
+  double fdT, fMinX, fMaxX, fMinZ, fMaxZ, fMinY, fMinLen;
 
   TruncMean _tmean;
 
@@ -314,6 +316,7 @@ private:
   double _trk_end_y;
   double _trk_end_z;
   double _yz_true_reco_distance;
+  double _true_energy;
   int _yz_trackid; // track id of closest stopping muon by YZ distance
   double _matchscore; // fraction of track hits associated to a true stopping muon MCParticle
   int   _matchtrackid; // track id of best match stopping muon from backtracker
@@ -350,6 +353,15 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   fMCProducer = p.get<std::string>("MCProducer", "generator");
   fMCParticleLabel = p.get<std::string>("MCParticleLabel", "largeant");
   fOpticalFlashFinderLabel = p.get<std::string>("OpticalFlashFinderLabel", "simpleFlashCosmic");
+  fGeoCuts = p.get<bool>("GeoCuts");
+  fdT = p.get<double>("dT");
+  fMinX = p.get<double>("MinX");
+  fMaxX = p.get<double>("MaxX");
+  fMinZ = p.get<double>("MinZ");
+  fMaxZ = p.get<double>("MaxZ");
+  fMinY = p.get<double>("MinY");
+  fMinLen = p.get<double>("MinLen");
+  fUseTruth = p.get<bool>("UseTruth");
 
   _tmean.setRadius(10);
 
@@ -381,6 +393,7 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   _reco_tree->Branch("_trk_end_y",  &_trk_end_y,  "trk_end_y/D"  );
   _reco_tree->Branch("_trk_end_z",  &_trk_end_z,  "trk_end_z/D"  );
   _reco_tree->Branch("_yz_true_reco_distance",  &_yz_true_reco_distance,  "yz_true_reco_distance/D"  );
+  _reco_tree->Branch("_true_energy",&_true_energy,"true_energy/D");
   _reco_tree->Branch("_yz_trackid",  &_yz_trackid,  "yz_trackid/I"  );
   _reco_tree->Branch("_matchtrackid",  &_matchtrackid,  "matchtrackid/I"  );
   _reco_tree->Branch("_matchscore",  &_matchscore,  "matchscore/D"  );
@@ -419,69 +432,88 @@ void StopMu::analyze(art::Event const & e)
   _sub = e.subRun();
   _evt = e.event();
 
-  // consider only events with an interaction outside of the TPC
-  auto const &generator_handle = e.getValidHandle<std::vector<simb::MCTruth>>(fMCProducer);
-  auto const &generator(*generator_handle);
-  double _true_vx=-1000, _true_vy=-1000, _true_vz=-1000;
-  size_t n_nu = 0;
-  for (auto &gen : generator)
-  {
-    if (gen.Origin() == simb::kBeamNeutrino)
-    {
-      n_nu = 1;
-      _true_vx = gen.GetNeutrino().Nu().Vx();
-      _true_vy = gen.GetNeutrino().Nu().Vy();
-      _true_vz = gen.GetNeutrino().Nu().Vz();
-      break; // In case of events with more than one neutrino (2% of the total) we take for the moment only the first one
-    }
-  }
-
-  if (n_nu==0) return;
-
-  bool inTPCvolume = insideTPCvolume(_true_vx, _true_vy, _true_vz);
-  if (inTPCvolume == true)
-  {
-    return;
-  }
-
-  auto const &mcparticles_handle = e.getValidHandle<std::vector<simb::MCParticle>>(fMCParticleLabel);
-  auto const &mcparticles(*mcparticles_handle);
-
-
+  
+  // truth muon info for stopping muons
   std::vector<double> mc_muon_end_y, mc_muon_end_z;
-  // vector of track ids for stopping muons
   std::vector<size_t> stop_mu_trackid_v;
+  std::vector<double> mc_muon_energy_v;
 
-  for (auto &mcparticle : mcparticles)
-  {
-    if (mcparticle.Process() == "primary" &&
-        mcparticle.StatusCode() == 1 &&
-        abs(mcparticle.PdgCode()) == 13 &&
-        (mcparticle.EndE() == mcparticle.Mass()) &&
-        insideTPCvolume(mcparticle.EndX(), mcparticle.EndY(), mcparticle.EndZ()) == true)
-    {
-      double true_end[3], true_end_shifted[3];
-      true_end[0] = mcparticle.EndX();
-      true_end[1] = mcparticle.EndY();
-      true_end[2] = mcparticle.EndZ();
-      shiftTruePosition(true_end, mcparticle.EndT(), true_end_shifted);
-      mc_muon_end_y.push_back(true_end_shifted[1]);
-      mc_muon_end_z.push_back(true_end_shifted[2]);
-      stop_mu_trackid_v.push_back( mcparticle.TrackId() );
-    }
-  }
 
+  // load backtracker info associated to mcparticles via hits
+  //auto const& gaushit_h = e.getValidHandle<std::vector<recob::Hit> > ("gaushit");
+
+  if (fUseTruth) {
+    
+    // consider only events with an interaction outside of the TPC
+    auto const &generator_handle = e.getValidHandle<std::vector<simb::MCTruth>>(fMCProducer);
+    auto const &generator(*generator_handle);
+    double _true_vx=-1000, _true_vy=-1000, _true_vz=-1000;
+    size_t n_nu = 0;
+    for (auto &gen : generator)
+      {
+	if (gen.Origin() == simb::kBeamNeutrino)
+	  {
+	    n_nu = 1;
+	    _true_vx = gen.GetNeutrino().Nu().Vx();
+	    _true_vy = gen.GetNeutrino().Nu().Vy();
+	    _true_vz = gen.GetNeutrino().Nu().Vz();
+	    break; // In case of events with more than one neutrino (2% of the total) we take for the moment only the first one
+	  }
+      }
+    
+    if (n_nu==0) return;
+    
+    bool inTPCvolume = insideTPCvolume(_true_vx, _true_vy, _true_vz);
+    if (inTPCvolume == true)
+      {
+	return;
+      }
+    
+    auto const &mcparticles_handle = e.getValidHandle<std::vector<simb::MCParticle>>(fMCParticleLabel);
+    auto const &mcparticles(*mcparticles_handle);
+    
+    for (auto &mcparticle : mcparticles)
+      {
+	if (mcparticle.Process() == "primary" &&
+	    mcparticle.StatusCode() == 1 &&
+	    abs(mcparticle.PdgCode()) == 13 &&
+	    (mcparticle.EndE() == mcparticle.Mass()) &&
+	    insideTPCvolume(mcparticle.EndX(), mcparticle.EndY(), mcparticle.EndZ()) == true)
+	  {
+	    // find first step in the TPC
+	    unsigned int npoints = mcparticle.NumberTrajectoryPoints();
+	    _true_energy = 0.;
+	    for (unsigned int s=0; s < npoints; s++){
+	      auto pt = mcparticle.Position(s);
+	      if (insideTPCvolume( pt.X(), pt.Y(), pt.Z() ) == true) { 
+		_true_energy = mcparticle.E(s);
+		break;
+	      }// if step in TPC
+	    }// for all steps
+	    double true_end[3], true_end_shifted[3];
+	    true_end[0] = mcparticle.EndX();
+	    true_end[1] = mcparticle.EndY();
+	    true_end[2] = mcparticle.EndZ();
+	    shiftTruePosition(true_end, mcparticle.EndT(), true_end_shifted);
+	    mc_muon_end_y.push_back(true_end_shifted[1]);
+	    mc_muon_end_z.push_back(true_end_shifted[2]);
+	    stop_mu_trackid_v.push_back( mcparticle.TrackId() );
+	  }
+      }
+
+  }// if we are using truth
+
+  //art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> backtrack_h(gaushit_h,e,"gaushitTruthMatch");  
+  
   // load input tracks
   auto const& trk_h = e.getValidHandle<std::vector<recob::Track>>(fTrkProducer);
   // grab calorimetry objects associated to tracks
   art::FindMany<anab::Calorimetry> trk_calo_assn_v(trk_h, e, fCaloProducer);
   // grab hits associated to tracks
-  art::FindManyP<recob::Hit> trk_hit_assn_v(trk_h, e, fTrkProducer);
+  //art::FindManyP<recob::Hit> trk_hit_assn_v(trk_h, e, fTrkProducer);
 
-  // load backtracker info associated to mcparticles via hits
-  auto const& gaushit_h = e.getValidHandle<std::vector<recob::Hit> > ("gaushit");
-  art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> backtrack_h(gaushit_h,e,"gaushitTruthMatch");
 
+  
   for (size_t t=0; t < trk_h->size(); t++)
   {
     clear();
@@ -530,7 +562,7 @@ void StopMu::analyze(art::Event const & e)
       fillCalorimetry(plane, dqdx, rr, xyz);
     }
 
-    // get associated hits
+    /*    // get associated hits
     const std::vector<art::Ptr<recob::Hit> > hit_v = trk_hit_assn_v.at(t);
 
     _matchscore = 0.;
@@ -572,25 +604,32 @@ void StopMu::analyze(art::Event const & e)
     }// for all hits
     
     _matchscore /= hit_v.size();
-
-
+    */
+    
     // closest flash time
     art::InputTag optical_tag_simple{fOpticalFlashFinderLabel};
     auto const &optical_handle = e.getValidHandle<std::vector<recob::OpFlash>>(optical_tag_simple);
 
-    for (size_t f=0; f < optical_handle->size(); f++)
-    {
+    for (size_t f=0; f < optical_handle->size(); f++) {
       //std::cout << "iteration beg" << f << " delta t " << _delta_t_closest_flash << std::endl;
       auto const& flash = optical_handle->at(f);
       double ttrk = _trk_end_x / 0.1114 - flash.Time() - 6.0;
       if (fabs(ttrk) < fabs(_delta_t_closest_flash)) _delta_t_closest_flash = ttrk;
       ttrk = (_trk_end_x-256.35) / 0.1114 - flash.Time() - 19.3;
       if (fabs(ttrk) < fabs(_delta_t_closest_flash)) _delta_t_closest_flash = ttrk;
+    }// for all flashes
 
-      //std::cout << "iteration " << f << " delta t " << _delta_t_closest_flash << " ttrk " << ttrk << std::endl;
-    }
+    // apply geometric cuts if desired
+    if (fGeoCuts) {
+      if (fabs(_delta_t_closest_flash) < fdT) continue;
+      if ( (_trk_end_x < fMinX) or (_trk_end_x > fMaxX) ) continue;
+      if (_trk_end_y < fMinY) continue;
+      if ( (_trk_end_z < fMinZ) or (_trk_end_z > fMaxZ) ) continue;
+      if (_trk_len < fMinLen) continue;
+    } 
+
     _reco_tree->Fill();
-  }
+  }// for all tracks
   return;
 }
 
