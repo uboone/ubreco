@@ -432,7 +432,7 @@ private:
      *  @param  slices the input vector of slices
      *  @param  sliceCandidates the candidate slices
      */
-    void FillSliceTree(const art::Event &evt, const SliceVector &slices, const SliceCandidateVector &sliceCandidates);
+    void FillSliceTree(const art::Event &evt, const SliceVector &slices, SliceCandidateVector &sliceCandidates);
 
     /**
      *  @brief  Identify the slice which has the largest topological neutrino ID score, and flag it
@@ -468,7 +468,7 @@ private:
     bool                                    m_shouldWriteToFile;   ///< If we should write interesting information to a root file
     bool                                    m_hasMCNeutrino;       ///< If there is an MC neutrino we can use to get truth information
     int                                     m_nuInteractionType;   ///< The interaction type code from MCTruth
-    int                                     m_nuCCNC;                ///< Charged current or neutral current?
+    int                                     m_nuCCNC;              ///< Charged current or neutral current?
     float                                   m_nuEnergy;            ///< The true neutrino energy
     float                                   m_leptonEnergy;        ///< The true energy of the lepton coming from the CC interaction
     float                                   m_nuVertexX;           ///< The true neutrino vertex X position
@@ -498,7 +498,8 @@ DEFINE_ART_CLASS_TOOL(FlashNeutrinoId)
 
 namespace lar_pandora
 {
-    
+
+// TODO Why is the implementation of the constructor in the header file? Is it just cosmetic? 
 FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
     m_flashLabel(pset.get<std::string>("FlashLabel")),
     m_pandoraLabel(pset.get<std::string>("PandoraAllOutcomesLabel")),

@@ -47,37 +47,23 @@ void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
     // Reset the output addresses in case we are writing monitoring details to an output file
     m_outputEvent.Reset(evt);
 
+    // Get the candidate flashes and slices
     FlashCandidateVector flashCandidates;
+    this->GetFlashCandidates(evt, flashCandidates);
+    
     SliceCandidateVector sliceCandidates;
-    FlashNeutrinoId::FlashCandidate beamFlash;
-    unsigned int bestSliceIndex;
-
+    this->GetSliceCandidates(evt, slices, sliceCandidates);
+    
     try
     {
         // Find the flash, if any, in time with the beam with the largest number of photoelectrons that is sufficiently bright
-        this->GetFlashCandidates(evt, flashCandidates);
-        beamFlash = this->GetBeamFlash(flashCandidates);
-    }
-    catch (const FailureMode &)
-    {
-    }
-    try
-    {
-        // Find the slice - if any that matches best with the beamFlash
-        this->GetSliceCandidates(evt, slices, sliceCandidates);
-        if (m_outputEvent.m_hasBeamFlash)
-        {
-            bestSliceIndex = this->GetBestSliceIndex(beamFlash, sliceCandidates);
-            slices.at(bestSliceIndex).TagAsTarget();
-        }
-        else
-        {
-            for (auto slice : sliceCandidates)
-            {
-                slice.m_isConsideredByFlashId = false;
-                std::cout << "slice.m_isConsideredByFlashId " << slice.m_isConsideredByFlashId << std::endl;
-            }
-        }
+        const FlashNeutrinoId::FlashCandidate beamFlash(this->GetBeamFlash(flashCandidates));
+        
+        // Find the slice, if any, that matches best with the beamFlash
+        const unsigned int bestSliceIndex(this->GetBestSliceIndex(beamFlash, sliceCandidates));
+        
+        // Tag the best slice as the neutrino
+        slices.at(bestSliceIndex).TagAsTarget();
     }
     catch (const FailureMode &)
     {
@@ -158,7 +144,7 @@ void FlashNeutrinoId::GetSliceCandidates(const art::Event &event, SliceVector &s
     m_outputEvent.m_nSlices = slices.size();
 
     if (slices.empty())
-        throw FailureMode("No slices to choose from");
+        return;
 
     // Collect the PFParticles and their associations to SpacePoints and Hits
     PFParticleVector pfParticles;
@@ -179,6 +165,9 @@ void FlashNeutrinoId::GetSliceCandidates(const art::Event &event, SliceVector &s
 
 unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash, SliceCandidateVector &sliceCandidates)
 {
+    if (sliceCandidates.empty())
+        throw FailureMode("The event has no slices!");
+
     bool foundViableSlice(false);
     unsigned int bestSliceIndex(std::numeric_limits<unsigned int>::max());
     float maxScore(-std::numeric_limits<float>::max());
@@ -187,9 +176,10 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
     for (unsigned int sliceIndex = 0; sliceIndex < sliceCandidates.size(); ++sliceIndex)
     {
         auto &sliceCandidate(sliceCandidates.at(sliceIndex));
+        sliceCandidate.m_isConsideredByFlashId = true;
+
         // Apply the pre-selection cuts to ensure that the slice is compatible with the beam flash
-        if (!sliceCandidate.IsCompatibleWithBeamFlash(beamFlash, m_maxDeltaY, m_maxDeltaZ, m_maxDeltaYSigma, m_maxDeltaZSigma,
-                                                      m_minChargeToLightRatio, m_maxChargeToLightRatio))
+        if (!sliceCandidate.IsCompatibleWithBeamFlash(beamFlash, m_maxDeltaY, m_maxDeltaZ, m_maxDeltaYSigma, m_maxDeltaZSigma, m_minChargeToLightRatio, m_maxChargeToLightRatio))
             continue;
 
         m_outputEvent.m_nSlicesAfterPrecuts++;
@@ -239,29 +229,15 @@ void FlashNeutrinoId::FillFlashTree(const FlashCandidateVector &flashCandidates)
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void FlashNeutrinoId::FillSliceTree(const art::Event &evt, const SliceVector &slices, const SliceCandidateVector &sliceCandidates)
+void FlashNeutrinoId::FillSliceTree(const art::Event &evt, const SliceVector &slices, SliceCandidateVector &sliceCandidates)
 {
     if (!m_pSliceTree)
         throw cet::exception("FlashNeutrinoId") << "Trying to fill the slice tree which hasn't been configured" << std::endl;
 
-    SliceCandidateVector allSliceCandidates(sliceCandidates);
-
-    /*
-    if (!m_outputEvent.m_hasBeamFlash)
-    {
-        if (!allSliceCandidates.empty())
-            throw cet::exception("FlashNeutrinoId") << "There were slice candidates made even though there wasn't a beam flash!" << std::endl;
-
-        // ATTN this code is only required for monitoring to compare with the topological score
-        for (const auto &slice : slices)
-            allSliceCandidates.emplace_back(evt, slice);
-    }
-    */
-
-    if (slices.size() != allSliceCandidates.size())
+    if (slices.size() != sliceCandidates.size())
         throw cet::exception("FlashNeutrinoId") << "The number of slice candidates doesn't match the number of slices" << std::endl;
 
-    this->IdentifySliceWithBestTopologicalScore(allSliceCandidates);
+    this->IdentifySliceWithBestTopologicalScore(sliceCandidates);
 
     // If available, get the information from the MC neutrino
     LArPandoraSliceIdHelper::SliceMetadataVector sliceMetadata;
@@ -291,7 +267,7 @@ void FlashNeutrinoId::FillSliceTree(const art::Event &evt, const SliceVector &sl
     // Output the info for each slice
     for (unsigned int sliceIndex = 0; sliceIndex < slices.size(); ++sliceIndex)
     {
-        m_outputSlice = allSliceCandidates.at(sliceIndex);
+        m_outputSlice = sliceCandidates.at(sliceIndex);
 
         if (m_hasMCNeutrino)
             m_outputSliceMetadata = sliceMetadata.at(sliceIndex);
@@ -535,7 +511,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
                                                                                                                          m_flashMatchScore(-std::numeric_limits<float>::max()),
                                                                                                                          m_totalPEHypothesis(-std::numeric_limits<float>::max()),
                                                                                                                          m_isTaggedAsTarget(false),
-                                                                                                                         m_isConsideredByFlashId(true),
+                                                                                                                         m_isConsideredByFlashId(false),
                                                                                                                          m_topologicalNeutrinoScore(slice.GetTopologicalScore()),
                                                                                                                          m_hasBestTopologicalScore(false),
                                                                                                                          m_chargeToNPhotonsTrack(chargeToNPhotonsTrack),
@@ -560,7 +536,9 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 FlashNeutrinoId::SliceCandidate::DepositionVector FlashNeutrinoId::SliceCandidate::GetDepositionVector(const PFParticleMap &pfParticleMap,
-                                                                                                       const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap, const Slice &slice) const
+                                                                                                       const PFParticlesToSpacePoints &pfParticleToSpacePointMap,
+                                                                                                       const SpacePointsToHits &spacePointToHitMap,
+                                                                                                       const Slice &slice) const
 {
     // Collect all PFParticles in the slice, including those downstream of the primaries
     // ATTN here we only use the neutrino hypothesis, in theory this should work with either (or indeed both with some thought)
@@ -697,24 +675,16 @@ bool FlashNeutrinoId::SliceCandidate::IsCompatibleWithBeamFlash(const FlashCandi
 {
     // Check the flash is usable
     if (beamFlash.m_totalPE <= std::numeric_limits<float>::epsilon())
-    {
         return false;
-    }
 
     if (beamFlash.m_widthY <= std::numeric_limits<float>::epsilon())
-    {
         return false;
-    }
 
     if (beamFlash.m_widthZ <= std::numeric_limits<float>::epsilon())
-    {
         return false;
-    }
 
     if (m_totalCharge <= std::numeric_limits<float>::epsilon())
-    {
         return false;
-    }
 
     // Calculate the pre-selection variables
     m_deltaY = (m_centerY - beamFlash.m_centerY);
