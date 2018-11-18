@@ -32,6 +32,10 @@
 #include "lardata/DetectorInfoServices/LArPropertiesService.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
 
+#include "larcore/Geometry/Geometry.h"
+#include "larevt/CalibrationDBI/Interface/PmtGainService.h"
+#include "larevt/CalibrationDBI/Interface/PmtGainProvider.h"
+
 #include "TVector3.h"
 #include "TTree.h"
 #include "TH1.h"
@@ -60,6 +64,7 @@ private:
   float fBoxExtension; //< Amount to extend acceptance for box interception [cm]
   unsigned int fDirFromNPoints; //< Number of points to use to determine track direction (0=use track end direction)
   float fMinTrackLength; //< Minimum length of track to consider [cm]
+  bool fUsePMTCalib; //< whether to use and apply PMT calibrations
   
   //hists
   TH2F* fTopBoxPosHist;
@@ -185,6 +190,33 @@ void MuCSTrackTagger::produce(art::Event & e) {
   std::vector<art::Ptr<recob::OpFlash> > FlashVec;
   art::fill_ptr_vector(FlashVec, Flash_h);
 
+  
+  // grab PMT calibrations if needed
+  art::ServiceHandle<geo::Geometry> geo;
+  const lariov::PmtGainProvider& gain_provider = art::ServiceHandle<lariov::PmtGainService>()->GetProvider();
+  for (unsigned int i=0; i!= geo->NOpDets(); ++i) {
+    if (geo->IsValidOpChannel(i) && i<32) {
+      std::cout<<"Channel "<<i <<" "<<gain_provider.Gain(i)<<" "
+               <<gain_provider.GainErr(i) <<" "
+               <<gain_provider.ExtraInfo(i).GetStringData("gain_fit_status")<<" "
+               <<gain_provider.ExtraInfo(i).GetFloatData("amplitude_gain")<<" "
+               <<gain_provider.ExtraInfo(i).GetFloatData("amplitude_gain_err")<<" "
+               <<gain_provider.ExtraInfo(i).GetStringData("amplitude_gain_fit_status")<<" "
+               <<gain_provider.ExtraInfo(i).GetFloatData("pedestal_mean")<<" "
+               <<gain_provider.ExtraInfo(i).GetFloatData("pedestal_mean_err")<<" "
+               <<gain_provider.ExtraInfo(i).GetFloatData("pedestal_rms")<<" "
+               <<gain_provider.ExtraInfo(i).GetFloatData("pedestal_rms_err")<<std::endl;
+    }
+
+    else if (geo->IsValidOpChannel(i)) {
+
+      std::cout<<"Channel "<<i<<std::endl;
+
+    }
+
+  }
+
+
   // find flash in time with MuCS
   
   _nflash = 0;
@@ -198,6 +230,12 @@ void MuCSTrackTagger::produce(art::Event & e) {
       _nflash += 1;
       _flash_t    = flash->Time();
       _flash_pe_v = flash->PEs();
+      // apply gain
+      if (fUsePMTCalib) {
+	for (size_t ch=0; ch < _flash_pe_v.size(); ch++) {
+	  if (geo->IsValidOpChannel(ch) == true) { _flash_pe_v.at(ch) *= ( 20. / gain_provider.Gain(ch) ); }
+	}// if channel is valid
+      }// if we are using the PMT gains
       _flash_pe   = flash->TotalPE();
       _flash_z    = flash->ZCenter();
       _flash_y    = flash->YCenter();
@@ -322,6 +360,8 @@ void MuCSTrackTagger::reconfigure(fhicl::ParameterSet const & p) {
   fBoxExtension=p.get<float>("BoxExtension",0.);
   fDirFromNPoints=p.get<unsigned int>("DirFromNPoints",0);
   fMinTrackLength=p.get<float>("MinTrackLength",0.);
+
+  fUsePMTCalib=p.get<bool>("UsePMTCalib",false);
   
 }
 
