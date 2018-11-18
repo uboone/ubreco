@@ -23,29 +23,10 @@ services:
                               @table::microboone_services_reco
 }
 
-services.DatabaseUtil.ShouldConnect: false
-services.DetPedestalService.DetPedestalRetrievalAlg.UseDB:      false
-services.ChannelStatusService.ChannelStatusProvider.UseDB:       false
-services.ElectronicsCalibService.ElectronicsCalibProvider.UseDB: false
-services.ChannelStatusService.ChannelStatusProvider.UseDB:       false
-
-services.TPCEnergyCalibService.TPCEnergyCalibProvider: @local::microboone_tpcenergycalib_provider_mc
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.XNormCorrectionProvider.UseDB:     false
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.XShapeCorrectionProvider.UseDB:     false
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.XShapeCorrectionProvider_Plane0.UseDB:     false
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.XShapeCorrectionProvider_Plane1.UseDB:     false
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.XShapeCorrectionProvider_Plane2.UseDB:     false
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.YZCorrectionProvider.UseDB:     false
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.YZCorrectionProvider_Plane0.UseDB:     false
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.YZCorrectionProvider_Plane1.UseDB:     false
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.YZCorrectionProvider_Plane2.UseDB:     false
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.dEdxCorrectionProvider.UseDB:     false
-
 services.DetectorPropertiesService.NumberTimeSamples:        6400
 services.DetectorPropertiesService.ReadOutWindowSize:        6400
 services.DetectorClocksService.InheritClockConfig:           false
 services.DetectorClocksService.TriggerOffsetTPC:             -0.400e3
-services.TFileService.fileName: "showerreco_ana.root"
 services.BackTrackerService:  @local::microboone_backtrackerservice
 services.ParticleInventoryService: @local::standard_particleinventoryservice
 

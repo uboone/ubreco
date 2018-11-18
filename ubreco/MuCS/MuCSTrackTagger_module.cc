@@ -65,6 +65,7 @@ private:
   unsigned int fDirFromNPoints; //< Number of points to use to determine track direction (0=use track end direction)
   float fMinTrackLength; //< Minimum length of track to consider [cm]
   bool fUsePMTCalib; //< whether to use and apply PMT calibrations
+  bool fDebug; //< debug flag
   
   //hists
   TH2F* fTopBoxPosHist;
@@ -224,9 +225,13 @@ void MuCSTrackTagger::produce(art::Event & e) {
   //size_t flash_ctr = 0;
 
   for (auto flash: FlashVec) {
+
+    if (fDebug) { std::cout << "Found flash @ time " << flash->Time() << " with " << flash->TotalPE() << " PEs" << std::endl; }
     
     if ( (flash->Time() > -1.5) && (flash->Time() < -0.5) ) {
 
+      if (fDebug) { std::cout << "\t Tagged!" << std::endl; }
+      
       _nflash += 1;
       _flash_t    = flash->Time();
       _flash_pe_v = flash->PEs();
@@ -362,6 +367,8 @@ void MuCSTrackTagger::reconfigure(fhicl::ParameterSet const & p) {
   fMinTrackLength=p.get<float>("MinTrackLength",0.);
 
   fUsePMTCalib=p.get<bool>("UsePMTCalib",false);
+
+  fDebug=p.get<bool>("Debug",false);
   
 }
 
