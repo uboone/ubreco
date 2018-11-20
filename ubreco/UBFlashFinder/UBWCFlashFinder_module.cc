@@ -90,7 +90,7 @@ private:
   Float_t fTotalPE;
   Int_t   fFlashFrame;
   Int_t   fFlashType; //0=undefined 1=cosmic 2=beam
-  std::vector< float > fPEPerCh; //per flash    
+  std::vector< double > fPEPerCh; //per flash    
   Float_t fYCenter;
   Float_t fYWidth;
   Float_t fZCenter;
@@ -263,10 +263,11 @@ void UBWCFlashFinder::produce(art::Event & evt)
 			 lflash->get_pe_v(),
                          0, 0, 1, // this are just default values
                          Ycenter, Ywidth, Zcenter, Zwidth);
-    opflashes_beam->emplace_back(std::move(flash));
     //fill ana tree if requested
     if(_saveAnaTree) fill_ana_tree(flash,idx,2);
     idx++;
+
+    opflashes_beam->emplace_back(std::move(flash));
   }
   idx=0;
   for(const auto& lflash :  flashc_v) {
@@ -279,10 +280,11 @@ void UBWCFlashFinder::produce(art::Event & evt)
 			 lflash->get_pe_v(),
                          0, 0, 1, // this are just default values
                          Ycenter, Ywidth, Zcenter, Zwidth);
-    opflashes_cosmic->emplace_back(std::move(flash));
     //fill ana tree if requested
     if(_saveAnaTree) fill_ana_tree(flash,idx,1);
     idx++;
+
+    opflashes_cosmic->emplace_back(std::move(flash));
   }
 
   flash_algo.clear_flashes();
@@ -311,11 +313,9 @@ void UBWCFlashFinder::fill_ana_tree(recob::OpFlash flash, int idx, int type){
   fAbsTime     = flash.AbsTime();
   fFlashFrame  = flash.Frame();
   fTotalPE     = flash.TotalPE();
-  //for(unsigned int j=0; j!=32; ++j){
-  //  fPEPerCh.emplace_back(flash.PE(j));            
-  //}
+  fPEPerCh     = flash.PEs();
+
   _outtree->Fill();
-  fPEPerCh.clear();
 }
 
 //------------------------------------------------//
@@ -384,7 +384,6 @@ void UBWCFlashFinder::fill_wfmcollection(double triggerTime,
 
     if ( (type == ::wcopreco::kbeam_hg)||(type==::wcopreco::kbeam_lg) ){
       ::wcopreco::OpWaveform wfm(ch%100, timestamp-triggerTime, type, flash_pset._get_cfg_deconvolver()._get_nbins_beam());
-      //std::cout <<timestamp <<" "<<triggerTime << std::endl;
       for (int bin=0; bin<flash_pset._get_cfg_deconvolver()._get_nbins_beam(); bin++) {
 	wfm[bin]=(double)opwfm[bin];
       }
