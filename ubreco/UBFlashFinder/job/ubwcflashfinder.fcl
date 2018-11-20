@@ -6,12 +6,13 @@ UBWCFlashFinder:
   module_type: UBWCFlashFinder
   OpDataProducer: "pmtreadout"
   OpDataTypes:	  ["OpdetBeamHighGain","OpdetBeamLowGain","OpdetCosmicHighGain","OpdetCosmicLowGain"]
-  FlashProductsStem:	"wcopreco"
   FlashProducts:	["beam","cosmic"]
+  SaturationProducts:	["MergedBeam","MergedCosmic"]
   TriggerProducer:	"daq"
   usePmtGainDB:  false
-  SwapCh:         true
+  RemapCh:       true
   OpDetFreq:     64.e6
+  SaveAnaTree:	 true
   PMTGains: [120.0,120.0,120.0,120.0,120.0,120.0,120.0,120.0,120.0,120.0,120.0,120.0,120.0,120.0,120.0,120.0
   	    ,120.0,120.0,120.0,120.0,120.0,120.0,120.0,120.0,120.0,120.0,120.0,120.0,120.0,120.0,120.0,120.0]
   PMTGainErrors: [0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05]

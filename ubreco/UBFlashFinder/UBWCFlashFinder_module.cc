@@ -11,6 +11,8 @@
 #include "art/Framework/Principal/Handle.h"
 #include "art/Framework/Principal/Run.h"
 #include "art/Framework/Principal/SubRun.h"
+#include "art/Framework/Services/Optional/TFileService.h"
+#include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
@@ -26,7 +28,7 @@
 #include "larevt/CalibrationDBI/IOVData/CalibrationExtraInfo.h"
 //RawDigits
 #include "lardataobj/RawData/raw.h"
-#include "lardataobj/RawData/TriggerData.h"
+//#include "lardataobj/RawData/TriggerData.h"
 #include "lardataobj/RawData/OpDetWaveform.h"
 //OpFlash
 #include "lardataobj/RecoBase/OpFlash.h"
@@ -69,12 +71,30 @@ private:
   std::vector<float> pmt_gain;
   std::vector<float> pmt_gainerr;
   bool _usePmtGainDB;
-  bool _swap_ch;
+  bool _remap_ch;
   float _OpDetFreq;
-  std::string _flashProductsStem;
   std::vector<std::string> _flashProducts;
+  std::vector<std::string> _saturationProducts;
   ::wcopreco::Config_Params flash_pset;
   ::wcopreco::UBAlgo flash_algo;
+  bool _saveAnaTree;
+  //for ana output
+  TTree* _outtree;
+  Int_t   fEventID;
+  Int_t   fFlashID;
+  Float_t fFlashTime; 
+  Float_t fFlashWidth;
+  Float_t fAbsTime;
+  bool    fInBeamFrame;
+  int     fOnBeamTime;
+  Float_t fTotalPE;
+  Int_t   fFlashFrame;
+  Int_t   fFlashType; //0=undefined 1=cosmic 2=beam
+  std::vector< float > fPEPerCh; //per flash    
+  Float_t fYCenter;
+  Float_t fYWidth;
+  Float_t fZCenter;
+  Float_t fZWidth;
 
   ::wcopreco::UBEventWaveform fill_evt_wf(double triggerTime,
 					  std::vector<raw::OpDetWaveform> bgh, 
@@ -88,7 +108,7 @@ private:
 			  ::wcopreco::OpWaveformCollection &wfm_collection);
   std::vector<::wcopreco::kernel_fourier_container> fill_kernel_container(std::vector<float> pmt_gain);
   void GetFlashLocation(std::vector<double>, double&, double&, double&, double&);
-
+  void fill_ana_tree(recob::OpFlash flash,int idx, int type);
 };
 
 
@@ -98,23 +118,47 @@ UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
 {
   _OpDataProducer   = p.get<std::string>("OpDataProducer", "pmtreadout" );   // Waveform Module name, to get waveforms
   _OpDataTypes      = p.get<std::vector<std::string> >("OpDataTypes");
-  _flashProductsStem = p.get<std::string>( "FlashProductsStem", "wcopreco");
   _flashProducts    = p.get<std::vector<std::string> >("FlashProducts");
+  _saturationProducts = p.get<std::vector<std::string> >("SaturationProducts");
   _TriggerProducer  = p.get<std::string>("TriggerProducer","daq");
   pmt_gain          = p.get<std::vector<float> >("PMTGains");
   pmt_gainerr       = p.get<std::vector<float> >("PMTGainErrors");
   _usePmtGainDB     = p.get<bool>("usePmtGainDB");
-  _swap_ch          = p.get<bool>("SwapCh");
+  _remap_ch         = p.get<bool>("RemapCh");
   _OpDetFreq        = p.get<float>("OpDetFreq");
+  _saveAnaTree      = p.get<bool>("SaveAnaTree");
 
   // configure
-  flash_pset.set_do_swap_channels(_swap_ch);
+  flash_pset.set_do_swap_channels(_remap_ch);
   flash_pset.set_tick_width_us(1./_OpDetFreq*1.e6);
   flash_pset.Check_common_parameters();
   flash_algo.Configure(flash_pset);
 
+  //make ana tree
+  if(_saveAnaTree){
+    art::ServiceHandle< art::TFileService > tfs;
+    _outtree = tfs->make<TTree>("outtree","per flash tree");
+    _outtree->Branch("EventID",    &fEventID,     "EventID/I");
+    _outtree->Branch("FlashID",    &fFlashID,     "FlashID/I");
+    _outtree->Branch("FlashType",  &fFlashType,   "FlashType/I");
+    _outtree->Branch("YCenter",    &fYCenter,     "YCenter/F");
+    _outtree->Branch("ZCenter",    &fZCenter,     "ZCenter/F");
+    _outtree->Branch("YWidth",     &fYWidth,      "YWidth/F");
+    _outtree->Branch("ZWidth",     &fZWidth,      "ZWidth/F");
+    _outtree->Branch("FlashTime",  &fFlashTime,   "FlashTime/F");
+    _outtree->Branch("FlashWidth", &fFlashWidth,  "FlashWidth/F");
+    _outtree->Branch("AbsTime",    &fAbsTime,     "AbsTime/F");
+    _outtree->Branch("FlashFrame", &fFlashFrame,  "FlashFrame/I");
+    _outtree->Branch("InBeamFrame",&fInBeamFrame, "InBeamFrame/B");
+    _outtree->Branch("OnBeamTime", &fOnBeamTime,  "OnBeamTime/I");
+    _outtree->Branch("TotalPE",    &fTotalPE,     "TotalPE/F");
+    _outtree->Branch("PEPerCh", &fPEPerCh);
+  }
+
+
   for ( unsigned int cat=0; cat<2; cat++ ) {
     produces< std::vector<recob::OpFlash> >( _flashProducts[cat] );
+    produces< std::vector<raw::OpDetWaveform> >( _saturationProducts[cat] );
   }
 
 }
@@ -123,11 +167,12 @@ void UBWCFlashFinder::produce(art::Event & evt)
 {
   std::unique_ptr< std::vector<recob::OpFlash> > opflashes_beam(new std::vector<recob::OpFlash>);
   std::unique_ptr< std::vector<recob::OpFlash> > opflashes_cosmic(new std::vector<recob::OpFlash>);
+  std::unique_ptr< std::vector<raw::OpDetWaveform> > saturation_beam(new std::vector<raw::OpDetWaveform>);
+  std::unique_ptr< std::vector<raw::OpDetWaveform> > saturation_cosmic(new std::vector<raw::OpDetWaveform>);
 
   // initialize data handles and services
   art::ServiceHandle<geo::Geometry> geo;
   auto const* ts = lar::providerFrom<detinfo::DetectorClocksService>();
-  //art::ServiceHandle<geo::UBOpReadoutMap> ub_PMT_channel_map;
 
   art::Handle< std::vector< raw::OpDetWaveform > > wfCHGHandle;
   art::Handle< std::vector< raw::OpDetWaveform > > wfBHGHandle;
@@ -158,8 +203,6 @@ void UBWCFlashFinder::produce(art::Event & evt)
   evt.getByLabel( _OpDataProducer, _OpDataTypes[kCosmicLowGain], wfCLGHandle);
   std::vector<raw::OpDetWaveform> const& opwfms_clg(*wfCLGHandle);
 
-  //ub_PMT_channel_map->SetOpMapRun( evt.run() ); 
-
   std::vector<raw::OpDetWaveform> sort_blg;
   std::vector<raw::OpDetWaveform> sort_clg;
   if( /*evt.run() <= 3984*/ opwfms_blg.size()>opwfms_bhg.size() ){
@@ -170,13 +213,6 @@ void UBWCFlashFinder::produce(art::Event & evt)
   }
   double triggerTime = ts->TriggerTime();
 
-  art::Handle< std::vector< raw::Trigger > > trigHandle;
-  if(evt.getByLabel( _TriggerProducer, trigHandle )){
-    const std::vector< raw::Trigger >& trigvec = (*trigHandle);
-    const raw::Trigger& trig = trigvec.at(0);
-    triggerTime = trig.TriggerTime();
-  }
-
   flash_algo.Configure(flash_pset);
   ::wcopreco::UBEventWaveform UB_evt_wf;
   if(sort_blg.size()>0) UB_evt_wf = fill_evt_wf(triggerTime, opwfms_bhg, sort_blg, opwfms_chg, sort_clg, pmt_gain,pmt_gainerr);
@@ -185,10 +221,38 @@ void UBWCFlashFinder::produce(art::Event & evt)
   std::vector<wcopreco::kernel_fourier_container> kernel_container_v = fill_kernel_container( pmt_gain);
 
   flash_algo.Run(&UB_evt_wf, &pmt_gain, &pmt_gainerr, &kernel_container_v);
+  //get saturation corrected wf
+  auto const satb_v = flash_algo.get_merged_beam();
+  auto const satc_v = flash_algo.get_merged_cosmic();
+  for(const auto& isat : satb_v){
+    std::vector<unsigned short> wf;
+    for(unsigned int c=0; c<isat.size(); c++){
+      wf.push_back(isat[c]);
+    }
+    raw::TimeStamp_t t = isat.get_time_from_trigger()+triggerTime;
+    raw::Channel_t ch = isat.get_ChannelNum();
+    raw::OpDetWaveform wfm(t,ch,wf);
+    saturation_beam->emplace_back(std::move(wfm));
+    wf.clear();
+  }
+  for(const auto& isat : satc_v){
+    std::vector<unsigned short> wf;
+    for(unsigned int c=0; c<isat.size(); c++){
+      wf.push_back(isat[c]);
+    }
+    raw::TimeStamp_t t = isat.get_time_from_trigger()+triggerTime;
+    raw::Channel_t ch = isat.get_ChannelNum();
+    raw::OpDetWaveform wfm(t,ch,wf);
+    saturation_cosmic->emplace_back(std::move(wfm));
+    wf.clear();
 
+  }
+
+  //get flashes
   auto const flashb_v = flash_algo.get_flashes_beam();
   auto const flashc_v = flash_algo.get_flashes_cosmic();
 
+  int idx=0;
   for(const auto& lflash :  flashb_v) {
     double Ycenter, Zcenter, Ywidth, Zwidth;
     GetFlashLocation(lflash->get_pe_v(), Ycenter, Zcenter, Ywidth, Zwidth);
@@ -200,8 +264,11 @@ void UBWCFlashFinder::produce(art::Event & evt)
                          0, 0, 1, // this are just default values
                          Ycenter, Ywidth, Zcenter, Zwidth);
     opflashes_beam->emplace_back(std::move(flash));
+    //fill ana tree if requested
+    if(_saveAnaTree) fill_ana_tree(flash,idx,2);
+    idx++;
   }
-
+  idx=0;
   for(const auto& lflash :  flashc_v) {
     double Ycenter, Zcenter, Ywidth, Zwidth;
     GetFlashLocation(lflash->get_pe_v(), Ycenter, Zcenter, Ywidth, Zwidth);
@@ -213,14 +280,43 @@ void UBWCFlashFinder::produce(art::Event & evt)
                          0, 0, 1, // this are just default values
                          Ycenter, Ywidth, Zcenter, Zwidth);
     opflashes_cosmic->emplace_back(std::move(flash));
+    //fill ana tree if requested
+    if(_saveAnaTree) fill_ana_tree(flash,idx,1);
+    idx++;
   }
 
   flash_algo.clear_flashes();
 
+  evt.put(std::move(saturation_beam),_saturationProducts[0]);
+  evt.put(std::move(saturation_cosmic),_saturationProducts[1]);
   evt.put(std::move(opflashes_beam),_flashProducts[0]);
   evt.put(std::move(opflashes_cosmic),_flashProducts[1]);
 }
 
+//--------------------------------------//
+// fill ana tree
+//--------------------------------------//
+void UBWCFlashFinder::fill_ana_tree(recob::OpFlash flash, int idx, int type){
+  
+  fFlashTime   = flash.Time();
+  fFlashWidth  = flash.TimeWidth(); 
+  fFlashID     = idx;
+  fFlashType   = type;
+  fYCenter     = flash.YCenter();
+  fZCenter     = flash.ZCenter();
+  fYWidth      = flash.YWidth();
+  fZWidth      = flash.ZWidth();
+  fInBeamFrame = flash.InBeamFrame();
+  fOnBeamTime  = flash.OnBeamTime();
+  fAbsTime     = flash.AbsTime();
+  fFlashFrame  = flash.Frame();
+  fTotalPE     = flash.TotalPE();
+  //for(unsigned int j=0; j!=32; ++j){
+  //  fPEPerCh.emplace_back(flash.PE(j));            
+  //}
+  _outtree->Fill();
+  fPEPerCh.clear();
+}
 
 //------------------------------------------------//
 // fill UBEventWaveform 

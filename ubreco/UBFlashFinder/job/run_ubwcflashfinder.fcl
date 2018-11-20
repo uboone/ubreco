@@ -6,7 +6,6 @@
 #include "database_microboone.fcl"
 #include "databaseutil_microboone.fcl"
 #include "ubwcflashfinder.fcl"
-#include "myflashana.fcl"
 
 process_name: WCOpReco 
 
@@ -29,7 +28,7 @@ services.DetectorPropertiesService.NumberTimeSamples:        6400
 services.DetectorPropertiesService.ReadOutWindowSize:        6400
 services.DetectorClocksService.InheritClockConfig:           false
 services.DetectorClocksService.TriggerOffsetTPC:             -0.400e3
-services.DetectorClocksService.TrigModuleName:               "triggersim"
+services.DetectorClocksService.TrigModuleName:               "daq"
 
 services.Geometry.ForceUseFCLOnly: true
 
@@ -44,12 +43,8 @@ source:
 {
   module_type: RootInput
   maxEvents:   -1        # Number of events to create
-  inputCommands: ["keep raw::OpDetWaveforms_*_*_*", "keep recob::OpFlashs_*_*_*",
-  		 	"drop raw::OpDetWaveforms_*_Uncategorized_*", "drop raw::OpDetWaveforms_*_BNBLogic*_*", 
-  		 	"drop raw::OpDetWaveforms_*_Uncategorized_*", "drop raw::OpDetWaveforms_*_NUMILogic*_*",
-			"drop raw::OpDetWaveforms_*_Uncategorized_*", "drop raw::OpDetWaveforms_*_StrobeLogic*_*",
-			"drop raw::OpDetWaveforms_*_Uncategorized_*", "drop raw::OpDetWaveforms_*_UncategorizedLogic*_*",
-			"drop raw::OpDetWaveforms_*_Uncategorized_*", "drop raw::OpDetWaveforms_*_UnspecifiedLogic*_*"]
+  inputCommands: ["keep *_*_*_*"]
+
 }
 
 physics:
@@ -62,23 +57,17 @@ physics:
 
  analyzers:
  {
-  opflashana:	@local::myopflashana
 
  }
 
  reco: [ wcopreco ]
- ana:  [ opflashana ]
+ #ana:  [ opflashana ]
  stream1:  [ out1 ]
 
  trigger_paths: [reco] 
 
- end_paths:     [ana, stream1]
+ end_paths:     [stream1]
 }
-
-#physics.analyzers.opflashana.OpFlashModuleLabel:     "simpleFlashCosmic"
-#physics.analyzers.opflashana.OpFlashInstanceLabel:  ""
-physics.analyzers.opflashana.MakeFlashTimeHist:       true
-physics.analyzers.opflashana.MakeFlashPosHist:        true
 
 outputs:
 {
@@ -89,8 +78,7 @@ outputs:
    dataTier:    "reco"
    compressionLevel: 1
    outputCommands: [
-            "keep *_*_*_*",
-	    "drop raw::OpDetWaveforms_*_*_*"]
+            "keep *_*_*_*"]
    }
 }
 
