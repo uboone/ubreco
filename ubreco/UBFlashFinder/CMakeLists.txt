@@ -1,9 +1,8 @@
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
-include_directories( $ENV{WCOPRECO_INCDIR} )
 
 set( ROOTLIB -L$ENV{ROOTSYS}/lib -lCore -lRIO -lNet -lHist -lGraf -lGraf3d -lGpad -lTree -lRint -lPostscript -lMatrix -lPhysics -lMathCore -lThread -pthread -lm -ldl)
 
-link_libraries( ${LIB_NAME} -L$ENV{BOOST_LIB} -lboost_system ${ROOTLIB} -L$ENV{WCOPRECO_LIBDIR} -lWCOpReco_algo -lWCOpReco_app -lWCOpReco_data -lWCOpReco_deconv)
+link_libraries( ${LIB_NAME} -L$ENV{BOOST_LIB} -lboost_system ${ROOTLIB} )
 
 art_make( BASENAME_ONLY
 	  LIBRARY_NAME  uboone_UBFlashFinder
