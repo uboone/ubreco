@@ -52,7 +52,7 @@
 /**
    \class TruncMean
    The truncated mean class allows to compute the following quantities
-   1) the truncated mean profile of an ordered vector of values, such as 
+   1) the truncated mean profile of an ordered vector of values, such as
    the charge profile along a particle's track.
    To create such a profile use the function CalcTruncMeanProfile()
    2) Get the truncated mean value of a distribution. This function
@@ -155,16 +155,16 @@ float TruncMean::CalcIterativeTruncMean(std::vector<float> v, const size_t& nmin
   float fracdiff = fabs(med-oldmed) / oldmed;
   if ( (currentiteration >= nmin) && (fracdiff < convergencelimit) )
     return mean;
-  
+
   // if reached here it means we have to go on for another iteration
 
   // cutoff tails of distribution surrounding the mean
   // use erase-remove : https://en.wikipedia.org/wiki/Erase%E2%80%93remove_idiom
   // https://stackoverflow.com/questions/17270837/stdvector-removing-elements-which-fulfill-some-conditions
-  v.erase( std::remove_if( v.begin(), v.end(), 
+  v.erase( std::remove_if( v.begin(), v.end(),
 			   [med,nsigma,rms](const float& x) { return ( (x < (med-nsigma*rms)) || (x > (med+nsigma*rms)) ); }), // lamdda condition for events to be removed
 	   v.end());
-  
+
   return CalcIterativeTruncMean(v, nmin, nmax, lmin, currentiteration+1, convergencelimit, nsigma, med);
 }
 
@@ -172,14 +172,14 @@ void TruncMean::CalcTruncMeanProfile(const std::vector<float>& rr_v, const std::
 				     std::vector<float>& dq_trunc_v, const float& nsigma)
 {
 
-  // how many points to sample 
+  // how many points to sample
   int Nneighbor = (int)(_rad * 3 * 2);
 
   dq_trunc_v.clear();
   dq_trunc_v.reserve( rr_v.size() );
 
   int Nmax = dq_v.size()-1;
-  
+
   for (size_t n=0; n < dq_v.size(); n++) {
 
     // current residual range
@@ -195,21 +195,21 @@ void TruncMean::CalcTruncMeanProfile(const std::vector<float>& rr_v, const std::
     std::vector<float> dq_local_v;
 
     for (int i=nmin; i < nmax; i++) {
-      
+
       float dr = rr - rr_v[i];
       if (dr < 0) dr *= -1;
 
       if (dr > _rad) continue;
 
       dq_local_v.push_back( dq_v[i] );
-      
+
     }// for all ticks we want to scan
 
     if (dq_local_v.size() == 0) {
       dq_trunc_v.push_back( dq_v.at(n) );
       continue;
     }
-    
+
     // calculate median and rms
     float median = Median(dq_local_v);
     float rms    = RMS(dq_local_v);
@@ -235,7 +235,7 @@ float TruncMean::Mean(const std::vector<float>& v)
   float mean = 0.;
   for (auto const& n : v) mean += n;
   mean /= v.size();
-  
+
   return mean;
 }
 
@@ -243,7 +243,7 @@ float TruncMean::Median(const std::vector<float>& v)
 {
 
   if (v.size() == 1) return v[0];
-  
+
   std::vector<float> vcpy = v;
 
   std::sort(vcpy.begin(), vcpy.end());
@@ -465,6 +465,7 @@ void StopMu::analyze(art::Event const & e)
 
   for (size_t t=0; t < trk_h->size(); t++)
   {
+    // if (isreconstructedAsCosmic() == false) continue;
     clear();
     auto const& trk = trk_h->at(t);
     auto const& beg = trk.Vertex();
@@ -483,12 +484,13 @@ void StopMu::analyze(art::Event const & e)
     _yz_trackid = 0;
     for (size_t k=0; k<mc_muon_end_y.size(); k++)
     {
-      float this_distance = yzDistance(_trk_end_y, _trk_end_z, mc_muon_end_y[k], mc_muon_end_z[k]);
-      if (this_distance < _yz_true_reco_distance) {
-	_yz_true_reco_distance = this_distance;
-	_yz_trackid = stop_mu_trackid_v.at(k);
-      }// if closest
-    }// for all distances
+      float aux_distance = yzDistance(_trk_end_y, _trk_end_z, mc_muon_end_y[k], mc_muon_end_z[k]);
+      yz_distances.push_back(aux_distance);
+    }
+    if (yz_distances.size() == 0)
+      _yz_true_reco_distance = -1;
+    else
+      _yz_true_reco_distance = *min_element(yz_distances.begin(), yz_distances.end());
 
     TVector3 track_direction(_trk_end_x - _trk_start_x,
                              _trk_end_y - _trk_start_y,
@@ -595,7 +597,7 @@ void StopMu::fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<doubl
     {
     _dqdx_u.push_back((float)dqdx[n]);
     _rr_u.push_back(  (float)rr[n]  );
-    _tmean.CalcTruncMeanProfile(_rr_u,_dqdx_u,_dqdx_tm_u);
+    _tmean.CalcTruncMeanProfile(_rr_u, _dqdx_u, _dqdx_tm_u);
     }
   }
   else if (pl==1)
@@ -604,7 +606,7 @@ void StopMu::fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<doubl
     {
     _dqdx_v.push_back((float)dqdx[n]);
     _rr_v.push_back(  (float)rr[n]  );
-    _tmean.CalcTruncMeanProfile(_rr_v,_dqdx_v,_dqdx_tm_v);
+    _tmean.CalcTruncMeanProfile(_rr_v, _dqdx_v, _dqdx_tm_v);
     }
   }
   else if (pl==2)
@@ -613,7 +615,7 @@ void StopMu::fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<doubl
     {
     _dqdx_y.push_back((float)dqdx[n]);
     _rr_y.push_back(  (float)rr[n]  );
-    _tmean.CalcTruncMeanProfile(_rr_y,_dqdx_y,_dqdx_tm_y);
+    _tmean.CalcTruncMeanProfile(_rr_y, _dqdx_y, _dqdx_tm_y);
     }
   }
 }
@@ -692,6 +694,11 @@ void StopMu::shiftTruePosition(double true_point[3], double true_time, double tr
   true_point_shifted[1] += offset.Y();
   true_point_shifted[2] += offset.Z();
 }
+
+// bool StopMu::isreconstructedAsCosmic()
+// {
+//   art::FindManyP<recob::Track> track_pfp_assn(trk_h, e, label);
+// }
 
 void StopMu::beginJob()
 {
