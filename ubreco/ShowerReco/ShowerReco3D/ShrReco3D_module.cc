@@ -28,11 +28,13 @@
 
 // larsoft data-products
 #include "lardataobj/RecoBase/Cluster.h"
+#include "lardataobj/MCBase/MCShower.h"
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RecoBase/PFParticle.h"
 #include "lardataobj/RecoBase/Vertex.h"
 #include "lardataobj/RecoBase/Shower.h"
 #include "lardata/Utilities/AssociationUtil.h"
+#include "lardataobj/AnalysisBase/BackTrackerMatchingData.h"
 
 #include "art/Persistency/Common/PtrMaker.h"
 
@@ -70,8 +72,10 @@ private:
   std::string fPFPproducer;
   std::string fClusproducer;
   std::string fVtxproducer;
+  std::string fBacktrackTag;
   
-  
+  /// map for backtracking which stores mcshower index to vector of track ids for the mcshower
+  std::map<size_t, std::vector<unsigned int> > _MCShowerInfo;  
   
   /// Shower reco core class instance
   ::showerreco::ShowerRecoManager* _manager;
@@ -86,9 +90,15 @@ private:
   double _shr_x, _shr_y, _shr_z;
   std::vector<double> _shr_dedx_v, _shr_dedx_pl0_v, _shr_dedx_pl1_v, _shr_dedx_pl2_v;
   std::vector<double> _shr_e_v;
+  double _mc_shr_e;
+  double _mc_shr_px, _mc_shr_py, _mc_shr_pz;
+  double _mc_shr_x, _mc_shr_y, _mc_shr_z;
+  double _completeness, _purity;
+  int _mc_shr_pdg;
 
   /**
      @brief Save output showers produced by reconstruction algorithms
+     #input art::Event for backtracking
      @input s : index in output shower vector, to associate back to PFP index
      @input shower : reconstructed shower to be translated to recob:: object
      @input Shower_v : vector of recob::Showers. This will be placed in the art::Event
@@ -99,7 +109,8 @@ private:
      @input Shower_Cluster_assn_v : output shower -> cluster assn vector
      @input Shower_Hit_assn_v     : output shower -> hit assn vector
   */
-  void SaveShower(const size_t idx,
+  void SaveShower(art::Event & e,
+		  const size_t idx,
 		  const showerreco::Shower_t& shower,
 		  std::unique_ptr< std::vector<recob::Shower> >& Shower_v,
 		  const art::PtrMaker<recob::Shower> ShowerPtrMaker,
@@ -109,6 +120,25 @@ private:
 		  std::unique_ptr< art::Assns <recob::Shower, recob::PFParticle> >& Shower_PFP_assn_v,
 		  std::unique_ptr< art::Assns <recob::Shower, recob::Cluster>    >& Shower_Cluster_assn_v,
 		  std::unique_ptr< art::Assns <recob::Shower, recob::Hit>        >& Shower_Hit_assn_v );
+
+  /**
+     @brief Backtracking function to find best MCShower matched with hits of a reco shower
+     This function loops thorugh mcshowers, and for each computes the purity and completeness based on the backtarcked energy associated to each hit in the shower. The entry with the best purity is determined as the best match and returned.
+     @input art::Event with which to load backtracking metadata
+     @input hit_idx_v : vector of hit indices (within event handle) associated to the shower (can be from a single plane)
+     @input completeness : value passed by reference matched to the most pure MCShower match
+     @input purity : see above
+     @return index of associated mcshower
+   */
+  size_t BackTrack(art::Event & e, const std::vector<unsigned int>& hit_idx_v, float& completeness, float& purity);
+
+  /**
+     @brief find showers associated to neutrino interaction
+     @input mct_h mctruth
+     @input mcs_h mcshowers
+     @ return map connecting mcshower index to vector of track IDs associated to that shower
+   */
+  std::map<size_t, std::vector<unsigned int> > GetMCShowerInfo(const art::ValidHandle<std::vector<simb::MCTruth> > mct_h, const art::ValidHandle<std::vector<sim::MCShower> > mcs_h);
   
   // Declare member data here.
 
@@ -128,19 +158,16 @@ ShrReco3D::ShrReco3D(fhicl::ParameterSet const & p)
   fPFPproducer  = p.get<std::string>("PFPproducer" );
   fClusproducer = p.get<std::string>("Clusproducer");
   fVtxproducer  = p.get<std::string>("Vtxproducer" );
+  fBacktrackTag = p.get<std::string>("BacktrackTag");
   
   const fhicl::ParameterSet& protoshower_pset = p.get<fhicl::ParameterSet>("ProtoShowerTool");  
 
   // grab algorithms for merging
   _manager = new showerreco::ShowerRecoManager();
   const fhicl::ParameterSet& showerrecoTools = p.get<fhicl::ParameterSet>("ShowerRecoTools");
-  std::cout << "DD got parameter set. start loop..." << std::endl;
   for (const std::string& showerrecoTool : showerrecoTools.get_pset_names()) {
-    std::cout << "DD \t in loop..." << std::endl;
     const fhicl::ParameterSet& showerreco_pset = showerrecoTools.get<fhicl::ParameterSet>(showerrecoTool);
-    std::cout << "DD \t add shower algo..." << std::endl;
     _manager->AddAlgo(art::make_tool<showerreco::ShowerRecoModuleBase>(showerreco_pset));
-    std::cout << "DD \t done adding algo" << std::endl;
   }// for all algorithms to be added
 
   _manager->SetDebug(false);
@@ -187,9 +214,7 @@ void ShrReco3D::produce(art::Event & e)
   // pass event to ProtoShowerAlgBase to create ProtoShower objects
   // which will then be fed to shower reco algorithm chain
   std::vector<protoshower::ProtoShower> event_protoshower_v;
-  std::cout << "About to generate proto-showers" << std::endl;
   _psalg->GenerateProtoShowers(e, event_protoshower_v);
-  std::cout << "Done generating proto-showers" << std::endl;
   
   // set protoshowers for algorithms
   _manager->SetProtoShowers(event_protoshower_v);
@@ -198,6 +223,13 @@ void ShrReco3D::produce(art::Event & e)
   std::vector< ::showerreco::Shower_t> output_shower_v;
   _manager->Reconstruct(output_shower_v);
 
+  // if using truth, backtrack and load mcshowers
+  if (fBacktrackTag != ""){
+    // load mcshowers & mctruth
+    auto const& mcs_h = e.getValidHandle<std::vector<sim::MCShower>>("mcreco");
+    auto const& mct_h = e.getValidHandle<std::vector<simb::MCTruth> >("generator");
+    _MCShowerInfo = GetMCShowerInfo(mct_h,mcs_h);
+  }
 
   // load PFP, clus, hit so that associations to showers can be stored
   // grab PFParticles in event
@@ -209,12 +241,10 @@ void ShrReco3D::produce(art::Event & e)
   // grab the hits associated to the PFParticles
   auto pfp_hit_assn_v = lar::FindManyInChainP<recob::Hit, recob::Cluster>::find(pfp_h, e, fPFPproducer);
 
-  std::cout << "getting ready to save " << output_shower_v.size() << " showers" << std::endl;
-
   // save output showers
   for (size_t s=0; s < output_shower_v.size(); s++) {
     try {
-      SaveShower(s, output_shower_v.at(s), Shower_v, ShowerPtrMaker,
+      SaveShower(e, s, output_shower_v.at(s), Shower_v, ShowerPtrMaker,
 		 pfp_h, pfp_clus_assn_v, pfp_hit_assn_v,
 		 Shower_PFP_assn_v, Shower_Cluster_assn_v, Shower_Hit_assn_v);
     }
@@ -223,8 +253,6 @@ void ShrReco3D::produce(art::Event & e)
     }
   }// for all output reconstructed showers
   
-  std::cout << "There are " << Shower_v->size() << " showers to be saved" << std::endl;
-
   e.put(std::move(Shower_v));
   e.put(std::move(Shower_PFP_assn_v));
   e.put(std::move(Shower_Cluster_assn_v));
@@ -243,7 +271,8 @@ void ShrReco3D::endJob()
 }
 
 
-void ShrReco3D::SaveShower(const size_t idx,
+void ShrReco3D::SaveShower(art::Event & e,
+			   const size_t idx,
 			   const showerreco::Shower_t& shower,
 			   std::unique_ptr< std::vector<recob::Shower> >& Shower_v,
 			   const art::PtrMaker<recob::Shower> ShowerPtrMaker,
@@ -286,7 +315,7 @@ void ShrReco3D::SaveShower(const size_t idx,
   _shr_y      = shower.fXYZStart[1];
   _shr_z      = shower.fXYZStart[2];
   _shr_e_v    = shower.fTotalEnergy_v;
-  _rcshr_tree->Fill();
+
 
   recob::Shower s;
   s.set_id ( Shower_v->size() );
@@ -319,11 +348,150 @@ void ShrReco3D::SaveShower(const size_t idx,
 
   // step 3 : hits
   std::vector<art::Ptr<recob::Hit> > hit_v = pfp_hit_assn_v.at(idx);
-  for (size_t h=0; h < hit_v.size(); h++)
+  // for backtracking purposes save the vector of collection-plane hit indices associated to the shower
+  std::vector<unsigned int> hit_idx_v;
+  for (size_t h=0; h < hit_v.size(); h++) {
     Shower_Hit_assn_v->addSingle( ShrPtr, hit_v.at(h) );
+    if (hit_v.at(h)->WireID().Plane == 2) { hit_idx_v.push_back( hit_v.at(h).key() ); }
+  }// for all hits
+  
+  if (fBacktrackTag != ""){
+    float completeness_max, purity_max;
+    BackTrack(e, hit_idx_v, completeness_max, purity_max);
+  }
+
+  _rcshr_tree->Fill();
   
   return;
+}// end of SaveShower function
+
+size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit_idx_v, float& completeness_max, float& purity_max)
+{
+  
+  art::InputTag BacktrackTag { fBacktrackTag };
+  auto const& gaushit_h = e.getValidHandle<std::vector<recob::Hit> > ("gaushit");
+  art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> backtrack_h(gaushit_h,e,BacktrackTag);
+
+  auto const& mcs_h = e.getValidHandle<std::vector<sim::MCShower>>("mcreco");
+
+  // score the match for each MCShower
+  purity_max = 0.;
+  completeness_max = 0.;
+  size_t mcs_idx_match = 0;
+
+  for (auto const& mcshower : _MCShowerInfo) {
+
+    size_t s = mcshower.first; // index of mcshower in mcs_h
+    
+    float purity = 0;
+    float completeness = 0;
+
+    float BackTrackEnergy       = 0;
+    float BackTrackShowerEnergy = 0;
+
+    auto const& mcs = mcs_h->at(s);
+    auto shrtrackIDs = mcshower.second;
+    
+    std::vector<simb::MCParticle const*> particle_vec;
+    std::vector<anab::BackTrackerHitMatchingData const*> match_vec;  
+    
+    for (auto const& hit_idx : hit_idx_v) {
+      
+      particle_vec.clear(); match_vec.clear();
+
+      backtrack_h.get(hit_idx, particle_vec, match_vec);
+      
+      // does this hit match to the mcshower?
+      for(size_t i_p=0; i_p<particle_vec.size(); ++i_p){            
+	
+	auto mctrkid = particle_vec.at(i_p)->TrackId();
+	auto energy  = match_vec[i_p]->numElectrons;
+
+	BackTrackEnergy += energy;
+	// does this trackID match that of the MCShower?
+	for (auto const& shrtrkid : shrtrackIDs) {
+	  if ( shrtrkid == (unsigned int)mctrkid ){
+	    BackTrackShowerEnergy += energy;
+	    break;
+	  }
+	}
+      }// for all particles associated to this hit
+    }// for all hits
+    
+    purity       = BackTrackShowerEnergy / BackTrackEnergy;
+    completeness = BackTrackShowerEnergy / mcs.DetProfile().E();
+    
+    if (purity > purity_max) {
+      purity_max = purity;
+      completeness_max = completeness;
+      mcs_idx_match = s;
+    }
+    
+  }// end of MCShower loop
+
+  _completeness = completeness_max;
+  _purity       = purity_max;
+  auto matched_mcs = mcs_h->at(mcs_idx_match);
+  _mc_shr_e = matched_mcs.Start().E();
+  _mc_shr_pdg = matched_mcs.PdgCode();
+  _mc_shr_x = matched_mcs.Start().X();
+  _mc_shr_y = matched_mcs.Start().Y();
+  _mc_shr_z = matched_mcs.Start().Z();
+  auto mom = matched_mcs.Start().Momentum().Vect().Mag();
+  _mc_shr_px = matched_mcs.Start().Px() / mom;
+  _mc_shr_py = matched_mcs.Start().Py() / mom;
+  _mc_shr_pz = matched_mcs.Start().Pz() / mom;
+
+  // fill TTree variables
+  
+  return mcs_idx_match;
+}// function end
+
+
+std::map<size_t, std::vector<unsigned int> > ShrReco3D::GetMCShowerInfo(const art::ValidHandle<std::vector<simb::MCTruth> > mct_h, const art::ValidHandle<std::vector<sim::MCShower> > mcs_h) {
+  
+  auto mct = mct_h->at(0);
+  auto neutrino = mct.GetNeutrino().Nu();
+  auto vtx = neutrino.Position(0).Vect();
+
+  Double_t xyz[3] = {};
+  xyz[0] = vtx.X();
+  xyz[1] = vtx.Y();
+  xyz[2] = vtx.Z();
+  
+  std::cout << "neutrino vertex @ [ " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << " ]" << std::endl;
+
+  // loop through MCShowers and identify those originating from the pi0
+  // map connecting mcshower index to track ID vector for all e+/e- in MCShower
+  std::map<size_t, std::vector<unsigned int> > event_shower_map;
+  // map connecting e+/e- trackID in mcshower to mcshower index
+  //std::map<unsigned int, size_t> event_mcpart_map;
+
+  for (size_t i=0; i < mcs_h->size(); i++) {
+    auto const& mcs = mcs_h->at(i);
+
+    double x = mcs.Start().X();
+    double y = mcs.Start().Y();
+    double z = mcs.Start().Z();
+    double d = sqrt( ( (xyz[0] - x) * (xyz[0] - x) ) +
+		     ( (xyz[1] - y) * (xyz[1] - y) ) +
+		     ( (xyz[2] - z) * (xyz[2] - z) ) );
+
+    if (d < 0.01) {
+      std::vector<unsigned int> shrtrackIDs = mcs.DaughterTrackID();
+      shrtrackIDs.push_back( mcs.TrackID() );
+      // get daughter track IDs:
+      auto daughterIDs = mcs.DaughterTrackID();
+      for (auto const& id : daughterIDs)
+	if (id != mcs.TrackID()) { shrtrackIDs.push_back(id); }
+      
+      event_shower_map[ i ] = shrtrackIDs;
+    }// if mcshower matched to pi0
+  }// for all mcshowers
+
+  return event_shower_map;
 }
+
 
 void ShrReco3D::SetTTree() {
 
@@ -342,6 +510,17 @@ void ShrReco3D::SetTTree() {
   _rcshr_tree->Branch("_shr_px",&_shr_px,"shr_px/D");
   _rcshr_tree->Branch("_shr_py",&_shr_py,"shr_py/D");
   _rcshr_tree->Branch("_shr_pz",&_shr_pz,"shr_pz/D");
+  // mc variables
+  _rcshr_tree->Branch("_completeness",&_completeness,"completeness/D");
+  _rcshr_tree->Branch("_purity",&_purity,"purity/D");
+  _rcshr_tree->Branch("_mc_shr_pdg",&_mc_shr_pdg,"mc_shr_pdg/I");
+  _rcshr_tree->Branch("_mc_shr_e",&_mc_shr_e,"mc_shr_e/D");
+  _rcshr_tree->Branch("_mc_shr_x",&_mc_shr_x,"mc_shr_x/D");
+  _rcshr_tree->Branch("_mc_shr_y",&_mc_shr_y,"mc_shr_y/D");
+  _rcshr_tree->Branch("_mc_shr_z",&_mc_shr_z,"mc_shr_z/D");
+  _rcshr_tree->Branch("_mc_shr_px",&_mc_shr_px,"mc_shr_px/D");
+  _rcshr_tree->Branch("_mc_shr_py",&_mc_shr_py,"mc_shr_py/D");
+  _rcshr_tree->Branch("_mc_shr_pz",&_mc_shr_pz,"mc_shr_pz/D");
 
 }
 
