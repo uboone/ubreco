@@ -88,29 +88,11 @@ namespace protoshower {
     // grab the hits associated to the PFParticles
     auto pfp_hit_assn_v = lar::FindManyInChainP<recob::Hit, recob::Cluster>::find(pfp_h, e, fPFPproducer);
 
-    std::cout << "Grabbed necessary products " << std::endl;
-
-    /*
-    // Get mapping from ID to PFParticle
-    std::map<size_t, art::Ptr<recob::PFParticle> > pfp_map;
-    for (unsigned int i = 0; i < pfp_h->size(); ++i) {
-      const art::Ptr<recob::PFParticle> pfp(pfp_h, i);
-      pfp_map.emplace(pfp->Self(), pfp);
-      //throw cet::exception("WorkshopAnalyzer") << "Repeated PFParticles!" << std::endl;
-    } 
-    */
-    
-    std::cout << "Start event loop " << std::endl;
-
     // loop through PFParticles
     for (size_t p=0; p < pfp_h->size(); p++) {
 
 
       const recob::PFParticle pfp = pfp_h->at(p);
-
-      std::cout << "Now I have a PFP! " << std::endl;
-
-
 
       // get metadata for this PFP
       const std::vector< art::Ptr<larpandoraobj::PFParticleMetadata> > &pfParticleMetadataList(pfPartToMetadataAssoc.at(p));
@@ -119,7 +101,6 @@ namespace protoshower {
       bool skip = false;
       
       if (!pfParticleMetadataList.empty()) {
-	std::cout << "metadata!" << std::endl;
 	
 	for (unsigned int j=0; j<pfParticleMetadataList.size(); ++j)
 	  {
@@ -144,19 +125,6 @@ namespace protoshower {
       
       if (skip == true)
 	continue;
-
-      /*
-      const std::vector< art::Ptr<larpandoraobj::PFParticleMetadata> > &pfp_meta_v(pfp_meta_assn_v.at(p));
-      if (pfp_meta_v.empty() == true) continue;
-      for (unsigned int j=0; j < pfp_meta_v.size(); j++) {
-	const art::Ptr<larpandoraobj::PFParticleMetadata> &pfp_meta(pfp_meta_v.at(j));
-	const pandora::PropertiesMap &pfp_map(pfp_meta->GetPropertiesMap());
-	if (pfp_map.empty() == true) continue;
-	std::cout << " Found PFParticle " << pfp.Self() << " with: " << std::endl;
-	for (pandora::PropertiesMap::const_iterator it = pfp_map.begin(); it != pfp_map.end(); ++it)
-	  std::cout << "  - " << it->first << " = " << it->second << std::endl;
-      }
-      */
 
       // Find the parent particle
       auto parentIdx = pfp.Parent();
@@ -189,13 +157,10 @@ namespace protoshower {
       
       // find vertex defined as the vertex of the primary
 
-      const std::vector< art::Ptr<recob::Vertex> >& vtx_v = pfp_vtx_assn_v.at( parentIdx );//pfp_parent_iter->first );
-
-      std::cout << "grabbed vertex" << std::endl;
+      const std::vector< art::Ptr<recob::Vertex> >& vtx_v = pfp_vtx_assn_v.at( parentIdx );
 
       ::protoshower::ProtoShower proto_shower;
       proto_shower.Reset();
-      
       
       // require a single vertex!
       if (vtx_v.size() == 1) {
@@ -206,29 +171,23 @@ namespace protoshower {
 	proto_shower._vertex = TVector3(xyz[0],xyz[1],xyz[2]);
 	proto_shower.hasVertex(true);
 	
-	std::cout << "\t\t DD VTX @ [ " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << " ]" << std::endl;
-	
       }// if there is only one vertex
       else
 	continue;
       
       // associated clusters
-      std::cout << "grabbed cluster" << std::endl;
       const std::vector< art::Ptr<recob::Cluster> >& clus_v = pfp_clus_assn_v.at(p);
       
       // associated hits
-      std::cout << "grabbed hits" << std::endl;
       const std::vector< art::Ptr<recob::Hit> >& hit_v = pfp_hit_assn_v.at(p);
       
       // set number of clusters for protoshower
-      std::cout << "PFP associated with " << clus_v.size() << " clusters..." << std::endl;
       proto_shower._clusters.resize(clus_v.size());
 
       // loop through clusters
       for (size_t c=0; c < clus_v.size(); c++) {
 
 	auto const clus = clus_v.at(c);
-	std::cout << " new cluster" << std::endl;
 
 	// find the hits associated to this cluster
 	std::vector< art::Ptr<recob::Hit> > clusterhits;
@@ -238,14 +197,11 @@ namespace protoshower {
 	    clusterhits.push_back( hit );
 	}//for all hits associated to PFParticle
 
-	std::cout << " make cluster2d for this cluster with " << clusterhits.size() << " hits" << std::endl;
 	proto_shower._clusters.at(c) = MakeCluster2D( clus, clusterhits );
 	
 	proto_shower.hasCluster2D(true);
 
       }// for all clusters
-      
-      std::cout << "done with hit loop" << std::endl;
       
       proto_shower_v.push_back( proto_shower );
       
