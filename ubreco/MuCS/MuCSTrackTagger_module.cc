@@ -195,6 +195,7 @@ void MuCSTrackTagger::produce(art::Event & e) {
   // grab PMT calibrations if needed
   art::ServiceHandle<geo::Geometry> geo;
   const lariov::PmtGainProvider& gain_provider = art::ServiceHandle<lariov::PmtGainService>()->GetProvider();
+  /*
   for (unsigned int i=0; i!= geo->NOpDets(); ++i) {
     if (geo->IsValidOpChannel(i) && i<32) {
       std::cout<<"Channel "<<i <<" "<<gain_provider.Gain(i)<<" "
@@ -208,16 +209,13 @@ void MuCSTrackTagger::produce(art::Event & e) {
                <<gain_provider.ExtraInfo(i).GetFloatData("pedestal_rms")<<" "
                <<gain_provider.ExtraInfo(i).GetFloatData("pedestal_rms_err")<<std::endl;
     }
-
     else if (geo->IsValidOpChannel(i)) {
-
       std::cout<<"Channel "<<i<<std::endl;
-
     }
-
   }
+  */
 
-
+  
   // find flash in time with MuCS
   
   _nflash = 0;

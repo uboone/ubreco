@@ -72,6 +72,7 @@ physics:
 
 physics.producers.MuCSTrackTaggerpandora.BoxExtension: 20
 physics.producers.MuCSTrackTaggerpandora.TrackModuleLabel: "pandora"
+physics.producers.MuCSTrackTaggerpandora.Debug: true
 
 DetectorClocksService.InheritClockConfig: false
 services.DetectorClocksService.InheritClockConfig: false
