@@ -562,26 +562,30 @@ void StopMu::analyze(art::Event const & e)
       fillCalorimetry(plane, dqdx, rr, xyz);
     }
 
-    /*    // get associated hits
+    /*
+    // get associated hits
     const std::vector<art::Ptr<recob::Hit> > hit_v = trk_hit_assn_v.at(t);
 
     _matchscore = 0.;
     _matchtrackid = 0;
 
-    for (art::Ptr<recob::Hit> hit : hit_v)  {
+    for (art::Ptr<recob::Hit> hit : hit_v)
+    {
+
       auto hitidx = hit.key();
-      
+
       std::vector<simb::MCParticle const*> particle_vec;
-      std::vector<anab::BackTrackerHitMatchingData const*> match_vec;  
-      
+      std::vector<anab::BackTrackerHitMatchingData const*> match_vec;
+
       backtrack_h.get(hitidx, particle_vec, match_vec);
 
       // does this trackID match that of the MCShower?
       bool matchedID = false;
 
-      for(size_t i_p=0; i_p<particle_vec.size(); ++i_p){
-	
-	auto mctrkid = particle_vec.at(i_p)->TrackId();
+      for(size_t i_p=0; i_p<particle_vec.size(); ++i_p)
+      {
+
+        auto mctrkid = particle_vec.at(i_p)->TrackId();
 
         // does this trackID match that of the MCShower?
         for (auto const& stopmu_trkid : stop_mu_trackid_v)
@@ -594,15 +598,13 @@ void StopMu::analyze(art::Event const & e)
           }
         }
       }
-      
       // this way of filling the score assumes if we find a match it will be with one of the identified true stopping muons
-      if (matchedID) {
-	
-	_matchscore += 1;
-	
+      if (matchedID)
+      {
+        _matchscore += 1;
       }// for all particles associated to this hit
     }// for all hits
-    
+
     _matchscore /= hit_v.size();
     */
     
@@ -778,11 +780,6 @@ void StopMu::shiftTruePosition(double true_point[3], double true_time, double tr
   true_point_shifted[1] += offset.Y();
   true_point_shifted[2] += offset.Z();
 }
-
-// bool StopMu::isreconstructedAsCosmic()
-// {
-//   art::FindManyP<recob::Track> track_pfp_assn(trk_h, e, label);
-// }
 
 void StopMu::beginJob()
 {
