@@ -292,7 +292,7 @@ public:
   // Additional functions
   double yzDistance(double y1, double z1, double y2, double z2);
   void clear();
-  void fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<double> rr, std::vector<TVector3> xyz);
+  void fillCalorimetry(int pl, std::vector<float> dqdx, std::vector<float> rr);//, std::vector<TVector3> xyz);
   bool insideTPCvolume(double x, double y, double z);
   double getPitch(const TVector3 &direction, const int &pl);
   void shiftTruePosition(double true_point[3], double true_time, double true_point_shifted[3]);
@@ -556,10 +556,10 @@ void StopMu::analyze(art::Event const & e)
     {
       auto const& calo = Calo_v.at(pl);
       auto const& plane = calo->PlaneID().Plane;
-      auto const& dqdx = calo->dQdx();
-      auto const& rr   = calo->ResidualRange();
-      auto const& xyz   = calo->XYZ();
-      fillCalorimetry(plane, dqdx, rr, xyz);
+      auto const& dqdx  = calo->dQdx();
+      auto const& rr    = calo->ResidualRange();
+      //auto const& xyz   = calo->XYZ();
+      fillCalorimetry(plane, dqdx, rr);//, xyz);
     }
 
     /*
@@ -666,7 +666,7 @@ void StopMu::clear()
   _delta_t_closest_flash = 10000.;
 }
 
-void StopMu::fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<double> rr, std::vector<TVector3> xyz)
+void StopMu::fillCalorimetry(int pl, std::vector<float> dqdx, std::vector<float> rr)//, std::vector<TVector3> xyz)
 {
   if (pl==0)
   {
@@ -675,9 +675,9 @@ void StopMu::fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<doubl
     _dqdx_u.push_back((double)dqdx[n]);
     _rr_u.push_back(  (double)rr[n]  );
     _tmean.CalcTruncMeanProfile(_rr_u, _dqdx_u, _dqdx_tm_u);
-    _x_position_u.push_back((double)(xyz[n].X()));
-    _y_position_u.push_back((double)(xyz[n].Y()));
-    _z_position_u.push_back((double)(xyz[n].Z()));
+    //_x_position_u.push_back((double)(xyz[n].X()));
+    //_y_position_u.push_back((double)(xyz[n].Y()));
+    //_z_position_u.push_back((double)(xyz[n].Z()));
     }
   }
   else if (pl==1)
@@ -687,9 +687,9 @@ void StopMu::fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<doubl
     _dqdx_v.push_back((double)dqdx[n]);
     _rr_v.push_back(  (double)rr[n]  );
     _tmean.CalcTruncMeanProfile(_rr_v, _dqdx_v, _dqdx_tm_v);
-    _x_position_v.push_back((double)(xyz[n].X()));
-    _y_position_v.push_back((double)(xyz[n].Y()));
-    _z_position_v.push_back((double)(xyz[n].Z()));
+    //_x_position_v.push_back((double)(xyz[n].X()));
+    //_y_position_v.push_back((double)(xyz[n].Y()));
+    //_z_position_v.push_back((double)(xyz[n].Z()));
     }
   }
   else if (pl==2)
@@ -699,9 +699,9 @@ void StopMu::fillCalorimetry(int pl, std::vector<double> dqdx, std::vector<doubl
     _dqdx_y.push_back((double)dqdx[n]);
     _rr_y.push_back(  (double)rr[n]  );
     _tmean.CalcTruncMeanProfile(_rr_y, _dqdx_y, _dqdx_tm_y);
-    _x_position_y.push_back((double)(xyz[n].X()));
-    _y_position_y.push_back((double)(xyz[n].Y()));
-    _z_position_y.push_back((double)(xyz[n].Z()));
+    //_x_position_y.push_back((double)(xyz[n].X()));
+    //_y_position_y.push_back((double)(xyz[n].Y()));
+    //_z_position_y.push_back((double)(xyz[n].Z()));
     }
   }
 }
