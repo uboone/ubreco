@@ -108,15 +108,15 @@ namespace protoshower {
 	    auto pfParticlePropertiesMap = pfParticleMetadata->GetPropertiesMap();
 	    //const larpandoraobj::PropertiesMap &pfParticlePropertiesMap(pfParticleMetadata->GetPropertiesMap());
 	    if (!pfParticlePropertiesMap.empty())
-	      std::cout << " Found PFParticle " << pfp.Self() << " with: " << std::endl;
+	      //std::cout << " Found PFParticle " << pfp.Self() << " with: " << std::endl;
 	    for (std::map<std::string, float>::const_iterator it = pfParticlePropertiesMap.begin(); it != pfParticlePropertiesMap.end(); ++it) {
-	      std::cout << "  - " << it->first << " = " << it->second << std::endl;
+	      //std::cout << "  - " << it->first << " = " << it->second << std::endl;
 	      if ( (it->first == "IsClearCosmic") && (it->second == 1) && (fNeutrino == true) ) {
-		std::cout << "\t SKIPPING because ClearCosmic " << std::endl;
+		//std::cout << "\t SKIPPING because ClearCosmic " << std::endl;
 		skip = true;
 	      }// if this is  not a neutrino
 	      if ( (it->first == "TrackScore") && (it->second > fTrackScoreMax) ){
-		std::cout << "\t SKIPPING because TrackScore is  " << it->second << std::endl;
+		//std::cout << "\t SKIPPING because TrackScore is  " << it->second << std::endl;
 		skip = true;
 	      }// if this is not a shower
 	    }
@@ -136,7 +136,7 @@ namespace protoshower {
       const std::vector< art::Ptr<larpandoraobj::PFParticleMetadata> > &parentMetadataList(pfPartToMetadataAssoc.at(parent.Self()));
 
       if (!parentMetadataList.empty()) {
-	std::cout << "parent metadata!" << std::endl;
+	//std::cout << "parent metadata!" << std::endl;
 	
 	for (unsigned int j=0; j<parentMetadataList.size(); ++j)
 	  {
@@ -144,11 +144,11 @@ namespace protoshower {
 	    auto parentPropertiesMap = parentMetadata->GetPropertiesMap();
 	    //const larpandoraobj::PropertiesMap &parentPropertiesMap(parentMetadata->GetPropertiesMap());
 	    if (!parentPropertiesMap.empty())
-	      std::cout << " Found PFParticle " << parent.Self() << " with: " << std::endl;
+	      //std::cout << " Found PFParticle " << parent.Self() << " with: " << std::endl;
 	    for (std::map<std::string, float>::const_iterator it = parentPropertiesMap.begin(); it != parentPropertiesMap.end(); ++it) {
 	      std::cout << "  - " << it->first << " = " << it->second << std::endl;
 	      if ( (it->first == "NuScore") && (it->second <= fNeutrinoScoreMin) && (fNeutrino == true) ) {
-		std::cout << "\t SKIPPING because IsNeutrino Score is " << it->second << std::endl;
+		//std::cout << "\t SKIPPING because IsNeutrino Score is " << it->second << std::endl;
 		skip = true;
 	      }// if this is  not a neutrino
 	    }

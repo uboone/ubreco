@@ -35,6 +35,9 @@
 #include "lardataobj/RecoBase/Shower.h"
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardataobj/AnalysisBase/BackTrackerMatchingData.h"
+#include "larevt/SpaceChargeServices/SpaceChargeService.h"
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
+#include "lardata/DetectorInfoServices/DetectorClocksService.h"
 
 #include "art/Persistency/Common/PtrMaker.h"
 
@@ -93,6 +96,8 @@ private:
   double _mc_shr_e;
   double _mc_shr_px, _mc_shr_py, _mc_shr_pz;
   double _mc_shr_x, _mc_shr_y, _mc_shr_z;
+  double _xtimeoffset;
+  double _xsceoffset;
   double _completeness, _purity;
   int _mc_shr_pdg;
 
@@ -391,6 +396,8 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
 
     auto const& mcs = mcs_h->at(s);
     auto shrtrackIDs = mcshower.second;
+    std::cout << "ANCESTOR comparing with MCShower of energy " << mcs.Start().E() << std::endl;
+    std::cout << "ANCESTOR HAS " << shrtrackIDs.size() << " particles" << std::endl;
     
     std::vector<simb::MCParticle const*> particle_vec;
     std::vector<anab::BackTrackerHitMatchingData const*> match_vec;  
@@ -420,6 +427,8 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
     
     purity       = BackTrackShowerEnergy / BackTrackEnergy;
     completeness = BackTrackShowerEnergy / mcs.DetProfile().E();
+
+    std::cout << "ANCESTOR Purity : " << BackTrackShowerEnergy << " / " << BackTrackEnergy << " = " << purity << std::endl;
     
     if (purity > purity_max) {
       purity_max = purity;
@@ -429,6 +438,8 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
     
   }// end of MCShower loop
 
+  std::cout << "ANCESTOR max purity : " << purity_max << std::endl;
+
   _completeness = completeness_max;
   _purity       = purity_max;
   auto matched_mcs = mcs_h->at(mcs_idx_match);
@@ -437,6 +448,22 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
   _mc_shr_x = matched_mcs.Start().X();
   _mc_shr_y = matched_mcs.Start().Y();
   _mc_shr_z = matched_mcs.Start().Z();
+
+  // get X offset due to time w.r. trigger time
+  auto const& detProperties = lar::providerFrom<detinfo::DetectorPropertiesService>(); 
+  auto const& detClocks = lar::providerFrom<detinfo::DetectorClocksService>();
+  auto const& mct_h = e.getValidHandle<std::vector<simb::MCTruth> >("generator");
+  auto gen = mct_h->at(0);
+  double g4Ticks = detClocks->TPCG4Time2Tick(gen.GetNeutrino().Nu().T()) + detProperties->GetXTicksOffset(0, 0, 0) - detProperties->TriggerOffset();
+  _xtimeoffset = detProperties->ConvertTicksToX(g4Ticks, 0, 0, 0);
+
+  auto const *SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
+  auto offset = SCE->GetPosOffsets(geo::Point_t(_mc_shr_x,_mc_shr_y,_mc_shr_z));
+  //_mc_shr_x += offset.X() + xtrueoffset;
+  _xsceoffset = offset.X();
+  _mc_shr_y += offset.Y();
+  _mc_shr_z += offset.Z();
+
   auto mom = matched_mcs.Start().Momentum().Vect().Mag();
   _mc_shr_px = matched_mcs.Start().Px() / mom;
   _mc_shr_py = matched_mcs.Start().Py() / mom;
@@ -459,7 +486,7 @@ std::map<size_t, std::vector<unsigned int> > ShrReco3D::GetMCShowerInfo(const ar
   xyz[1] = vtx.Y();
   xyz[2] = vtx.Z();
   
-  std::cout << "neutrino vertex @ [ " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << " ]" << std::endl;
+  std::cout << "ANCESTOR neutrino vertex @ [ " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << " ]" << std::endl;
 
   // loop through MCShowers and identify those originating from the pi0
   // map connecting mcshower index to track ID vector for all e+/e- in MCShower
@@ -470,6 +497,7 @@ std::map<size_t, std::vector<unsigned int> > ShrReco3D::GetMCShowerInfo(const ar
   for (size_t i=0; i < mcs_h->size(); i++) {
     auto const& mcs = mcs_h->at(i);
 
+
     double x = mcs.Start().X();
     double y = mcs.Start().Y();
     double z = mcs.Start().Z();
@@ -477,7 +505,7 @@ std::map<size_t, std::vector<unsigned int> > ShrReco3D::GetMCShowerInfo(const ar
 		     ( (xyz[1] - y) * (xyz[1] - y) ) +
 		     ( (xyz[2] - z) * (xyz[2] - z) ) );
 
-    if (d < 0.01) {
+    if ( (d < 0.01) || ( (mcs.Process() == "primary") && (mcs.MotherPdgCode() == 22) ) ) {
       std::vector<unsigned int> shrtrackIDs = mcs.DaughterTrackID();
       shrtrackIDs.push_back( mcs.TrackID() );
       // get daughter track IDs:
@@ -486,6 +514,12 @@ std::map<size_t, std::vector<unsigned int> > ShrReco3D::GetMCShowerInfo(const ar
 	if (id != mcs.TrackID()) { shrtrackIDs.push_back(id); }
       
       event_shower_map[ i ] = shrtrackIDs;
+
+    std::cout << "\t ANCESTOR mother PDG is " << mcs.MotherPdgCode() << std::endl;
+    std::cout << "\t ANCESTOR Process is " << mcs.Process() << std::endl;
+    std::cout << "\t ANCESTOR energy is " << mcs.Start().E() << std::endl; 
+    std::cout << "\t ANCESTOR number of daughters is " << shrtrackIDs.size() << std::endl; 
+
     }// if mcshower matched to pi0
   }// for all mcshowers
 
@@ -500,6 +534,8 @@ void ShrReco3D::SetTTree() {
   // MC shower-by-shower TTree
   _rcshr_tree = tfs->make<TTree>("_rcshr_tree","ShrReco3D Shower TTree");
   _rcshr_tree->Branch("_shr_x",&_shr_x,"shr_x/D");
+  _rcshr_tree->Branch("_xtimeoffset",&_xtimeoffset,"xtimeoffset/D");
+  _rcshr_tree->Branch("_xsceoffset",&_xsceoffset,"xsceoffset/D");
   _rcshr_tree->Branch("_shr_y",&_shr_y,"shr_y/D");
   _rcshr_tree->Branch("_shr_z",&_shr_z,"shr_z/D");
   _rcshr_tree->Branch("_shr_dedx_pl0_v","std::vector<double>",&_shr_dedx_pl0_v);
