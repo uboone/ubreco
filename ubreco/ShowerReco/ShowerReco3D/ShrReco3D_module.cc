@@ -55,34 +55,34 @@ public:
   explicit ShrReco3D(fhicl::ParameterSet const & p);
   // The compiler-generated destructor is fine for non-base
   // classes without bare pointers or other resource use.
-  
+
   // Plugins should not be copied or assigned.
   ShrReco3D(ShrReco3D const &) = delete;
   ShrReco3D(ShrReco3D &&) = delete;
   ShrReco3D & operator = (ShrReco3D const &) = delete;
   ShrReco3D & operator = (ShrReco3D &&) = delete;
-  
+
   // Required functions.
   void produce(art::Event & e) override;
 
   // Selected optional functions.
   void beginJob() override;
   void endJob() override;
-  
+
 private:
-  
+
   /// Input producer name
   std::string fPFPproducer;
   std::string fClusproducer;
   std::string fVtxproducer;
   std::string fBacktrackTag;
-  
+
   /// map for backtracking which stores mcshower index to vector of track ids for the mcshower
-  std::map<size_t, std::vector<unsigned int> > _MCShowerInfo;  
-  
+  std::map<size_t, std::vector<unsigned int> > _MCShowerInfo;
+
   /// Shower reco core class instance
   ::showerreco::ShowerRecoManager* _manager;
-  
+
   // ProtoShowerAlgBase to make protoshowers
   std::unique_ptr<::protoshower::ProtoShowerAlgBase> _psalg;
   //::protoshower::ProtoShowerAlgBase* _psalg;
@@ -93,6 +93,9 @@ private:
   double _shr_x, _shr_y, _shr_z;
   std::vector<double> _shr_dedx_v, _shr_dedx_pl0_v, _shr_dedx_pl1_v, _shr_dedx_pl2_v;
   std::vector<double> _shr_e_v;
+  double _shr_dedx_0, _shr_dedx_1, _shr_dedx_2;
+  double _shr_dedxBox_0, _shr_dedxBox_1, _shr_dedxBox_2;
+
   double _mc_shr_e;
   double _mc_shr_px, _mc_shr_py, _mc_shr_pz;
   double _mc_shr_x, _mc_shr_y, _mc_shr_z;
@@ -144,14 +147,14 @@ private:
      @ return map connecting mcshower index to vector of track IDs associated to that shower
    */
   std::map<size_t, std::vector<unsigned int> > GetMCShowerInfo(const art::ValidHandle<std::vector<simb::MCTruth> > mct_h, const art::ValidHandle<std::vector<sim::MCShower> > mcs_h);
-  
+
   // Declare member data here.
 
   /**
      @brief Set TTree to be used to save reconstructed shower variables
    */
   void SetTTree();
-  
+
 };
 
 
@@ -164,8 +167,8 @@ ShrReco3D::ShrReco3D(fhicl::ParameterSet const & p)
   fClusproducer = p.get<std::string>("Clusproducer");
   fVtxproducer  = p.get<std::string>("Vtxproducer" );
   fBacktrackTag = p.get<std::string>("BacktrackTag");
-  
-  const fhicl::ParameterSet& protoshower_pset = p.get<fhicl::ParameterSet>("ProtoShowerTool");  
+
+  const fhicl::ParameterSet& protoshower_pset = p.get<fhicl::ParameterSet>("ProtoShowerTool");
 
   // grab algorithms for merging
   _manager = new showerreco::ShowerRecoManager();
@@ -201,7 +204,7 @@ ShrReco3D::ShrReco3D(fhicl::ParameterSet const & p)
   _psalg->setCalorimetry(calib);
 
   SetTTree();
-  
+
 }
 
 void ShrReco3D::produce(art::Event & e)
@@ -220,7 +223,7 @@ void ShrReco3D::produce(art::Event & e)
   // which will then be fed to shower reco algorithm chain
   std::vector<protoshower::ProtoShower> event_protoshower_v;
   _psalg->GenerateProtoShowers(e, event_protoshower_v);
-  
+
   // set protoshowers for algorithms
   _manager->SetProtoShowers(event_protoshower_v);
 
@@ -257,7 +260,7 @@ void ShrReco3D::produce(art::Event & e)
       std::cout << e.what() << std::endl;
     }
   }// for all output reconstructed showers
-  
+
   e.put(std::move(Shower_v));
   e.put(std::move(Shower_PFP_assn_v));
   e.put(std::move(Shower_Cluster_assn_v));
@@ -287,15 +290,15 @@ void ShrReco3D::SaveShower(art::Event & e,
 			   std::unique_ptr< art::Assns <recob::Shower, recob::PFParticle> >& Shower_PFP_assn_v,
 			   std::unique_ptr< art::Assns <recob::Shower, recob::Cluster> >& Shower_Cluster_assn_v,
 			   std::unique_ptr< art::Assns <recob::Shower, recob::Hit> >& Shower_Hit_assn_v)
-  
+
 {
-  
+
   if (shower.fPassedReconstruction == false) {
     std::stringstream ss;
     ss << "Shower " << idx << " did not pass reconstruction.";
     throw showerreco::ShowerRecoException(ss.str());
   }
-  
+
   // filter out showers with garbage values
   if (shower.fXYZStart.Mag2()  == 0) {
     std::stringstream ss;
@@ -313,6 +316,14 @@ void ShrReco3D::SaveShower(art::Event & e,
   _shr_dedx_pl1_v = shower.fdEdx_v_v[1];
   _shr_dedx_pl2_v = shower.fdEdx_v_v[2];
   _shr_dedx_v     = shower.fdEdx_v;
+
+  _shr_dedx_0 = shower.fdEdx_0;
+  _shr_dedx_1 = shower.fdEdx_1;
+  _shr_dedx_2 = shower.fdEdx_2;
+  _shr_dedxBox_0 = shower.fdEdxBox_0;
+  _shr_dedxBox_1 = shower.fdEdxBox_1;
+  _shr_dedxBox_2 = shower.fdEdxBox_2;
+
   _shr_px     = shower.fDCosStart[0];
   _shr_py     = shower.fDCosStart[1];
   _shr_pz     = shower.fDCosStart[2];
@@ -335,13 +346,13 @@ void ShrReco3D::SaveShower(art::Event & e,
   s.set_dedx_err              ( shower.fSigmadEdx_v           );
   s.set_length                ( shower.fLength                );
   s.set_open_angle            ( shower.fOpeningAngle          );
-  
+
   Shower_v->emplace_back(s);
 
   art::Ptr<recob::Shower> const ShrPtr = ShowerPtrMaker(Shower_v->size()-1);
 
   // now take care of associations
-  
+
   // step 1 : pfp
   const art::Ptr<recob::PFParticle> PFPPtr(pfp_h, idx);
   Shower_PFP_assn_v->addSingle( ShrPtr, PFPPtr );
@@ -359,20 +370,20 @@ void ShrReco3D::SaveShower(art::Event & e,
     Shower_Hit_assn_v->addSingle( ShrPtr, hit_v.at(h) );
     if (hit_v.at(h)->WireID().Plane == 2) { hit_idx_v.push_back( hit_v.at(h).key() ); }
   }// for all hits
-  
+
   if (fBacktrackTag != ""){
     float completeness_max, purity_max;
     BackTrack(e, hit_idx_v, completeness_max, purity_max);
   }
 
   _rcshr_tree->Fill();
-  
+
   return;
 }// end of SaveShower function
 
 size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit_idx_v, float& completeness_max, float& purity_max)
 {
-  
+
   art::InputTag BacktrackTag { fBacktrackTag };
   auto const& gaushit_h = e.getValidHandle<std::vector<recob::Hit> > ("gaushit");
   art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> backtrack_h(gaushit_h,e,BacktrackTag);
@@ -387,7 +398,7 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
   for (auto const& mcshower : _MCShowerInfo) {
 
     size_t s = mcshower.first; // index of mcshower in mcs_h
-    
+
     float purity = 0;
     float completeness = 0;
 
@@ -398,19 +409,19 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
     auto shrtrackIDs = mcshower.second;
     std::cout << "ANCESTOR comparing with MCShower of energy " << mcs.Start().E() << std::endl;
     std::cout << "ANCESTOR HAS " << shrtrackIDs.size() << " particles" << std::endl;
-    
+
     std::vector<simb::MCParticle const*> particle_vec;
-    std::vector<anab::BackTrackerHitMatchingData const*> match_vec;  
-    
+    std::vector<anab::BackTrackerHitMatchingData const*> match_vec;
+
     for (auto const& hit_idx : hit_idx_v) {
-      
+
       particle_vec.clear(); match_vec.clear();
 
       backtrack_h.get(hit_idx, particle_vec, match_vec);
-      
+
       // does this hit match to the mcshower?
-      for(size_t i_p=0; i_p<particle_vec.size(); ++i_p){            
-	
+      for(size_t i_p=0; i_p<particle_vec.size(); ++i_p){
+
 	auto mctrkid = particle_vec.at(i_p)->TrackId();
 	auto energy  = match_vec[i_p]->numElectrons;
 
@@ -424,18 +435,18 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
 	}
       }// for all particles associated to this hit
     }// for all hits
-    
+
     purity       = BackTrackShowerEnergy / BackTrackEnergy;
     completeness = BackTrackShowerEnergy / mcs.DetProfile().E();
 
     std::cout << "ANCESTOR Purity : " << BackTrackShowerEnergy << " / " << BackTrackEnergy << " = " << purity << std::endl;
-    
+
     if (purity > purity_max) {
       purity_max = purity;
       completeness_max = completeness;
       mcs_idx_match = s;
     }
-    
+
   }// end of MCShower loop
 
   std::cout << "ANCESTOR max purity : " << purity_max << std::endl;
@@ -450,7 +461,7 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
   _mc_shr_z = matched_mcs.Start().Z();
 
   // get X offset due to time w.r. trigger time
-  auto const& detProperties = lar::providerFrom<detinfo::DetectorPropertiesService>(); 
+  auto const& detProperties = lar::providerFrom<detinfo::DetectorPropertiesService>();
   auto const& detClocks = lar::providerFrom<detinfo::DetectorClocksService>();
   auto const& mct_h = e.getValidHandle<std::vector<simb::MCTruth> >("generator");
   auto gen = mct_h->at(0);
@@ -470,13 +481,13 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
   _mc_shr_pz = matched_mcs.Start().Pz() / mom;
 
   // fill TTree variables
-  
+
   return mcs_idx_match;
 }// function end
 
 
 std::map<size_t, std::vector<unsigned int> > ShrReco3D::GetMCShowerInfo(const art::ValidHandle<std::vector<simb::MCTruth> > mct_h, const art::ValidHandle<std::vector<sim::MCShower> > mcs_h) {
-  
+
   auto mct = mct_h->at(0);
   auto neutrino = mct.GetNeutrino().Nu();
   auto vtx = neutrino.Position(0).Vect();
@@ -485,7 +496,7 @@ std::map<size_t, std::vector<unsigned int> > ShrReco3D::GetMCShowerInfo(const ar
   xyz[0] = vtx.X();
   xyz[1] = vtx.Y();
   xyz[2] = vtx.Z();
-  
+
   std::cout << "ANCESTOR neutrino vertex @ [ " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << " ]" << std::endl;
 
   // loop through MCShowers and identify those originating from the pi0
@@ -512,13 +523,13 @@ std::map<size_t, std::vector<unsigned int> > ShrReco3D::GetMCShowerInfo(const ar
       auto daughterIDs = mcs.DaughterTrackID();
       for (auto const& id : daughterIDs)
 	if (id != mcs.TrackID()) { shrtrackIDs.push_back(id); }
-      
+
       event_shower_map[ i ] = shrtrackIDs;
 
     std::cout << "\t ANCESTOR mother PDG is " << mcs.MotherPdgCode() << std::endl;
     std::cout << "\t ANCESTOR Process is " << mcs.Process() << std::endl;
-    std::cout << "\t ANCESTOR energy is " << mcs.Start().E() << std::endl; 
-    std::cout << "\t ANCESTOR number of daughters is " << shrtrackIDs.size() << std::endl; 
+    std::cout << "\t ANCESTOR energy is " << mcs.Start().E() << std::endl;
+    std::cout << "\t ANCESTOR number of daughters is " << shrtrackIDs.size() << std::endl;
 
     }// if mcshower matched to pi0
   }// for all mcshowers
@@ -543,6 +554,14 @@ void ShrReco3D::SetTTree() {
   _rcshr_tree->Branch("_shr_dedx_pl2_v","std::vector<double>",&_shr_dedx_pl2_v);
   _rcshr_tree->Branch("_shr_e_v","std::vector<double>",&_shr_e_v);
   _rcshr_tree->Branch("_shr_dedx_v","std::vector<double>",&_shr_dedx_v);
+  _rcshr_tree->Branch("_shr_dedx_0",&_shr_dedx_0,"shr_dedx_0/D");
+  _rcshr_tree->Branch("_shr_dedx_1",&_shr_dedx_1,"shr_dedx_1/D");
+  _rcshr_tree->Branch("_shr_dedx_2",&_shr_dedx_2,"shr_dedx_2/D");
+
+  _rcshr_tree->Branch("_shr_dedxBox_0",&_shr_dedxBox_0,"shr_dedxBox_0/D");
+  _rcshr_tree->Branch("_shr_dedxBox_1",&_shr_dedxBox_1,"shr_dedxBox_1/D");
+  _rcshr_tree->Branch("_shr_dedxBox_2",&_shr_dedxBox_2,"shr_dedxBox_2/D");
+
   _rcshr_tree->Branch("_shr_px",&_shr_px,"shr_px/D");
   _rcshr_tree->Branch("_shr_py",&_shr_py,"shr_py/D");
   _rcshr_tree->Branch("_shr_pz",&_shr_pz,"shr_pz/D");

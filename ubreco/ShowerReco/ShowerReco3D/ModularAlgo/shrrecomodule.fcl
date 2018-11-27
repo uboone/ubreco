@@ -60,6 +60,15 @@ dedxmodule:
     dtrunk: 4.
 }
 
+dedxBoxmodule:
+{
+    tool_type: dEdxBoxModule
+    rectangleLength: 4
+    rectangleWidth: 1
+    rectangleTolerance: 0.001
+    verbose: false
+}
+
 filtershowers:
 {
     tool_type: FilterShowers
