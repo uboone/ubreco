@@ -66,12 +66,14 @@ private:
   // Declare member data here.
   typedef enum {kBeamHighGain=0,kBeamLowGain,kCosmicHighGain,kCosmicLowGain} OpDiscrTypes;
   std::string _OpDataProducer;
+  std::string _OpSatDataProducer;
   std::vector<std::string> _OpDataTypes;
   std::string _TriggerProducer;
   std::vector<float> pmt_gain;
   std::vector<float> pmt_gainerr;
   bool _usePmtGainDB;
   bool _remap_ch;
+  bool _useExtSat;
   float _OpDetFreq;
   std::vector<std::string> _flashProducts;
   std::vector<std::string> _saturationProducts;
@@ -96,6 +98,9 @@ private:
   Float_t fZCenter;
   Float_t fZWidth;
 
+
+  void reco_default(art::Event &evt, double &triggerTime);
+  void reco_external_sat(art::Event &evt, double &triggerTime);
   ::wcopreco::UBEventWaveform fill_evt_wf(double triggerTime,
 					  std::vector<raw::OpDetWaveform> bgh, 
   					  std::vector<raw::OpDetWaveform> blg,
@@ -117,6 +122,7 @@ UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
 // Initialize member data here.
 {
   _OpDataProducer   = p.get<std::string>("OpDataProducer", "pmtreadout" );   // Waveform Module name, to get waveforms
+  _OpSatDataProducer= p.get<std::string>("OpSatDataProducer", "saturation" );   // Saturation corrected waveforms
   _OpDataTypes      = p.get<std::vector<std::string> >("OpDataTypes");
   _flashProducts    = p.get<std::vector<std::string> >("FlashProducts");
   _saturationProducts = p.get<std::vector<std::string> >("SaturationProducts");
@@ -125,6 +131,7 @@ UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
   pmt_gainerr       = p.get<std::vector<float> >("PMTGainErrors");
   _usePmtGainDB     = p.get<bool>("usePmtGainDB");
   _remap_ch         = p.get<bool>("RemapCh");
+  _useExtSat        = p.get<bool>("ExtSaturation",false);
   _OpDetFreq        = p.get<float>("OpDetFreq");
   _saveAnaTree      = p.get<bool>("SaveAnaTree");
 
@@ -173,11 +180,7 @@ void UBWCFlashFinder::produce(art::Event & evt)
   // initialize data handles and services
   art::ServiceHandle<geo::Geometry> geo;
   auto const* ts = lar::providerFrom<detinfo::DetectorClocksService>();
-
-  art::Handle< std::vector< raw::OpDetWaveform > > wfCHGHandle;
-  art::Handle< std::vector< raw::OpDetWaveform > > wfBHGHandle;
-  art::Handle< std::vector< raw::OpDetWaveform > > wfCLGHandle;
-  art::Handle< std::vector< raw::OpDetWaveform > > wfBLGHandle;
+  double triggerTime = ts->TriggerTime();
 
   //get gains from database if requested
   if(_usePmtGainDB){
@@ -194,33 +197,11 @@ void UBWCFlashFinder::produce(art::Event & evt)
     }
   }
 
-  evt.getByLabel( _OpDataProducer, _OpDataTypes[kBeamHighGain], wfBHGHandle);
-  std::vector<raw::OpDetWaveform> const& opwfms_bhg(*wfBHGHandle);
-  evt.getByLabel( _OpDataProducer, _OpDataTypes[kBeamLowGain], wfBLGHandle);
-  std::vector<raw::OpDetWaveform> const& opwfms_blg(*wfBLGHandle);
-  evt.getByLabel( _OpDataProducer, _OpDataTypes[kCosmicHighGain], wfCHGHandle);
-  std::vector<raw::OpDetWaveform> const& opwfms_chg(*wfCHGHandle);
-  evt.getByLabel( _OpDataProducer, _OpDataTypes[kCosmicLowGain], wfCLGHandle);
-  std::vector<raw::OpDetWaveform> const& opwfms_clg(*wfCLGHandle);
-
-  std::vector<raw::OpDetWaveform> sort_blg;
-  std::vector<raw::OpDetWaveform> sort_clg;
-  if( /*evt.run() <= 3984*/ opwfms_blg.size()>opwfms_bhg.size() ){
-    for (unsigned i=0; i<opwfms_blg.size(); i++){
-      if(opwfms_blg.at(i).size()>=1500) sort_blg.push_back(opwfms_blg.at(i));
-      if(opwfms_blg.at(i).size()<1500) sort_clg.push_back(opwfms_blg.at(i));
-    }
-  }
-  double triggerTime = ts->TriggerTime();
-
+  //reconstruct
   flash_algo.Configure(flash_pset);
-  ::wcopreco::UBEventWaveform UB_evt_wf;
-  if(sort_blg.size()>0) UB_evt_wf = fill_evt_wf(triggerTime, opwfms_bhg, sort_blg, opwfms_chg, sort_clg, pmt_gain,pmt_gainerr);
-  else if(sort_blg.size()<=0) UB_evt_wf = fill_evt_wf(triggerTime, opwfms_bhg, opwfms_blg, opwfms_chg, opwfms_clg, pmt_gain,pmt_gainerr);
+  if(!_useExtSat) reco_default(evt, triggerTime);
+  else reco_external_sat(evt, triggerTime);
 
-  std::vector<wcopreco::kernel_fourier_container> kernel_container_v = fill_kernel_container( pmt_gain);
-
-  flash_algo.Run(&UB_evt_wf, &pmt_gain, &pmt_gainerr, &kernel_container_v);
   //get saturation corrected wf
   auto const satb_v = flash_algo.get_merged_beam();
   auto const satc_v = flash_algo.get_merged_cosmic();
@@ -293,6 +274,76 @@ void UBWCFlashFinder::produce(art::Event & evt)
   evt.put(std::move(saturation_cosmic),_saturationProducts[1]);
   evt.put(std::move(opflashes_beam),_flashProducts[0]);
   evt.put(std::move(opflashes_cosmic),_flashProducts[1]);
+}
+
+//-----------------------------------------//
+// run algo with default configuration
+// (using internal saturation correction)
+//----------------------------------------//
+void UBWCFlashFinder::reco_default(art::Event &evt, double &triggerTime){
+
+  art::Handle< std::vector< raw::OpDetWaveform > > wfCHGHandle;
+  art::Handle< std::vector< raw::OpDetWaveform > > wfBHGHandle;
+  art::Handle< std::vector< raw::OpDetWaveform > > wfCLGHandle;
+  art::Handle< std::vector< raw::OpDetWaveform > > wfBLGHandle;
+
+  evt.getByLabel( _OpDataProducer, _OpDataTypes[kBeamHighGain], wfBHGHandle);
+  std::vector<raw::OpDetWaveform> const& opwfms_bhg(*wfBHGHandle);
+  evt.getByLabel( _OpDataProducer, _OpDataTypes[kBeamLowGain], wfBLGHandle);
+  std::vector<raw::OpDetWaveform> const& opwfms_blg(*wfBLGHandle);
+  evt.getByLabel( _OpDataProducer, _OpDataTypes[kCosmicHighGain], wfCHGHandle);
+  std::vector<raw::OpDetWaveform> const& opwfms_chg(*wfCHGHandle);
+  evt.getByLabel( _OpDataProducer, _OpDataTypes[kCosmicLowGain], wfCLGHandle);
+  std::vector<raw::OpDetWaveform> const& opwfms_clg(*wfCLGHandle);
+
+  std::vector<raw::OpDetWaveform> sort_blg;
+  std::vector<raw::OpDetWaveform> sort_clg;
+  if( /*evt.run() <= 3984*/ opwfms_blg.size()>opwfms_bhg.size() ){
+    for (unsigned i=0; i<opwfms_blg.size(); i++){
+      if(opwfms_blg.at(i).size()>=1500) sort_blg.push_back(opwfms_blg.at(i));
+      if(opwfms_blg.at(i).size()<1500) sort_clg.push_back(opwfms_blg.at(i));
+    }
+  }
+  ::wcopreco::UBEventWaveform UB_evt_wf;
+  if(sort_blg.size()>0) UB_evt_wf = fill_evt_wf(triggerTime, opwfms_bhg, sort_blg, opwfms_chg, sort_clg, pmt_gain,pmt_gainerr);
+  else if(sort_blg.size()<=0) UB_evt_wf = fill_evt_wf(triggerTime, opwfms_bhg, opwfms_blg, opwfms_chg, opwfms_clg, pmt_gain,pmt_gainerr);
+
+  std::vector<wcopreco::kernel_fourier_container> kernel_container_v = fill_kernel_container( pmt_gain);
+  flash_algo.SaturationCorrection(&UB_evt_wf);
+  flash_algo.Run(&pmt_gain, &pmt_gainerr, &kernel_container_v);
+  
+}
+
+//----------------------------------------//
+// run algo with external saturation corr.
+//----------------------------------------//
+void UBWCFlashFinder::reco_external_sat(art::Event &evt, double &triggerTime){
+
+  art::Handle< std::vector< raw::OpDetWaveform > > wfCHGHandle;
+  art::Handle< std::vector< raw::OpDetWaveform > > wfBHGHandle;
+
+  evt.getByLabel( _OpSatDataProducer, _OpDataTypes[kBeamHighGain], wfBHGHandle);
+  std::vector<raw::OpDetWaveform> const& opwfms_bhg(*wfBHGHandle);
+  evt.getByLabel( _OpSatDataProducer, _OpDataTypes[kCosmicHighGain], wfCHGHandle);
+  std::vector<raw::OpDetWaveform> const& opwfms_chg(*wfCHGHandle);
+
+  ::wcopreco::OpWaveformCollection BHG_wfm_collection;
+  BHG_wfm_collection.set_op_gain(pmt_gain);
+  BHG_wfm_collection.set_op_gainerror(pmt_gainerr);
+
+  ::wcopreco::OpWaveformCollection CHG_wfm_collection;
+  CHG_wfm_collection.set_op_gain(pmt_gain);
+  CHG_wfm_collection.set_op_gainerror(pmt_gainerr);
+
+  //Fill up wfm collections
+  fill_wfmcollection(triggerTime, opwfms_bhg, ::wcopreco::kbeam_merged, BHG_wfm_collection);
+  fill_wfmcollection(triggerTime, opwfms_chg, ::wcopreco::kcosmic_merged, CHG_wfm_collection);
+
+  std::vector<wcopreco::kernel_fourier_container> kernel_container_v = fill_kernel_container( pmt_gain);
+  flash_algo.set_merged_beam(BHG_wfm_collection);
+  flash_algo.set_merged_cosmic(CHG_wfm_collection);
+  flash_algo.Run(&pmt_gain, &pmt_gainerr, &kernel_container_v);
+
 }
 
 //--------------------------------------//
@@ -382,7 +433,7 @@ void UBWCFlashFinder::fill_wfmcollection(double triggerTime,
     if ( ch%100>=32 )
       continue;
 
-    if ( (type == ::wcopreco::kbeam_hg)||(type==::wcopreco::kbeam_lg) ){
+    if ( (type == ::wcopreco::kbeam_hg)||(type==::wcopreco::kbeam_lg) || (type==::wcopreco::kbeam_merged) ){
       ::wcopreco::OpWaveform wfm(ch%100, timestamp-triggerTime, type, flash_pset._get_cfg_deconvolver()._get_nbins_beam());
       for (int bin=0; bin<flash_pset._get_cfg_deconvolver()._get_nbins_beam(); bin++) {
 	wfm[bin]=(double)opwfm[bin];
@@ -390,7 +441,7 @@ void UBWCFlashFinder::fill_wfmcollection(double triggerTime,
       wfm_collection.add_waveform(wfm);
     }
 
-    if ( (type == ::wcopreco::kcosmic_hg)||(type==::wcopreco::kcosmic_lg) ){
+    if ( (type == ::wcopreco::kcosmic_hg)||(type==::wcopreco::kcosmic_lg) || (type==::wcopreco::kcosmic_merged) ){
       ::wcopreco::OpWaveform wfm(ch%100, timestamp-triggerTime, type, flash_pset._get_cfg_cophit()._get_nbins_cosmic());
       for (int bin=0; bin<flash_pset._get_cfg_cophit()._get_nbins_cosmic(); bin++) {
 	wfm[bin]=(double)opwfm[bin];
