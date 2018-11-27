@@ -83,7 +83,8 @@ private:
   int _nflash;
   float _flash_t, _flash_pe;
   float _flash_z, _flash_zw, _flash_y, _flash_yw;
-  std::vector<double> _flash_pe_v;
+  std::vector<double> _gain_v;
+  std::vector<double> _flash_pe_v, _flash_pe_v_corr;
   
 
 };
@@ -134,7 +135,9 @@ void MuCSTrackTagger::beginJob(){
   _tree->Branch("_flash_y",&_flash_y,"_flash_y/F");
   _tree->Branch("_flash_zw",&_flash_zw,"_flash_zw/F");
   _tree->Branch("_flash_yw",&_flash_yw,"_flash_yw/F");
+  _tree->Branch("_gain_v","std::vector<double>",&_gain_v);
   _tree->Branch("_flash_pe_v","std::vector<double>",&_flash_pe_v);
+  _tree->Branch("_flash_pe_v_corr","std::vector<double>",&_flash_pe_v_corr);
 
                                                                     
 }
@@ -195,7 +198,6 @@ void MuCSTrackTagger::produce(art::Event & e) {
   // grab PMT calibrations if needed
   art::ServiceHandle<geo::Geometry> geo;
   const lariov::PmtGainProvider& gain_provider = art::ServiceHandle<lariov::PmtGainService>()->GetProvider();
-  /*
   for (unsigned int i=0; i!= geo->NOpDets(); ++i) {
     if (geo->IsValidOpChannel(i) && i<32) {
       std::cout<<"Channel "<<i <<" "<<gain_provider.Gain(i)<<" "
@@ -213,7 +215,6 @@ void MuCSTrackTagger::produce(art::Event & e) {
       std::cout<<"Channel "<<i<<std::endl;
     }
   }
-  */
 
   
   // find flash in time with MuCS
@@ -233,10 +234,15 @@ void MuCSTrackTagger::produce(art::Event & e) {
       _nflash += 1;
       _flash_t    = flash->Time();
       _flash_pe_v = flash->PEs();
+      _flash_pe_v_corr = _flash_pe_v;
+      _gain_v = std::vector<double>(32,0.);
       // apply gain
       if (fUsePMTCalib) {
 	for (size_t ch=0; ch < _flash_pe_v.size(); ch++) {
-	  if (geo->IsValidOpChannel(ch) == true) { _flash_pe_v.at(ch) *= ( 20. / gain_provider.Gain(ch) ); }
+	  if (geo->IsValidOpChannel(ch) == true) { 
+	    _gain_v.at(ch) = gain_provider.Gain(ch);
+	    _flash_pe_v_corr.at(ch) *= ( 20. / gain_provider.Gain(ch) ); 
+	  }
 	}// if channel is valid
       }// if we are using the PMT gains
       _flash_pe   = flash->TotalPE();
