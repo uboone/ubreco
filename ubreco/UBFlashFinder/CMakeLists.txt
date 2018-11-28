@@ -1,4 +1,8 @@
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
+include_directories(../wcopreco/data)
+include_directories(../wcopreco/deconv)
+include_directories(../wcopreco/algo)
+include_directories(../wcopreco/app)
 
 set( ROOTLIB -L$ENV{ROOTSYS}/lib -lCore -lRIO -lNet -lHist -lGraf -lGraf3d -lGpad -lTree -lRint -lPostscript -lMatrix -lPhysics -lMathCore -lThread -pthread -lm -ldl)
 
@@ -37,6 +41,10 @@ art_make( BASENAME_ONLY
 		   larcore_Geometry_Geometry_service
                    larevt_CalibrationDBI_IOVData
                    larevt_CalibrationDBI_Providers
+		   ubreco_wcopreco_data
+		   ubreco_wcopreco_deconv
+		   ubreco_wcopreco_algo
+		   ubreco_wcopreco_app
                    ubevt_Database
 		   lardataobj_RecoBase
 		   ${UBOONECODE_LIB}

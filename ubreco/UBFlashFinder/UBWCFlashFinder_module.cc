@@ -36,14 +36,14 @@
 #include <string>
 #include "FlashFinderFMWKInterface.h" //pmtana
 //WCOpReco
-#include "WCOpReco/Config_Params.h"
-#include "WCOpReco/OpWaveform.h"
-#include "WCOpReco/OpWaveformCollection.h"
-#include "WCOpReco/UBEventWaveform.h"
-#include "WCOpReco/UB_rc.h"
-#include "WCOpReco/UB_spe.h"
-#include "WCOpReco/UBAlgo.h"
-#include "WCOpReco/kernel_fourier_container.h"
+#include "Config_Params.h"
+#include "OpWaveform.h"
+#include "OpWaveformCollection.h"
+#include "UBEventWaveform.h"
+#include "UB_rc.h"
+#include "UB_spe.h"
+#include "UBAlgo.h"
+#include "kernel_fourier_container.h"
 
 class UBWCFlashFinder;
 
