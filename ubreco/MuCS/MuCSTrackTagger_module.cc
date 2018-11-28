@@ -198,6 +198,7 @@ void MuCSTrackTagger::produce(art::Event & e) {
   // grab PMT calibrations if needed
   art::ServiceHandle<geo::Geometry> geo;
   const lariov::PmtGainProvider& gain_provider = art::ServiceHandle<lariov::PmtGainService>()->GetProvider();
+  /*
   for (unsigned int i=0; i!= geo->NOpDets(); ++i) {
     if (geo->IsValidOpChannel(i) && i<32) {
       std::cout<<"Channel "<<i <<" "<<gain_provider.Gain(i)<<" "
@@ -214,8 +215,8 @@ void MuCSTrackTagger::produce(art::Event & e) {
     else if (geo->IsValidOpChannel(i)) {
       std::cout<<"Channel "<<i<<std::endl;
     }
-  }
-
+   }
+  */
   
   // find flash in time with MuCS
   
@@ -234,14 +235,21 @@ void MuCSTrackTagger::produce(art::Event & e) {
       _nflash += 1;
       _flash_t    = flash->Time();
       _flash_pe_v = flash->PEs();
+      std::cout << "there are " << _flash_pe_v.size() << " entries in flash vector " << std::endl;
+      for (size_t p=0; p < _flash_pe_v.size(); p++)
+	std::cout << "entry " << p << " has " << _flash_pe_v[p] << " PE" << std::endl;
       _flash_pe_v_corr = _flash_pe_v;
-      _gain_v = std::vector<double>(32,0.);
+      _gain_v = std::vector<double>(_flash_pe_v.size(),0.);
       // apply gain
       if (fUsePMTCalib) {
 	for (size_t ch=0; ch < _flash_pe_v.size(); ch++) {
-	  if (geo->IsValidOpChannel(ch) == true) { 
-	    _gain_v.at(ch) = gain_provider.Gain(ch);
-	    _flash_pe_v_corr.at(ch) *= ( 20. / gain_provider.Gain(ch) ); 
+	  if (ch%100 < 32) {
+	    if (geo->IsValidOpChannel(ch%100) == true) { 
+	      auto chgain = gain_provider.ExtraInfo(ch%100).GetFloatData("amplitude_gain");
+	      std::cout << "Gain for channel " << ch%100 << " is " << chgain << std::endl;
+	      _gain_v.at(ch) = chgain;
+	      _flash_pe_v_corr.at(ch) *= ( 20. / chgain ); 
+	    }
 	  }
 	}// if channel is valid
       }// if we are using the PMT gains
