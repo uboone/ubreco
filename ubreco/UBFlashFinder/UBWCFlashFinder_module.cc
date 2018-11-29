@@ -230,11 +230,10 @@ void UBWCFlashFinder::produce(art::Event & evt)
   }
 
   //get flashes
-  auto const flashb_v = flash_algo.get_flashes_beam();
-  auto const flashc_v = flash_algo.get_flashes_cosmic();
+  auto const flash_v = flash_algo.get_flashes();
 
   int idx=0;
-  for(const auto& lflash :  flashb_v) {
+  for(const auto& lflash :  flash_v) {
     double Ycenter, Zcenter, Ywidth, Zwidth;
     GetFlashLocation(lflash->get_pe_v(), Ycenter, Zcenter, Ywidth, Zwidth);
 
@@ -245,27 +244,13 @@ void UBWCFlashFinder::produce(art::Event & evt)
                          0, 0, 1, // this are just default values
                          Ycenter, Ywidth, Zcenter, Zwidth);
     //fill ana tree if requested
-    if(_saveAnaTree) fill_ana_tree(flash,idx,2);
+    if(_saveAnaTree) fill_ana_tree(flash,idx,lflash->get_type());
     idx++;
 
-    opflashes_beam->emplace_back(std::move(flash));
-  }
-  idx=0;
-  for(const auto& lflash :  flashc_v) {
-    double Ycenter, Zcenter, Ywidth, Zwidth;
-    GetFlashLocation(lflash->get_pe_v(), Ycenter, Zcenter, Ywidth, Zwidth);
-
-    recob::OpFlash flash(lflash->get_time(), lflash->get_high_time()-lflash->get_low_time(),
-			 triggerTime + lflash->get_time(),
-			 (triggerTime + lflash->get_time()) / 1600.,
-			 lflash->get_pe_v(),
-                         0, 0, 1, // this are just default values
-                         Ycenter, Ywidth, Zcenter, Zwidth);
-    //fill ana tree if requested
-    if(_saveAnaTree) fill_ana_tree(flash,idx,1);
-    idx++;
-
-    opflashes_cosmic->emplace_back(std::move(flash));
+    if(lflash->get_type()==2) opflashes_beam->emplace_back(std::move(flash));
+    else if(lflash->get_type()==1) opflashes_cosmic->emplace_back(std::move(flash));
+    else{
+    }
   }
 
   flash_algo.clear_flashes();
