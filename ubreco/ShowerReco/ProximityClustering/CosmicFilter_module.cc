@@ -96,7 +96,7 @@ private:
   /**
      Square distance between point and reco'd vertex.
    */
-  double SqDist(const TVector3& pt);
+  double SqDist(const recob::Track::Point_t& pt);
 
 };
 
@@ -230,7 +230,7 @@ void CosmicFilter::produce(art::Event & e)
     if (trk.Length() < fMinTrkLength) continue;
 
     // and track length must be < twice start-end distance
-    if (trk.Length() > 2 * (trk.Vertex()-trk.End()).Mag() ) continue;
+    if (trk.Length() > 2 * (trk.Vertex()-trk.End()).R() ) continue;
 
     auto trkdist = SphereIntersection(trk);
     
@@ -374,9 +374,9 @@ std::pair<int,float> CosmicFilter::SphereIntersection(const recob::Track& trk) {
 }
 
 // distance between point and vertex
-double CosmicFilter::SqDist(const TVector3& pt) {
+double CosmicFilter::SqDist(const recob::Track::Point_t& pt) {
 
-  return (_xpos - pt[0]) * (_xpos - pt[0]) + (_ypos - pt[1]) * (_ypos - pt[1]) + (_zpos - pt[2]) * (_zpos - pt[2]);
+  return (_xpos - pt.X()) * (_xpos - pt.X()) + (_ypos - pt.Y()) * (_ypos - pt.Y()) + (_zpos - pt.Z()) * (_zpos - pt.Z());
 }
 
 DEFINE_ART_MODULE(CosmicFilter)

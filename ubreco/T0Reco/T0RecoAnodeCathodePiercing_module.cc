@@ -631,13 +631,13 @@ void   T0RecoAnodeCathodePiercing::SortTrackPoints(const recob::Track& track, st
   // if points are ordered correctly                                                                                                                                       
   if (start.Y() > end.Y()){
     for (size_t i=0; i < N; i++)
-      sorted_trk.push_back( track.LocationAtPoint(i) );
+      sorted_trk.push_back( track.LocationAtPoint<TVector3>(i) );
   }
   
   // otherwise flip order                                                                                                                                                 
   else {
     for (size_t i=0; i < N; i++)
-      sorted_trk.push_back( track.LocationAtPoint( N - i - 1) );
+      sorted_trk.push_back( track.LocationAtPoint<TVector3>( N - i - 1) );
   }
 }
 
