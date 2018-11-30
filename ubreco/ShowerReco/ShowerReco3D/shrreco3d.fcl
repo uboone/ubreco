@@ -7,6 +7,7 @@ ShrReco3D: {
  PFPproducer  : "cmatcher"
  Clusproducer : "cmerger"
  Vtxproducer  : "ccvertex"
+ NeutrinoEvent : true
  ShowerRecoTools:
      {
         Algo0: @local::filterpfpart

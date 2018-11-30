@@ -427,6 +427,9 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
 
     auto const& mcs = mcs_h->at(s);
     auto shrtrackIDs = mcshower.second;
+    
+    std::cout << "MCshower " << s << " has start @ [ " << mcs.Start().X() << ", "<< mcs.Start().Y() << ", " << mcs.Start().Z() << " ]" << std::endl;
+
     //std::cout << "\t ANCESTOR comparing with MCShower of energy " << mcs.Start().E() << std::endl;
     //std::cout << "\t ANCESTOR start is [" << mcs.Start().X() << ", " << mcs.Start().Y() << ", " << mcs.Start().Z() << "]" << std::endl;
     //std::cout << "\t ANCESTOR HAS " << shrtrackIDs.size() << " particles" << std::endl;
@@ -478,11 +481,12 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
   _completeness = completeness_max;
   _purity       = purity_max;
   auto matched_mcs = mcs_h->at(mcs_idx_match);
+  std::cout << "matched mcs : " << mcs_idx_match << std::endl;
   _mc_shr_e = matched_mcs.Start().E();
   _mc_shr_pdg = matched_mcs.PdgCode();
-  _mc_shr_x = matched_mcs.DetProfile().X();
-  _mc_shr_y = matched_mcs.DetProfile().Y();
-  _mc_shr_z = matched_mcs.DetProfile().Z();
+  _mc_shr_x = matched_mcs.Start().X();
+  _mc_shr_y = matched_mcs.Start().Y();
+  _mc_shr_z = matched_mcs.Start().Z();
 
   // get X offset due to time w.r. trigger time
   if (fNeutrinoEvent) {
@@ -491,12 +495,14 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
     auto const& mct_h = e.getValidHandle<std::vector<simb::MCTruth> >("generator");
     auto gen = mct_h->at(0);
     double g4Ticks = detClocks->TPCG4Time2Tick(gen.GetNeutrino().Nu().T()) + detProperties->GetXTicksOffset(0, 0, 0) - detProperties->TriggerOffset();
+    std::cout << "nu vtx @ [" << gen.GetNeutrino().Nu().Vx() << ", " << gen.GetNeutrino().Nu().Vy() << ", " << gen.GetNeutrino().Nu().Vz() << " ]" << std::endl;
     _xtimeoffset = detProperties->ConvertTicksToX(g4Ticks, 0, 0, 0);
   }
   else { _xtimeoffset = 0.; }
 
   auto const *SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
   auto offset = SCE->GetPosOffsets(geo::Point_t(_mc_shr_x,_mc_shr_y,_mc_shr_z));
+  std::cout << "offset : " << offset.X() << ", " << offset.Y() << ", " << offset.Z() << std::endl;
   //_mc_shr_x += offset.X() + xtrueoffset;
   _xsceoffset = offset.X();
   _mc_shr_y += offset.Y();
