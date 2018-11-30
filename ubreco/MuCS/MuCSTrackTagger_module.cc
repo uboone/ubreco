@@ -218,26 +218,26 @@ void MuCSTrackTagger::produce(art::Event & e) {
     std::cout << std::endl << "New track" << std::endl;
     //choose highest edge as track start
     TVector3 start, end, startDir, endDir;
-    if(trk->Vertex()[1]>trk->End()[1]){
-      start=trk->Vertex();
-      end=trk->End();
-      startDir=trk->VertexDirection();
-      endDir=trk->EndDirection();
+    if(trk->Vertex().Y()>trk->End().Y()){
+      start=trk->Vertex<TVector3>();
+      end=trk->End<TVector3>();
+      startDir=trk->VertexDirection<TVector3>();
+      endDir=trk->EndDirection<TVector3>();
     }else{
-      start=trk->End();
-      end=trk->Vertex();
-      startDir=trk->EndDirection();
-      endDir=trk->VertexDirection();
+      start=trk->End<TVector3>();
+      end=trk->Vertex<TVector3>();
+      startDir=trk->EndDirection<TVector3>();
+      endDir=trk->VertexDirection<TVector3>();
     }
     
     //find which end of the trajectory to use to get direction
     unsigned int pStart;
     TVector3 dir;
     int pSign;
-    if(trk->LocationAtPoint(trk->FirstValidPoint())==start){
+    if(trk->LocationAtPoint<TVector3>(trk->FirstValidPoint())==start){
       pStart=0;
       pSign=1; //go forward for track direction
-    }else if(trk->LocationAtPoint(trk->LastValidPoint())==start){
+    }else if(trk->LocationAtPoint<TVector3>(trk->LastValidPoint())==start){
       pStart=trk->LastValidPoint();
       pSign=-1; //go backward for track direction
     }else{
@@ -251,7 +251,7 @@ void MuCSTrackTagger::produce(art::Event & e) {
       //use diff between pstart and pstart+psign*(fDirFromNPoints-1)
       if(fDirFromNPoints>trk->CountValidPoints())
 	mf::LogInfo("MuCSTrackTagger") << "Track has too few trajectory points ("<<trk->CountValidPoints()<<"), skipping it.\n";
-      dir=(trk->LocationAtPoint(pStart) - trk->LocationAtPoint(trk->NextValidPoint(pStart+pSign*(fDirFromNPoints-1) ) ) ).Unit();
+      dir=(trk->LocationAtPoint<TVector3>(pStart) - trk->LocationAtPoint<TVector3>(trk->NextValidPoint(pStart+pSign*(fDirFromNPoints-1) ) ) ).Unit();
     }
 
     std::cout << "start @ [" << start.X() << ", " << start.Y() << ", " << start.Z() << "]" 
