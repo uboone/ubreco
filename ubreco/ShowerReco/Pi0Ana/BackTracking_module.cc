@@ -66,7 +66,7 @@ private:
 
   std::map<size_t,size_t> HitMapping(const art::ValidHandle<std::vector<recob::Hit>> hitv1, const art::ValidHandle<std::vector<recob::Hit>> hitv2);
 
-  std::map<size_t, std::vector<unsigned int> > GetMCShowerInfo(const art::ValidHandle<std::vector<simb::MCTruth> > mct_h, const art::ValidHandle<std::vector<sim::MCShower> > mcs_h);
+  std::map<size_t, std::vector<unsigned int> > GetMCShowerInfo(const art::ValidHandle<std::vector<simb::MCTruth> > mct_h, const art::Handle<std::vector<sim::MCShower> > mcs_h);
 
   TTree* _tree;
   float _shr_etru;
@@ -130,7 +130,10 @@ void BackTracking::analyze(art::Event const & e)
 
 
   // load mcshowers & mctruth
-  auto const& mcs_h = e.getValidHandle<std::vector<sim::MCShower>>("mcreco");
+  art::Handle< std::vector<sim::MCShower> > mcs_h;
+  e.getByLabel("mcreco",mcs_h);
+  if (!mcs_h.isValid()) return;
+  //auto const& mcs_h = e.getValidHandle<std::vector<sim::MCShower>>("mcreco");
   auto const& mct_h = e.getValidHandle<std::vector<simb::MCTruth> >("generator");
   // load gaushits that have backtracking info
   auto const& gaushit_h = e.getValidHandle<std::vector<recob::Hit> > ("gaushit");
@@ -303,7 +306,7 @@ std::map<size_t,size_t> BackTracking::HitMapping(const art::ValidHandle<std::vec
   
 }// end of hit-mapping function
 
-std::map<size_t, std::vector<unsigned int> > BackTracking::GetMCShowerInfo(const art::ValidHandle<std::vector<simb::MCTruth> > mct_h, const art::ValidHandle<std::vector<sim::MCShower> > mcs_h) {
+std::map<size_t, std::vector<unsigned int> > BackTracking::GetMCShowerInfo(const art::ValidHandle<std::vector<simb::MCTruth> > mct_h, const art::Handle<std::vector<sim::MCShower> > mcs_h) {
 
   auto mct = mct_h->at(0);
   size_t npart = mct.NParticles();
