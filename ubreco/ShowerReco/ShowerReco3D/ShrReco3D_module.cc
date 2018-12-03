@@ -395,6 +395,8 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
   completeness_max = 0.;
   size_t mcs_idx_match = 0;
 
+  std::cout << "ANCESTOR backtracking.." << std::endl;
+
   for (auto const& mcshower : _MCShowerInfo) {
 
     size_t s = mcshower.first; // index of mcshower in mcs_h
@@ -407,9 +409,16 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
 
     auto const& mcs = mcs_h->at(s);
     auto shrtrackIDs = mcshower.second;
+<<<<<<< HEAD
     std::cout << "ANCESTOR comparing with MCShower of energy " << mcs.Start().E() << std::endl;
     std::cout << "ANCESTOR HAS " << shrtrackIDs.size() << " particles" << std::endl;
 
+=======
+    std::cout << "\t ANCESTOR comparing with MCShower of energy " << mcs.Start().E() << std::endl;
+    std::cout << "\t ANCESTOR start is [" << mcs.Start().X() << ", " << mcs.Start().Y() << ", " << mcs.Start().Z() << "]" << std::endl;
+    std::cout << "\t ANCESTOR HAS " << shrtrackIDs.size() << " particles" << std::endl;
+    
+>>>>>>> origin/showerreco_MCC9
     std::vector<simb::MCParticle const*> particle_vec;
     std::vector<anab::BackTrackerHitMatchingData const*> match_vec;
 
@@ -425,6 +434,8 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
 	auto mctrkid = particle_vec.at(i_p)->TrackId();
 	auto energy  = match_vec[i_p]->numElectrons;
 
+	std::cout << " \t\t backtracked to ID " << mctrkid << std::endl;
+
 	BackTrackEnergy += energy;
 	// does this trackID match that of the MCShower?
 	for (auto const& shrtrkid : shrtrackIDs) {
@@ -437,7 +448,7 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
     }// for all hits
 
     purity       = BackTrackShowerEnergy / BackTrackEnergy;
-    completeness = BackTrackShowerEnergy / mcs.DetProfile().E();
+    completeness = BackTrackShowerEnergy / mcs.Charge()[2];
 
     std::cout << "ANCESTOR Purity : " << BackTrackShowerEnergy << " / " << BackTrackEnergy << " = " << purity << std::endl;
 
@@ -456,9 +467,9 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
   auto matched_mcs = mcs_h->at(mcs_idx_match);
   _mc_shr_e = matched_mcs.Start().E();
   _mc_shr_pdg = matched_mcs.PdgCode();
-  _mc_shr_x = matched_mcs.Start().X();
-  _mc_shr_y = matched_mcs.Start().Y();
-  _mc_shr_z = matched_mcs.Start().Z();
+  _mc_shr_x = matched_mcs.DetProfile().X();
+  _mc_shr_y = matched_mcs.DetProfile().Y();
+  _mc_shr_z = matched_mcs.DetProfile().Z();
 
   // get X offset due to time w.r. trigger time
   auto const& detProperties = lar::providerFrom<detinfo::DetectorPropertiesService>();
@@ -516,17 +527,24 @@ std::map<size_t, std::vector<unsigned int> > ShrReco3D::GetMCShowerInfo(const ar
 		     ( (xyz[1] - y) * (xyz[1] - y) ) +
 		     ( (xyz[2] - z) * (xyz[2] - z) ) );
 
-    if ( (d < 0.01) || ( (mcs.Process() == "primary") && (mcs.MotherPdgCode() == 22) ) ) {
+    if ( (d < 0.01) ){// || ( (mcs.Process() == "primary") && (mcs.MotherPdgCode() == 22) ) ) {
       std::vector<unsigned int> shrtrackIDs = mcs.DaughterTrackID();
       shrtrackIDs.push_back( mcs.TrackID() );
+      std::cout << "\t\t shower track ID : " << mcs.TrackID() << std::endl; 
       // get daughter track IDs:
       auto daughterIDs = mcs.DaughterTrackID();
       for (auto const& id : daughterIDs)
+<<<<<<< HEAD
 	if (id != mcs.TrackID()) { shrtrackIDs.push_back(id); }
 
+=======
+	if (id != mcs.TrackID()) { shrtrackIDs.push_back(id); std::cout << "\t\t shower track ID : " << id << std::endl; }
+      
+>>>>>>> origin/showerreco_MCC9
       event_shower_map[ i ] = shrtrackIDs;
 
     std::cout << "\t ANCESTOR mother PDG is " << mcs.MotherPdgCode() << std::endl;
+    std::cout << "\t ANCESTOR start is [" << mcs.Start().X() << ", " << mcs.Start().Y() << ", " << mcs.Start().Z() << "]" << std::endl;
     std::cout << "\t ANCESTOR Process is " << mcs.Process() << std::endl;
     std::cout << "\t ANCESTOR energy is " << mcs.Start().E() << std::endl;
     std::cout << "\t ANCESTOR number of daughters is " << shrtrackIDs.size() << std::endl;
