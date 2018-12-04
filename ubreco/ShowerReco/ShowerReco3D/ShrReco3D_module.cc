@@ -97,6 +97,12 @@ private:
   double _shr_dedx_0, _shr_dedx_1, _shr_dedx_2;
   double _shr_dedxBox_0, _shr_dedxBox_1, _shr_dedxBox_2;
 
+  double _Pitch_0, _Pitch_1, _Pitch_2;
+  double _ClStart_t_0, _ClStart_t_1, _ClStart_t_2;
+  double _ClStart_w_0, _ClStart_w_1, _ClStart_w_2;
+  double _ClEnd_t_0, _ClEnd_t_1, _ClEnd_t_2;
+  double _ClEnd_w_0, _ClEnd_w_1, _ClEnd_w_2;
+
   double _mc_shr_e;
   double _mc_shr_px, _mc_shr_py, _mc_shr_pz;
   double _mc_shr_x, _mc_shr_y, _mc_shr_z;
@@ -241,20 +247,27 @@ void ShrReco3D::produce(art::Event & e)
   _manager->Reconstruct(output_shower_v);
 
   // if using truth, backtrack and load mcshowers
-  if (fBacktrackTag != ""){
+  if (fBacktrackTag != "")
+  {
     // load mcshowers & mctruth
     art::Handle< std::vector<sim::MCShower> > mcs_h;
     e.getByLabel("mcreco",mcs_h);
     auto const& mct_h = e.getValidHandle<std::vector<simb::MCTruth> >("generator");
-    if (!mcs_h.isValid()) {
+    if (!mcs_h.isValid())
+    {
       std::cout << "MCShower is valid? No" << std::endl;
       _MCShowerInfo.clear();
     }
-    else {
+    else
+    {
       if (fNeutrinoEvent)
-	_MCShowerInfo = GetMCShowerInfo(mct_h,mcs_h);
+      {
+        _MCShowerInfo = GetMCShowerInfo(mct_h,mcs_h);
+      }
       else
-	_MCShowerInfo = GetMCShowerInfo(mcs_h);
+      {
+        _MCShowerInfo = GetMCShowerInfo(mcs_h);
+      }
     }
   }
 
@@ -343,6 +356,22 @@ void ShrReco3D::SaveShower(art::Event & e,
   _shr_dedxBox_1 = shower.fdEdxBox_1;
   _shr_dedxBox_2 = shower.fdEdxBox_2;
 
+  _Pitch_0 = shower.fPitch_0;
+  _Pitch_1 = shower.fPitch_1;
+  _Pitch_2 = shower.fPitch_2;
+  _ClStart_t_0 = shower.fClStart_t_0;
+  _ClStart_t_1 = shower.fClStart_t_1;
+  _ClStart_t_2 = shower.fClStart_t_2;
+  _ClStart_w_0 = shower.fClStart_w_0;
+  _ClStart_w_1 = shower.fClStart_w_1;
+  _ClStart_w_2 = shower.fClStart_w_2;
+  _ClEnd_t_0 = shower.fClEnd_t_0;
+  _ClEnd_t_1 = shower.fClEnd_t_1;
+  _ClEnd_t_2 = shower.fClEnd_t_2;
+  _ClEnd_w_0 = shower.fClEnd_w_0;
+  _ClEnd_w_1 = shower.fClEnd_w_1;
+  _ClEnd_w_2 = shower.fClEnd_w_2;
+
   _shr_px     = shower.fDCosStart[0];
   _shr_py     = shower.fDCosStart[1];
   _shr_pz     = shower.fDCosStart[2];
@@ -423,7 +452,8 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
 
   std::cout << " still ging on" << std::endl;
 
-  for (auto const& mcshower : _MCShowerInfo) {
+  for (auto const& mcshower : _MCShowerInfo)
+  {
 
     size_t s = mcshower.first; // index of mcshower in mcs_h
 
@@ -438,53 +468,54 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
     auto const& mcs = mcs_h->at(s);
     auto shrtrackIDs = mcshower.second;
 
-    std::cout << "\t ANCESTOR comparing with MCShower of energy " << mcs.Start().E() << std::endl;
-    std::cout << "\t ANCESTOR start is [" << mcs.Start().X() << ", " << mcs.Start().Y() << ", " << mcs.Start().Z() << "]" << std::endl;
-    std::cout << "\t ANCESTOR HAS " << shrtrackIDs.size() << " particles" << std::endl;
-
-    std::cout << "MCshower " << s << " has start @ [ " << mcs.Start().X() << ", "<< mcs.Start().Y() << ", " << mcs.Start().Z() << " ]" << std::endl;
+    // std::cout << "\t ANCESTOR comparing with MCShower of energy " << mcs.Start().E() << std::endl;
+    // std::cout << "\t ANCESTOR start is [" << mcs.Start().X() << ", " << mcs.Start().Y() << ", " << mcs.Start().Z() << "]" << std::endl;
+    // std::cout << "\t ANCESTOR HAS " << shrtrackIDs.size() << " particles" << std::endl;
+    //
+    // std::cout << "MCshower " << s << " has start @ [ " << mcs.Start().X() << ", "<< mcs.Start().Y() << ", " << mcs.Start().Z() << " ]" << std::endl;
 
     std::vector<simb::MCParticle const*> particle_vec;
     std::vector<anab::BackTrackerHitMatchingData const*> match_vec;
 
-    for (auto const& hit_idx : hit_idx_v) {
-
+    for (auto const& hit_idx : hit_idx_v)
+    {
       particle_vec.clear(); match_vec.clear();
 
       backtrack_h.get(hit_idx, particle_vec, match_vec);
 
       // does this hit match to the mcshower?
-      for(size_t i_p=0; i_p<particle_vec.size(); ++i_p){
+      for(size_t i_p=0; i_p<particle_vec.size(); ++i_p)
+      {
 
-	auto mctrkid = particle_vec.at(i_p)->TrackId();
-	auto charge  = match_vec[i_p]->numElectrons;
-	auto energy  = match_vec[i_p]->energy;
+      	auto mctrkid = particle_vec.at(i_p)->TrackId();
+      	auto charge  = match_vec[i_p]->numElectrons;
+      	auto energy  = match_vec[i_p]->energy;
 
-	BackTrackCharge += charge;
-	BackTrackEnergy += energy;
-	// does this trackID match that of the MCShower?
-	for (auto const& shrtrkid : shrtrackIDs) {
-	  if ( shrtrkid == (unsigned int)mctrkid ){
-	    BackTrackShowerCharge += charge;
-	    BackTrackShowerEnergy += energy;
-	    break;
-	  }
-	}
+        BackTrackCharge += charge;
+        BackTrackEnergy += energy;
+        // does this trackID match that of the MCShower?
+        for (auto const& shrtrkid : shrtrackIDs)
+        {
+          if ( shrtrkid == (unsigned int)mctrkid )
+          {
+            BackTrackShowerCharge += charge;
+            BackTrackShowerEnergy += energy;
+            break;
+          }
+        }
       }// for all particles associated to this hit
     }// for all hits
-
-
     purity       = BackTrackShowerEnergy / BackTrackEnergy;
     completeness = BackTrackShowerEnergy / mcs.Charge()[2];
 
-    std::cout << "ANCESTOR Purity : " << BackTrackShowerEnergy << " / " << BackTrackEnergy << " = " << purity << std::endl;
+    // std::cout << "ANCESTOR Purity : " << BackTrackShowerEnergy << " / " << BackTrackEnergy << " = " << purity << std::endl;
 
-    if (purity > purity_max) {
+    if (purity > purity_max)
+    {
       purity_max = purity;
       completeness_max = completeness;
       mcs_idx_match = s;
     }
-
   }// end of MCShower loop
 
   //std::cout << "ANCESTOR max purity : " << purity_max << std::endl;
@@ -500,7 +531,8 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
   _mc_shr_z = matched_mcs.Start().Z();
 
   // get X offset due to time w.r. trigger time
-  if (fNeutrinoEvent) {
+  if (fNeutrinoEvent)
+  {
     auto const& detProperties = lar::providerFrom<detinfo::DetectorPropertiesService>();
     auto const& detClocks = lar::providerFrom<detinfo::DetectorClocksService>();
     auto const& mct_h = e.getValidHandle<std::vector<simb::MCTruth> >("generator");
@@ -536,7 +568,8 @@ std::map<size_t, std::vector<unsigned int> > ShrReco3D::GetMCShowerInfo(const ar
   // map connecting e+/e- trackID in mcshower to mcshower index
   //std::map<unsigned int, size_t> event_mcpart_map;
 
-  for (size_t i=0; i < mcs_h->size(); i++) {
+  for (size_t i=0; i < mcs_h->size(); i++)
+  {
 
     auto const& mcs = mcs_h->at(i);
 
@@ -572,7 +605,7 @@ std::map<size_t, std::vector<unsigned int> > ShrReco3D::GetMCShowerInfo(const ar
   xyz[1] = vtx.Y();
   xyz[2] = vtx.Z();
 
-  std::cout << "ANCESTOR neutrino vertex @ [ " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << " ]" << std::endl;
+  // std::cout << "ANCESTOR neutrino vertex @ [ " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << " ]" << std::endl;
 
   //std::cout << "ANCESTOR neutrino vertex @ [ " << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << " ]" << std::endl;
 
@@ -582,7 +615,8 @@ std::map<size_t, std::vector<unsigned int> > ShrReco3D::GetMCShowerInfo(const ar
   // map connecting e+/e- trackID in mcshower to mcshower index
   //std::map<unsigned int, size_t> event_mcpart_map;
 
-  for (size_t i=0; i < mcs_h->size(); i++) {
+  for (size_t i=0; i < mcs_h->size(); i++)
+  {
     auto const& mcs = mcs_h->at(i);
 
     double x = mcs.Start().X();
@@ -592,7 +626,8 @@ std::map<size_t, std::vector<unsigned int> > ShrReco3D::GetMCShowerInfo(const ar
 		     ( (xyz[1] - y) * (xyz[1] - y) ) +
 		     ( (xyz[2] - z) * (xyz[2] - z) ) );
 
-    if ( (d < 0.01) ){// || ( (mcs.Process() == "primary") && (mcs.MotherPdgCode() == 22) ) ) {
+    if ( (d < 0.01) )
+    {// || ( (mcs.Process() == "primary") && (mcs.MotherPdgCode() == 22) ) ) {
       std::vector<unsigned int> shrtrackIDs = mcs.DaughterTrackID();
       shrtrackIDs.push_back( mcs.TrackID() );
       //std::cout << "\t\t shower track ID : " << mcs.TrackID() << std::endl;
@@ -600,14 +635,18 @@ std::map<size_t, std::vector<unsigned int> > ShrReco3D::GetMCShowerInfo(const ar
       auto daughterIDs = mcs.DaughterTrackID();
       for (auto const& id : daughterIDs)
 
-	if (id != mcs.TrackID()) { shrtrackIDs.push_back(id); std::cout << "\t\t shower track ID : " << id << std::endl; }
+    	if (id != mcs.TrackID())
+      {
+        shrtrackIDs.push_back(id);
+        // std::cout << "\t\t shower track ID : " << id << std::endl;
+      }
       event_shower_map[ i ] = shrtrackIDs;
 
-    std::cout << "\t ANCESTOR mother PDG is " << mcs.MotherPdgCode() << std::endl;
-    std::cout << "\t ANCESTOR start is [" << mcs.Start().X() << ", " << mcs.Start().Y() << ", " << mcs.Start().Z() << "]" << std::endl;
-    std::cout << "\t ANCESTOR Process is " << mcs.Process() << std::endl;
-    std::cout << "\t ANCESTOR energy is " << mcs.Start().E() << std::endl;
-    std::cout << "\t ANCESTOR number of daughters is " << shrtrackIDs.size() << std::endl;
+    // std::cout << "\t ANCESTOR mother PDG is " << mcs.MotherPdgCode() << std::endl;
+    // std::cout << "\t ANCESTOR start is [" << mcs.Start().X() << ", " << mcs.Start().Y() << ", " << mcs.Start().Z() << "]" << std::endl;
+    // std::cout << "\t ANCESTOR Process is " << mcs.Process() << std::endl;
+    // std::cout << "\t ANCESTOR energy is " << mcs.Start().E() << std::endl;
+    // std::cout << "\t ANCESTOR number of daughters is " << shrtrackIDs.size() << std::endl;
 
 
     }// if mcshower matched to pi0
@@ -640,6 +679,22 @@ void ShrReco3D::SetTTree() {
   _rcshr_tree->Branch("_shr_dedxBox_0",&_shr_dedxBox_0,"shr_dedxBox_0/D");
   _rcshr_tree->Branch("_shr_dedxBox_1",&_shr_dedxBox_1,"shr_dedxBox_1/D");
   _rcshr_tree->Branch("_shr_dedxBox_2",&_shr_dedxBox_2,"shr_dedxBox_2/D");
+
+  _rcshr_tree->Branch("_pitch_0", &_Pitch_0, "_pitch_0/D");
+  _rcshr_tree->Branch("_pitch_1", &_Pitch_1, "_pitch_1/D");
+  _rcshr_tree->Branch("_pitch_2", &_Pitch_2, "_pitch_2/D");
+  _rcshr_tree->Branch("_clStart_t_0", &_ClStart_t_0, "_clStart_t_0/D");
+  _rcshr_tree->Branch("_clStart_t_1", &_ClStart_t_1, "_clStart_t_1/D");
+  _rcshr_tree->Branch("_clStart_t_2", &_ClStart_t_2, "_clStart_t_2/D");
+  _rcshr_tree->Branch("_clStart_w_0", &_ClStart_w_0, "_clStart_w_0/D");
+  _rcshr_tree->Branch("_clStart_w_1", &_ClStart_w_1, "_clStart_w_1/D");
+  _rcshr_tree->Branch("_clStart_w_2", &_ClStart_w_2, "_clStart_w_2/D");
+  _rcshr_tree->Branch("_clEnd_t_0", &_ClEnd_t_0, "_clEnd_t_0/D");
+  _rcshr_tree->Branch("_clEnd_t_1", &_ClEnd_t_1, "_clEnd_t_1/D");
+  _rcshr_tree->Branch("_clEnd_t_2", &_ClEnd_t_2, "_clEnd_t_2/D");
+  _rcshr_tree->Branch("_clEnd_w_0", &_ClEnd_w_0, "_clEnd_w_0/D");
+  _rcshr_tree->Branch("_clEnd_w_1", &_ClEnd_w_1, "_clEnd_w_1/D");
+  _rcshr_tree->Branch("_clEnd_w_2", &_ClEnd_w_2, "_clEnd_w_2/D");
 
   _rcshr_tree->Branch("_shr_px",&_shr_px,"shr_px/D");
   _rcshr_tree->Branch("_shr_py",&_shr_py,"shr_py/D");

@@ -71,8 +71,13 @@ struct Shower_t {
   std::vector< std::vector < double > > fHitdQdx_v;      ///< Hit-by-hit dQdx per each plane [ADC/cm]
   double fBestdEdx;                           ///< Selects dQdx with the longest ShoweringLength [ADC/cm]
 
-  std::vector< double > fShoweringLength;     ///< Calculates the distance from start to shower points [in cm]
+  double fPitch_0, fPitch_1, fPitch_2;
+  double fClStart_t_0, fClStart_t_1, fClStart_t_2;
+  double fClStart_w_0, fClStart_w_1, fClStart_w_2;
+  double fClEnd_t_0, fClEnd_t_1, fClEnd_t_2;
+  double fClEnd_w_0, fClEnd_w_1, fClEnd_w_2;
 
+  std::vector< double > fShoweringLength;     ///< Calculates the distance from start to shower points [in cm]
 
   ::geo::PlaneID fBestPlane;         ///< "Best" plane used for geometrical interpretation
 
@@ -109,6 +114,9 @@ struct Shower_t {
     fdEdx = kDOUBLE_MIN;
     fSigmadEdx = kDOUBLE_MIN;
     fdEdx_v_v.clear();
+    fdEdx_0 = kDOUBLE_MIN;
+    fdEdx_1 = kDOUBLE_MIN;
+    fdEdx_2 = kDOUBLE_MIN;
     fdEdx_v_v.resize(3);
     fdEdx_v.clear();
     fdEdx_v = {kDOUBLE_MIN, kDOUBLE_MIN, kDOUBLE_MIN};
@@ -116,6 +124,27 @@ struct Shower_t {
     fSigmadQdx = kDOUBLE_MIN;
     fdQdx_v.clear();
     fdQdx_v = {kDOUBLE_MIN, kDOUBLE_MIN, kDOUBLE_MIN};
+
+    fdEdxBox_0 = kDOUBLE_MIN;
+    fdEdxBox_1 = kDOUBLE_MIN;
+    fdEdxBox_2 = kDOUBLE_MIN;
+
+    fPitch_0 = kDOUBLE_MIN;
+    fPitch_1 = kDOUBLE_MIN;
+    fPitch_2 = kDOUBLE_MIN;
+    fClStart_t_0 = kDOUBLE_MIN;
+    fClStart_t_1 = kDOUBLE_MIN;
+    fClStart_t_2 = kDOUBLE_MIN;
+    fClStart_w_0 = kDOUBLE_MIN;
+    fClStart_w_1 = kDOUBLE_MIN;
+    fClStart_w_2 = kDOUBLE_MIN;
+    fClEnd_t_0 = kDOUBLE_MIN;
+    fClEnd_t_1 = kDOUBLE_MIN;
+    fClEnd_t_2 = kDOUBLE_MIN;
+    fClEnd_w_0 = kDOUBLE_MIN;
+    fClEnd_w_1 = kDOUBLE_MIN;
+    fClEnd_w_2 = kDOUBLE_MIN;
+
     fShoweringLength.clear();
     fSigmadEdx_v.clear();
     fTotalMIPEnergy_v.clear();

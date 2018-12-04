@@ -142,6 +142,10 @@ namespace showerreco
     _pitch1 = pitches[1];
     _pitch2 = pitches[2];
 
+    resultShower.fPitch_0 = pitches[0];
+    resultShower.fPitch_1 = pitches[1];
+    resultShower.fPitch_2 = pitches[2];
+
     if (_verbose)
     {
       std::cout << "pitches : "
@@ -163,6 +167,28 @@ namespace showerreco
       auto& start2D = clus._start;
       auto& end2D = clus._end;
 
+      if (pl == 0)
+      {
+        resultShower.fClStart_t_0 = start2D.t;
+        resultShower.fClStart_w_0 = start2D.w;
+        resultShower.fClEnd_t_0 = end2D.t;
+        resultShower.fClEnd_w_0 = end2D.w;
+      }
+      else if (pl == 1)
+      {
+        resultShower.fClStart_t_1 = start2D.t;
+        resultShower.fClStart_w_1 = start2D.w;
+        resultShower.fClEnd_t_1 = end2D.t;
+        resultShower.fClEnd_w_1 = end2D.w;
+      }
+      else if (pl == 2)
+      {
+        resultShower.fClStart_t_2 = start2D.t;
+        resultShower.fClStart_w_2 = start2D.w;
+        resultShower.fClEnd_t_2 = end2D.t;
+        resultShower.fClEnd_w_2 = end2D.w;
+      }
+
       float start_angle = clus._start_angle_2d;
       float end_angle = clus._end_angle_2d;
 
@@ -175,6 +201,7 @@ namespace showerreco
       }
 
       double pitch = pitches[pl];
+
       std::vector<double> cluster_axis;
       std::vector<double> cluster_start;
       std::vector<double> cluster_end;
