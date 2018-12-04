@@ -127,8 +127,8 @@ bool Pi0Filter::filter(art::Event & e)
 
     if (trk.Length() < 50) continue;
 
-    auto const& start = trk.Vertex();
-    auto const& end   = trk.End();
+    auto const& start = trk.Vertex<TVector3>();
+    auto const& end   = trk.End<TVector3>();
 
     if ( ( (start-vtxpt).Mag() < 10) && ((end-vtxpt).Mag() < 10) ) continue;
 

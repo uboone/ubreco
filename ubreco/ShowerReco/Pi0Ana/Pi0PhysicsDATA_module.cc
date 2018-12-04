@@ -143,7 +143,7 @@ void Pi0PhysicsDATA::analyze(art::Event const & e)
     _rc_vtx_z = rcxyz[2];
   }
   
-  TVector3 nuvtx(_rc_vtx_x,_rc_vtx_y,_rc_vtx_z);
+  recob::Track::Point_t nuvtx(_rc_vtx_x,_rc_vtx_y,_rc_vtx_z);
 
   // apply pi0 selection to event showers
   auto pi0candidate = _pi0selection.ApplySelection(shr_h);
@@ -181,12 +181,12 @@ void Pi0PhysicsDATA::analyze(art::Event const & e)
     double dvtx = 1000.;
     //bool flipped = false;
     // which one is closest?
-    if ( (nuvtx-beg).Mag() < (nuvtx-end).Mag() ) {
-      dvtx = (nuvtx-beg).Mag();
+    if ( (nuvtx-beg).R() < (nuvtx-end).R() ) {
+      dvtx = (nuvtx-beg).R();
       //flipped = false;
     }
     else {
-      dvtx = (nuvtx-end).Mag();
+      dvtx = (nuvtx-end).R();
       //flipped = true;
     }
 
