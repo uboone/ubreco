@@ -97,7 +97,9 @@ private:
   std::vector<double> _shr_e_v;
   double _mc_shr_e;
   double _mc_shr_px, _mc_shr_py, _mc_shr_pz;
-  double _mc_shr_x, _mc_shr_y, _mc_shr_z;
+  double _mc_shr_x, _mc_shr_y, _mc_shr_z; //the true start position from MCShower
+  double _mc_shr_startx, _mc_shr_starty, _mc_shr_startz; //the true start position (conversion point) from MCParticle trajectory point for photons which match MCShower
+  std::vector<double> _mc_dist_trajpoints; //the distance between each point in the trajectory of MCParticle photon that matches MCShower
   double _xtimeoffset;
   double _xsceoffset;
   double _completeness, _purity;
@@ -436,16 +438,21 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
     
     std::vector<simb::MCParticle const*> particle_vec;
     std::vector<anab::BackTrackerHitMatchingData const*> match_vec;  
-    
+  
+    //std::vector<int> mcp_idx_match;  
+
+    //for each hit in the shower
     for (auto const& hit_idx : hit_idx_v) {
       
       particle_vec.clear(); match_vec.clear();
 
+      //fill the associated particle and match vectors for this hit
       backtrack_h.get(hit_idx, particle_vec, match_vec);
-      
+
       // does this hit match to the mcshower?
       for(size_t i_p=0; i_p<particle_vec.size(); ++i_p){            
 	
+    //get the track id of the mc particle corresponding to the hit
 	auto mctrkid = particle_vec.at(i_p)->TrackId();
 	auto charge  = match_vec[i_p]->numElectrons;
 	auto energy  = match_vec[i_p]->energy;
@@ -455,9 +462,13 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
 	// does this trackID match that of the MCShower?
 	for (auto const& shrtrkid : shrtrackIDs) {
 	  if ( shrtrkid == (unsigned int)mctrkid ){
-	    BackTrackShowerCharge += charge;
+        //std::cout<<"size of particle vec is  "<<particle_vec.size()<<std::endl;
+        BackTrackShowerCharge += charge;
 	    BackTrackShowerEnergy += energy;
-	    break;
+        //mcp_idx_match.push_back(i_p);
+        //std::cout<<"matched mc particle to this shower at index in particle vec "<<i_p<<std::endl;
+        std::cout<<"the pdg code for MCParticle is "<<particle_vec.at(i_p)->PdgCode()<<" and the track ID is "<<mctrkid<<std::endl;
+        break;
 	  }
 	}
       }// for all particles associated to this hit
@@ -480,8 +491,72 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
 
   _completeness = completeness_max;
   _purity       = purity_max;
-  auto matched_mcs = mcs_h->at(mcs_idx_match);
+  
+  
+   auto matched_mcs = mcs_h->at(mcs_idx_match);
   std::cout << "matched mcs : " << mcs_idx_match << std::endl;
+  //std::cout<<"event = "<<e.event()<<std::endl;
+  //if (_purity > 0) {
+ 
+   double startx = NAN;
+   double starty = NAN;
+   double startz = NAN;
+
+  //get the MCParticles for the event
+  auto const& mcpart_h = e.getValidHandle<std::vector<simb::MCParticle> > ("largeant");
+  auto trackid =  matched_mcs.TrackID(); 
+  std::vector<double> dist_btw_points;
+  //for each MCParticle, check if it matches the trackid for the MCShower
+  for(unsigned int j = 0; j < mcpart_h->size(); j++){
+      auto mcpart = mcpart_h->at(j);
+      auto mcp_pdg =  mcpart.PdgCode();
+      //only want photons
+      if(mcp_pdg != 22) continue;
+
+      auto mctrkid = mcpart.TrackId();
+     // std::cout<<"trackid = "<<trackid<<" and mctrkid = "<<(unsigned int)mctrkid<<std::endl;
+     // if the track id for the MCParticle matches the MCShower
+      if ( trackid == (unsigned int)mctrkid ){
+          //std::cout<<"trackid = "<<trackid<<" and mctrkid = "<<mctrkid<<", "<<(unsigned int)mctrkid<<std::endl;
+            
+          //get the trajectory for the MCP
+          simb::MCTrajectory trj = mcpart.Trajectory();
+          auto npoints = trj.size();
+
+          //only considering photons with at least two points in the trajectory
+          if(npoints <2) continue;
+
+          //std::cout<<"the traj point at "<<0<<" is "<<trj.Position(0).X()<<", "<<trj.Position(0).Y()<<", "<<trj.Position(0).Z()<<std::endl;  
+
+          //save the conversion point of the photon (point at position 1 in traj of the MCP) ->note: need to put purity cut >0 to get good match MCP/MCS
+          startx = trj.Position(1).X();
+          starty = trj.Position(1).Y();
+          startz = trj.Position(1).Z();
+
+          //for each point in the traj
+          for(unsigned int i = 1; i < npoints; i++){
+           // std::cout<<"the traj point at "<<i<<" is "<<trj.Position(i).X()<<", "<<trj.Position(i).Y()<<", "<<trj.Position(i).Z()<<std::endl;
+            double currentx = trj.Position(i).X();
+            double currenty = trj.Position(i).Y();
+            double currentz = trj.Position(i).Z();
+            double firstx = trj.Position(i-1).X();
+            double firsty = trj.Position(i-1).Y();
+            double firstz = trj.Position(i-1).Z();
+          
+            //calculate the distance between the current and previous points
+            double distsq = pow(currentx - firstx, 2) + pow(currenty - firsty, 2) + pow(currentz - firstz, 2);
+            dist_btw_points.push_back(pow(distsq, 0.5));
+           // std::cout<<"the distance squared between points "<<i<<" and "<<i-1<<" is "<<pow(distsq, 0.5)<<std::endl;
+          }//for each point in the traj 
+      }//for MCP that matches MCS
+   }//for each MCP in event
+
+  //if(startx != NAN && starty != NAN && startz != NAN){
+  _mc_shr_startx = startx;
+  _mc_shr_starty = starty;
+  _mc_shr_startz = startz;
+  //}
+  _mc_dist_trajpoints = dist_btw_points;   //save distance between the points in the trajectory 
   _mc_shr_e = matched_mcs.Start().E();
   _mc_shr_pdg = matched_mcs.PdgCode();
   _mc_shr_x = matched_mcs.Start().X();
@@ -630,6 +705,10 @@ void ShrReco3D::SetTTree() {
   _rcshr_tree->Branch("_mc_shr_x",&_mc_shr_x,"mc_shr_x/D");
   _rcshr_tree->Branch("_mc_shr_y",&_mc_shr_y,"mc_shr_y/D");
   _rcshr_tree->Branch("_mc_shr_z",&_mc_shr_z,"mc_shr_z/D");
+  _rcshr_tree->Branch("_mc_shr_startx",&_mc_shr_startx,"mc_shr_startx/D");
+  _rcshr_tree->Branch("_mc_shr_starty",&_mc_shr_starty,"mc_shr_starty/D");
+  _rcshr_tree->Branch("_mc_shr_startz",&_mc_shr_startz,"mc_shr_startz/D");
+  _rcshr_tree->Branch("_mc_dist_trajpoints","std::vector<double>",&_mc_dist_trajpoints);
   _rcshr_tree->Branch("_mc_shr_px",&_mc_shr_px,"mc_shr_px/D");
   _rcshr_tree->Branch("_mc_shr_py",&_mc_shr_py,"mc_shr_py/D");
   _rcshr_tree->Branch("_mc_shr_pz",&_mc_shr_pz,"mc_shr_pz/D");
