@@ -9,13 +9,15 @@ include_directories ( $ENV{CRYHOME}/src )
 include_directories( $ENV{IFDHC_FQ_DIR}/inc )
 
 art_make( BASENAME_ONLY
-      MODULE_LIBRARIES larcorealg_Geometry
+      MODULE_LIBRARIES  
+			larevt_CalibrationDBI_IOVData
+      			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
 			larcoreobj_SummaryData
 			larsim_Simulation nutools_ParticleNavigation lardataobj_Simulation
 			larsim_MCCheater_ParticleInventoryService_service
 			larsim_MCCheater_BackTrackerService_service
-      lardata_Utilities
+			lardata_Utilities
 			larevt_Filters
 			lardataobj_RawData
 			lardataobj_RecoBase
@@ -24,10 +26,10 @@ art_make( BASENAME_ONLY
 			ubobj_MuCS
 			SignalShapingServiceMicroBooNE_service
 			lardataobj_AnalysisBase
-      nusimdata_SimulationBase
-      ${LARRECO_LIB}
-      ${LARDATA_LIB}
-      ${ART_FRAMEWORK_CORE}
+      			nusimdata_SimulationBase
+      			${LARRECO_LIB}
+      			${LARDATA_LIB}
+      			${ART_FRAMEWORK_CORE}
 			${ART_FRAMEWORK_PRINCIPAL}
 			${ART_FRAMEWORK_SERVICES_REGISTRY}
 			${ART_FRAMEWORK_SERVICES_OPTIONAL}
@@ -38,14 +40,13 @@ art_make( BASENAME_ONLY
 			art_Utilities canvas
 			nutools_RandomUtils_NuRandomService_service
 			${MF_MESSAGELOGGER}
-			
-      ${FHICLCPP}
+			${FHICLCPP}
 			cetlib cetlib_except
 			${CLHEP}
 			${ROOT_PHYSICS}
-      ${ROOT_GEOM}
-      ${ROOT_XMLIO}
-      ${ROOT_GDML}
+      			${ROOT_GEOM}
+      			${ROOT_XMLIO}
+      			${ROOT_GDML}
 			${ROOT_BASIC_LIB_LIST}
 			${ROOT_CORE}
 			${ROOT_EG}

@@ -9,52 +9,24 @@ microboone_MuCSTrackTagger:
  BoxExtension:              20. #extend box dimensions by this much to allow for scattering
  DirFromNPoints:           0 #number of traj. points to use to determine direction; 0=use start direction
  MinTrackLength:           0. #tracks must be at least this long to be tagged
+ UsePMTCalib:              false
 }
 
-microboone_MuCSTrackTagger_bs30:
-{ 
- module_type:              "MuCSTrackTagger"
- TrackModuleLabel:         "trackkalmanhit"
- MuCSTopBox:                [-71.795,-23.795,398.451,397.451,579.45,627.45] # top box edges [cm]
- MuCSBottomBox:             [-19.6948,28.3052,320.551,319.551,581.25,629.25] # bottom box edges [cm]
- BoxExtension:              20. #extend box dimensions by this much to allow for scattering
- DirFromNPoints:           0 #number of traj. points to use to determine direction; 0=use start direction
- MinTrackLength:           0. #tracks must be at least this long to be tagged
-}
+microboone_MuCSTrackTagger_bs30: @local::microboone_MuCSTrackTagger
+microboone_MuCSTrackTagger_bs30.MuCSTopBox:                [-71.795,-23.795,398.451,397.451,579.45,627.45] # top box edges [cm]
+microboone_MuCSTrackTagger_bs30.MuCSBottomBox:             [-19.6948,28.3052,320.551,319.551,581.25,629.25] # bottom box edges [cm]
 
-microboone_MuCSTrackTagger_bs33:
-{ 
- module_type:              "MuCSTrackTagger"
- TrackModuleLabel:         "trackkalmanhit"
- MuCSTopBox:                [168.35,216.35,349.751,348.751,579.45,627.45] # top box edges [cm]
- MuCSBottomBox:             [168.35,216.35,320.551,319.551,581.25,629.25] # bottom box edges [cm]
- BoxExtension:              20. #extend box dimensions by this much to allow for scattering
- DirFromNPoints:           0 #number of traj. points to use to determine direction; 0=use start direction
- MinTrackLength:           0. #tracks must be at least this long to be tagged
-}
+microboone_MuCSTrackTagger_bs33: @local::microboone_MuCSTrackTagger
+microboone_MuCSTrackTagger_bs33.MuCSTopBox:                [168.35,216.35,349.751,348.751,579.45,627.45] # top box edges [cm]
+microboone_MuCSTrackTagger_bs33.MuCSBottomBox:             [168.35,216.35,320.551,319.551,581.25,629.25] # bottom box edges [cm]
 
-microboone_MuCSTrackTagger_bs34:
-{ 
- module_type:              "MuCSTrackTagger"
- TrackModuleLabel:         "trackkalmanhit"
- MuCSTopBox:                [-75.19, -27.19,392.55,391.55,971.12, 1019.12] # top box edges [cm]
- MuCSBottomBox:             [-27.19, 20.81,320.551,319.551,971.12, 1019.12] # bottom box edges [cm]
- BoxExtension:              20. #extend box dimensions by this much to allow for scattering
- DirFromNPoints:           0 #number of traj. points to use to determine direction; 0=use start direction
- MinTrackLength:           0. #tracks must be at least this long to be tagged
-}
+microboone_MuCSTrackTagger_bs34: @local::microboone_MuCSTrackTagger
+microboone_MuCSTrackTagger_bs34.MuCSTopBox:                [-75.19, -27.19,392.55,391.55,971.12, 1019.12] # top box edges [cm]
+microboone_MuCSTrackTagger_bs34.MuCSBottomBox:             [-27.19, 20.81,320.551,319.551,971.12, 1019.12] # bottom box edges [cm]
 
-microboone_MuCSTrackTagger_bs35:
-{ 
- module_type:              "MuCSTrackTagger"
- TrackModuleLabel:         "trackkalmanhit"
- MuCSTopBox:                [-75.195, -27.195, 392.551, 391.551, 223.95, 271.95] # top box edges [cm]
- MuCSBottomBox:             [-27.1948, 20.8052, 320.551, 319.551, 223.95, 271.95] # bottom box edges [cm]
- BoxExtension:              20. #extend box dimensions by this much to allow for scattering
- DirFromNPoints:           0 #number of traj. points to use to determine direction; 0=use start direction
- MinTrackLength:           0. #tracks must be at least this long to be tagged
-}
-
+microboone_MuCSTrackTagger_bs35: @local::microboone_MuCSTrackTagger
+microboone_MuCSTrackTagger_bs35.MuCSTopBox:                [-75.195, -27.195, 392.551, 391.551, 223.95, 271.95] # top box edges [cm]
+microboone_MuCSTrackTagger_bs35.MuCSBottomBox:             [-27.1948, 20.8052, 320.551, 319.551, 223.95, 271.95] # bottom box edges [cm]
 
 #box setup 30 configurations
 microboone_MuCSTrackTaggers_bs30: {
