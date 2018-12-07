@@ -12,15 +12,19 @@ art_make(
 			larcorealg_Geometry
 			lardata_Utilities
 			lardataobj_RecoBase
+			lardataobj_MCBase
+			lardataobj_Simulation	
 			larcore_Geometry_Geometry_service
           MODULE_LIBRARIES 
 	  		ubreco_ShowerReco_ShowerReco3D_Base
-	  		ubreco_ShowerReco_ShowerReco3D_ProtoShower
+	  		#ubreco_ShowerReco_ShowerReco3D_ProtoShower
 		   	#larpandora_LArPandoraInterface	
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
 			lardataobj_RecoBase
+			lardataobj_MCBase
 			lardataobj_AnalysisBase	
+			lardataobj_Simulation	
 			lardata_RecoObjects larreco_Deprecated  
 			larreco_RecoAlg
 			lardata_Utilities
@@ -52,7 +56,7 @@ add_subdirectory(ProtoShower)
 add_subdirectory(Base)
 add_subdirectory(ModularAlgo)
 
-
+install_fhicl()
 install_headers()
 install_source()
 

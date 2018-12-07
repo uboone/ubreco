@@ -17,7 +17,7 @@ art_make(
 			ubreco_ShowerReco_TwoDimTools
 			ubreco_ShowerReco_ClusterMerging_CMToolBase
 	  		ubreco_ShowerReco_ShowerReco3D_Base
-	  		ubreco_ShowerReco_ShowerReco3D_ProtoShower
+	  		#ubreco_ShowerReco_ShowerReco3D_ProtoShower
 		   	#larpandora_LArPandoraInterface	
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
@@ -50,6 +50,7 @@ art_make(
 			${ROOT_BASIC_LIB_LIST}
         )
 
+install_fhicl()
 install_headers()
 install_source()
 

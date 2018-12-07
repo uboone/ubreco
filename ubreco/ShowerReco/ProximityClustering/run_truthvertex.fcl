@@ -1,7 +1,6 @@
 #include "services_microboone.fcl"
 #include "triggeralgo_service.fcl"
 #include "proximityclustering.fcl"
-#include "neutrinogammas.fcl"
 #include "cosmicfilter.fcl"
 
 process_name: ProximityClusterer
