@@ -509,9 +509,9 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
   //for each MCParticle, check if it matches the trackid for the MCShower
   for(unsigned int j = 0; j < mcpart_h->size(); j++){
       auto mcpart = mcpart_h->at(j);
-      auto mcp_pdg =  mcpart.PdgCode();
+      //auto mcp_pdg =  mcpart.PdgCode();
       //only want photons
-      if(mcp_pdg != 22) continue;
+      //if(mcp_pdg != 22) continue;
 
       auto mctrkid = mcpart.TrackId();
      // std::cout<<"trackid = "<<trackid<<" and mctrkid = "<<(unsigned int)mctrkid<<std::endl;
