@@ -101,7 +101,7 @@ private:
   double _mc_shr_startx, _mc_shr_starty, _mc_shr_startz; //the true start position (conversion point) from MCParticle trajectory point for photons which match MCShower
   std::vector<double> _mc_dist_trajpoints; //the distance between each point in the trajectory of MCParticle photon that matches MCShower
   double _xtimeoffset;
-  double _xsceoffset;
+  double _xsceoffset, _ysceoffset, _zsceoffset;
   double _completeness, _purity;
   int _mc_shr_pdg;
 
@@ -580,8 +580,8 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
   std::cout << "offset : " << offset.X() << ", " << offset.Y() << ", " << offset.Z() << std::endl;
   //_mc_shr_x += offset.X() + xtrueoffset;
   _xsceoffset = offset.X();
-  _mc_shr_y += offset.Y();
-  _mc_shr_z += offset.Z();
+  _ysceoffset = offset.Y();
+  _zsceoffset = offset.Z();
 
   auto mom = matched_mcs.Start().Momentum().Vect().Mag();
   _mc_shr_px = matched_mcs.Start().Px() / mom;
@@ -687,6 +687,8 @@ void ShrReco3D::SetTTree() {
   _rcshr_tree->Branch("_shr_x",&_shr_x,"shr_x/D");
   _rcshr_tree->Branch("_xtimeoffset",&_xtimeoffset,"xtimeoffset/D");
   _rcshr_tree->Branch("_xsceoffset",&_xsceoffset,"xsceoffset/D");
+  _rcshr_tree->Branch("_ysceoffset",&_ysceoffset,"ysceoffset/D");
+  _rcshr_tree->Branch("_zsceoffset",&_zsceoffset,"zsceoffset/D");
   _rcshr_tree->Branch("_shr_y",&_shr_y,"shr_y/D");
   _rcshr_tree->Branch("_shr_z",&_shr_z,"shr_z/D");
   _rcshr_tree->Branch("_shr_dedx_pl0_v","std::vector<double>",&_shr_dedx_pl0_v);
