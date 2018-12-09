@@ -467,7 +467,7 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
 	    BackTrackShowerEnergy += energy;
         //mcp_idx_match.push_back(i_p);
         //std::cout<<"matched mc particle to this shower at index in particle vec "<<i_p<<std::endl;
-        std::cout<<"the pdg code for MCParticle is "<<particle_vec.at(i_p)->PdgCode()<<" and the track ID is "<<mctrkid<<std::endl;
+        //std::cout<<"the pdg code for MCParticle is "<<particle_vec.at(i_p)->PdgCode()<<" and the track ID is "<<mctrkid<<std::endl;
         break;
 	  }
 	}
