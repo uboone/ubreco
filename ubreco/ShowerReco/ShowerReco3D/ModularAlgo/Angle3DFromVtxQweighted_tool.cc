@@ -47,7 +47,7 @@ namespace showerreco {
 
     auto const* geom = ::lar::providerFrom<geo::Geometry>();
     auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    _wire2cm = geom->WirePitch(0,1,0);
+    _wire2cm = geom->WirePitch(0,0,0);
     _time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
 
   }
@@ -59,8 +59,8 @@ namespace showerreco {
   }
   
   void Angle3DFromVtxQweighted::do_reconstruction(const ::protoshower::ProtoShower & proto_shower,
-					 Shower_t& resultShower) {
-
+						  Shower_t& resultShower) {
+    
     //if the module does not have 2D cluster info -> fail the reconstruction
     if (!proto_shower.hasVertex()){
       std::stringstream ss;

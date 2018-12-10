@@ -23,32 +23,36 @@ services:
                               @table::microboone_services_reco
 }
 
-services.DatabaseUtil.ShouldConnect: false
-services.DetPedestalService.DetPedestalRetrievalAlg.UseDB:      false
-services.ChannelStatusService.ChannelStatusProvider.UseDB:       false
-services.ElectronicsCalibService.ElectronicsCalibProvider.UseDB: false
-services.ChannelStatusService.ChannelStatusProvider.UseDB:       false
-
-services.TPCEnergyCalibService.TPCEnergyCalibProvider: @local::microboone_tpcenergycalib_provider_mc
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.XNormCorrectionProvider.UseDB:     false
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.XShapeCorrectionProvider.UseDB:     false
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.XShapeCorrectionProvider_Plane0.UseDB:     false
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.XShapeCorrectionProvider_Plane1.UseDB:     false
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.XShapeCorrectionProvider_Plane2.UseDB:     false
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.YZCorrectionProvider.UseDB:     false
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.YZCorrectionProvider_Plane0.UseDB:     false
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.YZCorrectionProvider_Plane1.UseDB:     false
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.YZCorrectionProvider_Plane2.UseDB:     false
-services.TPCEnergyCalibService.TPCEnergyCalibProvider.dEdxCorrectionProvider.UseDB:     false
-
+#DetectorClocksService.InheritClockConfig: false
 services.DetectorPropertiesService.NumberTimeSamples:        6400
 services.DetectorPropertiesService.ReadOutWindowSize:        6400
 services.DetectorClocksService.InheritClockConfig:           false
 services.DetectorClocksService.TriggerOffsetTPC:             -0.400e3
-services.TFileService.fileName: "showerreco_ana.root"
 services.BackTrackerService:  @local::microboone_backtrackerservice
 services.ParticleInventoryService: @local::standard_particleinventoryservice
 
+services.PmtGainService: {
+      CalibrationHelper: {
+         EventMixingModuleLabel: "retriever"
+      }
+      PmtGainProvider: {
+         DatabaseRetrievalAlg: {
+            AlgName: "DatabaseRetrievalAlg"
+            DBFolderName: "detpmtgains_data"
+            DBTag: "v1r0"
+            DBUrl: "http://dbdata0vm.fnal.gov:8086/uboonecon_dev/app/"
+         }
+         DefaultAmplitudeGain: 20
+         DefaultAmplitudeGainErr: 1e-2
+         DefaultBaselineMean: 0
+         DefaultBaselineRms: 6e-1
+         DefaultGain: 130
+         DefaultGainErr: 1e-1
+         UseDB: true
+         UseFile: false
+      }
+      service_provider: "UboonePmtGainService"
+   }
 #source is now a root file
 source:
 {
@@ -91,7 +95,8 @@ physics:
 
 physics.producers.MuCSTrackTaggerpandora.BoxExtension: 20
 physics.producers.MuCSTrackTaggerpandora.TrackModuleLabel: "pandora"
+physics.producers.MuCSTrackTaggerpandora.Debug: true
+physics.producers.MuCSTrackTaggerpandora.UsePMTCalib: true
 
-DetectorClocksService.InheritClockConfig: false
-services.DetectorClocksService.InheritClockConfig: false
+
 

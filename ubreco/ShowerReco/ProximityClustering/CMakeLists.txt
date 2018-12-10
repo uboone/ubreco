@@ -50,6 +50,7 @@ art_make(
 
 add_subdirectory(Algorithms)
 
+install_fhicl()
 install_headers()
 install_source()
 
