@@ -1,6 +1,6 @@
 #include "services_microboone.fcl"
 #include "triggeralgo_service.fcl"
-#include "showerreco3d.fcl"
+#include "shrreco3d.fcl"
 
 process_name: ShrRecluster
 

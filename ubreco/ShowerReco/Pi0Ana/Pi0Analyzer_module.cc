@@ -145,7 +145,8 @@ private:
   double _rcmass;
   double _rcangle;
 
-  std::string fShrProducer;
+  std::string fShrProducer, fVtxProducer;
+  int fPDG; // pdg code for nues 11 and pi0s 111
 
 };
 
@@ -156,6 +157,8 @@ Pi0Analyzer::Pi0Analyzer(fhicl::ParameterSet const & p)
  // More initializers here.
 {
   fShrProducer = p.get<std::string>("ShrProducer");
+  fVtxProducer = p.get<std::string>("VtxProducer");
+  fPDG         = p.get<int>("PDG");
   SetTTree();
 }
 
@@ -171,7 +174,7 @@ void Pi0Analyzer::analyze(art::Event const & e)
   // load input tracks
   //auto const& trk_h = e.getValidHandle<std::vector<recob::Track>>("pandoraCosmic");
   // load input vertices
-  auto const& vtx_h = e.getValidHandle<std::vector<recob::Vertex>>("ccvertex");
+  auto const& vtx_h = e.getValidHandle<std::vector<recob::Vertex>>(fVtxProducer);
   // load mcshowers
   auto const& mcs_h = e.getValidHandle<std::vector<sim::MCShower>>("mcreco");
 
@@ -197,20 +200,20 @@ void Pi0Analyzer::analyze(art::Event const & e)
   auto mct = mct_h->at(0);
   size_t npart = mct.NParticles();
 
-  bool foundPi0 = false;
+  bool foundShowers = false;
 
   for (size_t i=0; i < npart; i++){
     auto const& part = mct.GetParticle(i);
-    if ( (part.PdgCode() == 111) and (part.StatusCode() == 1) ){
+    if ( (part.PdgCode() == fPDG) and (part.StatusCode() == 1) ){
       _mc_vtx_x = part.Trajectory().X(0);
       _mc_vtx_y = part.Trajectory().Y(0);
       _mc_vtx_z = part.Trajectory().Z(0);
-      foundPi0 = true;
+      foundShowers = true;
       break;
     }
   }
 
-  if (foundPi0 == true) {
+  if ( (foundShowers == true) && fPDG == 111) {
     
     size_t idx_1 = 0;
     size_t idx_2 = 0;
@@ -287,26 +290,53 @@ void Pi0Analyzer::analyze(art::Event const & e)
 
     pi0_shower_v = {mcshr1,mcshr2};
 
-    // MC <-> RC matching
+  }// if found pi0 and doing a pi0 analysis
+  else {
+    
+    _mcmass  = -1;
+    _mcmass_edep = -1;
+    _mcangle = -5;
+    
+  }// if a pi0 was not found in the event
+
+
+  if ( (foundShowers == true) && fPDG == 11) {
+    
+    for (size_t i=0; i < mcs_h->size(); i++){
+      auto const& mcs = mcs_h->at(i);
+      // distance from vertex                                                                
+      double x = mcs.Start().X();
+      double y = mcs.Start().Y();
+      double z = mcs.Start().Z();
+      double d = sqrt( ( (_mc_vtx_x - x) * (_mc_vtx_x - x) ) +
+		       ( (_mc_vtx_y - y) * (_mc_vtx_y - y) ) +
+		       ( (_mc_vtx_z - z) * (_mc_vtx_z - z) ) );
+      if ( d < 0.01 )
+	pi0_shower_v.push_back( mcs );
+    }// for all mcshowers
+  }// if searching for nues
+  
+  // MC <-> RC matching
+  if (pi0_shower_v.size()) {
     auto MCRCmatch_v = Match(pi0_shower_v, reco_shower_v);
     
     for (size_t mcidx = 0; mcidx < MCRCmatch_v.size(); mcidx++) {
-
+      
       ClearMCRC();
       
       auto mcshr = pi0_shower_v.at(mcidx);
-
+      
       _mc_shr_e  = mcshr.Start().E();
       _mc_shr_edep  = mcshr.DetProfile().E();
       _mc_shr_x  = mcshr.DetProfile().X();
       _mc_shr_y  = mcshr.DetProfile().Y();
       _mc_shr_z  = mcshr.DetProfile().Z();
-
+      
       double mommc = mcshr.Start().Momentum().Vect().Mag();
       _mc_shr_px = mcshr.Start().Px() / mommc;
       _mc_shr_py = mcshr.Start().Py() / mommc;
       _mc_shr_pz = mcshr.Start().Pz() / mommc;
-
+      
       _mcradlen = sqrt( ( (_mc_shr_x - _mc_vtx_x) * (_mc_shr_x - _mc_vtx_x) ) +
 			( (_mc_shr_y - _mc_vtx_y) * (_mc_shr_y - _mc_vtx_y) ) +
 			( (_mc_shr_z - _mc_vtx_z) * (_mc_shr_z - _mc_vtx_z) ) );
@@ -330,7 +360,7 @@ void Pi0Analyzer::analyze(art::Event const & e)
       _rc_shr_px = rcshr.Direction().X() / momrc;
       _rc_shr_py = rcshr.Direction().Y() / momrc;
       _rc_shr_pz = rcshr.Direction().Z() / momrc;
-
+      
       _rcradlen = sqrt( ( (_rc_shr_x - _rc_vtx_x) * (_rc_shr_x - _rc_vtx_x) ) +
 			( (_rc_shr_y - _rc_vtx_y) * (_rc_shr_y - _rc_vtx_y) ) +
 			( (_rc_shr_z - _rc_vtx_z) * (_rc_shr_z - _rc_vtx_z) ) );
@@ -344,22 +374,15 @@ void Pi0Analyzer::analyze(art::Event const & e)
       _mcshr_tree->Fill();
       
     }// loop through MC showers
-  }// if a pi0 was found
+  }// if a shower was found
   
-  else {
-    
-    _mcmass  = -1;
-    _mcmass_edep = -1;
-    _mcangle = -5;
-    
-  }// if a pi0 was not found in the event
-
-
+  
+  
   // RC <-> MC matching
   auto RCMCmatch_v = Match(reco_shower_v, pi0_shower_v);
   
   for (size_t rcidx = 0; rcidx < RCMCmatch_v.size(); rcidx++) {
-
+    
     ClearMCRC();
 
     auto const& rcshr = reco_shower_v.at(rcidx);

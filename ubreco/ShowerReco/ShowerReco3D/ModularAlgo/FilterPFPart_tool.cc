@@ -72,7 +72,7 @@ namespace showerreco {
       
       if (nhits < _min_nhits_absolute) {
 	std::stringstream ss;
-	ss << "Fail @ algo " << this->name() << " : input cluster has too few hits";
+	ss << "Fail @ algo " << this->name() << " : input cluster has " << nhits << " hits : too few hits";
 	throw ShowerRecoException(ss.str());
       }
       
@@ -83,7 +83,7 @@ namespace showerreco {
     
     if (largest_cluster_nhits < _min_nhits_largest) {
       std::stringstream ss;
-      ss << "Fail @ algo " << this->name() << " : largest cluster too small";
+      ss << "Fail @ algo " << this->name() << " : largest cluster too small (" << largest_cluster_nhits << " hits)";
       throw ShowerRecoException(ss.str());
     }
     
