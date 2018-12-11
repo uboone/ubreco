@@ -327,16 +327,16 @@ namespace wcopreco {
    	       inverse_res1.at(i) = 0;
          }
        }
-       delete re;
-       delete im;
-       delete re_inv;
-       delete im_inv;
-       delete re_inv1;
-       delete im_inv1;
-       delete value_re;
-       delete value_im;
-       delete value_re1;
-       delete value_im1;
+       delete[] re;
+       delete[] im;
+       delete[] re_inv;
+       delete[] im_inv;
+       delete[] re_inv1;
+       delete[] im_inv1;
+       delete[] value_re;
+       delete[] value_im;
+       delete[] value_re1;
+       delete[] value_im1;
        //END OF DECONVOLUTION
        return inverse_res1;
      }

@@ -70,8 +70,8 @@ namespace wcopreco {
         }
       }
     }
-    delete prev_pe_a;
-    delete curr_pe_a;
+    delete[] prev_pe_a;
+    delete[] curr_pe_a;
 
     for (size_t i=0; i!=flash_time.size(); i++){
       //dertermine start and end bin of flash
