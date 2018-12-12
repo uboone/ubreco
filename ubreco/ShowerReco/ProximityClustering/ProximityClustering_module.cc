@@ -135,7 +135,7 @@ void ProximityClustering::produce(art::Event & e)
 
   // Art Pointer maker
   //lar::PtrMaker<recob::Hit>     makeHitPtr (e, *this);
-  art::PtrMaker<recob::Cluster> makeClusPtr(e, *this);
+  art::PtrMaker<recob::Cluster> makeClusPtr(e);
 
   // load vertex into algorithm
   _ProximityClusterer->loadVertex(vtx_h,fROI);
