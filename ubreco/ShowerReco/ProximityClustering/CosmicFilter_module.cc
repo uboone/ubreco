@@ -131,8 +131,6 @@ void CosmicFilter::produce(art::Event & e)
   auto const& clu_h = e.getValidHandle<std::vector<recob::Cluster>>(fCluProducer);
   // grab ssnet hits
   auto const& hit_h = e.getValidHandle<std::vector<recob::Hit>>(fHitProducer);
-  // grab vertex
-  auto const& vtx_h = e.getValidHandle<std::vector<recob::Vertex>>(fVtxProducer);
 
   // grab tracks and clusters associated to PFParticle
   art::FindManyP<recob::Track  > pfp_trk_assn_v(pfp_h, e, fPFPProducer);
@@ -151,17 +149,21 @@ void CosmicFilter::produce(art::Event & e)
   _trkhits.clear();
 
   // BEGIN : LOAD VERTEX
-  // check that only one vertex exists
-  if (vtx_h->size() != 1) 
-    std::cout << "\t\t DD \t\t ERROR" << std::endl;
-  auto vtx = vtx_h->at(0);
-  Double_t xyz[3] = {};
-  vtx.XYZ(xyz);
-  _xpos = xyz[0];
-  _ypos = xyz[1];
-  _zpos = xyz[2];
+  // grab vertex
+  if (fVtxProducer != ""){  // when empty -> do not use vertex
+    auto const& vtx_h = e.getValidHandle<std::vector<recob::Vertex>>(fVtxProducer);
+    // check that only one vertex exists
+    if (vtx_h->size() != 1) 
+      std::cout << "\t\t DD \t\t ERROR" << std::endl;
+    auto vtx = vtx_h->at(0);
+    Double_t xyz[3] = {};
+    vtx.XYZ(xyz);
+    _xpos = xyz[0];
+    _ypos = xyz[1];
+    _zpos = xyz[2];
+  }
   // END : LOAD VERTEX
-
+  
   // BEGIN : PERFORM HIT MATCHING
   // strategy:
   // fill map which links each channel with the vector of 
@@ -232,18 +234,26 @@ void CosmicFilter::produce(art::Event & e)
     // and track length must be < twice start-end distance
     if (trk.Length() > 2 * (trk.Vertex()-trk.End()).R() ) continue;
 
-    auto trkdist = SphereIntersection(trk);
-    
-    std::cout << "Track has " << trkdist.first << " intersections w/ vertex ROI. IP min is : " << trkdist.second << std::endl;
-    std::cout << "Track start [x,z] -> " << trk.Vertex().X() << ", " << trk.Vertex().Z() << std::endl;
-    std::cout << "Track end   [x,z] -> " << trk.End().X()    << ", " << trk.End().Z()    << std::endl;
+    //if we are using the vertex
+    if (fVtxProducer != "") {
+      
+      auto trkdist = SphereIntersection(trk);
+      
+      std::cout << "Track has " << trkdist.first << " intersections w/ vertex ROI. IP min is : " << trkdist.second << std::endl;
+      std::cout << "Track start [x,z] -> " << trk.Vertex().X() << ", " << trk.Vertex().Z() << std::endl;
+      std::cout << "Track end   [x,z] -> " << trk.End().X()    << ", " << trk.End().Z()    << std::endl;
+      
+      // if no intersections -> check IP
+      if ( (trkdist.first == 0) && (trkdist.second < fIPmin) ) continue;
+      
+      // if a single intersection -> check IP
+      // if smaller then IP min -> neutrino track -> skip
+      if ( (trkdist.first == 1) && (trkdist.second < fIPmin) ) continue;
 
-    // if no intersections -> check IP
-    if ( (trkdist.first == 0) && (trkdist.second < fIPmin) ) continue;
+      // remove delta-rays if within 50 cm
+      if ( (trkdist.first <= 1) && (trkdist.second < fIPmin) ) continue;
 
-    // if a single intersection -> check IP
-    // if smaller then IP min -> neutrino track -> skip
-    if ( (trkdist.first == 1) && (trkdist.second < fIPmin) ) continue;
+    }// if we are using the vertex
 
     // in all other cases, track is cosmic-like
     // grab associated hits and compare to SSNet hits
@@ -262,9 +272,6 @@ void CosmicFilter::produce(art::Event & e)
       }// if the hit channel is in the SSNet hit map
     }// for all hits associated to track
 
-
-    // remove delta-rays if within 50 cm
-    if ( (trkdist.first <= 1) && (trkdist.second < fIPmin) ) continue;
 
     // for all deltay-rays associated to track, if they exist
     if ( _pfpmap.find(t) != _pfpmap.end() ) {
