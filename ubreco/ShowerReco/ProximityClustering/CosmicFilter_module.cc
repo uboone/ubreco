@@ -171,6 +171,8 @@ void CosmicFilter::produce(art::Event & e)
   FillChannelMap(hit_h);
   // END : PERFORM HIT MATCHING
   
+  _pfpmap.clear();
+
   // BEGIN : LOOP THROUGH ALL PFParticles
   for (size_t p=0; p < pfp_h->size(); p++) {
 
@@ -181,7 +183,7 @@ void CosmicFilter::produce(art::Event & e)
     
     // is it muon-like? if not skip
     if (pfp.PdgCode() != 13) continue;
-    
+
     // grab associated track ID
     const std::vector<art::Ptr<recob::Track> > pfp_trk_v = pfp_trk_assn_v.at(p);
     if (pfp_trk_v.size() != 1) 
@@ -193,7 +195,6 @@ void CosmicFilter::produce(art::Event & e)
     // get track key
     auto trkKey = pfp_trk_v.at(0).key();
     _pfpmap[trkKey] = std::vector<art::Ptr<recob::Hit>>{};
-
     // get daughters
     std::vector<size_t> daughters = pfp.Daughters();
 
@@ -259,6 +260,7 @@ void CosmicFilter::produce(art::Event & e)
     // grab associated hits and compare to SSNet hits
     // if matched -> tag as one to be removed
     const std::vector<art::Ptr<recob::Hit> > hit_v = trk_hit_assn_v.at(t);
+
     for (size_t h=0; h < hit_v.size(); h++) {
       art::Ptr<recob::Hit> hit = hit_v.at(h);
       // if the hit channel is in the SSNet hit map:
@@ -272,25 +274,24 @@ void CosmicFilter::produce(art::Event & e)
       }// if the hit channel is in the SSNet hit map
     }// for all hits associated to track
 
+      // for all deltay-rays associated to track, if they exist
+      if ( _pfpmap.find(t) != _pfpmap.end() ) {
+	auto const& pfp_hit_ptr_v = _pfpmap[t];
+	for (size_t h=0; h < pfp_hit_ptr_v.size(); h++) {
+	  auto hitPtr = pfp_hit_ptr_v.at(h);// hit_h->at( pfp_hit_idx_v[h] );
+	  // if the hit channel is in the SSNet hit map:
+	  if (_hitmap.find( hitPtr->Channel() ) != _hitmap.end() ){
+	    auto const& hitidx_v = _hitmap[ hitPtr->Channel() ];
+	    for (auto const& idx : hitidx_v) {
+	      // compare hit information
+	      if ( hit_h->at(idx).PeakTime() == hitPtr->PeakTime() )
+		_trkhits.push_back( idx ); // save idx of SSNet hit to be removed
+	    }// for all hit indices associated to this channel
+	  }// if the hit channel is in the SSNet hit map
+	}// for all hits associated to track
+      }// if delta-rays associated to track
+      
 
-    // for all deltay-rays associated to track, if they exist
-    if ( _pfpmap.find(t) != _pfpmap.end() ) {
-      auto const& pfp_hit_ptr_v = _pfpmap[t];
-      for (size_t h=0; h < pfp_hit_ptr_v.size(); h++) {
-	auto hitPtr = pfp_hit_ptr_v.at(h);// hit_h->at( pfp_hit_idx_v[h] );
-	// if the hit channel is in the SSNet hit map:
-	if (_hitmap.find( hitPtr->Channel() ) != _hitmap.end() ){
-	  auto const& hitidx_v = _hitmap[ hitPtr->Channel() ];
-	  for (auto const& idx : hitidx_v) {
-	    // compare hit information
-	    if ( hit_h->at(idx).PeakTime() == hitPtr->PeakTime() )
-	      _trkhits.push_back( idx ); // save idx of SSNet hit to be removed
-	  }// for all hit indices associated to this channel
-	}// if the hit channel is in the SSNet hit map
-      }// for all hits associated to track
-    }// if delta-rays associated to track
-    
-    
   }// for all tracks
   // END : IDENTIFY COSMIC TRACK HITS
   
