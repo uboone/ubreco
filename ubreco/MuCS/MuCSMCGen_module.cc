@@ -95,7 +95,8 @@ MuCSMCGen::MuCSMCGen(fhicl::ParameterSet const& pset)
   // Construct the event generator object
   fSetup = new CRYSetup(fCRYConfigStr, crydatadir);
   art::ServiceHandle<art::RandomNumberGenerator> rng;
-  CLHEP::HepRandomEngine& engine = rng->getEngine();
+  CLHEP::HepRandomEngine &engine = rng->getEngine(art::ScheduleID::first(),
+                                                  moduleDescription().moduleLabel());
   evgb::RNGWrapper<CLHEP::HepRandomEngine>::set(&engine, &CLHEP::HepRandomEngine::flat);
   fSetup->setRandomFunction(evgb::RNGWrapper<CLHEP::HepRandomEngine>::rng);
   fGen = new CRYGenerator(fSetup);  

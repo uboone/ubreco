@@ -224,7 +224,7 @@ void ShrReco3D::produce(art::Event & e)
   std::unique_ptr< art::Assns <recob::Shower, recob::Hit>        > Shower_Hit_assn_v    ( new art::Assns<recob::Shower, recob::Hit>       );
 
   // shower pointer maker for later to create associations
-  art::PtrMaker<recob::Shower> ShowerPtrMaker(e, *this);
+  art::PtrMaker<recob::Shower> ShowerPtrMaker(e);
 
   // pass event to ProtoShowerAlgBase to create ProtoShower objects
   // which will then be fed to shower reco algorithm chain

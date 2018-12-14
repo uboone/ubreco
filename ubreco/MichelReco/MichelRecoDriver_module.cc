@@ -198,8 +198,8 @@ void MichelRecoDriver::produce(art::Event & e)
   auto const& michels = _mgr->GetResult();
 
   // cluster ptr maker which will be used to fill associations
-  art::PtrMaker<recob::Cluster> makeClusterPtrElectron(e, *this, "electron");
-  art::PtrMaker<recob::Cluster> makeClusterPtrPhoton  (e, *this, "photon"  );
+  art::PtrMaker<recob::Cluster> makeClusterPtrElectron(e, "electron");
+  art::PtrMaker<recob::Cluster> makeClusterPtrPhoton  (e, "photon"  );
 
   // save the output
   for (auto const& michelClus : michels){
