@@ -124,7 +124,7 @@ void ClusterMatcher::produce(art::Event & e)
   std::unique_ptr< art::Assns <recob::PFParticle, recob::Hit    > > PFP_Hit_assn_v (new art::Assns<recob::PFParticle,recob::Hit>    );
 
   // cluster pointer maker for later to create associations
-  art::PtrMaker<recob::PFParticle> PFPPtrMaker(e, *this);
+  art::PtrMaker<recob::PFParticle> PFPPtrMaker(e);
 
   // load input clusters
   auto const& clus_h = e.getValidHandle<std::vector<recob::Cluster>>(fClusterProducer);
