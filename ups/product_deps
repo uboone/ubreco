@@ -32,7 +32,7 @@ product                 version
 ubsim                   v08_00_00
 larreco                 v08_00_00
 swtrigger               v02_02_05i
-cetbuildtools	        v7_04_00	-	only_for_build
+cetbuildtools	        v7_06_03	-	only_for_build
 end_product_list
 
 qualifier      ubsim          larreco        swtrigger      
