@@ -1,0 +1,18 @@
+BEGIN_PROLOG
+
+PhotonAna: {
+ module_type : "PhotonAna"  
+ HitProducer : "gammacatcher"   
+ ClusterProducer : "proximityclustering"
+ VertexProducer : "pandoraNu"
+ AssnProducer : "NuMuCCSelectionII"
+ Buffer : 20
+ ClusAreaMax : 30
+ Debug : false
+ UseVertex : true
+ TTreeName : "_tree"
+ DirName :   "skimneutrinos"
+ TFileName : "skimneutrinos_ana.root"
+}
+
+END_PROLOG
