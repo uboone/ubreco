@@ -102,6 +102,7 @@ private:
         int  m_nSlices;               ///< The number of slices
         int  m_nSlicesAfterPrecuts;   ///< The number of slices remaining after the preselection cuts
         bool m_foundATargetSlice;     ///< If a slice was identified as the target (neutrino)
+        int  m_targetSliceMethod;     ///< 0: only one slice passed precuts, 1: has best toposcore, 2: has best flashmatchscore
     };
     
     // -------------------------------------------------------------------------------------------------------------------------------------
@@ -217,7 +218,7 @@ private:
          */
         SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
             const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
-            const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower);
+            const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef);
 
         /**
          *  @brief  Parametrized constructor for slices that aren't considered by the flash neutrino ID module - monitoring only
@@ -351,18 +352,21 @@ private:
         float                m_deltaYSigma;              ///< deltaY but in units of the flash width in Y
         float                m_deltaZSigma;              ///< deltaZ but in units of the flash width in Z
         float                m_chargeToLightRatio;       ///< The ratio between the total charge and the total PE of the beam flash
+        float                m_xChargeLightVariable;     ///< m_xclCoef*log10(chargeToLightRatio)- centerX
         bool                 m_passesPrecuts;            ///< If the slice passes the preselection cuts
         float                m_flashMatchScore;          ///< The flash matching score between the slice and the beam flash
         float                m_flashMatchX;              ///< The etimated X coordinate of the flashmatching
         float                m_totalPEHypothesis;        ///< The total PE of the hypothesized flash for this slice
         std::vector<float>   m_peHypothesisSpectrum;     ///< The PE of the hypothesized flash of this slice 
         bool                 m_isTaggedAsTarget;         ///< If the slice has been tagged as the target (neutrino)
+        int                  m_targetMethod;             ///< 0: only one slice passed precuts, 1: has best toposcore, 2: had best flashmatchscore
         bool                 m_isConsideredByFlashId;    ///< If the slice was considered by the flash ID tool - this will be false if there wasn't a beam flash found in the event
         float                m_topologicalNeutrinoScore; ///< The topological-information-only neutrino ID score from Pandora
         bool                 m_hasBestTopologicalScore;  ///< If this slice has the highest topological score in the event
-        
+        bool                 m_hasBestFlashMatchScore;   ///< From the slices passing the precuts, if this one has the highest flashmatch score
         float                m_chargeToNPhotonsTrack;    ///< The conversion factor between charge and number of photons for tracks
         float                m_chargeToNPhotonsShower;   ///< The conversion factor between charge and number of photons for showers
+        float                m_xclCoef;                  ///< m_xclCoef*log10(chargeToLightRatio)- centerX
         flashana::QCluster_t m_lightCluster;             ///< The hypothesised light produced - used by flashmatching
     };
     
@@ -450,6 +454,9 @@ private:
     float        m_beamWindowEnd;    ///< The end time of the beam window
     float        m_minBeamFlashPE;   ///< The minimum number of photoelectrons required to consider a flash as the beam flash
 
+    // Coefficient to account for the x-dependency in the charge light-ratio
+    float        m_xclCoef;          ///< m_xclCoef*log10(chargeToLightRatio)- centerX
+
     // Pre-selection cuts to determine if a slice is compatible with the beam flash
     float        m_maxDeltaY;              ///< The maximum difference in Y between the beam flash center and the weighted charge center
     float        m_maxDeltaZ;              ///< The maximum difference in Z between the beam flash center and the weighted charge center
@@ -505,6 +512,7 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
     m_beamWindowStart(pset.get<float>("BeamWindowStartTime")),
     m_beamWindowEnd(pset.get<float>("BeamWindowEndTime")),
     m_minBeamFlashPE(pset.get<float>("BeamFlashPEThreshold")),
+    m_xclCoef(pset.get<float>("CoefXCL")),
     m_maxDeltaY(pset.get<float>("MaxDeltaY")),
     m_maxDeltaZ(pset.get<float>("MaxDeltaZ")),
     m_maxDeltaYSigma(pset.get<float>("MaxDeltaYSigma")),
@@ -556,6 +564,8 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
     m_pEventTree->Branch("nSlices"             , &m_outputEvent.m_nSlices             , "nSlices/I");
     m_pEventTree->Branch("nSlicesAfterPrecuts" , &m_outputEvent.m_nSlicesAfterPrecuts , "nSlicesAfterPrecuts/I");
     m_pEventTree->Branch("foundATargetSlice"   , &m_outputEvent.m_foundATargetSlice   , "foundATarget/O");
+    m_pEventTree->Branch("targetSliceMethod"   , &m_outputEvent.m_targetSliceMethod   , "targetSliceMethod/I");
+    
     if (m_hasMCNeutrino)
     {
         // Truth MC information about the neutrino
@@ -600,15 +610,19 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
     m_pSliceTree->Branch("deltaYSigma"            , &m_outputSlice.m_deltaYSigma             , "deltaYSigma/F");
     m_pSliceTree->Branch("deltaZSigma"            , &m_outputSlice.m_deltaZSigma             , "deltaZSigma/F");
     m_pSliceTree->Branch("chargeToLightRatio"     , &m_outputSlice.m_chargeToLightRatio      , "chargeToLightRatio/F");
+    m_pSliceTree->Branch("xclVariable"            , &m_outputSlice.m_xChargeLightVariable    , "xclVariable/F");
     m_pSliceTree->Branch("passesPreCuts"          , &m_outputSlice.m_passesPrecuts           , "passesPrecuts/O");
     m_pSliceTree->Branch("flashMatchScore"        , &m_outputSlice.m_flashMatchScore         , "flashMatchScore/F");
     m_pSliceTree->Branch("flashMatchX"            , &m_outputSlice.m_flashMatchX             , "flashMatchX/F");
     m_pSliceTree->Branch("totalPEHypothesis"      , &m_outputSlice.m_totalPEHypothesis       , "totalPEHypothesis/F");
     m_pSliceTree->Branch("peHypothesisSpectrum"   , "std::vector< float >"                   , &m_outputSlice.m_peHypothesisSpectrum);
     m_pSliceTree->Branch("isTaggedAsTarget"       , &m_outputSlice.m_isTaggedAsTarget        , "isTaggedAsTarget/O");
+    m_pSliceTree->Branch("targetMethod    "       , &m_outputSlice.m_targetMethod            , "targetMethod/I");
     m_pSliceTree->Branch("isConsideredByFlashId"  , &m_outputSlice.m_isConsideredByFlashId   , "isConsideredByFlashId/O");
     m_pSliceTree->Branch("topologicalScore"       , &m_outputSlice.m_topologicalNeutrinoScore, "topologicalScore/F");
     m_pSliceTree->Branch("hasBestTopologicalScore", &m_outputSlice.m_hasBestTopologicalScore , "hasBestTopologicalScore/O");
+    m_pSliceTree->Branch("hasBestFlashMatchScore" , &m_outputSlice.m_hasBestFlashMatchScore  , "hasBestFlashMatchScore/O");
+    m_pSliceTree->Branch("nHits"            , &m_outputSliceMetadata.m_nHits         , "nHits/I");
 
     if (m_hasMCNeutrino)
     {
@@ -616,7 +630,6 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
         m_pSliceTree->Branch("purity"           , &m_outputSliceMetadata.m_purity        , "purity/F");
         m_pSliceTree->Branch("completeness"     , &m_outputSliceMetadata.m_completeness  , "completeness/F");
         m_pSliceTree->Branch("isMostComplete"   , &m_outputSliceMetadata.m_isMostComplete, "isMostComplete/O");
-        m_pSliceTree->Branch("nHits"            , &m_outputSliceMetadata.m_nHits         , "nHits/I");
         m_pSliceTree->Branch("nuInteractionType", &m_nuInteractionType                   , "nuInteractionType/I");
         m_pSliceTree->Branch("nuCCNC"           , &m_nuCCNC                              , "nuCCNC/I");
         m_pSliceTree->Branch("nuEnergy"         , &m_nuEnergy                            , "nuEnergy/F");

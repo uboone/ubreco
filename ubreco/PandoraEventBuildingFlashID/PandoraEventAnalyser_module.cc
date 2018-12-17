@@ -15,7 +15,10 @@
 #include "art/Framework/Principal/SubRun.h"
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
+#include "art/Framework/Services/Optional/TFileService.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
+
+#include "TTree.h"
 
 class PandoraEventAnalyser;
 
@@ -36,9 +39,7 @@ public:
   void analyze(art::Event const & e) override;
 
 private:
-  int test;
-  // Declare member data here.
-
+  std::string m_pfp_producer;
 };
 
 DEFINE_ART_MODULE(PandoraEventAnalyser)
@@ -51,7 +52,6 @@ PandoraEventAnalyser::PandoraEventAnalyser(fhicl::ParameterSet const & p)
 
 void PandoraEventAnalyser::analyze(art::Event const & e)
 {
-  test = 1;
   std::cout << "Test: Hello World" << std::endl;
   // Implementation of required member function here.
 }
