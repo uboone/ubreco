@@ -1,4 +1,0 @@
-%MSG-i MF_INIT_OK:  Early 31-Dec-2018 09:16:08 CST JobSetup
-Messagelogger initialization complete.
-%MSG
-31-Dec-2018 09:16:10 CST  Initiating request to open input file "/pnfs/uboone/mc/uboone/reconstructed/prod_v07_11_00_01/prodgenie_bnb_nu_cosmics/slim/prodgenie_bnb_nu_cosmic_uboone_20181124T052817_gen_20181124T055518_g4_20181124T103847_detsim_20181124T114025_reco1_postwcct_postdlmc_20181124T142930_r_72645b71-e396-4924-9e8c-b3e4ea664695.root"
