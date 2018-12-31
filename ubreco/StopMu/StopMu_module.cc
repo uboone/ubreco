@@ -44,6 +44,9 @@
 #include <climits>
 #include <limits>
 
+#include "larcore/Geometry/Geometry.h"
+#include "larcorealg/Geometry/GeometryCore.h"
+#include "lardata/Utilities/GeometryUtilities.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
@@ -291,7 +294,12 @@ public:
 
   // Additional functions
   double yzDistance(double y1, double z1, double y2, double z2);
-  void clear();
+  double xyzDistance(double x1, double y1, double z1, double x2, double y2, double z2);
+  int findEndPointHits(const double& endx, const double& endy, const double& endz,
+		       const std::vector<art::Ptr<recob::Hit> >& ass_hit_v,
+		       const art::ValidHandle<std::vector<recob::Hit> >& gaushit_h,
+		       const unsigned int& pl);
+    void clear();
   void fillCalorimetry(int pl, std::vector<float> dqdx, std::vector<float> rr);//, std::vector<TVector3> xyz);
   bool insideTPCvolume(double x, double y, double z);
   double getPitch(const TVector3 &direction, const int &pl);
@@ -303,6 +311,8 @@ private:
   bool fGeoCuts, fUseTruth;
   double fdT, fMinX, fMaxX, fMinZ, fMaxZ, fMinY, fMinLen;
 
+  double _wire2cm, _time2cm;
+
   TruncMean _tmean;
 
   TTree* _reco_tree;
@@ -312,10 +322,18 @@ private:
   double _trk_start_x;
   double _trk_start_y;
   double _trk_start_z;
+
   double _trk_end_x;
   double _trk_end_y;
   double _trk_end_z;
-  double _yz_true_reco_distance;
+
+  double _mc_trk_end_x;
+  double _mc_trk_end_y;
+  double _mc_trk_end_z;
+
+  int _nhit_endpoint;
+
+  double _xyz_true_reco_distance, _yz_true_reco_distance;
   double _true_energy;
   int _yz_trackid; // track id of closest stopping muon by YZ distance
   double _matchscore; // fraction of track hits associated to a true stopping muon MCParticle
@@ -363,23 +381,15 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   fMinY = p.get<double>("MinY");
   fMinLen = p.get<double>("MinLen");
   fUseTruth = p.get<bool>("UseTruth");
+  
+  auto const* geom = ::lar::providerFrom<geo::Geometry>();
+  auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+  _wire2cm = geom->WirePitch(0,0,0);
+  _time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
 
   _tmean.setRadius(10);
 
   art::ServiceHandle<art::TFileService> tfs;
-
-  // _mc_tree = tfs->make<TTree>("mc_tree", "MC Track Tree");
-  // _mc_tree->Branch("_trk_len",&_mc_len,"trk_len/F");
-  // _mc_tree->Branch("_trk_start_x",&_mc_start_x,"trk_start_x/F");
-  // _mc_tree->Branch("_trk_start_y",&_mc_start_y,"trk_start_y/F");
-  // _mc_tree->Branch("_trk_start_z",&_mc_start_z,"trk_start_z/F");
-  // _mc_tree->Branch("_trk_end_x",  &_mc_end_x,  "trk_end_x/F"  );
-  // _mc_tree->Branch("_trk_end_y",  &_mc_end_y,  "trk_end_y/F"  );
-  // _mc_tree->Branch("_trk_end_z",  &_mc_end_z,  "trk_end_z/F"  );
-  // _mc_tree->Branch("_dqdx_u","std::vector<double>",&_dqdx_u);
-  // _mc_tree->Branch("_dqdx_v","std::vector<double>",&_dqdx_v);
-  // _mc_tree->Branch("_dqdx_y","std::vector<double>",&_dqdx_y);
-  // _mc_tree->Branch("_rr_v",  "std::vector<double>",&_rr_v  );
 
   _reco_tree = tfs->make<TTree>("reco_tree", "Reco Track Tree");
 
@@ -393,17 +403,22 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   _reco_tree->Branch("_trk_start_x",&_trk_start_x,"trk_start_x/D");
   _reco_tree->Branch("_trk_start_y",&_trk_start_y,"trk_start_y/D");
   _reco_tree->Branch("_trk_start_z",&_trk_start_z,"trk_start_z/D");
+
   _reco_tree->Branch("_trk_end_x",  &_trk_end_x,  "trk_end_x/D"  );
   _reco_tree->Branch("_trk_end_y",  &_trk_end_y,  "trk_end_y/D"  );
   _reco_tree->Branch("_trk_end_z",  &_trk_end_z,  "trk_end_z/D"  );
 
   // truth variables
+  _reco_tree->Branch("_xyz_true_reco_distance",  &_xyz_true_reco_distance,  "xyz_true_reco_distance/D"  );
   _reco_tree->Branch("_yz_true_reco_distance",  &_yz_true_reco_distance,  "yz_true_reco_distance/D"  );
   _reco_tree->Branch("_true_energy",&_true_energy,"true_energy/D");
   _reco_tree->Branch("_yz_trackid",  &_yz_trackid,  "yz_trackid/I"  );
   _reco_tree->Branch("_matchtrackid",  &_matchtrackid,  "matchtrackid/I"  );
   _reco_tree->Branch("_matchscore",  &_matchscore,  "matchscore/D"  );
   _reco_tree->Branch("_pdg",  &_pdg,  "pdg/I"  );
+  _reco_tree->Branch("_mc_trk_end_x",  &_mc_trk_end_x,  "mc_trk_end_x/D"  );
+  _reco_tree->Branch("_mc_trk_end_y",  &_mc_trk_end_y,  "mc_trk_end_y/D"  );
+  _reco_tree->Branch("_mc_trk_end_z",  &_mc_trk_end_z,  "mc_trk_end_z/D"  );
 
   //_reco_tree->Branch("_pitch_u",  &_pitch_u,  "pitch_u/D"  );
   //_reco_tree->Branch("_pitch_v",  &_pitch_v,  "pitch_v/D"  );
@@ -435,6 +450,8 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
 
   _reco_tree->Branch("_delta_t_closest_flash",  &_delta_t_closest_flash,  "delta_t_closest_flash/D"  );
 
+  _reco_tree->Branch("_nhit_endpoint",&_nhit_endpoint,"nhit_endpoint/I");
+
 }
 
 void StopMu::analyze(art::Event const & e)
@@ -446,7 +463,8 @@ void StopMu::analyze(art::Event const & e)
 
   
   // truth muon info for stopping muons
-  std::vector<double> mc_muon_end_y, mc_muon_end_z;
+  std::vector<double> mc_muon_time;
+  std::vector<double> mc_muon_end_y, mc_muon_end_z, mc_muon_end_x;
   std::vector<int>    mc_muon_pdg;
   std::vector<size_t> stop_mu_trackid_v;
   std::vector<double> mc_muon_energy_v;
@@ -506,6 +524,7 @@ void StopMu::analyze(art::Event const & e)
 	    true_end[1] = mcparticle.EndY();
 	    true_end[2] = mcparticle.EndZ();
 	    shiftTruePosition(true_end, mcparticle.EndT(), true_end_shifted);
+	    mc_muon_end_x.push_back(true_end_shifted[0]);
 	    mc_muon_end_y.push_back(true_end_shifted[1]);
 	    mc_muon_end_z.push_back(true_end_shifted[2]);
 	    stop_mu_trackid_v.push_back( mcparticle.TrackId() );
@@ -552,7 +571,11 @@ void StopMu::analyze(art::Event const & e)
       if (this_distance < _yz_true_reco_distance)
       {
         _yz_true_reco_distance = this_distance;
+	_xyz_true_reco_distance = xyzDistance(_trk_end_x, _trk_end_y, _trk_end_z, mc_muon_end_x[k], mc_muon_end_y[k], mc_muon_end_z[k]);
         _yz_trackid = stop_mu_trackid_v.at(k);
+	_mc_trk_end_x = mc_muon_end_x[k];
+	_mc_trk_end_y = mc_muon_end_y[k];
+	_mc_trk_end_z = mc_muon_end_z[k];
 	_pdg = mc_muon_pdg.at(k);
       }// if closest
     }// for all distances
@@ -578,12 +601,12 @@ void StopMu::analyze(art::Event const & e)
 
     if (fUseTruth && (backtrack_h.isValid() == true) ) {
       // get associated hits
-      const std::vector<art::Ptr<recob::Hit> > hit_v = trk_hit_assn_v.at(t);
+      const std::vector<art::Ptr<recob::Hit> > ass_hit_v = trk_hit_assn_v.at(t);
       
       _matchscore = 0.;
       _matchtrackid = 0;
       
-      for (art::Ptr<recob::Hit> hit : hit_v)
+      for (art::Ptr<recob::Hit> hit : ass_hit_v)
 	{
 	  
 	  auto hitidx = hit.key();
@@ -619,7 +642,7 @@ void StopMu::analyze(art::Event const & e)
 	    }// for all particles associated to this hit
 	}// for all hits
       
-      _matchscore /= hit_v.size();
+      _matchscore /= ass_hit_v.size();
     }// if using truth and backtracking
     
     // closest flash time
@@ -635,23 +658,78 @@ void StopMu::analyze(art::Event const & e)
       if (fabs(ttrk) < fabs(_delta_t_closest_flash)) _delta_t_closest_flash = ttrk;
     }// for all flashes
 
+    // apply minimum track length requirement 
+    if (_trk_len < fMinLen) continue;
+
     // apply geometric cuts if desired
     if (fGeoCuts) {
       if (fabs(_delta_t_closest_flash) < fdT) continue;
       if ( (_trk_end_x < fMinX) or (_trk_end_x > fMaxX) ) continue;
       if (_trk_end_y < fMinY) continue;
       if ( (_trk_end_z < fMinZ) or (_trk_end_z > fMaxZ) ) continue;
-      if (_trk_len < fMinLen) continue;
     } 
+
+    // find hits near the track end point, if any
+    _nhit_endpoint = findEndPointHits(_trk_end_x, _trk_end_y, _trk_end_z, trk_hit_assn_v.at(t), gaushit_h, 2);
 
     _reco_tree->Fill();
   }// for all tracks
   return;
 }
 
+int StopMu::findEndPointHits(const double& endx, const double& endy, const double& endz,
+			     const std::vector<art::Ptr<recob::Hit> >& ass_hit_v,
+			     const art::ValidHandle<std::vector<recob::Hit> >& gaushit_h,
+			     const unsigned int& pl) {
+
+  int nearby = 0;
+
+  // get end point coordinates in wire/time
+  auto const* geom = ::lar::providerFrom<geo::Geometry>();
+  auto stopwirecm = geom->WireCoordinate(endy,endz,geo::PlaneID(0,0,pl)) * _wire2cm;
+  auto stoptickcm = endx;
+  
+  for (size_t h=0; h < gaushit_h->size(); h++) {
+
+    // only count hits on the plane of interest
+    if (gaushit_h->at(h).WireID().Plane != pl) continue;
+
+    // grab hit index and coordinates
+    auto hit = gaushit_h->at(h);
+
+    auto timecm = hit.PeakTime()    * _time2cm;
+    // if time not within min cm -> continue
+    if (fabs(timecm-stoptickcm) > 5.) continue;
+
+    auto wirecm = hit.WireID().Wire * _wire2cm;
+
+    auto dist2D = yzDistance(wirecm,timecm, stopwirecm, stoptickcm);
+
+    // if within a 5 cm radius
+    if (dist2D < 5.) {
+      //ask if the hit is already in the track hit vector
+      bool foundhit = false;
+      for (auto const& ass_hit_ptr : ass_hit_v) {
+	if (ass_hit_ptr.key() == h) {
+	  foundhit = true;
+	  break;
+	}// if the hit is found in the track hit vector
+      }//for all hits in the track
+      if (foundhit == false) { nearby += 1; }
+    }// if the hit is within 5 cm
+  }// for all reconstructed hits
+  
+  return nearby;
+}
+
 double StopMu::yzDistance(double y1, double z1, double y2, double z2)
 {
   return sqrt((y1-y2)*(y1-y2) + (z1-z2)*(z1-z2));
+}
+
+double StopMu::xyzDistance(double x1, double y1, double z1, double x2, double y2, double z2)
+{
+  return sqrt( (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) + (z1-z2)*(z1-z2));
 }
 
 void StopMu::clear()
