@@ -54,6 +54,7 @@ private:
 
   // Declare member data here.
 
+  double fTrackLenMin;
   double fCathodeMin, fCathodeMax;
   double fAnodeMin, fAnodeMax;
   double fYMin, fYMax;
@@ -83,6 +84,7 @@ ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
 
   fTrackProducer  = p.get<std::string>("TrackProducer");
   fFlashProducer  = p.get<std::string>("FlashProducer");
+  fTrackLenMin    = p.get<double>("TrackLenMin");
   fCathodeMin     = p.get<double>("CathodeMin");
   fCathodeMax     = p.get<double>("CathodeMax");
   fAnodeMin       = p.get<double>("AnodeMin");
@@ -159,6 +161,8 @@ void ACPTtrig::produce(art::Event& e)
   
   // loop through tracks
   for (auto& track : TrkVec){
+
+    if (track->Length() < fTrackLenMin) continue;
 
     auto const& beg = track->Vertex();
     auto const& end = track->End();
