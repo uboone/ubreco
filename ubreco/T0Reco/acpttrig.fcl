@@ -2,6 +2,7 @@ BEGIN_PROLOG
 
 ACPTtrig: {
     module_type: "ACPTtrig"
+    TrackLenMin: 10
     CathodeMin: 254
     CathodeMax: 261
     AnodeMin: -3
