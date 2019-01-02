@@ -13,6 +13,7 @@ ACPTtrig: {
     BeamSpillEnd:   6.0
     TrackProducer: "pandoraTrack"
     FlashProducer: "simpleFlashBeam"
+    OpDetWfmProducer: "pmtreadout:OpdetBeamHighGain"
     SaveTree: true
 }
 
