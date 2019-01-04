@@ -170,8 +170,11 @@ void FlashNeutrinoId::GetSliceCandidates(const art::Event &event, SliceVector &s
     LArPandoraHelper::CollectSpacePoints(event, m_pandoraLabel, spacePoints, spacePointToHitMap);
     LArPandoraHelper::BuildPFParticleMap(pfParticles, pfParticleMap);
 
-    for (const auto &slice : slices)
-        sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef);
+    for (unsigned int sliceIndex = 0; sliceIndex <slices.size(); ++sliceIndex)
+    {
+        const auto &slice = slices[sliceIndex];
+        sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex+1);
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -231,7 +234,7 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
 
     m_outputEvent.m_foundATargetSlice = true;
     m_outputEvent.m_targetSliceMethod = sliceCandidates.at(bestCombinedSliceIndex).m_targetMethod;
-    
+    std::cout << "[FlashNeutrinoId] Slice with index " << bestCombinedSliceIndex << " is tagged as neutrino." << std::endl;
     return bestCombinedSliceIndex;
 }
 
@@ -346,7 +349,7 @@ FlashNeutrinoId::FailureMode::FailureMode(const std::string &reason) : m_reason(
 
 FlashNeutrinoId::FailureMode::~FailureMode()
 {
-    std::cout << "Flash neutrino ID - failed to find a viable neutrino slice." << std::endl;
+    std::cout << "[Flash neutrino ID] Failed to find neutrino slice: ";
     std::cout << m_reason << std::endl
               << std::endl;
 }
@@ -469,7 +472,8 @@ flashana::Flash_t FlashNeutrinoId::FlashCandidate::ConvertFlashFormat(const std:
 //------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-FlashNeutrinoId::SliceCandidate::SliceCandidate() : m_run(-std::numeric_limits<int>::max()),
+FlashNeutrinoId::SliceCandidate::SliceCandidate() : m_sliceId(-std::numeric_limits<int>::max()),
+                                                    m_run(-std::numeric_limits<int>::max()),
                                                     m_subRun(-std::numeric_limits<int>::max()),
                                                     m_event(-std::numeric_limits<int>::max()),
                                                     m_hasDeposition(false),
@@ -501,7 +505,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate() : m_run(-std::numeric_limits<i
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice) : m_run(event.run()),
+FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice) : m_sliceId(-std::numeric_limits<int>::max()),
+                                                                                               m_run(event.run()),
                                                                                                m_subRun(event.subRun()),
                                                                                                m_event(event.event()),
                                                                                                m_hasDeposition(false),
@@ -535,7 +540,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 
 FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                                                 const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
-                                                const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef) : 
+                                                const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId) : 
+                                                                                                                         m_sliceId(sliceId),
                                                                                                                          m_run(event.run()),
                                                                                                                          m_subRun(event.subRun()),
                                                                                                                          m_event(event.event()),
