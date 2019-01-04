@@ -54,16 +54,16 @@ physics:
 
   ### random number saver
   rns:                 { module_type: RandomNumberSaver }
+  stopmu: @local::StopMu
   ### gamma catcher
 
  }
  analyzers:
  {
-        stopmu: @local::StopMu
  }
 
- reco: [ rns ]
- ana: [ stopmu ]
+ reco: [ rns, stopmu ]
+ ana: [ ]
 
  #define the output stream, there could be more than one if using filters
  stream1:  [ out1 ]
@@ -74,14 +74,14 @@ physics:
 
  #end_paths is a keyword and contains the paths that do not modify the art::Event,
  #ie analyzers and output streams.  these all run simultaneously
- #end_paths:     [stream1,ana]
- end_paths:     [ana]
+ end_paths:     [stream1]#,ana]
+ #end_paths:     [ana]
 }
 
-physics.analyzers.stopmu.GeoCuts:       false
-physics.analyzers.stopmu.UseTruth:      true
-physics.analyzers.stopmu.TrackProducer: "pandoraTrack"
-physics.analyzers.stopmu.CaloProducer:  "pandoraTrackcalo"
+physics.producers.stopmu.GeoCuts:       true
+physics.producers.stopmu.UseTruth:      true
+physics.producers.stopmu.TrackProducer: "pandoraTrack"
+physics.producers.stopmu.CaloProducer:  "pandoraTrackcalo"
 
 #block to define where the output goes.  if you defined a filter in the physics
 #block and put it in the trigger_paths then you need to put a SelectEvents: {SelectEvents: [XXX]}

@@ -9,10 +9,10 @@ StopMu: {
     MCParticleLabel: "largeant"
     GeoCuts: true
     MinLen: 150
-    dT: 20
+    dT: 10
     MinX: -40
-    MaxX: 300
-    MinY: -90
+    MaxX: 290
+    MinY: -95
     MinZ: 30
     MaxZ: 1000
     UseTruth: false

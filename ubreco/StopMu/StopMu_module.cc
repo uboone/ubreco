@@ -7,7 +7,7 @@
 // from cetlib version v3_03_01.
 ////////////////////////////////////////////////////////////////////////
 
-#include "art/Framework/Core/EDAnalyzer.h"
+#include "art/Framework/Core/EDProducer.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/Handle.h"
@@ -21,6 +21,7 @@
 
 #include "lardataobj/RecoBase/Track.h"
 #include "lardataobj/AnalysisBase/Calorimetry.h"
+#include "lardataobj/AnalysisBase/CosmicTag.h"
 #include "lardata/Utilities/AssociationUtil.h"
 
 #include "nusimdata/SimulationBase/MCParticle.h"
@@ -273,7 +274,7 @@ double TruncMean::RMS(const std::vector<double>& v)
 class StopMu;
 
 
-class StopMu : public art::EDAnalyzer {
+class StopMu : public art::EDProducer {
 public:
   explicit StopMu(fhicl::ParameterSet const & p);
   // The compiler-generated destructor is fine for non-base
@@ -286,7 +287,7 @@ public:
   StopMu & operator = (StopMu &&) = delete;
 
   // Required functions.
-  void analyze(art::Event const & e) override;
+  void produce(art::Event& e) override;
 
   // Selected optional functions.
   void beginJob() override;
@@ -317,7 +318,6 @@ private:
 
   TTree* _reco_tree;
   int _run, _sub, _evt;
-  unsigned int _trk_id;
 
   double _trk_len;
 
@@ -368,9 +368,13 @@ private:
 
 StopMu::StopMu(fhicl::ParameterSet const & p)
   :
-  EDAnalyzer(p)  // ,
+  EDProducer(p)  // ,
  // More initializers here.
 {
+
+  produces< std::vector<anab::CosmicTag> >();
+  produces< art::Assns<recob::Track, anab::CosmicTag> >();
+
   fTrkProducer  = p.get<std::string>("TrkProducer");
   fCaloProducer = p.get<std::string>("CaloProducer");
   fMCProducer = p.get<std::string>("MCProducer", "generator");
@@ -401,7 +405,6 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   _reco_tree->Branch("_sub",&_sub,"sub/I");
   _reco_tree->Branch("_evt",&_evt,"evt/I");
 
-  _reco_tree->Branch("_trk_id",&_trk_id,"trk_id/i");
   _reco_tree->Branch("_trk_len",&_trk_len,"trk_len/D");
 
   _reco_tree->Branch("_px",&_px,"px/D");
@@ -462,14 +465,17 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
 
 }
 
-void StopMu::analyze(art::Event const & e)
+void StopMu::produce(art::Event& e)
 {
 
   _run = e.run();
   _sub = e.subRun();
   _evt = e.event();
 
-  
+  // produce CosmicTag and association to tracks
+  std::unique_ptr< std::vector< anab::CosmicTag > >               CT_v( new std::vector<anab::CosmicTag> );
+  std::unique_ptr< art::Assns<recob::Track, anab::CosmicTag > >  trk_CT_assn_v( new art::Assns<recob::Track, anab::CosmicTag> );
+
   // truth muon info for stopping muons
   std::vector<double> mc_muon_time;
   std::vector<double> mc_muon_end_y, mc_muon_end_z, mc_muon_end_x;
@@ -480,7 +486,8 @@ void StopMu::analyze(art::Event const & e)
 
   if (fUseTruth) {
 
-    
+
+    /*
     // consider only events with an interaction outside of the TPC
     auto const &generator_handle = e.getValidHandle<std::vector<simb::MCTruth>>(fMCProducer);
     auto const &generator(*generator_handle);
@@ -505,6 +512,7 @@ void StopMu::analyze(art::Event const & e)
       {
 	return;
       }
+    */
     
     auto const &mcparticles_handle = e.getValidHandle<std::vector<simb::MCParticle>>(fMCParticleLabel);
     auto const &mcparticles(*mcparticles_handle);
@@ -554,15 +562,22 @@ void StopMu::analyze(art::Event const & e)
   //if (fUsTruth)
   art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> backtrack_h(gaushit_h,e,"gaushitTruthMatch");  
   
-  for (size_t t=0; t < trk_h->size(); t++)
-  {
-    clear();
-    auto const& trk = trk_h->at(t);
-    auto const& beg = trk.Vertex();
-    auto const& end = trk.End();
 
-    _trk_id = t;
-    _trk_len = trk.Length();
+  std::vector<art::Ptr<recob::Track> > TrkVec;
+  art::fill_ptr_vector(TrkVec, trk_h);
+
+  size_t t = 0;
+
+  for (auto trk: TrkVec){
+
+    t += 1;
+
+    clear();
+
+    auto const& beg = trk->Vertex();
+    auto const& end = trk->End();
+
+    _trk_len = trk->Length();
 
     _trk_start_x = beg.X();
     _trk_start_y = beg.Y();
@@ -606,7 +621,7 @@ void StopMu::analyze(art::Event const & e)
     _pitch_y = getPitch(track_direction, 2);
     // fill calorimetry info for this track
     // grab the associated calorimetry object
-    const std::vector<const anab::Calorimetry*>& Calo_v = trk_calo_assn_v.at(t);
+    const std::vector<const anab::Calorimetry*>& Calo_v = trk_calo_assn_v.at(t-1);
     for (size_t pl=0; pl < Calo_v.size(); pl++)
     {
       auto const& calo = Calo_v.at(pl);
@@ -619,7 +634,7 @@ void StopMu::analyze(art::Event const & e)
 
     if (fUseTruth && (backtrack_h.isValid() == true) ) {
       // get associated hits
-      const std::vector<art::Ptr<recob::Hit> > ass_hit_v = trk_hit_assn_v.at(t);
+      const std::vector<art::Ptr<recob::Hit> > ass_hit_v = trk_hit_assn_v.at(t-1);
       
       _matchscore = 0.;
       _matchtrackid = 0;
@@ -688,10 +703,17 @@ void StopMu::analyze(art::Event const & e)
     } 
 
     // find hits near the track end point, if any
-    _nhit_endpoint = findEndPointHits(_trk_end_x, _trk_end_y, _trk_end_z, trk_hit_assn_v.at(t), gaushit_h, 2);
+    _nhit_endpoint = findEndPointHits(_trk_end_x, _trk_end_y, _trk_end_z, trk_hit_assn_v.at(t-1), gaushit_h, 2);
 
+    CT_v->emplace_back(1.0);
+    util::CreateAssn(*this, e, *CT_v, trk, *trk_CT_assn_v );
+    
     _reco_tree->Fill();
   }// for all tracks
+
+  e.put( std::move(CT_v) );
+  e.put( std::move(trk_CT_assn_v) );
+
   return;
 }
 
