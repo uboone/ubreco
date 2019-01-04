@@ -318,11 +318,15 @@ private:
   TTree* _reco_tree;
   int _run, _sub, _evt;
   unsigned int _trk_id;
+
   double _trk_len;
+
   double _trk_start_x;
   double _trk_start_y;
   double _trk_start_z;
 
+  double _px, _py, _pz; // direction vector of reconstructed track measured from start to end
+  
   double _trk_end_x;
   double _trk_end_y;
   double _trk_end_z;
@@ -399,6 +403,10 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
 
   _reco_tree->Branch("_trk_id",&_trk_id,"trk_id/i");
   _reco_tree->Branch("_trk_len",&_trk_len,"trk_len/D");
+
+  _reco_tree->Branch("_px",&_px,"px/D");
+  _reco_tree->Branch("_py",&_py,"py/D");
+  _reco_tree->Branch("_pz",&_pz,"pz/D");
 
   _reco_tree->Branch("_trk_start_x",&_trk_start_x,"trk_start_x/D");
   _reco_tree->Branch("_trk_start_y",&_trk_start_y,"trk_start_y/D");
@@ -555,12 +563,22 @@ void StopMu::analyze(art::Event const & e)
 
     _trk_id = t;
     _trk_len = trk.Length();
+
     _trk_start_x = beg.X();
     _trk_start_y = beg.Y();
     _trk_start_z = beg.Z();
+
     _trk_end_x   = end.X();
     _trk_end_y   = end.Y();
     _trk_end_z   = end.Z();
+
+    double trk_mag = sqrt( (_trk_end_x - _trk_start_x) * (_trk_end_x - _trk_start_x) + 
+			   (_trk_end_y - _trk_start_y) * (_trk_end_y - _trk_start_y) + 
+			   (_trk_end_z - _trk_start_z) * (_trk_end_z - _trk_start_z) );
+    
+    _px = (_trk_end_x - _trk_start_x) / trk_mag;
+    _py = (_trk_end_y - _trk_start_y) / trk_mag;
+    _pz = (_trk_end_z - _trk_start_z) / trk_mag;
 
     // look for the closest mc muon track
     _yz_true_reco_distance = 1500.;
