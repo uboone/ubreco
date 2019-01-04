@@ -218,7 +218,7 @@ private:
          */
         SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
             const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
-            const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef);
+            const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceIndex);
 
         /**
          *  @brief  Parametrized constructor for slices that aren't considered by the flash neutrino ID module - monitoring only
@@ -271,7 +271,7 @@ private:
             const SpacePointsToHits &spacePointToHitMap, const Slice &slice) const;
     
         /**
-         *  @breif  Collect all downstream particles of those in the input vector
+         *  @brief  Collect all downstream particles of those in the input vector
          *
          *  @param  pfParticleMap the mapping from PFParticle ID to PFParticle
          *  @param  parentPFParticles the input vector of PFParticles
@@ -281,7 +281,7 @@ private:
             PFParticleVector &downstreamPFParticles) const;
     
         /**
-         *  @breif  Collect all downstream particles of a given particle
+         *  @brief  Collect all downstream particles of a given particle
          *
          *  @param  pfParticleMap the mapping from PFParticle ID to PFParticle
          *  @param  particle the input PFParticle
@@ -338,6 +338,7 @@ private:
     
     public:
         // Features of the slice are used when writing to file is enabled
+        int                  m_sliceId;                  ///< The sliceId   
         int                  m_run;                      ///< The run number
         int                  m_subRun;                   ///< The subRun number
         int                  m_event;                    ///< The event number
@@ -596,6 +597,7 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
     m_pFlashTree->Branch("isBeamFlash"        , &m_outputFlash.m_isBeamFlash        , "isBeamFlash/O");
 
     m_pSliceTree = fileService->make<TTree>("slices","");
+    m_pSliceTree->Branch("sliceId"                 , &m_outputSlice.m_sliceId                , "sliceId/I");
     m_pSliceTree->Branch("run"                    , &m_outputSlice.m_run                     , "run/I");
     m_pSliceTree->Branch("subRun"                 , &m_outputSlice.m_subRun                  , "subRun/I");
     m_pSliceTree->Branch("event"                  , &m_outputSlice.m_event                   , "event/I");
