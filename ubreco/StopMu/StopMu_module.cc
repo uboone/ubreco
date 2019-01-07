@@ -308,9 +308,11 @@ public:
 
 private:
 
-  std::string fTrkProducer, fCaloProducer, fMCProducer, fMCParticleLabel, fOpticalFlashFinderLabel;
+  std::string fTrkProducer, fCaloProducer, fMCProducer, fMCParticleLabel, fOpticalFlashFinderLabelB, fOpticalFlashFinderLabelC;
   bool fGeoCuts, fUseTruth;
   double fdT, fMinX, fMaxX, fMinZ, fMaxZ, fMinY, fMinLen;
+  double fZdeadStart, fZdeadEnd;
+  double fAbsXspan; // to remove anode-to-cathode crossing tracks
 
   double _wire2cm, _time2cm;
 
@@ -334,6 +336,8 @@ private:
   double _mc_trk_end_x;
   double _mc_trk_end_y;
   double _mc_trk_end_z;
+
+  double _offsetx, _offsety, _offsetz;
 
   int _nhit_endpoint;
 
@@ -362,7 +366,7 @@ private:
   std::vector<double> _x_position_y;
   std::vector<double> _y_position_y;
   std::vector<double> _z_position_y;
-  double _delta_t_closest_flash;
+  double _delta_t_closest_flash, _flash_time;
 };
 
 
@@ -379,7 +383,8 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   fCaloProducer = p.get<std::string>("CaloProducer");
   fMCProducer = p.get<std::string>("MCProducer", "generator");
   fMCParticleLabel = p.get<std::string>("MCParticleLabel", "largeant");
-  fOpticalFlashFinderLabel = p.get<std::string>("OpticalFlashFinderLabel", "simpleFlashCosmic");
+  fOpticalFlashFinderLabelC = p.get<std::string>("OpticalFlashFinderLabelC", "simpleFlashCosmic");
+  fOpticalFlashFinderLabelB = p.get<std::string>("OpticalFlashFinderLabelB", "simpleFlashBeam");
   fGeoCuts = p.get<bool>("GeoCuts");
   fdT = p.get<double>("dT");
   fMinX = p.get<double>("MinX");
@@ -387,6 +392,9 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   fMinZ = p.get<double>("MinZ");
   fMaxZ = p.get<double>("MaxZ");
   fMinY = p.get<double>("MinY");
+  fZdeadStart = p.get<double>("ZdeadStart");
+  fZdeadEnd = p.get<double>("ZdeadEnd");
+  fAbsXspan = p.get<double>("AbsXspan");
   fMinLen = p.get<double>("MinLen");
   fUseTruth = p.get<bool>("UseTruth");
   
@@ -431,6 +439,10 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   _reco_tree->Branch("_mc_trk_end_y",  &_mc_trk_end_y,  "mc_trk_end_y/D"  );
   _reco_tree->Branch("_mc_trk_end_z",  &_mc_trk_end_z,  "mc_trk_end_z/D"  );
 
+  _reco_tree->Branch("_offsetx",  &_offsetx,  "offsetx/D"  );
+  _reco_tree->Branch("_offsety",  &_offsety,  "offsety/D"  );
+  _reco_tree->Branch("_offsetz",  &_offsetz,  "offsetz/D"  );
+
   //_reco_tree->Branch("_pitch_u",  &_pitch_u,  "pitch_u/D"  );
   //_reco_tree->Branch("_pitch_v",  &_pitch_v,  "pitch_v/D"  );
   _reco_tree->Branch("_pitch_y",  &_pitch_y,  "pitch_y/D"  );
@@ -460,6 +472,7 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   _reco_tree->Branch("_z_position_y",  "std::vector<double>", &_z_position_y  );
 
   _reco_tree->Branch("_delta_t_closest_flash",  &_delta_t_closest_flash,  "delta_t_closest_flash/D"  );
+  _reco_tree->Branch("_flash_time",  &_flash_time,  "flash_time/D"  );
 
   _reco_tree->Branch("_nhit_endpoint",&_nhit_endpoint,"nhit_endpoint/I");
 
@@ -487,7 +500,6 @@ void StopMu::produce(art::Event& e)
   if (fUseTruth) {
 
 
-    /*
     // consider only events with an interaction outside of the TPC
     auto const &generator_handle = e.getValidHandle<std::vector<simb::MCTruth>>(fMCProducer);
     auto const &generator(*generator_handle);
@@ -505,14 +517,19 @@ void StopMu::produce(art::Event& e)
 	  }
       }
     
-    if (n_nu==0) return;
+    if (n_nu==0) {
+      e.put( std::move(CT_v) );
+      e.put( std::move(trk_CT_assn_v) );
+      return;
+    }
     
     bool inTPCvolume = insideTPCvolume(_true_vx, _true_vy, _true_vz);
     if (inTPCvolume == true)
       {
+	e.put( std::move(CT_v) );
+	e.put( std::move(trk_CT_assn_v) );
 	return;
       }
-    */
     
     auto const &mcparticles_handle = e.getValidHandle<std::vector<simb::MCParticle>>(fMCParticleLabel);
     auto const &mcparticles(*mcparticles_handle);
@@ -558,15 +575,21 @@ void StopMu::produce(art::Event& e)
   art::FindMany<anab::Calorimetry> trk_calo_assn_v(trk_h, e, fCaloProducer);
   // grab hits associated to tracks
   art::FindManyP<recob::Hit> trk_hit_assn_v(trk_h, e, fTrkProducer);
-  
+
+  ///* backtrack
   //if (fUsTruth)
   art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> backtrack_h(gaushit_h,e,"gaushitTruthMatch");  
+  //*/
   
 
   std::vector<art::Ptr<recob::Track> > TrkVec;
   art::fill_ptr_vector(TrkVec, trk_h);
 
   size_t t = 0;
+
+
+  auto const *SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
+
 
   for (auto trk: TrkVec){
 
@@ -587,6 +610,8 @@ void StopMu::produce(art::Event& e)
     _trk_end_y   = end.Y();
     _trk_end_z   = end.Z();
 
+    if (_trk_end_y > _trk_start_y) continue;
+
     double trk_mag = sqrt( (_trk_end_x - _trk_start_x) * (_trk_end_x - _trk_start_x) + 
 			   (_trk_end_y - _trk_start_y) * (_trk_end_y - _trk_start_y) + 
 			   (_trk_end_z - _trk_start_z) * (_trk_end_z - _trk_start_z) );
@@ -600,19 +625,25 @@ void StopMu::produce(art::Event& e)
     _yz_trackid = 0;
     for (size_t k=0; k<mc_muon_end_y.size(); k++)
     {
+
+      auto offset = SCE->GetPosOffsets(geo::Point_t(mc_muon_end_x[k],mc_muon_end_y[k],mc_muon_end_z[k]));
+      
       double this_distance = yzDistance(_trk_end_y, _trk_end_z, mc_muon_end_y[k], mc_muon_end_z[k]);
       if (this_distance < _yz_true_reco_distance)
-      {
-        _yz_true_reco_distance = this_distance;
-	_xyz_true_reco_distance = xyzDistance(_trk_end_x, _trk_end_y, _trk_end_z, mc_muon_end_x[k], mc_muon_end_y[k], mc_muon_end_z[k]);
-        _yz_trackid = stop_mu_trackid_v.at(k);
-	_mc_trk_end_x = mc_muon_end_x[k];
-	_mc_trk_end_y = mc_muon_end_y[k];
-	_mc_trk_end_z = mc_muon_end_z[k];
-	_pdg = mc_muon_pdg.at(k);
-      }// if closest
+	{
+	  _yz_true_reco_distance = this_distance;
+	  _xyz_true_reco_distance = xyzDistance(_trk_end_x, _trk_end_y, _trk_end_z, mc_muon_end_x[k], mc_muon_end_y[k], mc_muon_end_z[k]);
+	  _yz_trackid = stop_mu_trackid_v.at(k);
+	  _offsetx = offset.X();
+	  _offsety = offset.Y();
+	  _offsetz = offset.Z();
+	  _mc_trk_end_x = mc_muon_end_x[k];
+	  _mc_trk_end_y = mc_muon_end_y[k];
+	  _mc_trk_end_z = mc_muon_end_z[k];
+	  _pdg = mc_muon_pdg.at(k);
+	}// if closest
     }// for all distances
-
+    
     TVector3 track_direction(_trk_end_x - _trk_start_x,
                              _trk_end_y - _trk_start_y,
                              _trk_end_z - _trk_start_z);
@@ -679,16 +710,41 @@ void StopMu::produce(art::Event& e)
     }// if using truth and backtracking
     
     // closest flash time
-    art::InputTag optical_tag_simple{fOpticalFlashFinderLabel};
-    auto const &optical_handle = e.getValidHandle<std::vector<recob::OpFlash>>(optical_tag_simple);
+    art::InputTag CFtag{fOpticalFlashFinderLabelC};
+    auto const &CF = e.getValidHandle<std::vector<recob::OpFlash>>(CFtag);
 
-    for (size_t f=0; f < optical_handle->size(); f++) {
+    for (size_t f=0; f < CF->size(); f++) {
       //std::cout << "iteration beg" << f << " delta t " << _delta_t_closest_flash << std::endl;
-      auto const& flash = optical_handle->at(f);
+      auto const& flash = CF->at(f);
       double ttrk = _trk_end_x / 0.1114 - flash.Time() - 6.0;
-      if (fabs(ttrk) < fabs(_delta_t_closest_flash)) _delta_t_closest_flash = ttrk;
+      if (fabs(ttrk) < fabs(_delta_t_closest_flash)) {
+	_delta_t_closest_flash = ttrk;
+	_flash_time = flash.Time();
+      }
       ttrk = (_trk_end_x-256.35) / 0.1114 - flash.Time() - 19.3;
-      if (fabs(ttrk) < fabs(_delta_t_closest_flash)) _delta_t_closest_flash = ttrk;
+      if (fabs(ttrk) < fabs(_delta_t_closest_flash)) {
+	_delta_t_closest_flash = ttrk;
+	_flash_time = flash.Time();
+      }
+    }// for all flashes
+    
+    // closest flash time
+    art::InputTag BFtag{fOpticalFlashFinderLabelB};
+    auto const &BF = e.getValidHandle<std::vector<recob::OpFlash>>(BFtag);
+
+    for (size_t f=0; f < BF->size(); f++) {
+      //std::cout << "iteration beg" << f << " delta t " << _delta_t_closest_flash << std::endl;
+      auto const& flash = BF->at(f);
+      double ttrk = _trk_end_x / 0.1114 - flash.Time() - 6.0;
+      if (fabs(ttrk) < fabs(_delta_t_closest_flash)) {
+	_delta_t_closest_flash = ttrk;
+	_flash_time = flash.Time();
+      }
+      ttrk = (_trk_end_x-256.35) / 0.1114 - flash.Time() - 19.3;
+      if (fabs(ttrk) < fabs(_delta_t_closest_flash)) {
+	_delta_t_closest_flash = ttrk;
+	_flash_time = flash.Time();
+      }
     }// for all flashes
 
     // apply minimum track length requirement 
@@ -700,6 +756,8 @@ void StopMu::produce(art::Event& e)
       if ( (_trk_end_x < fMinX) or (_trk_end_x > fMaxX) ) continue;
       if (_trk_end_y < fMinY) continue;
       if ( (_trk_end_z < fMinZ) or (_trk_end_z > fMaxZ) ) continue;
+      if ( (_trk_end_z > fZdeadStart) and (_trk_end_z < fZdeadEnd) ) continue;
+      if ( fabs(_trk_start_x - _trk_end_x) > fAbsXspan ) continue;
     } 
 
     // find hits near the track end point, if any
@@ -724,10 +782,24 @@ int StopMu::findEndPointHits(const double& endx, const double& endy, const doubl
 
   int nearby = 0;
 
+  std::cout << "event " << _evt << " with end-point : " << endx << ", " << endy << ", " << endz << std::endl;
+
   // get end point coordinates in wire/time
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
   auto stopwirecm = geom->WireCoordinate(endy,endz,geo::PlaneID(0,0,pl)) * _wire2cm;
   auto stoptickcm = endx;
+
+  std::cout << " track end point @ [ " << stopwirecm << ", " << stoptickcm << " ]" << std::endl;
+
+  /*
+  for (size_t h=0; h < ass_hit_v.size(); h++) {
+    auto const& hitptr = ass_hit_v.at(h);
+    if (hitptr->WireID().Plane != pl) continue;
+    auto timecm = hitptr->PeakTime()    * _time2cm;
+    auto wirecm = hitptr->WireID().Wire * _wire2cm;
+    std::cout << " track hit @ [ " << wirecm << ", " << timecm << " ]" << std::endl;
+  }
+  */
   
   for (size_t h=0; h < gaushit_h->size(); h++) {
 
@@ -737,11 +809,14 @@ int StopMu::findEndPointHits(const double& endx, const double& endy, const doubl
     // grab hit index and coordinates
     auto hit = gaushit_h->at(h);
 
-    auto timecm = hit.PeakTime()    * _time2cm;
+    auto timecm = hit.PeakTime()    * _time2cm - 44.56;
     // if time not within min cm -> continue
     if (fabs(timecm-stoptickcm) > 5.) continue;
 
     auto wirecm = hit.WireID().Wire * _wire2cm;
+
+    //std::cout << "\t found nearby hit in time @ [ " << wirecm << ", " << timecm << " ] " << std::endl;
+
 
     auto dist2D = yzDistance(wirecm,timecm, stopwirecm, stoptickcm);
 
@@ -759,6 +834,7 @@ int StopMu::findEndPointHits(const double& endx, const double& endy, const doubl
     }// if the hit is within 5 cm
   }// for all reconstructed hits
   
+  std::cout << "nearby hits : " << nearby << std::endl;
   return nearby;
 }
 
