@@ -15,6 +15,9 @@ StopMu: {
     MinY: -95
     MinZ: 30
     MaxZ: 1000
+    ZdeadStart: 697
+    ZdeadEnd:   745
+    AbsXspan: 150
     UseTruth: false
 }
 
