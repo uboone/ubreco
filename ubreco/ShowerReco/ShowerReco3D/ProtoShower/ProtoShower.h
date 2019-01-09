@@ -33,13 +33,17 @@ public:
   bool hasCluster2D() const {return _hasCluster2D;}
   bool hasCluster3D() const {return _hasCluster3D;}
   bool hasVertex()    const {return _hasVertex;}
+  bool hasDirection() const {return _hasDirection;}
   // setters
   void hasCluster2D(bool on) { _hasCluster2D = on; }
   void hasCluster3D(bool on) { _hasCluster3D = on; }
   void hasVertex   (bool on) { _hasVertex    = on; }
+  void hasDirection(bool on) { _hasDirection = on; }
 
   // 3D vertex associated to this protoshower
   TVector3  _vertex;
+  // 3D direction associated to this protoshower
+  TVector3  _direction;
   
   // list 2D clusters
   std::vector<::cluster2d::Cluster2D> _clusters;
@@ -52,6 +56,7 @@ public:
     _hasCluster2D = false;
     _hasCluster3D = false;
     _hasVertex    = false;
+    _hasDirection = false;
     return;
   }
 
@@ -60,10 +65,7 @@ protected:
   bool _hasCluster2D;
   bool _hasCluster3D;
   bool _hasVertex;
-
-
-
-  // Not sure what to do with vertexes yet
+  bool _hasDirection;
 
 };
 
