@@ -1,5 +1,6 @@
 #include "services_microboone.fcl"
 #include "triggeralgo_service.fcl"
+#include "calorimetry_microboone.fcl"
 #include "stopmu.fcl"
 
 process_name: ThroughMu
@@ -54,6 +55,7 @@ physics:
 
   ### random number saver
   rns:                 { module_type: RandomNumberSaver }
+  pandoraTrackcalo:            @local::microboone_calodata
   stopmu: @local::StopMu
   ### gamma catcher
 
@@ -77,6 +79,9 @@ physics:
  end_paths:     [stream1]#,ana]
  #end_paths:     [ana]
 }
+
+physics.producers.pandoraTrackcalo.TrackModuleLabel:  "pandoraTrack"
+physics.producers.pandoraTrackcalo.SpacePointModuleLabel:  "pandora"
 
 physics.producers.stopmu.GeoCuts:       true
 physics.producers.stopmu.UseTruth:      true

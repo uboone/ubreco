@@ -443,32 +443,32 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   _reco_tree->Branch("_offsety",  &_offsety,  "offsety/D"  );
   _reco_tree->Branch("_offsetz",  &_offsetz,  "offsetz/D"  );
 
-  //_reco_tree->Branch("_pitch_u",  &_pitch_u,  "pitch_u/D"  );
-  //_reco_tree->Branch("_pitch_v",  &_pitch_v,  "pitch_v/D"  );
+  _reco_tree->Branch("_pitch_u",  &_pitch_u,  "pitch_u/D"  );
+  _reco_tree->Branch("_pitch_v",  &_pitch_v,  "pitch_v/D"  );
   _reco_tree->Branch("_pitch_y",  &_pitch_y,  "pitch_y/D"  );
 
-  //_reco_tree->Branch("_dqdx_u","std::vector<double>",&_dqdx_u);
-  //_reco_tree->Branch("_dqdx_v","std::vector<double>",&_dqdx_v);
+  _reco_tree->Branch("_dqdx_u","std::vector<double>",&_dqdx_u);
+  _reco_tree->Branch("_dqdx_v","std::vector<double>",&_dqdx_v);
   _reco_tree->Branch("_dqdx_y","std::vector<double>",&_dqdx_y);
 
-  //_reco_tree->Branch("_dqdx_tm_u","std::vector<double>",&_dqdx_tm_u);
-  //_reco_tree->Branch("_dqdx_tm_v","std::vector<double>",&_dqdx_tm_v);
+  _reco_tree->Branch("_dqdx_tm_u","std::vector<double>",&_dqdx_tm_u);
+  _reco_tree->Branch("_dqdx_tm_v","std::vector<double>",&_dqdx_tm_v);
   _reco_tree->Branch("_dqdx_tm_y","std::vector<double>",&_dqdx_tm_y);
 
-  //_reco_tree->Branch("_rr_u",  "std::vector<double>",&_rr_u  );
-  //_reco_tree->Branch("_rr_v",  "std::vector<double>",&_rr_v  );
+  _reco_tree->Branch("_rr_u",  "std::vector<double>",&_rr_u  );
+  _reco_tree->Branch("_rr_v",  "std::vector<double>",&_rr_v  );
   _reco_tree->Branch("_rr_y",  "std::vector<double>",&_rr_y  );
 
-  //_reco_tree->Branch("_x_position_u",  "std::vector<double>", &_x_position_u  );
-  //_reco_tree->Branch("_x_position_v",  "std::vector<double>", &_x_position_v  );
+  _reco_tree->Branch("_x_position_u",  "std::vector<double>", &_x_position_u  );
+  _reco_tree->Branch("_x_position_v",  "std::vector<double>", &_x_position_v  );
   _reco_tree->Branch("_x_position_y",  "std::vector<double>", &_x_position_y  );
 
-  //_reco_tree->Branch("_y_position_u",  "std::vector<double>", &_y_position_u  );
-  //_reco_tree->Branch("_y_position_v",  "std::vector<double>", &_y_position_v  );
+  _reco_tree->Branch("_y_position_u",  "std::vector<double>", &_y_position_u  );
+  _reco_tree->Branch("_y_position_v",  "std::vector<double>", &_y_position_v  );
   _reco_tree->Branch("_y_position_y",  "std::vector<double>", &_y_position_y  );
 
-  //_reco_tree->Branch("_z_position_u",  "std::vector<double>", &_z_position_u  );
-  //_reco_tree->Branch("_z_position_v",  "std::vector<double>", &_z_position_v  );
+  _reco_tree->Branch("_z_position_u",  "std::vector<double>", &_z_position_u  );
+  _reco_tree->Branch("_z_position_v",  "std::vector<double>", &_z_position_v  );
   _reco_tree->Branch("_z_position_y",  "std::vector<double>", &_z_position_y  );
 
   _reco_tree->Branch("_delta_t_closest_flash",  &_delta_t_closest_flash,  "delta_t_closest_flash/D"  );
@@ -576,10 +576,10 @@ void StopMu::produce(art::Event& e)
   // grab hits associated to tracks
   art::FindManyP<recob::Hit> trk_hit_assn_v(trk_h, e, fTrkProducer);
 
-  ///* backtrack
+  /* backtrack
   //if (fUsTruth)
   art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> backtrack_h(gaushit_h,e,"gaushitTruthMatch");  
-  //*/
+  */
   
 
   std::vector<art::Ptr<recob::Track> > TrkVec;
@@ -663,6 +663,7 @@ void StopMu::produce(art::Event& e)
       fillCalorimetry(plane, dqdx, rr);//, xyz);
     }
 
+    /*
     if (fUseTruth && (backtrack_h.isValid() == true) ) {
       // get associated hits
       const std::vector<art::Ptr<recob::Hit> > ass_hit_v = trk_hit_assn_v.at(t-1);
@@ -708,6 +709,7 @@ void StopMu::produce(art::Event& e)
       
       _matchscore /= ass_hit_v.size();
     }// if using truth and backtracking
+    */
     
     // closest flash time
     art::InputTag CFtag{fOpticalFlashFinderLabelC};
