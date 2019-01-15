@@ -78,6 +78,8 @@ private:
   std::string fBacktrackTag;
   // is this event neutrino or single particle?
   bool fNeutrinoEvent;
+  // fill a ttree?
+  bool fFillTree;
   
   /// map for backtracking which stores mcshower index to vector of track ids for the mcshower
   std::map<size_t, std::vector<unsigned int> > _MCShowerInfo;  
@@ -174,6 +176,7 @@ ShrReco3D::ShrReco3D(fhicl::ParameterSet const & p)
   fVtxproducer   = p.get<std::string>("Vtxproducer"  );
   fBacktrackTag  = p.get<std::string>("BacktrackTag" );
   fNeutrinoEvent = p.get<bool>       ("NeutrinoEvent");
+  fFillTree      = p.get<bool>       ("FillTree",false);
   
   const fhicl::ParameterSet& protoshower_pset = p.get<fhicl::ParameterSet>("ProtoShowerTool");  
 
@@ -230,7 +233,7 @@ void ShrReco3D::produce(art::Event & e)
   // which will then be fed to shower reco algorithm chain
   std::vector<protoshower::ProtoShower> event_protoshower_v;
   _psalg->GenerateProtoShowers(e, event_protoshower_v);
-  
+
   // set protoshowers for algorithms
   _manager->SetProtoShowers(event_protoshower_v);
 
@@ -245,7 +248,6 @@ void ShrReco3D::produce(art::Event & e)
     e.getByLabel("mcreco",mcs_h);
     auto const& mct_h = e.getValidHandle<std::vector<simb::MCTruth> >("generator");
     if (!mcs_h.isValid()) {
-      std::cout << "MCShower is valid? No" << std::endl;
       _MCShowerInfo.clear();
     }
     else {
@@ -385,7 +387,8 @@ void ShrReco3D::SaveShower(art::Event & e,
     BackTrack(e, hit_idx_v, completeness_max, purity_max);
   }
 
-  _rcshr_tree->Fill();
+  if (fFillTree)
+    _rcshr_tree->Fill();
   
   return;
 }// end of SaveShower function
@@ -402,16 +405,11 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
   completeness_max = 0.;
   size_t mcs_idx_match = 0;
 
-  std::cout << "BackTrack" << std::endl;
-
   art::Handle< std::vector<sim::MCShower> > mcs_h;
   e.getByLabel("mcreco",mcs_h);
   if (!mcs_h.isValid()) {
-    std::cout << "MCShower handle not valid" << std::endl;
     return mcs_idx_match;
   }
-
-  std::cout << " still ging on" << std::endl;
 
   for (auto const& mcshower : _MCShowerInfo) {
 
@@ -428,8 +426,6 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
     auto const& mcs = mcs_h->at(s);
     auto shrtrackIDs = mcshower.second;
     
-    std::cout << "MCshower " << s << " has start @ [ " << mcs.Start().X() << ", "<< mcs.Start().Y() << ", " << mcs.Start().Z() << " ]" << std::endl;
-
     //std::cout << "\t ANCESTOR comparing with MCShower of energy " << mcs.Start().E() << std::endl;
     //std::cout << "\t ANCESTOR start is [" << mcs.Start().X() << ", " << mcs.Start().Y() << ", " << mcs.Start().Z() << "]" << std::endl;
     //std::cout << "\t ANCESTOR HAS " << shrtrackIDs.size() << " particles" << std::endl;
@@ -481,7 +477,6 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
   _completeness = completeness_max;
   _purity       = purity_max;
   auto matched_mcs = mcs_h->at(mcs_idx_match);
-  std::cout << "matched mcs : " << mcs_idx_match << std::endl;
   _mc_shr_e = matched_mcs.Start().E();
   _mc_shr_pdg = matched_mcs.PdgCode();
   _mc_shr_x = matched_mcs.Start().X();
@@ -495,14 +490,12 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
     auto const& mct_h = e.getValidHandle<std::vector<simb::MCTruth> >("generator");
     auto gen = mct_h->at(0);
     double g4Ticks = detClocks->TPCG4Time2Tick(gen.GetNeutrino().Nu().T()) + detProperties->GetXTicksOffset(0, 0, 0) - detProperties->TriggerOffset();
-    std::cout << "nu vtx @ [" << gen.GetNeutrino().Nu().Vx() << ", " << gen.GetNeutrino().Nu().Vy() << ", " << gen.GetNeutrino().Nu().Vz() << " ]" << std::endl;
     _xtimeoffset = detProperties->ConvertTicksToX(g4Ticks, 0, 0, 0);
   }
   else { _xtimeoffset = 0.; }
 
   auto const *SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
   auto offset = SCE->GetPosOffsets(geo::Point_t(_mc_shr_x,_mc_shr_y,_mc_shr_z));
-  std::cout << "offset : " << offset.X() << ", " << offset.Y() << ", " << offset.Z() << std::endl;
   //_mc_shr_x += offset.X() + xtrueoffset;
   _xsceoffset = offset.X();
   _mc_shr_y += offset.Y();
