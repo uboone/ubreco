@@ -91,12 +91,15 @@ namespace protoshower {
     // loop through PFParticles
     for (size_t p=0; p < pfp_h->size(); p++) {
 
-
       const recob::PFParticle pfp = pfp_h->at(p);
 
+      if ( (fabs(pfp.PdgCode()) ==12) || (fabs(pfp.PdgCode()) ==14) ) {
+	continue;
+      }
+	  
       // get metadata for this PFP
       const std::vector< art::Ptr<larpandoraobj::PFParticleMetadata> > &pfParticleMetadataList(pfPartToMetadataAssoc.at(p));
-
+      
       // we need to decide if to skip this particle based on user settings
       bool skip = false;
       
@@ -127,8 +130,12 @@ namespace protoshower {
 	continue;
 
       // Find the parent particle
-      auto parentIdx = pfp.Parent();
-      if (parentIdx > pfp_h->size() ) continue;
+      if (pfp.Parent() < 0) continue;
+      size_t parentIdx = pfp.Parent();
+
+      if (parentIdx > pfp_h->size() ) {
+	continue;
+      }
 
       auto parent = pfp_h->at( parentIdx );
 
@@ -136,7 +143,6 @@ namespace protoshower {
       const std::vector< art::Ptr<larpandoraobj::PFParticleMetadata> > &parentMetadataList(pfPartToMetadataAssoc.at(parent.Self()));
 
       if (!parentMetadataList.empty()) {
-	//std::cout << "parent metadata!" << std::endl;
 	
 	for (unsigned int j=0; j<parentMetadataList.size(); ++j)
 	  {
@@ -146,17 +152,17 @@ namespace protoshower {
 	    if (!parentPropertiesMap.empty())
 	      //std::cout << " Found PFParticle " << parent.Self() << " with: " << std::endl;
 	    for (std::map<std::string, float>::const_iterator it = parentPropertiesMap.begin(); it != parentPropertiesMap.end(); ++it) {
-	      std::cout << "  - " << it->first << " = " << it->second << std::endl;
+	      //std::cout << "  - " << it->first << " = " << it->second << std::endl;
 	      if ( (it->first == "NuScore") && (it->second <= fNeutrinoScoreMin) && (fNeutrino == true) ) {
 		//std::cout << "\t SKIPPING because IsNeutrino Score is " << it->second << std::endl;
 		skip = true;
 	      }// if this is  not a neutrino
 	    }
 	  }
-      }// if PFP metadata exists!
+	  }// if PFP metadata exists!
       
       // find vertex defined as the vertex of the primary
-
+      
       const std::vector< art::Ptr<recob::Vertex> >& vtx_v = pfp_vtx_assn_v.at( parentIdx );
 
       ::protoshower::ProtoShower proto_shower;
@@ -202,11 +208,11 @@ namespace protoshower {
 	proto_shower.hasCluster2D(true);
 
       }// for all clusters
-      
+
       proto_shower_v.push_back( proto_shower );
       
     }// for all PFParticles
-    
+
   }// GenerateProtoShower end
 
 

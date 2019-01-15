@@ -60,7 +60,7 @@ namespace showerreco {
     for (size_t n = 0; n < _alg_v.size(); n++) {
       
       _watch.Start();
-      
+
       try {
 	_alg_v[n] -> do_reconstruction(proto_shower, result);
       }// if reco succeeds
@@ -77,7 +77,7 @@ namespace showerreco {
 	localCopy = result;
       }// if verbose
     }// for all reconstruction modules
-  
+
     // if we made it this far, the shower is good!
     result.fPassedReconstruction = true;    
 
