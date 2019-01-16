@@ -64,6 +64,7 @@ void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
     try
     {
         this->GetSliceCandidates(evt, slices, sliceCandidates);
+        this->IdentifySliceWithBestTopologicalScore(sliceCandidates);
         if (m_outputEvent.m_hasBeamFlash)
         {
             // Find the slice - if any that matches best with the beamFlash
@@ -170,10 +171,10 @@ void FlashNeutrinoId::GetSliceCandidates(const art::Event &event, SliceVector &s
     LArPandoraHelper::CollectSpacePoints(event, m_pandoraLabel, spacePoints, spacePointToHitMap);
     LArPandoraHelper::BuildPFParticleMap(pfParticles, pfParticleMap);
 
-    for (unsigned int sliceIndex = 0; sliceIndex <slices.size(); ++sliceIndex)
+    for (unsigned int sliceIndex = 0; sliceIndex < slices.size(); ++sliceIndex)
     {
         const auto &slice = slices[sliceIndex];
-        sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex+1);
+        sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1);
     }
 }
 
@@ -196,45 +197,39 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
                                                       m_minChargeToLightRatio, m_maxChargeToLightRatio))
             continue;
 
+        foundViableSlice = true;
         m_outputEvent.m_nSlicesAfterPrecuts++;
-
+        if (sliceCandidate.m_hasBestTopologicalScore == true)
+        {
+            foundHighestTopoligicalScore = true;
+            bestCombinedSliceIndex = sliceIndex;
+        }
         // ATTN if there is only one slice that passes the pre-selection cuts, then the score won't be used
         const auto &score(sliceCandidate.GetFlashMatchScore(beamFlash, m_flashMatchManager, m_opDetVector));
         if (score < maxScore)
             continue;
 
-        foundViableSlice = true;
         bestFlashMatchSliceIndex = sliceIndex;
         maxScore = score;
-
-        if (sliceCandidate.m_hasBestTopologicalScore==true)
-        {
-            foundHighestTopoligicalScore = true;
-            bestCombinedSliceIndex = sliceIndex;
-        }
-            
     }
-
     if (!foundViableSlice)
         throw FailureMode("None of the slices passed the pre-selection cuts");
 
+    std::cout << bestFlashMatchSliceIndex << std::endl;
     sliceCandidates.at(bestFlashMatchSliceIndex).m_hasBestFlashMatchScore = true;
-    
-    if(!foundHighestTopoligicalScore)
-        bestCombinedSliceIndex=bestFlashMatchSliceIndex;
 
+    if (!foundHighestTopoligicalScore)
+        bestCombinedSliceIndex = bestFlashMatchSliceIndex;
     sliceCandidates.at(bestCombinedSliceIndex).m_isTaggedAsTarget = true;
-
-    if(m_outputEvent.m_nSlicesAfterPrecuts<2)
+    if (m_outputEvent.m_nSlicesAfterPrecuts < 2)
         sliceCandidates.at(bestCombinedSliceIndex).m_targetMethod = 0;
-    else if(foundHighestTopoligicalScore)
+    else if (foundHighestTopoligicalScore)
         sliceCandidates.at(bestCombinedSliceIndex).m_targetMethod = 1;
     else
         sliceCandidates.at(bestCombinedSliceIndex).m_targetMethod = 2;
-
     m_outputEvent.m_foundATargetSlice = true;
     m_outputEvent.m_targetSliceMethod = sliceCandidates.at(bestCombinedSliceIndex).m_targetMethod;
-    std::cout << "[FlashNeutrinoId] Slice with index " << bestCombinedSliceIndex << " is tagged as neutrino." << std::endl;
+    std::cout << "[FlashNeutrinoId] Slice with index " << bestCombinedSliceIndex << " is tagged as neutrino. Method: " << m_outputEvent.m_targetSliceMethod << std::endl;
     return bestCombinedSliceIndex;
 }
 
@@ -273,8 +268,6 @@ void FlashNeutrinoId::FillSliceTree(const art::Event &evt, const SliceVector &sl
 
     if (slices.size() != allSliceCandidates.size())
         throw cet::exception("FlashNeutrinoId") << "The number of slice candidates doesn't match the number of slices" << std::endl;
-
-    this->IdentifySliceWithBestTopologicalScore(allSliceCandidates);
 
     // If available, get the information from the MC neutrino
     LArPandoraSliceIdHelper::SliceMetadataVector sliceMetadata;
@@ -334,7 +327,6 @@ void FlashNeutrinoId::IdentifySliceWithBestTopologicalScore(SliceCandidateVector
 
     if (bestSliceIndex > sliceCandidates.size())
         throw cet::exception("FlashNeutrinoId") << "Couldn't find slice the best topological score" << std::endl;
-
     sliceCandidates.at(bestSliceIndex).m_hasBestTopologicalScore = true;
 }
 
@@ -540,35 +532,34 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 
 FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                                                 const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
-                                                const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId) : 
-                                                                                                                         m_sliceId(sliceId),
-                                                                                                                         m_run(event.run()),
-                                                                                                                         m_subRun(event.subRun()),
-                                                                                                                         m_event(event.event()),
-                                                                                                                         m_hasDeposition(false),
-                                                                                                                         m_totalCharge(-std::numeric_limits<float>::max()),
-                                                                                                                         m_centerX(-std::numeric_limits<float>::max()),
-                                                                                                                         m_centerY(-std::numeric_limits<float>::max()),
-                                                                                                                         m_centerZ(-std::numeric_limits<float>::max()),
-                                                                                                                         m_minX(-std::numeric_limits<float>::max()),
-                                                                                                                         m_deltaY(-std::numeric_limits<float>::max()),
-                                                                                                                         m_deltaZ(-std::numeric_limits<float>::max()),
-                                                                                                                         m_deltaYSigma(-std::numeric_limits<float>::max()),
-                                                                                                                         m_deltaZSigma(-std::numeric_limits<float>::max()),
-                                                                                                                         m_chargeToLightRatio(-std::numeric_limits<float>::max()),
-                                                                                                                         m_xChargeLightVariable(-std::numeric_limits<float>::max()),
-                                                                                                                         m_passesPrecuts(false),
-                                                                                                                         m_flashMatchScore(-std::numeric_limits<float>::max()),
-                                                                                                                         m_totalPEHypothesis(-std::numeric_limits<float>::max()),
-                                                                                                                         m_isTaggedAsTarget(false),
-                                                                                                                         m_targetMethod(-std::numeric_limits<int>::max()),
-                                                                                                                         m_isConsideredByFlashId(true),
-                                                                                                                         m_topologicalNeutrinoScore(slice.GetTopologicalScore()),
-                                                                                                                         m_hasBestTopologicalScore(false),
-                                                                                                                         m_hasBestFlashMatchScore(false),
-                                                                                                                         m_chargeToNPhotonsTrack(chargeToNPhotonsTrack),
-                                                                                                                         m_chargeToNPhotonsShower(chargeToNPhotonsShower),
-                                                                                                                         m_xclCoef(xclCoef)
+                                                const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId) : m_sliceId(sliceId),
+                                                                                                                                                                 m_run(event.run()),
+                                                                                                                                                                 m_subRun(event.subRun()),
+                                                                                                                                                                 m_event(event.event()),
+                                                                                                                                                                 m_hasDeposition(false),
+                                                                                                                                                                 m_totalCharge(-std::numeric_limits<float>::max()),
+                                                                                                                                                                 m_centerX(-std::numeric_limits<float>::max()),
+                                                                                                                                                                 m_centerY(-std::numeric_limits<float>::max()),
+                                                                                                                                                                 m_centerZ(-std::numeric_limits<float>::max()),
+                                                                                                                                                                 m_minX(-std::numeric_limits<float>::max()),
+                                                                                                                                                                 m_deltaY(-std::numeric_limits<float>::max()),
+                                                                                                                                                                 m_deltaZ(-std::numeric_limits<float>::max()),
+                                                                                                                                                                 m_deltaYSigma(-std::numeric_limits<float>::max()),
+                                                                                                                                                                 m_deltaZSigma(-std::numeric_limits<float>::max()),
+                                                                                                                                                                 m_chargeToLightRatio(-std::numeric_limits<float>::max()),
+                                                                                                                                                                 m_xChargeLightVariable(-std::numeric_limits<float>::max()),
+                                                                                                                                                                 m_passesPrecuts(false),
+                                                                                                                                                                 m_flashMatchScore(-std::numeric_limits<float>::max()),
+                                                                                                                                                                 m_totalPEHypothesis(-std::numeric_limits<float>::max()),
+                                                                                                                                                                 m_isTaggedAsTarget(false),
+                                                                                                                                                                 m_targetMethod(-std::numeric_limits<int>::max()),
+                                                                                                                                                                 m_isConsideredByFlashId(true),
+                                                                                                                                                                 m_topologicalNeutrinoScore(slice.GetTopologicalScore()),
+                                                                                                                                                                 m_hasBestTopologicalScore(false),
+                                                                                                                                                                 m_hasBestFlashMatchScore(false),
+                                                                                                                                                                 m_chargeToNPhotonsTrack(chargeToNPhotonsTrack),
+                                                                                                                                                                 m_chargeToNPhotonsShower(chargeToNPhotonsShower),
+                                                                                                                                                                 m_xclCoef(xclCoef)
 
 {
     const auto chargeDeposition(this->GetDepositionVector(pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, slice));
@@ -752,7 +743,7 @@ bool FlashNeutrinoId::SliceCandidate::IsCompatibleWithBeamFlash(const FlashCandi
     m_deltaYSigma = m_deltaY / beamFlash.m_widthY;
     m_deltaZSigma = m_deltaZ / beamFlash.m_widthZ;
     m_chargeToLightRatio = m_totalCharge / beamFlash.m_totalPE;
-    m_xChargeLightVariable = m_xclCoef*log10(m_chargeToLightRatio)-m_centerX;
+    m_xChargeLightVariable = m_xclCoef * log10(m_chargeToLightRatio) - m_centerX;
 
     // Check if the slice passes the pre-selection cuts
     m_passesPrecuts = (std::abs(m_deltaY) < maxDeltaY &&

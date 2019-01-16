@@ -619,7 +619,7 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
     m_pSliceTree->Branch("totalPEHypothesis"      , &m_outputSlice.m_totalPEHypothesis       , "totalPEHypothesis/F");
     m_pSliceTree->Branch("peHypothesisSpectrum"   , "std::vector< float >"                   , &m_outputSlice.m_peHypothesisSpectrum);
     m_pSliceTree->Branch("isTaggedAsTarget"       , &m_outputSlice.m_isTaggedAsTarget        , "isTaggedAsTarget/O");
-    m_pSliceTree->Branch("targetMethod    "       , &m_outputSlice.m_targetMethod            , "targetMethod/I");
+    m_pSliceTree->Branch("targetMethod"           , &m_outputSlice.m_targetMethod            , "targetMethod/I");
     m_pSliceTree->Branch("isConsideredByFlashId"  , &m_outputSlice.m_isConsideredByFlashId   , "isConsideredByFlashId/O");
     m_pSliceTree->Branch("topologicalScore"       , &m_outputSlice.m_topologicalNeutrinoScore, "topologicalScore/F");
     m_pSliceTree->Branch("hasBestTopologicalScore", &m_outputSlice.m_hasBestTopologicalScore , "hasBestTopologicalScore/O");
