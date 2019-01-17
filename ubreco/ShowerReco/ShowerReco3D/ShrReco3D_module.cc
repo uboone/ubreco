@@ -174,7 +174,7 @@ ShrReco3D::ShrReco3D(fhicl::ParameterSet const & p)
   fPFPproducer   = p.get<std::string>("PFPproducer"  );
   fClusproducer  = p.get<std::string>("Clusproducer" );
   fVtxproducer   = p.get<std::string>("Vtxproducer"  );
-  fBacktrackTag  = p.get<std::string>("BacktrackTag" );
+  fBacktrackTag  = p.get<std::string>("BacktrackTag","" );
   fNeutrinoEvent = p.get<bool>       ("NeutrinoEvent");
   fFillTree      = p.get<bool>       ("FillTree",false);
   
