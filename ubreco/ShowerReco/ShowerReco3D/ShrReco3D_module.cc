@@ -19,7 +19,7 @@
 
 // shower-reco classes and utilities
 #include "ProtoShower/ProtoShowerAlgBase.h"
-#include "Base/ShowerRecoManager.h"
+#include "Base/ShrRecoManager.h"
 // include specific protoshower and recomanager instances
 
 #include "art/Framework/Services/Optional/TFileService.h"
@@ -85,7 +85,7 @@ private:
   std::map<size_t, std::vector<unsigned int> > _MCShowerInfo;  
   
   /// Shower reco core class instance
-  ::showerreco::ShowerRecoManager* _manager;
+  ::showerreco::ShrRecoManager* _manager;
   
   // ProtoShowerAlgBase to make protoshowers
   std::unique_ptr<::protoshower::ProtoShowerAlgBase> _psalg;
@@ -181,7 +181,8 @@ ShrReco3D::ShrReco3D(fhicl::ParameterSet const & p)
   const fhicl::ParameterSet& protoshower_pset = p.get<fhicl::ParameterSet>("ProtoShowerTool");  
 
   // grab algorithms for merging
-  _manager = new showerreco::ShowerRecoManager();
+  _manager = new showerreco::ShrRecoManager();
+  _manager->Clear();
   const fhicl::ParameterSet& showerrecoTools = p.get<fhicl::ParameterSet>("ShowerRecoTools");
   for (const std::string& showerrecoTool : showerrecoTools.get_pset_names()) {
     const fhicl::ParameterSet& showerreco_pset = showerrecoTools.get<fhicl::ParameterSet>(showerrecoTool);
@@ -210,7 +211,6 @@ ShrReco3D::ShrReco3D(fhicl::ParameterSet const & p)
 			       adctoe[1] * 0.0000236 / recomb,
 			       adctoe[2] * 0.0000236 / recomb };
 
-  //std::cout << "Calibration constant : " << calib << std::endl;
   _psalg->setCalorimetry(calib);
 
   SetTTree();
