@@ -68,9 +68,9 @@ physics:
                       PFPproducer: "pandora"
                       Trackproducer: "pandora"
                       SpacePointproducer: "pandora"
-                      CTagproducer: "mucstagger"
+                      CTagproducer: "mucstagger" # "MuCSTrackTaggerpandora" #"mucstagger"
                       SliceTool: @local::flash_neutrino_id_tool
-                      OnlyTagged: true
+                      OnlyTagged: false
                       }
     }
 
@@ -121,6 +121,7 @@ physics.producers.mucstagger.Debug: false
 physics.producers.mucstagger.UsePMTCalib: true
 
 physics.analyzers.fmatch.SliceTool.FlashMatchConfig.FlashMatchManager.MatchAlgo: "Chi2Match"
+physics.analyzers.fmatch.SliceTool.ChargeToNPhotonsTrack: 164. # 240 e-/ADC x 23.6/1e6 MeV/e- x 29,000 gamma/MeV = 164.  [/1.22 = 134.]
 physics.analyzers.fmatch.SliceTool.BeamWindowStartTime: -1.5
 physics.analyzers.fmatch.SliceTool.BeamWindowEndTime: -0.5
 physics.analyzers.fmatch.SliceTool.BeamFlashPEThreshold: 5.0

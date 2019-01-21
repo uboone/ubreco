@@ -64,6 +64,10 @@ private:
 
   TTree* _tree;
   float _score;
+
+  // PFP map
+  std::map<unsigned int, unsigned int> _pfpmap;
+
 };
 
 DEFINE_ART_MODULE(PandoraEventAnalyser)
@@ -118,6 +122,11 @@ void PandoraEventAnalyser::analyze(art::Event const & e)
   
   std::cout << "There are " << pfp_h->size() << " pfparticles in the event " << std::endl;
   
+  // fill map: pfparticle Self() -> index/key
+  _pfpmap.clear();
+  for (unsigned int p=0; p < pfp_h->size(); p++)
+    _pfpmap[pfp_h->at(p).Self()] = p;
+
   for (unsigned int p=0; p < pfp_h->size(); p++){
     
     auto const& pfp = pfp_h->at(p);
@@ -214,13 +223,17 @@ void PandoraEventAnalyser::AddDaughters(const art::Ptr<recob::PFParticle>& pfp_p
   std::cout << "\t PFP w/ PdgCode " << pfp_ptr->PdgCode() << " has " << daughters.size() << " daughters" << std::endl;
   
   for(auto const& daughterid : daughters) {
+
+    if (_pfpmap.find(daughterid) == _pfpmap.end()) {
+      std::cout << "Did not find DAUGHTERID in map! error"<< std::endl;
+      continue;
+    }
     
-    const art::Ptr<recob::PFParticle> pfp_ptr(pfp_h, daughterid);
-
+    const art::Ptr<recob::PFParticle> pfp_ptr(pfp_h, _pfpmap.at(daughterid) );
+    
     AddDaughters(pfp_ptr, pfp_h, pfp_v);
-
+    
   }// for all daughters
-  
   
   return;
 }

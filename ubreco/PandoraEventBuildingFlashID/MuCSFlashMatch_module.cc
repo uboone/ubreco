@@ -69,6 +69,11 @@ private:
   float _score;
   int _mucs;
 
+  TTree* _evt_tree;
+  float _best_score;
+  float _mucs_score;
+  int _best_mucs;
+
   std::string fPFPproducer, fTrackproducer, fSpacePointproducer, fCTagproducer;
   
   bool fOnlyTagged;
@@ -98,6 +103,11 @@ MuCSFlashMatch::MuCSFlashMatch(fhicl::ParameterSet const& p)
   _tree->Branch("_score",&_score,"score/F");
   _tree->Branch("_mucs",&_mucs,"mucs/I");
 
+  _evt_tree = tfs->make<TTree>("evtflashmatch","evt flashmatching tree");
+  _evt_tree->Branch("_best_score",&_best_score,"best_score/F");
+  _evt_tree->Branch("_mucs_score",&_mucs_score,"mucs_score/F");
+  _evt_tree->Branch("_best_mucs",&_best_mucs,"best_mucs/I");
+
 }
 
 void MuCSFlashMatch::analyze(art::Event const& e)
@@ -122,6 +132,9 @@ void MuCSFlashMatch::analyze(art::Event const& e)
   auto const& spacepoint_h = e.getValidHandle<std::vector<recob::SpacePoint> >(fSpacePointproducer);
   
   art::FindManyP<recob::Hit> spacepoint_hit_assn_v(spacepoint_h, e, fSpacePointproducer);
+
+  _best_score = 10000.;
+  _mucs_score = -1; // this way we know if a MuCS track was tagged in the event
 
   // loop through PFParticles
   for (unsigned int p=0; p < pfp_h->size(); p++){
@@ -165,11 +178,16 @@ void MuCSFlashMatch::analyze(art::Event const& e)
     
     
     _score = _flashmatchTool->ClassifyTrack(e, spacepoint_ptr_v, hit_ptr_v);
+
+    if ( (_score < _best_score) && (_score > 0) ) { _best_score = _score; _best_mucs = _mucs; }
+    if (_mucs) { _mucs_score = _score; }
     
     _tree->Fill();
     
   }// for all tracks
 
+  _evt_tree->Fill();
+  
   return;
 }
 

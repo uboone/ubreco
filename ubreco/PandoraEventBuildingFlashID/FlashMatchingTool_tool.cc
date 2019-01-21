@@ -2,6 +2,11 @@
 
 #include "art/Framework/Services/Optional/TFileService.h"
 
+#include "larcore/Geometry/Geometry.h"
+#include "larcorealg/Geometry/GeometryCore.h"
+#include "larevt/CalibrationDBI/Interface/PmtGainService.h"
+#include "larevt/CalibrationDBI/Interface/PmtGainProvider.h"
+
 namespace flashmatch {
   
   class FlashMatchingTool : public FlashMatchingToolBase {
@@ -161,7 +166,7 @@ namespace flashmatch {
 	  m_subRun(event.subRun()),
 	  m_event(event.event()),
 	  m_time(flash.Time()),
-	  m_peSpectrum(flash.PEs().begin(), flash.PEs().end()),
+	  m_peSpectrum(flash.PEs().begin(), flash.PEs().end()), //DAVIDC
 	  m_totalPE(flash.TotalPE()),
 	  m_centerY(flash.YCenter()),
 	  m_centerZ(flash.ZCenter()),
@@ -171,6 +176,20 @@ namespace flashmatch {
 	  m_isBrightestInWindow(false),
 	  m_isBeamFlash(false)
       {
+
+	art::ServiceHandle<geo::Geometry> geo;
+	const ::lariov::PmtGainProvider& gain_provider = art::ServiceHandle<lariov::PmtGainService>()->GetProvider();
+
+	for (size_t pmt=0; pmt < flash.PEs().size(); pmt++) {
+	  m_peSpectrum.at(pmt) = flash.PEs()[pmt];
+	  if ( (geo->IsValidOpChannel(pmt%100)) && (pmt%100 < 32) ) {
+	    //std::cout << "extracting gain for ch " << pmt << std::endl;
+	    //auto gain = gain_provider.ExtraInfo(pmt).GetFloatData("area_gain");
+	    auto gain = gain_provider.Gain(pmt%100);
+	    //std::cout << "gain is " << gain << std::endl;
+	    m_peSpectrum.at(pmt) *= 120. / gain;
+	  }// if gain is valid
+	}
       }
       
       /**
@@ -568,6 +587,9 @@ namespace flashmatch {
 	    const auto &position(spacepoint->XYZ());
 	    const auto charge(hit->Integral());
 	
+	    // ADC -> MeV
+	    //float ADCtoMeV = 240. * (23.6/1e6) / 0.5;
+
 	    //depositionVector.emplace_back(position[0], position[1], position[2], charge, this->GetNPhotons(charge, particle));
 	    depositionVector.emplace_back(position[0], position[1], position[2], charge, charge * m_chargeToNPhotonsTrack);
 	    //std::cout << "adding to deposition vector @ location [" << position[0] << ", " << position[1] << ", " << position[2] 

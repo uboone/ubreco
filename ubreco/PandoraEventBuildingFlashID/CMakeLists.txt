@@ -5,6 +5,7 @@ add_subdirectory(job)
 
 art_make( 
 	  LIB_LIBRARIES
+			larevt_CalibrationDBI_IOVData
 			larcorealg_Geometry
                         larcore_Geometry_Geometry_service
                         larsim_Simulation lardataobj_Simulation
@@ -44,6 +45,7 @@ art_make(
                         ubana_SelectionTool_OpT0FinderBase
                         ubana_SelectionTool_OpT0FinderAlgorithms
 	  TOOL_LIBRARIES
+			larevt_CalibrationDBI_IOVData
 			larcorealg_Geometry
                         larcore_Geometry_Geometry_service
                         larsim_Simulation lardataobj_Simulation
@@ -84,6 +86,7 @@ art_make(
                         ubana_SelectionTool_OpT0FinderAlgorithms
 
      MODULE_LIBRARIES 
+			larevt_CalibrationDBI_IOVData
 			#larpandora_LArPandoraEventBuilding
 			art_Framework_Core
 			art_Framework_Services_Registry
