@@ -190,11 +190,17 @@ void UBWCFlashFinder::produce(art::Event & evt)
     for (unsigned int i=0; i!= geo->NOpDets(); ++i) {
       if (geo->IsValidOpChannel(i) && i<32) {
 	pmt_gain.push_back(gain_provider.Gain(i));
-	pmt_gain.push_back(gain_provider.GainErr(i));
+	pmt_gainerr.push_back(gain_provider.GainErr(i));
 	//pmt_gain.push_back(gain_provider.ExtraInfo(i).GetFloatData("amplitude_gain"));
 	//pmt_gainerr.push_back(gain_provider.ExtraInfo(i).GetFloatData("amplitude_gain_err"));
       }
     }
+    //in case we somehow did not retrieve gains for all PMTs force a const value
+    if(pmt_gain.size()<32 || pmt_gainerr.size()<32){
+      std::cout << "Could not retrieve PMT gain from DB; revert to default values" << std::endl;
+      pmt_gain.assign(32, 120.);
+      pmt_gainerr.assign(32, 0.30);
+    }    
   }
 
   //reconstruct
