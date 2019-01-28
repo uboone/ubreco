@@ -215,7 +215,6 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
     if (!foundViableSlice)
         throw FailureMode("None of the slices passed the pre-selection cuts");
 
-    std::cout << bestFlashMatchSliceIndex << std::endl;
     sliceCandidates.at(bestFlashMatchSliceIndex).m_hasBestFlashMatchScore = true;
 
     if (!foundHighestTopoligicalScore)
@@ -365,6 +364,8 @@ void FlashNeutrinoId::OutputEvent::Reset(const art::Event &event)
     m_run = event.run();
     m_subRun = event.subRun();
     m_event = event.event();
+    m_timeHigh = event.time().timeHigh();
+    m_timeLow = event.time().timeLow();
     m_nFlashes = -std::numeric_limits<int>::max();
     m_nFlashesInBeamWindow = -std::numeric_limits<int>::max();
     m_hasBeamFlash = false;
@@ -380,6 +381,8 @@ void FlashNeutrinoId::OutputEvent::Reset(const art::Event &event)
 FlashNeutrinoId::FlashCandidate::FlashCandidate() : m_run(-std::numeric_limits<int>::max()),
                                                     m_subRun(-std::numeric_limits<int>::max()),
                                                     m_event(-std::numeric_limits<int>::max()),
+                                                    m_timeHigh(0),
+                                                    m_timeLow(0),
                                                     m_time(-std::numeric_limits<float>::max()),
                                                     m_totalPE(-std::numeric_limits<float>::max()),
                                                     m_centerY(-std::numeric_limits<float>::max()),
@@ -397,6 +400,8 @@ FlashNeutrinoId::FlashCandidate::FlashCandidate() : m_run(-std::numeric_limits<i
 FlashNeutrinoId::FlashCandidate::FlashCandidate(const art::Event &event, const recob::OpFlash &flash) : m_run(event.run()),
                                                                                                         m_subRun(event.subRun()),
                                                                                                         m_event(event.event()),
+                                                                                                        m_timeHigh(event.time().timeHigh()),
+                                                                                                        m_timeLow(event.time().timeLow()),
                                                                                                         m_time(flash.Time()),
                                                                                                         m_peSpectrum(flash.PEs().begin(), flash.PEs().end()),
                                                                                                         m_totalPE(flash.TotalPE()),
@@ -468,6 +473,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate() : m_sliceId(-std::numeric_limi
                                                     m_run(-std::numeric_limits<int>::max()),
                                                     m_subRun(-std::numeric_limits<int>::max()),
                                                     m_event(-std::numeric_limits<int>::max()),
+                                                    m_timeHigh(0),
+                                                    m_timeLow(0),
                                                     m_hasDeposition(false),
                                                     m_totalCharge(-std::numeric_limits<float>::max()),
                                                     m_centerX(-std::numeric_limits<float>::max()),
@@ -501,6 +508,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
                                                                                                m_run(event.run()),
                                                                                                m_subRun(event.subRun()),
                                                                                                m_event(event.event()),
+                                                                                               m_timeHigh(event.time().timeHigh()),
+                                                                                               m_timeLow(event.time().timeLow()),
                                                                                                m_hasDeposition(false),
                                                                                                m_totalCharge(-std::numeric_limits<float>::max()),
                                                                                                m_centerX(-std::numeric_limits<float>::max()),
@@ -536,6 +545,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
                                                                                                                                                                  m_run(event.run()),
                                                                                                                                                                  m_subRun(event.subRun()),
                                                                                                                                                                  m_event(event.event()),
+                                                                                                                                                                 m_timeHigh(event.time().timeHigh()),
+                                                                                                                                                                 m_timeLow(event.time().timeLow()),
                                                                                                                                                                  m_hasDeposition(false),
                                                                                                                                                                  m_totalCharge(-std::numeric_limits<float>::max()),
                                                                                                                                                                  m_centerX(-std::numeric_limits<float>::max()),

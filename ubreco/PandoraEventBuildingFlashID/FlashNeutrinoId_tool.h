@@ -96,6 +96,8 @@ private:
         int  m_run;                   ///< The run number
         int  m_subRun;                ///< The subRun number
         int  m_event;                 ///< The event number
+        UInt_t m_timeHigh;            ///< The event time stamp, seconds part
+        UInt_t m_timeLow;             ///< The event time stamp, nanoseconds part
         int  m_nFlashes;              ///< The number of flashes
         int  m_nFlashesInBeamWindow;  ///< The number of flashes in the beam window
         bool m_hasBeamFlash;          ///< If a beam flash was found
@@ -154,6 +156,8 @@ private:
         int                 m_run;                  ///< The run number
         int                 m_subRun;               ///< The subRun number
         int                 m_event;                ///< The event number
+        UInt_t              m_timeHigh;            ///< The event time stamp, seconds part
+        UInt_t              m_timeLow;             ///< The event time stamp, nanoseconds part
         float               m_time;                 ///< Time of the flash
         std::vector<float>  m_peSpectrum;           ///< The number of PEs on each PMT
         float               m_totalPE;              ///< The total number of photoelectrons over all PMTs in the flash
@@ -342,6 +346,8 @@ private:
         int                  m_run;                      ///< The run number
         int                  m_subRun;                   ///< The subRun number
         int                  m_event;                    ///< The event number
+        UInt_t               m_timeHigh;                 ///< The event time stamp, seconds part
+        UInt_t               m_timeLow;                  ///< The event time stamp, nanoseconds part
         bool                 m_hasDeposition;            ///< If the slice has any charge deposited on the collection plane which produced a spacepoint
         float                m_totalCharge;              ///< The total charge deposited on the collection plane by hits that produced spacepoints
         float                m_centerX;                  ///< The charge weighted center of the slice in X
@@ -559,6 +565,8 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
     m_pEventTree->Branch("run"                 , &m_outputEvent.m_run                 , "run/I");
     m_pEventTree->Branch("subRun"              , &m_outputEvent.m_subRun              , "subRun/I");
     m_pEventTree->Branch("event"               , &m_outputEvent.m_event               , "event/I");
+    m_pEventTree->Branch("evt_time_sec"        , &m_outputEvent.m_timeHigh            , "evt_time_sec/i");
+    m_pEventTree->Branch("evt_time_nsec"       , &m_outputEvent.m_timeLow             , "evt_time_nsec/i");
     m_pEventTree->Branch("nFlashes"            , &m_outputEvent.m_nFlashes            , "nFlashes/I");
     m_pEventTree->Branch("nFlashesInBeamWindow", &m_outputEvent.m_nFlashesInBeamWindow, "nFlashesInBeamWindow/I");
     m_pEventTree->Branch("hasBeamFlash"        , &m_outputEvent.m_hasBeamFlash        , "hasBeamFlash/O");
@@ -585,6 +593,8 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
     m_pFlashTree->Branch("run"                , &m_outputFlash.m_run                , "run/I");
     m_pFlashTree->Branch("subRun"             , &m_outputFlash.m_subRun             , "subRun/I");
     m_pFlashTree->Branch("event"              , &m_outputFlash.m_event              , "event/I");
+    m_pFlashTree->Branch("evt_time_sec"       , &m_outputFlash.m_timeHigh           , "evt_time_sec/i");
+    m_pFlashTree->Branch("evt_time_nsec"      , &m_outputFlash.m_timeLow            , "evt_time_nsec/i");
     m_pFlashTree->Branch("time"               , &m_outputFlash.m_time               , "time/F");
     m_pFlashTree->Branch("centerY"            , &m_outputFlash.m_centerY            , "centerY/F");
     m_pFlashTree->Branch("centerZ"            , &m_outputFlash.m_centerZ            , "centerZ/F");
@@ -597,10 +607,12 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
     m_pFlashTree->Branch("isBeamFlash"        , &m_outputFlash.m_isBeamFlash        , "isBeamFlash/O");
 
     m_pSliceTree = fileService->make<TTree>("slices","");
-    m_pSliceTree->Branch("sliceId"                 , &m_outputSlice.m_sliceId                , "sliceId/I");
+    m_pSliceTree->Branch("sliceId"                , &m_outputSlice.m_sliceId                 , "sliceId/I");
     m_pSliceTree->Branch("run"                    , &m_outputSlice.m_run                     , "run/I");
     m_pSliceTree->Branch("subRun"                 , &m_outputSlice.m_subRun                  , "subRun/I");
     m_pSliceTree->Branch("event"                  , &m_outputSlice.m_event                   , "event/I");
+    m_pSliceTree->Branch("evt_time_sec"           , &m_outputSlice.m_timeHigh                , "evt_time_sec/i");
+    m_pSliceTree->Branch("evt_time_nsec"          , &m_outputSlice.m_timeLow                 , "evt_time_nsec/i");
     m_pSliceTree->Branch("hasDeposition"          , &m_outputSlice.m_hasDeposition           , "hasDeposition/O");
     m_pSliceTree->Branch("totalCharge"            , &m_outputSlice.m_totalCharge             ,  "totalCharge/F");
     m_pSliceTree->Branch("centerX"                , &m_outputSlice.m_centerX                 , "centerX/F");
