@@ -100,19 +100,37 @@ namespace flashana {
     this->set_verbosity((msg::Level_t)(mgr_cfg.get<unsigned int>("Verbosity")));
     _store_full = mgr_cfg.get<bool>("StoreFullResult");
 
-    auto const& detector_cfg = main_cfg.get<flashana::Config_t>("DetectorConfiguration");
+    //auto const& detector_cfg = main_cfg.get<flashana::Config_t>("DetectorConfiguration");
+    //auto const& pmt_pos_cfg = detector_cfg.get<flashana::Config_t>("PMTPosition");
+    //auto const pmt_x_pos = pmt_pos_cfg.get<std::vector<double> >("X");
+    //auto const pmt_y_pos = pmt_pos_cfg.get<std::vector<double> >("Y");
+    //auto const pmt_z_pos = pmt_pos_cfg.get<std::vector<double> >("Z");
+    //auto const& detector_boundary_cfg = detector_cfg.get<flashana::Config_t>("ActiveVolume");
+    //auto const det_xrange = detector_boundary_cfg.get<std::vector<double> >("X");
+    //auto const det_yrange = detector_boundary_cfg.get<std::vector<double> >("Y");
+    //auto const det_zrange = detector_boundary_cfg.get<std::vector<double> >("Z");
+    //auto const drift_velocity = detector_cfg.get<double>("DriftVelocity");
 
-    auto const& pmt_pos_cfg = detector_cfg.get<flashana::Config_t>("PMTPosition");
-    auto const pmt_x_pos = pmt_pos_cfg.get<std::vector<double> >("X");
-    auto const pmt_y_pos = pmt_pos_cfg.get<std::vector<double> >("Y");
-    auto const pmt_z_pos = pmt_pos_cfg.get<std::vector<double> >("Z");
+    const art::ServiceHandle<geo::Geometry> geo; 
+    const geo::TPCGeo &thisTPC = geo->TPC();
+    const geo::BoxBoundedGeo theTpcGeo = thisTPC.ActiveBoundingBox();
+    const detinfo::DetectorProperties *_detprop = lar::providerFrom<detinfo::DetectorPropertiesService>();
 
-    auto const& detector_boundary_cfg = detector_cfg.get<flashana::Config_t>("ActiveVolume");
-    auto const det_xrange = detector_boundary_cfg.get<std::vector<double> >("X");
-    auto const det_yrange = detector_boundary_cfg.get<std::vector<double> >("Y");
-    auto const det_zrange = detector_boundary_cfg.get<std::vector<double> >("Z");
-
-    auto const drift_velocity = detector_cfg.get<double>("DriftVelocity");
+    auto const drift_velocity = _detprop->DriftVelocity();
+    std::vector<double> det_xrange = {theTpcGeo.MinX(), theTpcGeo.MaxX()};
+    std::vector<double> det_yrange = {theTpcGeo.MinY(), theTpcGeo.MaxY()};
+    std::vector<double> det_zrange = {theTpcGeo.MinZ(), theTpcGeo.MaxZ()};
+    std::vector<double> pmt_x_pos(geo->NOpDets());
+    std::vector<double> pmt_y_pos(geo->NOpDets());
+    std::vector<double> pmt_z_pos(geo->NOpDets());
+    for (uint i=0; i< geo->NOpDets(); ++i)
+    {
+      Double_t xyz[3] ={};
+      geo->OpDetGeoFromOpChannel(i).GetCenter(xyz);
+      pmt_x_pos[i]=xyz[0];
+      pmt_y_pos[i]=xyz[1];
+      pmt_z_pos[i]=xyz[2];
+    }
 
     auto const flash_filter_name = mgr_cfg.get<std::string>("FlashFilterAlgo","");
     auto const tpc_filter_name   = mgr_cfg.get<std::string>("TPCFilterAlgo","");

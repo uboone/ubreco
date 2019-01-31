@@ -6,7 +6,21 @@ art_make( BASENAME_ONLY
 	  ubana_BasicTool_GeoAlgo
 	  ${ROOT_BASIC_LIB_LIST}
 	  ${FHICLCPP}
+	  art_Utilities
           cetlib cetlib_except
+
+	larcorealg_Geometry
+	larcore_Geometry_Geometry_service
+	${ART_FRAMEWORK_CORE}
+	${ART_FRAMEWORK_PRINCIPAL}
+	${ART_FRAMEWORK_SERVICES_REGISTRY}
+	${ART_FRAMEWORK_SERVICES_BASIC}
+	${Boost_SYSTEM_LIBRARY}
+	art_Framework_Services_Registry
+	art_Persistency_Common
+	art_Persistency_Provenance
+	art_Framework_Services_Registry
+	canvas
 	)
 install_headers()
 install_source()

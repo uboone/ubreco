@@ -22,6 +22,11 @@
 #include "BaseProhibitAlgo.h"
 #include "BaseFlashMatch.h"
 #include "BaseFlashHypothesis.h"
+
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
+#include "larcore/Geometry/Geometry.h"
+#include "larcorealg/Geometry/TPCGeo.h"
+
 namespace flashana {
   /**
      \class FlashMatchManager
