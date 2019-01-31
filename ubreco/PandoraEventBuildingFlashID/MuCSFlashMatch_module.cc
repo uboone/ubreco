@@ -68,17 +68,28 @@ private:
   TTree* _tree;
   float _score;
   int _mucs;
+  int _through;
 
   TTree* _evt_tree;
   float _best_score;
   float _mucs_score;
+  std::vector<float> _score_v;
+  int _score_mucs_idx;
   int _best_mucs;
+  float _trk_start_x, _trk_start_y, _trk_start_z;
+  float _trk_end_x, _trk_end_y, _trk_end_z;
+  float _trk_start_x_mucs, _trk_start_y_mucs, _trk_start_z_mucs;
+  float _trk_end_x_mucs, _trk_end_y_mucs, _trk_end_z_mucs;
+  std::vector<float> _peSpectrum, _peHypothesis;
+  std::vector<float> _peSpectrum_mucs, _peHypothesis_mucs;
 
   std::string fPFPproducer, fTrackproducer, fSpacePointproducer, fCTagproducer;
   
   bool fOnlyTagged;
   
   std::unique_ptr<flashmatch::FlashMatchingToolBase> _flashmatchTool;             ///< The slice id tool
+
+  bool ThroughGoing(const float& xs, const float& ys, const float& zs, const float& xe, const float& ye, const float& ze);
 
 };
 
@@ -102,11 +113,30 @@ MuCSFlashMatch::MuCSFlashMatch(fhicl::ParameterSet const& p)
   _tree = tfs->make<TTree>("flashmatch","flashmatching tree");
   _tree->Branch("_score",&_score,"score/F");
   _tree->Branch("_mucs",&_mucs,"mucs/I");
+  _tree->Branch("_through",&_through,"through/I");
+  _tree->Branch("_trk_start_x",&_trk_start_x,"trk_start_x/F");
+  _tree->Branch("_trk_start_y",&_trk_start_y,"trk_start_y/F");
+  _tree->Branch("_trk_start_z",&_trk_start_z,"trk_start_z/F");
+  _tree->Branch("_trk_end_x",&_trk_end_x,"trk_end_x/F");
+  _tree->Branch("_trk_end_y",&_trk_end_y,"trk_end_y/F");
+  _tree->Branch("_trk_end_z",&_trk_end_z,"trk_end_z/F");
+  _tree->Branch("peSpectrum"  ,"std::vector<float>",&_peSpectrum);
+  _tree->Branch("peHypothesis","std::vector<float>",&_peHypothesis);
 
   _evt_tree = tfs->make<TTree>("evtflashmatch","evt flashmatching tree");
   _evt_tree->Branch("_best_score",&_best_score,"best_score/F");
   _evt_tree->Branch("_mucs_score",&_mucs_score,"mucs_score/F");
   _evt_tree->Branch("_best_mucs",&_best_mucs,"best_mucs/I");
+  _evt_tree->Branch("_score_mucs_idx",&_score_mucs_idx,"score_mucs_idx/I");
+  _evt_tree->Branch("_score_v","std::vector<float>",&_score_v);
+  _evt_tree->Branch("_trk_start_x_mucs",&_trk_start_x_mucs,"trk_start_x_mucs/F");
+  _evt_tree->Branch("_trk_start_y_mucs",&_trk_start_y_mucs,"trk_start_y_mucs/F");
+  _evt_tree->Branch("_trk_start_z_mucs",&_trk_start_z_mucs,"trk_start_z_mucs/F");
+  _evt_tree->Branch("_trk_end_x_mucs",&_trk_end_x_mucs,"trk_end_x_mucs/F");
+  _evt_tree->Branch("_trk_end_y_mucs",&_trk_end_y_mucs,"trk_end_y_mucs/F");
+  _evt_tree->Branch("_trk_end_z_mucs",&_trk_end_z_mucs,"trk_end_z_mucs/F");
+  _evt_tree->Branch("peSpectrum_mucs"  ,"std::vector<float>",&_peSpectrum_mucs);
+  _evt_tree->Branch("peHypothesis_mucs","std::vector<float>",&_peHypothesis_mucs);
 
 }
 
@@ -136,8 +166,18 @@ void MuCSFlashMatch::analyze(art::Event const& e)
   _best_score = 10000.;
   _mucs_score = -1; // this way we know if a MuCS track was tagged in the event
 
+  size_t nbad = 0;
+
+  // have we tagged an MUCS track in this event?
+  bool mucstagged = false;
+  _score_v.clear();
+
   // loop through PFParticles
   for (unsigned int p=0; p < pfp_h->size(); p++){
+
+    //std::cout << "3D NEW TRACK" << std::endl;
+    _peSpectrum.clear();
+    _peHypothesis.clear();
     
     auto const& pfp = pfp_h->at(p);
     const art::Ptr<recob::PFParticle> pfp_ptr(pfp_h, p);
@@ -157,19 +197,45 @@ void MuCSFlashMatch::analyze(art::Event const& e)
 
     const art::Ptr<recob::Track> trk_ptr(trk_h, trk_key);
 
+    _trk_start_x = trk_ptr->Vertex().X();
+    _trk_start_y = trk_ptr->Vertex().Y();
+    _trk_start_z = trk_ptr->Vertex().Z();
+    _trk_end_x = trk_ptr->End().X();
+    _trk_end_y = trk_ptr->End().Y();
+    _trk_end_z = trk_ptr->End().Z();
+
+
+
+    if (trk_ptr->Length() < 20.) { nbad += 1; continue; }
+
+    if ( (_trk_start_x < -10) || (_trk_start_x > 270) ) { nbad += 1; continue; }
+
+    if ( (_trk_end_x < -10)   || (_trk_end_x > 270)   ) { nbad += 1; continue; }
+
     // associations
     const std::vector< art::Ptr<recob::SpacePoint> >& spacepoint_ptr_v = pfp_spacepoint_assn_v.at(pfp_key);
     const std::vector< art::Ptr<anab::CosmicTag> >& ctag_ptr_v = trk_ctag_assn_v.at(trk_key);
     
     _mucs = ctag_ptr_v.size();
+    _through = 0;
+
+    if (_mucs) { // check that it is through-oging)
+      if (ThroughGoing( _trk_start_x, _trk_start_y, _trk_start_z, _trk_end_x, _trk_end_y, _trk_end_z ) == false) {
+	std::cout << "MUCS tagged track is not through-going" << std::endl;
+	_through = 1;
+	continue;
+      }
+    }// if a MuCS tagged track
 
     if (fOnlyTagged && (_mucs != 1) ) continue;
+    //if (!fOnlyTagged && (_mucs != 0) ) continue;
 
     
     std::vector< art::Ptr<recob::Hit> > hit_ptr_v;
     
     for (size_t sp=0; sp < spacepoint_ptr_v.size(); sp++) {
       auto const& spkey = spacepoint_ptr_v.at(sp).key();
+      //std::cout << "3D XYZ " << spacepoint_ptr_v.at(sp)->XYZ()[0] << " " << spacepoint_ptr_v.at(sp)->XYZ()[1] << " " << spacepoint_ptr_v.at(sp)->XYZ()[2] << std::endl;
       const std::vector< art::Ptr<recob::Hit> > this_hit_ptr_v = spacepoint_hit_assn_v.at( spkey );
       for (size_t h=0; h < this_hit_ptr_v.size(); h++) {
 	hit_ptr_v.push_back( this_hit_ptr_v.at( h ) );
@@ -177,17 +243,49 @@ void MuCSFlashMatch::analyze(art::Event const& e)
     }// fpr all spacepoints
     
     
-    _score = _flashmatchTool->ClassifyTrack(e, spacepoint_ptr_v, hit_ptr_v);
+    _score = _flashmatchTool->ClassifyTrack(e, spacepoint_ptr_v, hit_ptr_v, _peSpectrum, _peHypothesis);
+
+    if ( (_peSpectrum.size() < 232) || (_peHypothesis.size() < 32) ) continue;
+
+    float PEhypo = 0;
+    float PEreco = 0;
+    for (size_t pmt=0; pmt < 32; pmt++){
+      auto H = _peHypothesis[pmt];
+      auto O = _peHypothesis[pmt+200];
+      if ( (O < 10) && (H < 15.) ) 
+	continue;
+      PEhypo += H;
+      PEreco += O;
+    }
+    float deltaPE = fabs(PEhypo-PEreco)/(PEhypo+PEreco);
+    if (deltaPE > 0.5)
+      continue;
+
+
+    _score_v.push_back(_score);
 
     if ( (_score < _best_score) && (_score > 0) ) { _best_score = _score; _best_mucs = _mucs; }
-    if (_mucs) { _mucs_score = _score; }
+    if (_mucs) { 
+      mucstagged = true;
+      _score_mucs_idx = _score_v.size()-1;
+      _peHypothesis_mucs = _peHypothesis;
+      _peSpectrum_mucs = _peSpectrum;
+      _mucs_score = _score; 
+      _trk_end_x_mucs = _trk_end_x;
+      _trk_start_x_mucs = _trk_start_x;
+      _trk_end_y_mucs = _trk_end_y;
+      _trk_start_y_mucs = _trk_start_y;
+      _trk_end_z_mucs = _trk_end_z;
+      _trk_start_z_mucs = _trk_start_z;
+    }
     
     _tree->Fill();
     
   }// for all tracks
 
-  _evt_tree->Fill();
-  
+  if (mucstagged == true)
+    _evt_tree->Fill();
+
   return;
 }
 
@@ -199,6 +297,13 @@ void MuCSFlashMatch::beginJob()
 void MuCSFlashMatch::endJob()
 {
   // Implementation of optional member function here.
+}
+
+bool MuCSFlashMatch::ThroughGoing(const float& xs, const float& ys, const float& zs, const float& xe, const float& ye, const float& ze) {
+
+  if (ys < 90) return false;
+  if ( (xe < 250.) && (ye > -90) ) return false;
+  return true;
 }
 
 DEFINE_ART_MODULE(MuCSFlashMatch)

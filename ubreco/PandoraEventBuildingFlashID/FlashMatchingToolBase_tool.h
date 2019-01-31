@@ -57,7 +57,9 @@ namespace flashmatch {
 
     virtual float ClassifyTrack(const art::Event &evt,
 				const std::vector<art::Ptr< recob::SpacePoint> > &spacepoint_v,
-				const std::vector<art::Ptr<recob::Hit> > &hit_v) = 0;
+				const std::vector<art::Ptr<recob::Hit> > &hit_v,
+				std::vector<float>& recospectrum,
+				std::vector<float>& hypospectrum) = 0;
     
   protected:
 

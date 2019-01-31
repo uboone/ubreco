@@ -44,7 +44,9 @@ namespace flashmatch {
 
     float ClassifyTrack(const art::Event &evt,
 			const std::vector<art::Ptr< recob::SpacePoint> > &spacepoint_v,
-			const std::vector<art::Ptr<recob::Hit> > &hit_v);
+			const std::vector<art::Ptr<recob::Hit> > &hit_v,
+			std::vector<float>& recospectrum,
+			std::vector<float>& hypospectrum);
 
 
   private:
@@ -256,6 +258,7 @@ namespace flashmatch {
 	      throw cet::exception("FlashMatchingTool") << "OpDet ID, " << opDet << ", is out of range: 0 - " << (nOpDets - 1) << std::endl;
 	    
 	    const auto PE(m_peSpectrum.at(FEM+i));
+	    //std::cout << "PE sectrum @ " << FEM+i << " goes to opdet " << opDet << std::endl;
 	    flash.pe_v.at(opDet) = PE;
 	    flash.pe_err_v.at(opDet) = std::sqrt(PE);
 	  }
@@ -781,7 +784,7 @@ namespace flashmatch {
       // Get the OpDets in their default order
       std::vector<unsigned int> opDetVector;
       for (unsigned int iChannel = 0; iChannel < nOpDets; ++iChannel)
-	opDetVector.push_back(geometry->OpDetFromOpChannel(iChannel));
+	opDetVector.push_back(iChannel);//geometry->OpDetFromOpChannel(iChannel));
       
       // Get the remapped OpDets if required
       if (pset.get<bool>("ShouldRemapPMTs"))
@@ -1072,7 +1075,9 @@ void FlashMatchingTool::configure(const fhicl::ParameterSet& pset) {
 
   float FlashMatchingTool::ClassifyTrack(const art::Event &evt,
 					 const std::vector<art::Ptr< recob::SpacePoint> > &spacepoint_v,
-					 const std::vector<art::Ptr<recob::Hit> > &hit_v)
+					 const std::vector<art::Ptr<recob::Hit> > &hit_v,
+					 std::vector<float>& recospectrum,
+					 std::vector<float>& hypospectrum)
 
 
   {
@@ -1105,6 +1110,11 @@ void FlashMatchingTool::configure(const fhicl::ParameterSet& pset) {
 	    {
 	      // get score for match
 	      score = this->GetSliceScore(beamFlash, slice);
+
+	      recospectrum = beamFlash.m_peSpectrum;
+	      std::cout << "Reco spectrum has " << recospectrum.size() << " elements" << std::endl;
+	      hypospectrum = beamFlash.m_peHypSpectrum;
+	      std::cout << "Hypo spectrum has " << hypospectrum.size() << " elements" << std::endl;
 
 	      if (m_pFlashTree){
 		m_outputFlash = beamFlash;
