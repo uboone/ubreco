@@ -403,7 +403,6 @@ FlashNeutrinoId::FlashCandidate::FlashCandidate(const art::Event &event, const r
                                                                                                         m_timeHigh(event.time().timeHigh()),
                                                                                                         m_timeLow(event.time().timeLow()),
                                                                                                         m_time(flash.Time()),
-                                                                                                        m_peSpectrum(flash.PEs().begin(), flash.PEs().end()),
                                                                                                         m_totalPE(flash.TotalPE()),
                                                                                                         m_centerY(flash.YCenter()),
                                                                                                         m_centerZ(flash.ZCenter()),
@@ -413,6 +412,14 @@ FlashNeutrinoId::FlashCandidate::FlashCandidate(const art::Event &event, const r
                                                                                                         m_isBrightestInWindow(false),
                                                                                                         m_isBeamFlash(false)
 {
+    art::ServiceHandle<geo::Geometry> geometry;
+    uint nOpDets(geometry->NOpDets());
+    m_peSpectrum.resize(nOpDets);
+
+    for (uint i = 0; i < nOpDets; ++i) {
+      uint opdet = geometry->OpDetFromOpChannel(i);
+      m_peSpectrum[opdet] = flash.PEs().at(i);
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

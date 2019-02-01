@@ -31,8 +31,8 @@ flash_neutrino_id_tool :
     MaxChargeToLightRatio:    250.0 #200.0
 
     # Flash matching congifuration
-    ChargeToNPhotonsTrack:    363.636
-    ChargeToNPhotonsShower:   512.815
+    ChargeToNPhotonsTrack:    164.0 #363.636
+    ChargeToNPhotonsShower:   230.0 #512.815
     FlashMatchConfig:         @local::flashmatch_config
 
     # Debug
