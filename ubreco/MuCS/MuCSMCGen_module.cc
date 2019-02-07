@@ -82,7 +82,7 @@ MuCSMCGen::MuCSMCGen(fhicl::ParameterSet const& pset) :
   fParticlesPerEvent{pset.get<int>("ParticlesPerEvent",1)},
   // create a default random engine; obtain the random seed from NuRandomService,
   // unless overridden in configuration with key "Seed"
-  fEngine{art::ServiceHandle<rndm::NuRandomService>()->createEngine(*this, pset, "Seed")}
+  fEngine(art::ServiceHandle<rndm::NuRandomService>()->createEngine(*this, pset, "Seed"))
 {
   produces< std::vector<simb::MCTruth> >();
   produces< sumdata::RunData, art::InRun >();
