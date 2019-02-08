@@ -54,8 +54,6 @@ namespace showerreco {
 
     auto start3D = vtx3D;
 
-    std::cout << " Strt 3D : [" << start3D[0] << ", " << start3D[1] << ", " << start3D[2] << " ]" << std::endl;
-
     resultShower.fXYZStart = start3D;
 
     //std::cout << "DONE " << std::endl << std::endl;
