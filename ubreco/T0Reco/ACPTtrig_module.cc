@@ -24,6 +24,7 @@
 #include "lardataobj/RecoBase/OpFlash.h"
 #include "lardataobj/AnalysisBase/T0.h"
 #include "lardata/Utilities/AssociationUtil.h"
+#include "lardataobj/RawData/OpDetWaveform.h"
 
 #include "art/Framework/Services/Optional/TFileService.h"
 #include <TTree.h>
@@ -59,7 +60,7 @@ private:
   double fAnodeMin, fAnodeMax;
   double fYMin, fYMax;
   double fBeamSpillStart, fBeamSpillEnd;
-  std::string fTrackProducer, fFlashProducer;
+  std::string fTrackProducer, fFlashProducer, fOpDetWfmProducer;
   bool fSaveTree;
 
   TTree* _tree;
@@ -68,6 +69,7 @@ private:
   double _flash_t, _flash_pe, _flash_yw, _flash_yc, _flash_zw, _flash_zc;
   int    _nflash;
   std::vector<double> _flash_pe_v;
+  std::vector<std::vector<short>> _wf_v;
 
 
 };
@@ -82,18 +84,21 @@ ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
   produces< art::Assns <recob::Track, anab::T0> >();
   produces< art::Assns <recob::Track, recob::OpFlash> >();
 
-  fTrackProducer  = p.get<std::string>("TrackProducer");
-  fFlashProducer  = p.get<std::string>("FlashProducer");
-  fTrackLenMin    = p.get<double>("TrackLenMin");
-  fCathodeMin     = p.get<double>("CathodeMin");
-  fCathodeMax     = p.get<double>("CathodeMax");
-  fAnodeMin       = p.get<double>("AnodeMin");
-  fAnodeMax       = p.get<double>("AnodeMax");
-  fYMin           = p.get<double>("YMin");
-  fYMax           = p.get<double>("YMax");
-  fBeamSpillStart = p.get<double>("BeamSpillStart");
-  fBeamSpillEnd   = p.get<double>("BeamSpillEnd");
-  fSaveTree       = p.get<bool>("SaveTree",false);
+  fTrackProducer    = p.get<std::string>("TrackProducer");
+  fFlashProducer    = p.get<std::string>("FlashProducer");
+  fOpDetWfmProducer = p.get<std::string>("OpDetWfmProducer");
+  fTrackLenMin      = p.get<double>("TrackLenMin");
+  fCathodeMin       = p.get<double>("CathodeMin");
+  fCathodeMax       = p.get<double>("CathodeMax");
+  fAnodeMin         = p.get<double>("AnodeMin");
+  fAnodeMax         = p.get<double>("AnodeMax");
+  fYMin             = p.get<double>("YMin");
+  fYMax             = p.get<double>("YMax");
+  fBeamSpillStart   = p.get<double>("BeamSpillStart");
+  fBeamSpillEnd     = p.get<double>("BeamSpillEnd");
+  fSaveTree         = p.get<bool>("SaveTree",false);
+
+  _wf_v.resize(32);
 
   art::ServiceHandle<art::TFileService> tfs;
   _tree = tfs->make<TTree>("_tree","ACPT trigger tree");
@@ -106,10 +111,44 @@ ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
   _tree->Branch("_nflash",&_nflash,"nflash/I");
   _tree->Branch("_flash_t",&_flash_t,"flash_t/D");
   _tree->Branch("_flash_pe",&_flash_pe,"flash_pe/D");
+  _tree->Branch("_flash_pe_v","std::vector<double>",&_flash_pe_v);
   _tree->Branch("_flash_yw",&_flash_yw,"flash_yw/D");
   _tree->Branch("_flash_zw",&_flash_zw,"flash_zw/D");
   _tree->Branch("_flash_yc",&_flash_yc,"flash_yc/D");
   _tree->Branch("_flash_zc",&_flash_zc,"flash_zc/D");
+  // save waveform
+  _tree->Branch( "wf_00", "std::vector<short>", &(_wf_v[0])  );
+  _tree->Branch( "wf_01", "std::vector<short>", &(_wf_v[1])  );
+  _tree->Branch( "wf_02", "std::vector<short>", &(_wf_v[2])  );
+  _tree->Branch( "wf_03", "std::vector<short>", &(_wf_v[3])  );
+  _tree->Branch( "wf_04", "std::vector<short>", &(_wf_v[4])  );
+  _tree->Branch( "wf_05", "std::vector<short>", &(_wf_v[5])  );
+  _tree->Branch( "wf_06", "std::vector<short>", &(_wf_v[6])  );
+  _tree->Branch( "wf_07", "std::vector<short>", &(_wf_v[7])  );
+  _tree->Branch( "wf_08", "std::vector<short>", &(_wf_v[8])  );
+  _tree->Branch( "wf_09", "std::vector<short>", &(_wf_v[9])  );
+  _tree->Branch( "wf_10", "std::vector<short>", &(_wf_v[10])  );
+  _tree->Branch( "wf_11", "std::vector<short>", &(_wf_v[11])  );
+  _tree->Branch( "wf_12", "std::vector<short>", &(_wf_v[12])  );
+  _tree->Branch( "wf_13", "std::vector<short>", &(_wf_v[13])  );
+  _tree->Branch( "wf_14", "std::vector<short>", &(_wf_v[14])  );
+  _tree->Branch( "wf_15", "std::vector<short>", &(_wf_v[15])  );
+  _tree->Branch( "wf_16", "std::vector<short>", &(_wf_v[16])  );
+  _tree->Branch( "wf_17", "std::vector<short>", &(_wf_v[17])  );
+  _tree->Branch( "wf_18", "std::vector<short>", &(_wf_v[18])  );
+  _tree->Branch( "wf_19", "std::vector<short>", &(_wf_v[19])  );
+  _tree->Branch( "wf_20", "std::vector<short>", &(_wf_v[20])  );
+  _tree->Branch( "wf_21", "std::vector<short>", &(_wf_v[21])  );
+  _tree->Branch( "wf_22", "std::vector<short>", &(_wf_v[22])  );
+  _tree->Branch( "wf_23", "std::vector<short>", &(_wf_v[23])  );
+  _tree->Branch( "wf_24", "std::vector<short>", &(_wf_v[24])  );
+  _tree->Branch( "wf_25", "std::vector<short>", &(_wf_v[25])  );
+  _tree->Branch( "wf_26", "std::vector<short>", &(_wf_v[26])  );
+  _tree->Branch( "wf_27", "std::vector<short>", &(_wf_v[27])  );
+  _tree->Branch( "wf_28", "std::vector<short>", &(_wf_v[28])  );
+  _tree->Branch( "wf_29", "std::vector<short>", &(_wf_v[29])  );
+  _tree->Branch( "wf_30", "std::vector<short>", &(_wf_v[30])  );
+  _tree->Branch( "wf_31", "std::vector<short>", &(_wf_v[31])  );
   
 }
 
@@ -146,6 +185,30 @@ void ACPTtrig::produce(art::Event& e)
     }// if within beam spill window
   }// for all flashes
 
+  // load waveform
+  art::Handle<std::vector<raw::OpDetWaveform> > wf_h;
+  e.getByLabel(fOpDetWfmProducer,wf_h);
+
+  // make sure waveforms look good
+  if(!wf_h.isValid()) {
+    std::cerr<<"\033[93m[ERROR]\033[00m ... could not locate OpDetWaveform!"<<std::endl;
+    throw std::exception();
+  }
+
+  _wf_v.resize(32);
+
+  for (size_t w=0; w < wf_h->size(); w++) {
+    
+    auto const& wf = wf_h->at(w);
+    auto ch = wf.ChannelNumber();
+    if (ch >= 32) continue;
+    _wf_v[ch] = std::vector<short>(650,0);
+    if (wf.size() > 650) {
+      for (size_t tick=0; tick < 650; tick++) 
+	_wf_v[ch][tick] = wf[tick];
+    }// if long enough waveform
+  }// for all waveforms
+
   // load tracks previously created for which T0 reconstruction should occur
   art::Handle<std::vector<recob::Track> > track_h;
   e.getByLabel(fTrackProducer,track_h);
@@ -170,13 +233,13 @@ void ACPTtrig::produce(art::Event& e)
     bool tagged = false;
 
     // cathode-side tracks
-    // for tracks that enter from the side:
+    // for tracks that enter from the cathode:
     if ( (beg.X() > end.X()) && (beg.Y() < fYMax) && (end.Y() < fYMin) ) {
       if ( (beg.X() > fCathodeMin) && (beg.X() < fCathodeMax) ) {
 	tagged = true;
       }// if within cathode X constraint
     }// for tracks that enter from the side
-    // for tracks that exit from the side:
+    // for tracks that exit from the cathode:
     if ( (beg.X() < end.X()) && (beg.Y() > fYMax) && (end.Y() > fYMin) ) {
       if ( (end.X() > fCathodeMin) && (end.X() < fCathodeMax) ) {
 	tagged = true;
