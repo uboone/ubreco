@@ -56,7 +56,7 @@ using namespace std;
 #include "TBranch.h"
 #include "TVector3.h"
 #include "TGraph.h"
-#include "TStopwatch.h"
+
 
 
 class ClusterTrackDistance;
@@ -103,6 +103,9 @@ private:
   Double_t cluster_hit_z=0.0;
   Double_t cluster_hit_x=0.0;
 
+  Double_t Y_cluster_hit_z=0.0;
+  Double_t Y_cluster_hit_x=0.0;
+
 
   Double_t X_reco_best=0.0;
   Double_t Y_reco_best=0.0;
@@ -139,6 +142,11 @@ private:
   std::vector<Double_t> Start_Cluster2;
   std::vector<Double_t> End_Cluster2;
   std::vector<Double_t> Y_clus_hitsize;
+  std::vector<Int_t> Y_index_vector;
+  std::vector<Int_t> V_index_vector;
+  std::vector<Int_t> U_index_vector;
+
+
 
   Double_t V_t_min_abs; // smallest start point of the 2
   Double_t V_t_max_abs;    // largest start point of the three
@@ -163,6 +171,7 @@ private:
 
   Double_t Y_clus_lifetime;
   Double_t Y_clus_hitSize;
+
 
   TTree *Clustertree;
   //    TTree *V_Clustertree;
@@ -243,9 +252,11 @@ void ClusterTrackDistance::analyze(art::Event const & e)
         //   cout<<"X_reco: "<<X_reco<<endl;
         auto const* geom = ::lar::providerFrom<geo::Geometry>();
         auto V_wire_cm = geom->WireCoordinate(Y_reco,Z_reco,geo::PlaneID(0,0,1)) * wire2cm;
+        //  auto V_wire_id = geom->WireCoordinate(Y_reco,Z_reco,geo::PlaneID(0,0,1));
         auto V_time_cm = X_reco;
 
         auto U_wire_cm = geom->WireCoordinate(Y_reco,Z_reco,geo::PlaneID(0,0,0)) * wire2cm;
+        //  auto U_wire_id = geom->WireCoordinate(Y_reco,Z_reco,geo::PlaneID(0,0,0));
         auto U_time_cm = X_reco;
 
 
@@ -257,9 +268,11 @@ void ClusterTrackDistance::analyze(art::Event const & e)
           if(cluster[i_c].View()==2){
             plane=2;
             pointdistance=sqrt((pow(cluster_hit_z-Z_reco,2))+(pow(cluster_hit_x-X_reco,2)));
+
           }
           if (cluster[i_c].View()==1){     //    cout<<"pointdistance: "<<pointdistance<<endl;
           plane=1;
+          //  auto Uintersect =
           pointdistance=sqrt((pow(cluster_hit_z-V_wire_cm,2))+(pow(cluster_hit_x-V_time_cm,2)));
         }
 
@@ -327,8 +340,8 @@ if(cluster[i_c].View()==2 && distance_smallest>15.0 ){// IF LOOP TO CHECK WHAT P
   Start_Cluster2.push_back((cluster[i_c].StartTick ())-3.0);//added +- 3.0 time tick tolerances
   End_Cluster2.push_back((cluster[i_c].EndTick ())+3.0);
   Y_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
-
-
+  Y_index_vector.push_back(i_c);
+  //  auto Start_wire_Cluster2.push_back(cluster[i_c].StartWire().WireID());
 }
 
 if(cluster[i_c].View()==1 && distance_smallest>5.0){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
@@ -336,6 +349,7 @@ if(cluster[i_c].View()==1 && distance_smallest>5.0){//IF LOOP TO CHECK WHAT PLAN
   //    cout<<"This cluster is from Plane2"<<endl;
   Start_Cluster1.push_back((cluster[i_c].StartTick ())-3.0);
   End_Cluster1.push_back((cluster[i_c].EndTick ())+3.0);
+  V_index_vector.push_back(i_c);
 }
 
 if(cluster[i_c].View()==0 && distance_smallest>5.0){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
@@ -343,6 +357,7 @@ if(cluster[i_c].View()==0 && distance_smallest>5.0){//IF LOOP TO CHECK WHAT PLAN
   //    cout<<"This cluster is from Plane2"<<endl;
   Start_Cluster0.push_back((cluster[i_c].StartTick ())-3.0);
   End_Cluster0.push_back((cluster[i_c].EndTick ())+3.0);
+  U_index_vector.push_back(i_c);
   //  cout<<"End_Cluster0.push_back(cluster[i_c].EndTick ()): "<<End_Cluster0[i_c]<<endl;
 }
 
@@ -358,12 +373,21 @@ V_t_max_common = -999.; // end point of the overlap
 U_t_min_common = -999.; //  start point of the overlap
 U_t_max_common = -999.; // end point of the overlap
 
-
+auto const* geom = ::lar::providerFrom<geo::Geometry>();
 for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR LOOP (Y-COLLECTION PLANE LOOP)
   Y_clus_hitSize=Y_clus_hitsize[i];
 
   if (Y_clus_hitSize < 2)
   continue;
+  auto hiti = clus_hit_assn_v.at(Y_index_vector[i]);
+
+  for (auto const& hity : hiti) {//START CLUSTER HIT LOOP
+
+    Y_cluster_hit_z = hity->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
+    Y_cluster_hit_x = (hity->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
+  }
+
+
 
   V_match_multiplicity=0;
   U_match_multiplicity=0;
@@ -411,18 +435,25 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
     if (End_Cluster2[i]>End_Cluster1[j])
     V_t_max_common = End_Cluster1[j];
 
+
+
     // cout << fixed << setprecision(11) <<"V_t max abs"  << "  " << V_t_max_abs << " V_t min abs" << "  " << V_t_min_abs <<  endl;
     // cout << fixed << setprecision(11) <<"V_t max common"  << "  " << V_t_max_common << " V_t min common" << "  " << V_t_min_common <<  endl;
 
 
+    auto hitj = clus_hit_assn_v.at(V_index_vector[j]);
+
+    geo::WireIDIntersection clusterintersectionV;
+    auto Vintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitj[0]->WireID(),clusterintersectionV);
+    // cout<<"Vintersect: "<<Vintersect<<endl;
+
     if (V_t_min_common > V_t_max_common){//NO OVERLAP
       V_iou = -1;
     }
-    if (V_t_min_common < V_t_max_common)//OVERLAP
+    if ((V_t_min_common < V_t_max_common) && (Vintersect==1))//OVERLAP
     {
       V_iou = (V_t_max_common - V_t_min_common) / (V_t_max_abs - V_t_min_abs);
       V_match_multiplicity++;
-      // cout << fixed << setprecision(11) << "######################################################V_iou" <<" "<<V_iou<<endl;
 
     }
 
@@ -431,6 +462,10 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
     if (V_iou > V_biggest_iou){
       V_biggest_iou = V_iou;
     }
+
+
+
+
   }//END V-INDUCTION PLANE FOR LOOP
 
   U_biggest_iou=-1;
@@ -442,6 +477,8 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
     U_iou=-999.0;
     U_t_min_abs = 9600.0;
     U_t_max_abs = 0.0;
+
+
     if ( Start_Cluster2[i] < U_t_min_abs )
     U_t_min_abs = Start_Cluster2[i];
     if ( End_Cluster2[i]   > U_t_max_abs )
@@ -465,10 +502,15 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
     // cout << i << j << "  " << "t max abs"  << "  " << t_max_abs << " t min abs" << "  " << t_min_abs <<  endl;
     // cout << i << j << "  " << "t max common"  << "  " << t_max_common << " t min common" << "  " << t_min_common <<  endl;
 
+    auto hitk = clus_hit_assn_v.at(U_index_vector[k]);
+
+    geo::WireIDIntersection clusterintersectionU;
+    auto Uintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitk[0]->WireID(),clusterintersectionU);
+    // cout<<"Uintersect: "<<Uintersect<<endl;
 
     if (U_t_min_common > U_t_max_common)//NO OVERLAP
     U_iou = U_biggest_iou;
-    if (U_t_min_common < U_t_max_common)//OVERLAP
+    if ((U_t_min_common < U_t_max_common) && (Uintersect==1) )//OVERLAP
     {
       U_iou = (U_t_max_common - U_t_min_common) / (U_t_max_abs - U_t_min_abs);
       U_match_multiplicity++;
@@ -497,6 +539,9 @@ End_Cluster1.clear();
 Start_Cluster2.clear();
 End_Cluster2.clear();
 Y_clus_hitsize.clear();
+Y_index_vector.clear();
+V_index_vector.clear();
+U_index_vector.clear();
 }//END EVENT LOOP
 
 
@@ -505,6 +550,8 @@ void ClusterTrackDistance::beginJob()
 
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
   auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+  //  auto const* geomcore = lar::providerFrom<geo::GeometryCore>();
+
   wire2cm = geom->WirePitch(0,0,0);
   time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
 
@@ -513,9 +560,6 @@ void ClusterTrackDistance::beginJob()
   art::ServiceHandle<art::TFileService> tfs;
 
   Clustertree = tfs->make<TTree>("Clustertree",    "Clustertree");
-
-  //    V_Clustertree = tfs->make<TTree>("V_Clustertree",    "V_Clustertree");
-  //    U_Clustertree = tfs->make<TTree>("U_Clustertree",    "U_Clustertree");
   Matchingtree = tfs->make<TTree>("Matchingtree",    "Matchingtree");
 
   Clustertree->Branch("cluster_hit_z",&cluster_hit_z,"cluster_hit_z/D");
@@ -534,6 +578,8 @@ void ClusterTrackDistance::beginJob()
   Matchingtree->Branch("U_match_multiplicity",&U_match_multiplicity,"U_match_multiplicity/I");
   Matchingtree->Branch("Y_clus_lifetime",&Y_clus_lifetime,"Y_clus_lifetime/D");
   Matchingtree->Branch("Y_clus_hitSize",&Y_clus_hitSize,"Y_clus_hitSize/D");
+  Matchingtree->Branch("Y_cluster_hit_z",&Y_cluster_hit_z,"Y_cluster_hit_z/D");
+  Matchingtree->Branch("Y_cluster_hit_x",&Y_cluster_hit_x,"Y_cluster_hit_x/D");
 }
 
 void ClusterTrackDistance::endJob()
