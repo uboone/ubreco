@@ -2,11 +2,6 @@
 #define QHI2MATCH_CXX
 
 #include "Chi2Match.h"
-#include "ubana/LLSelectionTool/OpT0Finder/Base/OpT0FinderException.h"
-#include <TMinuit.h>
-#include <cmath>
-#include <numeric>
-#include <TMath.h>
 
 namespace flashana {
 

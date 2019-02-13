@@ -15,8 +15,13 @@
 #define CHI2MATCH_H
 
 #include <iostream>
-#include "ubana/LLSelectionTool/OpT0Finder/Base/FlashMatchFactory.h"
-#include "ubana/LLSelectionTool/OpT0Finder/Base/BaseFlashMatch.h"
+#include "ubreco/LLSelectionTool/OpT0Finder/Base/FlashMatchFactory.h"
+#include "ubreco/LLSelectionTool/OpT0Finder/Base/BaseFlashMatch.h"
+#include "ubreco/LLSelectionTool/OpT0Finder/Base/OpT0FinderException.h"
+#include <TMinuit.h>
+#include <cmath>
+#include <numeric>
+#include <TMath.h>
 
 namespace flashana {
   /**
