@@ -43,7 +43,7 @@ ShrReco3DPandora.ProtoShowerTool:
  Vtxproducer  : "pandora"     
  Neutrino     : true
  NeutrinoScoreMin : 0.1 
- TrackScoreMax : 0.5 # 0 means all particles reconstructed as showers
+ TrackScoreMax : 1.00 # 1 means all particles reconstructed as showers
  }
 ShrReco3DPandora.ShowerRecoTools:
      {
