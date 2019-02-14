@@ -8,10 +8,10 @@ namespace wcopreco {
         _nbins_beam = 1500;
         _baseline_difference_max = 8;
         _tick_width_us = .015625;
-        _high_freq_p0 = 0.45;
+        _high_freq_p0 = 0.225; // updates from Brooke
         _high_freq_p1 = 3.07;
         _latelight_filter_p0 = 0.05;
-        _latelight_filter_p1 = 0.45;
+        _latelight_filter_p1 = 0.225; //updates from Brooke
         _latelight_filter_p2 = 3.07;
         _baseline_safety_subtraction = 100;
         _xq  = 0.5 ;
