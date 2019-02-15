@@ -113,6 +113,13 @@ private:
 
   Double_t pointdistance=0;
 
+  Double_t V_cluster_y;
+  Double_t U_cluster_y;
+  Double_t V_cluster_z;
+  Double_t U_cluster_z;
+
+
+
   Int_t plane;
 
   Double_t X_reco_smallest=0;
@@ -377,7 +384,7 @@ auto const* geom = ::lar::providerFrom<geo::Geometry>();
 for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR LOOP (Y-COLLECTION PLANE LOOP)
   Y_clus_hitSize=Y_clus_hitsize[i];
 
-  if (Y_clus_hitSize < 2)
+  if (Y_clus_hitSize < 1)
   continue;
   auto hiti = clus_hit_assn_v.at(Y_index_vector[i]);
 
@@ -400,6 +407,7 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
   //    cout<<"Y_clus_hitSize: "<<Y_clus_hitSize<<endl;
 
   V_biggest_iou=-1;
+  V_cluster_y= -999.0;
 
   for (size_t j = 0; j < Start_Cluster1.size(); j++) {//START V-INDUCTION PLANE FOR LOOP)
 
@@ -459,8 +467,10 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
 
     // cout<<"V_iou: "<<V_iou<<endl;
 
-    if (V_iou > V_biggest_iou){
+    if ((V_iou > V_biggest_iou) && (Vintersect==1)){
       V_biggest_iou = V_iou;
+      V_cluster_y= clusterintersectionV.y;
+      V_cluster_z= clusterintersectionV.z;
     }
 
 
@@ -469,6 +479,7 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
   }//END V-INDUCTION PLANE FOR LOOP
 
   U_biggest_iou=-1;
+  U_cluster_y= -999.0;
   for (size_t k = 0; k < Start_Cluster0.size(); k++) {//START U-INDUCTION PLANE FOR LOOP
     // cout<<"Start_Cluster0 at "<<k<<" :"<<Start_Cluster0[k]<<endl;
     // cout<<"End_Cluster0 at "<<k<<" :"<<End_Cluster0[k]<<endl;
@@ -506,6 +517,7 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
 
     geo::WireIDIntersection clusterintersectionU;
     auto Uintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitk[0]->WireID(),clusterintersectionU);
+
     // cout<<"Uintersect: "<<Uintersect<<endl;
 
     if (U_t_min_common > U_t_max_common)//NO OVERLAP
@@ -518,8 +530,10 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
 
     // cout<<"iou: "<<iou<<endl;
 
-    if (U_iou > U_biggest_iou){
+    if ((U_iou > U_biggest_iou) && (Uintersect==1)){
       U_biggest_iou = U_iou;
+      U_cluster_y= clusterintersectionU.y;
+      U_cluster_z= clusterintersectionU.z;
     }
 
 
@@ -580,6 +594,10 @@ void ClusterTrackDistance::beginJob()
   Matchingtree->Branch("Y_clus_hitSize",&Y_clus_hitSize,"Y_clus_hitSize/D");
   Matchingtree->Branch("Y_cluster_hit_z",&Y_cluster_hit_z,"Y_cluster_hit_z/D");
   Matchingtree->Branch("Y_cluster_hit_x",&Y_cluster_hit_x,"Y_cluster_hit_x/D");
+  Matchingtree->Branch("V_cluster_y",&V_cluster_y,"V_cluster_y/D");
+  Matchingtree->Branch("U_cluster_y",&U_cluster_y,"U_cluster_y/D");
+  Matchingtree->Branch("V_cluster_z",&V_cluster_z,"V_cluster_z/D");
+  Matchingtree->Branch("U_cluster_z",&U_cluster_z,"U_cluster_z/D");
 }
 
 void ClusterTrackDistance::endJob()
