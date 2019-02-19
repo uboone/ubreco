@@ -99,6 +99,10 @@ private:
   Double_t Y_reco=0.0;
   Double_t Z_reco=0.0;
 
+  Double_t X_reco3d=0.0;
+  Double_t Y_reco3d=0.0;
+  Double_t Z_reco3d=0.0;
+
 
   Double_t cluster_hit_z=0.0;
   Double_t cluster_hit_x=0.0;
@@ -106,17 +110,33 @@ private:
   Double_t Y_cluster_hit_z=0.0;
   Double_t Y_cluster_hit_x=0.0;
 
+  Double_t Y_cluster_3d_hit_x=0.0;
+  Double_t Y_cluster_3d_hit_z=0.0;
+  Double_t YU_cluster_3d_hit_y=0.0;
+  Double_t YV_cluster_3d_hit_y=0.0;
+
 
   Double_t X_reco_best=0.0;
   Double_t Y_reco_best=0.0;
   Double_t Z_reco_best=0.0;
 
+  Double_t X_reco_best3dV=0.0;
+  Double_t Y_reco_best3dV=0.0;
+  Double_t Z_reco_best3dV=0.0;
+
+  Double_t X_reco_best3dU=0.0;
+  Double_t Y_reco_best3dU=0.0;
+  Double_t Z_reco_best3dU=0.0;
+
   Double_t pointdistance=0;
+  Double_t pointdistance3dV=0;
+  Double_t pointdistance3dU=0;
 
   Double_t V_cluster_y;
   Double_t U_cluster_y;
   Double_t V_cluster_z;
   Double_t U_cluster_z;
+  Double_t U_cluster_y_new;
 
 
 
@@ -125,12 +145,26 @@ private:
   Double_t X_reco_smallest=0;
   Double_t Z_reco_smallest=0;
 
+  Double_t X_reco_smallest3dV=0;
+  Double_t Z_reco_smallest3dV=0;
+  Double_t Y_reco_smallest3dV=0;
+
+  Double_t X_reco_smallest3dU=0;
+  Double_t Z_reco_smallest3dU=0;
+  Double_t Y_reco_smallest3dU=0;
+
+
 
   Double_t pointdistance_smallest;
+  Double_t pointdistance_smallestV;
+  Double_t pointdistance_smallestU;
 
   Double_t distance_smallest;
+  Double_t distance_smallestV;
+  Double_t distance_smallestU;
 
   Double_t charge;
+  Double_t chargediam;
 
 
   Double_t cluster_charge;
@@ -279,7 +313,7 @@ void ClusterTrackDistance::analyze(art::Event const & e)
           }
           if (cluster[i_c].View()==1){     //    cout<<"pointdistance: "<<pointdistance<<endl;
           plane=1;
-          //  auto Uintersect =
+
           pointdistance=sqrt((pow(cluster_hit_z-V_wire_cm,2))+(pow(cluster_hit_x-V_time_cm,2)));
         }
 
@@ -383,9 +417,11 @@ U_t_max_common = -999.; // end point of the overlap
 auto const* geom = ::lar::providerFrom<geo::Geometry>();
 for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR LOOP (Y-COLLECTION PLANE LOOP)
   Y_clus_hitSize=Y_clus_hitsize[i];
+    distance_smallestV=1e10;
+    distance_smallestU=1e10;
 
-  if (Y_clus_hitSize < 1)
-  continue;
+  // if (Y_clus_hitSize < 1)
+  // continue;
   auto hiti = clus_hit_assn_v.at(Y_index_vector[i]);
 
   for (auto const& hity : hiti) {//START CLUSTER HIT LOOP
@@ -516,9 +552,23 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
     auto hitk = clus_hit_assn_v.at(U_index_vector[k]);
 
     geo::WireIDIntersection clusterintersectionU;
+    // geo::WireIDIntersection clusterintersectionUnew;
     auto Uintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitk[0]->WireID(),clusterintersectionU);
 
     // cout<<"Uintersect: "<<Uintersect<<endl;
+
+    /*
+    for(auto const& hitynew : hiti){
+
+      for(auto const& hitunew : hitk){
+        auto newUintersect = geom->WireIDsIntersect(hitynew->WireID(),hitunew->WireID(),clusterintersectionUnew);
+        if (Uintersect==1){
+          chargediam=1.0;
+        }
+      }
+
+    }
+    */
 
     if (U_t_min_common > U_t_max_common)//NO OVERLAP
     U_iou = U_biggest_iou;
@@ -534,16 +584,87 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
       U_biggest_iou = U_iou;
       U_cluster_y= clusterintersectionU.y;
       U_cluster_z= clusterintersectionU.z;
+      // U_cluster_y_new= clusterintersectionUnew.y;
     }
-
-
-
 
   }//END U-INDUCTION PLANE FOR LOOP
 
   // cout<<"******************************V_biggest_iou for cluster: "<<i<<" is: "<<V_biggest_iou<<"**********************************"<<endl;
   //  cout<<"Cluster2# has : "<<i<<" Match Multiplicity: "<<match_multiplicity<<endl;
-  Matchingtree->Fill();
+  // Matchingtree->Fill();
+  for (size_t i_tr = 0, size_tr = recotrack_handle->size(); i_tr != size_tr; ++i_tr) {//START RECO TRACK FOR LOOP
+
+    auto const& rtrack = recotrack_handle->at(i_tr);
+
+
+    Double_t pointdistance_smallestV=1e10;////Variable for distance between a cluster hit and a reco track point, initialized to a large number for comparison
+    Double_t pointdistance_smallestU=1e10;
+    for(size_t n=0;n<(rtrack.NumberTrajectoryPoints());n++){//START RECO POINT LOOP
+      X_reco3d=rtrack.LocationAtPoint(n).X();
+      Y_reco3d=rtrack.LocationAtPoint(n).Y();
+      Z_reco3d=rtrack.LocationAtPoint(n).Z();
+
+
+      for (auto const& hitY : hiti) {//START CLUSTER HIT LOOP
+        Y_cluster_3d_hit_z = hitY->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
+        Y_cluster_3d_hit_x = (hitY->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
+        auto  YU_cluster_3d_hit_y = U_cluster_y;
+        auto  YV_cluster_3d_hit_y = V_cluster_y;
+        pointdistance3dV=sqrt((pow(Y_cluster_3d_hit_z-Z_reco3d,2))+(pow(Y_cluster_3d_hit_x-X_reco3d,2))+ (pow(YV_cluster_3d_hit_y-Y_reco3d,2)));
+        pointdistance3dU=sqrt((pow(Y_cluster_3d_hit_z-Z_reco3d,2))+(pow(Y_cluster_3d_hit_x-X_reco3d,2))+ (pow(YU_cluster_3d_hit_y-Y_reco3d,2)));
+
+
+        if(pointdistance3dV<pointdistance_smallestV){//comparison IF loop
+
+          pointdistance_smallestV=pointdistance3dV;
+
+          X_reco_smallest3dV=X_reco3d;
+          Z_reco_smallest3dV=Z_reco3d;
+          Y_reco_smallest3dV=Y_reco3d;
+
+        }
+
+        if(pointdistance3dU<pointdistance_smallestU){//comparison IF loop
+
+          pointdistance_smallestU=pointdistance3dU;
+
+          X_reco_smallest3dU=X_reco3d;
+          Z_reco_smallest3dU=Z_reco3d;
+          Y_reco_smallest3dU=Y_reco3d;
+
+        }
+
+
+
+      }
+
+
+
+    }//END RECO POINT LOOP
+
+    if(pointdistance_smallestV<distance_smallestV){
+      distance_smallestV=pointdistance_smallestV;
+
+      X_reco_best3dV=X_reco_smallest3dV;
+      Z_reco_best3dV=Z_reco_smallest3dV;
+      Y_reco_best3dV=Y_reco_smallest3dV;
+    }
+
+    if(pointdistance_smallestU<distance_smallestU){
+      distance_smallestU=pointdistance_smallestU;
+
+      X_reco_best3dU=X_reco_smallest3dU;
+      Z_reco_best3dU=Z_reco_smallest3dU;
+      Y_reco_best3dU=Y_reco_smallest3dU;
+    }
+
+
+
+  }// END RECO TRACK FOR LOOP
+
+
+Matchingtree->Fill();
+
 }//END PLANE MATCHING FOR LOOP (Y-COLLECTION PLANE LOOP)
 
 Start_Cluster0.clear();
@@ -598,19 +719,26 @@ void ClusterTrackDistance::beginJob()
   Matchingtree->Branch("U_cluster_y",&U_cluster_y,"U_cluster_y/D");
   Matchingtree->Branch("V_cluster_z",&V_cluster_z,"V_cluster_z/D");
   Matchingtree->Branch("U_cluster_z",&U_cluster_z,"U_cluster_z/D");
+  Matchingtree->Branch("Y_cluster_3d_hit_z",&Y_cluster_3d_hit_z,"Y_cluster_3d_hit_z/D");
+  Matchingtree->Branch("Y_cluster_3d_hit_x",&Y_cluster_3d_hit_x,"Y_cluster_3d_hit_x/D");
+  Matchingtree->Branch("YV_cluster_3d_hit_y",&YV_cluster_3d_hit_y,"YV_cluster_3d_hit_y/D");
+  Matchingtree->Branch("YU_cluster_3d_hit_y",&YU_cluster_3d_hit_y,"YU_cluster_3d_hit_y/D");
+  Matchingtree->Branch("Z_reco_best3dV",&Z_reco_best3dV,"Z_reco_best3dV/D");
+  Matchingtree->Branch("X_reco_best3dV",&X_reco_best3dV,"X_reco_best3dV/D");
+  Matchingtree->Branch("Y_reco_best3dV",&Y_reco_best3dV,"Y_reco_best3dV/D");
+  Matchingtree->Branch("Z_reco_best3dU",&Z_reco_best3dU,"Z_reco_best3dU/D");
+  Matchingtree->Branch("X_reco_best3dU",&X_reco_best3dU,"X_reco_best3dU/D");
+  Matchingtree->Branch("Y_reco_best3dU",&Y_reco_best3dU,"Y_reco_best3dU/D");
+  Matchingtree->Branch("distance_smallestV",&distance_smallestV,"distance_smallestV/D");
+  Matchingtree->Branch("distance_smallestU",&distance_smallestU,"distance_smallestU/D");
+
+
 }
 
 void ClusterTrackDistance::endJob()
 {
   // Implementation of optional member function here.
 }
-
-
-
-
-
-
-
 
 
 DEFINE_ART_MODULE(ClusterTrackDistance)
