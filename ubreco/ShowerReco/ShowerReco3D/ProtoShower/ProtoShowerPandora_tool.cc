@@ -137,10 +137,18 @@ namespace protoshower {
 	continue;
       }
 
-      auto parent = pfp_h->at( parentIdx );
+      // find parent based on pfp Self
+      art::Ptr<recob::PFParticle> parent;
+      for (size_t pj=0; pj < pfp_h->size(); pj++) {
+	auto jpfp = art::Ptr<recob::PFParticle>(pfp_h,pj);
+	if (jpfp->Self()==parentIdx) {
+	  parent = jpfp;
+	  break;
+	}
+      }
 
       // get metadata for parent
-      const std::vector< art::Ptr<larpandoraobj::PFParticleMetadata> > &parentMetadataList(pfPartToMetadataAssoc.at(parent.Self()));
+      const std::vector< art::Ptr<larpandoraobj::PFParticleMetadata> > &parentMetadataList(pfPartToMetadataAssoc.at(parent.key()));
 
       if (!parentMetadataList.empty()) {
 	
@@ -163,7 +171,7 @@ namespace protoshower {
       
       // find vertex defined as the vertex of the primary
       
-      const std::vector< art::Ptr<recob::Vertex> >& vtx_v = pfp_vtx_assn_v.at( parentIdx );
+      const std::vector< art::Ptr<recob::Vertex> >& vtx_v = pfp_vtx_assn_v.at( parent.key() );
 
       ::protoshower::ProtoShower proto_shower;
       proto_shower.Reset();
