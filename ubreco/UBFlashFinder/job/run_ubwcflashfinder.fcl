@@ -72,6 +72,7 @@ physics:
 }
 
 physics.producers.wcopreco.usePmtGainDB:	true
+#physics.producers.wcopreco.SaveAnaTree:		true
 
 outputs:
 {
