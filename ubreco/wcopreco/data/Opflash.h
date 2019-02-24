@@ -22,6 +22,7 @@ namespace wcopreco{
     double get_total_PE() const {return total_PE;};
     double get_PE(int ch) const {return PE[ch];};
     std::vector<double> get_pe_v() const {return PE;};
+    std::vector<double> get_pe_v_nocor() const {return PEnc;};
     double get_PE_err(int ch) const {return PE_err[ch];};
     bool get_fired(int ch);
     int get_num_fired() const {return fired_channels.size();};
@@ -49,6 +50,7 @@ namespace wcopreco{
     double total_PE;
     std::vector<int> fired_channels;
     std::vector<double> PE;
+    std::vector<double> PEnc;
     std::vector<double> PE_err;
 
     std::vector<double> l1_fired_time;

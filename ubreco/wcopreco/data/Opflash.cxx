@@ -10,18 +10,21 @@ wcopreco::Opflash::Opflash(COphitSelection &ophits, const Config_Opflash &config
   , _cfgOpF(configOpF)
 {
   PE.resize(_cfgOpF._num_channels);
+  PEnc.resize(_cfgOpF._num_channels);
   PE_err.resize(_cfgOpF._num_channels);
   for (int i=0;i!=_cfgOpF._num_channels;i++){
     PE[i] = 0;
+    PEnc[i] = 0;
     PE_err[i] = _cfgOpF._PE_err_cosmic;
   }
   time = 0;
   total_PE = 0;
   for (size_t i=0; i!= ophits.size(); i++){
     fired_channels.push_back(ophits.at(i)->get_ch_no());
-    PE[ophits.at(i)->get_ch_no()] = ophits.at(i)->get_PE() - _cfgOpF._PE_subtract*2;
+    PE[ophits.at(i)->get_ch_no()] = ophits.at(i)->get_PE() - _cfgOpF._rnd_noise_cosmic*2;
     PE_err[ophits.at(i)->get_ch_no()] = ophits.at(i)->get_PE_err();
     time += ophits.at(i)->get_PE() * ophits.at(i)->get_time();
+    PEnc[ophits.at(i)->get_ch_no()] = ophits.at(i)->get_PE();
     total_PE += ophits.at(i)->get_PE() ;
   }
 
@@ -42,6 +45,7 @@ wcopreco::Opflash::Opflash(const std::vector<std::vector<double>> &vec_v, double
   , _cfgOpF (configOpF)
 {
   PE.resize(_cfgOpF._num_channels);
+  PEnc.resize(_cfgOpF._num_channels);
   PE_err.resize(_cfgOpF._num_channels);
   float bin_width = _cfgOpF._rebin_frac*_cfgOpF._tick_width_us;
   low_time = start_time + (start_bin+0.5)*bin_width;
@@ -49,6 +53,7 @@ wcopreco::Opflash::Opflash(const std::vector<std::vector<double>> &vec_v, double
 
   for (int i=0;i!=_cfgOpF._num_channels;i++){
     PE[i] = 0;
+    PEnc[i] = 0;
     PE_err[i] = _cfgOpF._PE_err_beam;
   }
 
@@ -79,8 +84,9 @@ wcopreco::Opflash::Opflash(const std::vector<std::vector<double>> &vec_v, double
 
   total_PE = 0;
   for (int i=0;i!=_cfgOpF._num_channels;i++){
-    PE[i] -= _cfgOpF._PE_err_stat_beam ;
+    PE[i] -= _cfgOpF._rnd_noise_beam ;
     if (PE[i]<0) PE[i] = 0;
+    PEnc[i] = PE[i] ; //keep only corrected PE for beam
     total_PE += PE[i];
 
     if (PE[i]>=2){
@@ -88,7 +94,7 @@ wcopreco::Opflash::Opflash(const std::vector<std::vector<double>> &vec_v, double
     }
 
     PE_err[i] = sqrt(pow(PE_err[i],2) // standard error
-		     + (PE[i] + _cfgOpF._PE_err_stat_beam*2) //statistical term
+		     + (PE[i] + _cfgOpF._rnd_noise_beam*2) //statistical term
 		     + pow(PE[i]*_cfgOpF._PE_err_unc_beam,2) // 2% base systematic uncertainties
 		     );
 
