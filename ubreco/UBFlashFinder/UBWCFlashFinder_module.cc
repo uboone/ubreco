@@ -97,7 +97,7 @@ private:
   Float_t fYWidth;
   Float_t fZCenter;
   Float_t fZWidth;
-  TH1F* hdecon[32];
+  //TH1F* hdecon[32];
 
   void reco_default(art::Event &evt, double &triggerTime);
   void reco_external_sat(art::Event &evt, double &triggerTime);
