@@ -163,12 +163,20 @@ private:
   Double_t distance_smallestV;
   Double_t distance_smallestU;
 
-  Double_t charge;
-  Double_t chargediam;
+  Double_t Y_charge;
+  Double_t V_charge;
+  Double_t U_charge;
 
 
-  Double_t cluster_charge;
-  Double_t cluster_energy;
+
+  Double_t Y_cluster_charge;
+  Double_t Y_cluster_energy;
+
+  Double_t V_cluster_charge;
+  Double_t V_cluster_energy;
+
+  Double_t U_cluster_charge;
+  Double_t U_cluster_energy;
 
 
 
@@ -259,8 +267,6 @@ void ClusterTrackDistance::analyze(art::Event const & e)
 
     //  if(cluster[i_c].View()==2){//Y CLUSTER IF LOOP
     distance_smallest=1e10; //Variable for distance between a cluster and nearest reco track, initialized to a large number for comparison
-    cluster_charge=0.0;//Cluster variable initialized to zero
-    cluster_energy=0.0;//Cluster variable initialized to zero
     start_tick1=0;
     start_tick2=0;
     start_tick0=0;
@@ -350,14 +356,6 @@ void ClusterTrackDistance::analyze(art::Event const & e)
 }//END RECO TRACK FOR LOOP
 
 
-for (auto const& hit : hits) {//START CLUSTER HIT LOOP
-  //  charge=0;
-  charge = hit->Integral();
-  cluster_charge += charge;
-  cluster_energy += charge*240*23.6*1e-6/0.5;
-
-}//END CLUSTER HIT LOOP
-
 
 
 //  cout<<"Smallest Distance: "<<distance_smallest<<endl;
@@ -417,12 +415,16 @@ U_t_max_common = -999.; // end point of the overlap
 auto const* geom = ::lar::providerFrom<geo::Geometry>();
 for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR LOOP (Y-COLLECTION PLANE LOOP)
   Y_clus_hitSize=Y_clus_hitsize[i];
-    distance_smallestV=1e10;
-    distance_smallestU=1e10;
+  distance_smallestV=1e10;
+  distance_smallestU=1e10;
 
   // if (Y_clus_hitSize < 1)
   // continue;
   auto hiti = clus_hit_assn_v.at(Y_index_vector[i]);
+
+  Y_cluster_charge=0;
+  U_cluster_charge=0;
+  V_cluster_charge=0;
 
   for (auto const& hity : hiti) {//START CLUSTER HIT LOOP
 
@@ -487,6 +489,8 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
 
     auto hitj = clus_hit_assn_v.at(V_index_vector[j]);
 
+    // V_cluster_charge=0;
+
     geo::WireIDIntersection clusterintersectionV;
     auto Vintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitj[0]->WireID(),clusterintersectionV);
     // cout<<"Vintersect: "<<Vintersect<<endl;
@@ -507,7 +511,21 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
       V_biggest_iou = V_iou;
       V_cluster_y= clusterintersectionV.y;
       V_cluster_z= clusterintersectionV.z;
+
+      for (auto const& hitnewV : hitj) {//START CLUSTER HIT LOOP
+        //  charge=0;
+        V_charge = hitnewV->Integral();
+        V_cluster_charge += V_charge;
+        V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
+
+      }//END CLUSTER HIT LOOP
+
+
     }
+
+
+
+
 
 
 
@@ -551,24 +569,14 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
 
     auto hitk = clus_hit_assn_v.at(U_index_vector[k]);
 
+    // U_cluster_charge=0;
+
     geo::WireIDIntersection clusterintersectionU;
     // geo::WireIDIntersection clusterintersectionUnew;
     auto Uintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitk[0]->WireID(),clusterintersectionU);
 
     // cout<<"Uintersect: "<<Uintersect<<endl;
 
-    /*
-    for(auto const& hitynew : hiti){
-
-      for(auto const& hitunew : hitk){
-        auto newUintersect = geom->WireIDsIntersect(hitynew->WireID(),hitunew->WireID(),clusterintersectionUnew);
-        if (Uintersect==1){
-          chargediam=1.0;
-        }
-      }
-
-    }
-    */
 
     if (U_t_min_common > U_t_max_common)//NO OVERLAP
     U_iou = U_biggest_iou;
@@ -584,14 +592,33 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
       U_biggest_iou = U_iou;
       U_cluster_y= clusterintersectionU.y;
       U_cluster_z= clusterintersectionU.z;
-      // U_cluster_y_new= clusterintersectionUnew.y;
+
+
+      for (auto const& hitnewU : hitk) {//START CLUSTER HIT LOOP
+        //  charge=0;
+        U_charge = hitnewU->Integral();
+        U_cluster_charge += U_charge;
+        U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
+
+      }//END CLUSTER HIT LOOP
+
+
     }
+
+
+
+
+
 
   }//END U-INDUCTION PLANE FOR LOOP
 
   // cout<<"******************************V_biggest_iou for cluster: "<<i<<" is: "<<V_biggest_iou<<"**********************************"<<endl;
   //  cout<<"Cluster2# has : "<<i<<" Match Multiplicity: "<<match_multiplicity<<endl;
   // Matchingtree->Fill();
+
+  // if (V_match_multiplicity<1 || U_match_multiplicity<1)
+  // continue;
+
   for (size_t i_tr = 0, size_tr = recotrack_handle->size(); i_tr != size_tr; ++i_tr) {//START RECO TRACK FOR LOOP
 
     auto const& rtrack = recotrack_handle->at(i_tr);
@@ -610,7 +637,10 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
         Y_cluster_3d_hit_x = (hitY->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
         auto  YU_cluster_3d_hit_y = U_cluster_y;
         auto  YV_cluster_3d_hit_y = V_cluster_y;
+
         pointdistance3dV=sqrt((pow(Y_cluster_3d_hit_z-Z_reco3d,2))+(pow(Y_cluster_3d_hit_x-X_reco3d,2))+ (pow(YV_cluster_3d_hit_y-Y_reco3d,2)));
+
+
         pointdistance3dU=sqrt((pow(Y_cluster_3d_hit_z-Z_reco3d,2))+(pow(Y_cluster_3d_hit_x-X_reco3d,2))+ (pow(YU_cluster_3d_hit_y-Y_reco3d,2)));
 
 
@@ -663,7 +693,24 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
   }// END RECO TRACK FOR LOOP
 
 
-Matchingtree->Fill();
+
+  for (auto const& hitnewY : hiti) {//START CLUSTER HIT LOOP
+    //  charge=0;
+    Y_charge = hitnewY->Integral();
+    Y_cluster_charge += Y_charge;
+    Y_cluster_energy += Y_charge*240*23.6*1e-6/0.5;
+
+  }//END CLUSTER HIT LOOP
+
+
+/*
+  cout<<"Y_cluster_charge: "<<Y_cluster_charge<<endl;
+  cout<<"V_match_multiplicity: "<<V_match_multiplicity<<endl;
+  cout<<"V_biggest_iou: "<<V_biggest_iou<<endl;
+  cout<<"V_cluster_charge: "<<V_cluster_charge<<endl;
+
+*/
+  Matchingtree->Fill();
 
 }//END PLANE MATCHING FOR LOOP (Y-COLLECTION PLANE LOOP)
 
@@ -702,8 +749,6 @@ void ClusterTrackDistance::beginJob()
   Clustertree->Branch("Z_reco_best",&Z_reco_best,"Z_reco_best/D");
   Clustertree->Branch("X_reco_best",&X_reco_best,"X_reco_best/D");
   Clustertree->Branch("distance_smallest",&distance_smallest,"distance_smallest/D");
-  Clustertree->Branch("cluster_charge",&cluster_charge,"cluster_charge/D");
-  Clustertree->Branch("cluster_energy",&cluster_energy,"cluster_energy/D");
   Clustertree->Branch("plane",&plane,"plane/I");
 
 
@@ -731,6 +776,9 @@ void ClusterTrackDistance::beginJob()
   Matchingtree->Branch("Y_reco_best3dU",&Y_reco_best3dU,"Y_reco_best3dU/D");
   Matchingtree->Branch("distance_smallestV",&distance_smallestV,"distance_smallestV/D");
   Matchingtree->Branch("distance_smallestU",&distance_smallestU,"distance_smallestU/D");
+  Matchingtree->Branch("Y_cluster_charge",&Y_cluster_charge,"Y_cluster_charge/D");
+  Matchingtree->Branch("V_cluster_charge",&V_cluster_charge,"V_cluster_charge/D");
+  Matchingtree->Branch("U_cluster_charge",&U_cluster_charge,"U_cluster_charge/D");
 
 
 }
