@@ -462,7 +462,8 @@ flashana::Flash_t FlashNeutrinoId::FlashCandidate::ConvertFlashFormat(const std:
     for (unsigned int i = 0; i < nOpDets; ++i)
     {
         const auto opDet(opDetVector.at(i));
-        if (opDet < 0 || opDet >= nOpDets)
+        //if (opDet < 0 || opDet >= nOpDets)
+        if (opDet >= nOpDets)
             throw cet::exception("FlashNeutrinoId") << "OpDet ID, " << opDet << ", is out of range: 0 - " << (nOpDets - 1) << std::endl;
 
         const auto PE(m_peSpectrum.at(i));
