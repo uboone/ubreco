@@ -110,11 +110,13 @@ private:
   Double_t Y_cluster_hit_z=0.0;
   Double_t Y_cluster_hit_x=0.0;
 
-  Double_t Y_cluster_3d_hit_x=0.0;
-  Double_t Y_cluster_3d_hit_z=0.0;
-  Double_t YU_cluster_3d_hit_y=0.0;
-  Double_t YV_cluster_3d_hit_y=0.0;
+  Double_t Y_cluster_3d_hit_x;
+  Double_t Y_cluster_3d_hit_z;
+  Double_t YU_cluster_3d_hit_y; // Y value for best iou from  YU plane matching
+  Double_t YV_cluster_3d_hit_y; // Y value for best iou from YV plane matching
 
+  Double_t YU_cluster_y=0.0; //Y value for all YU matches
+  Double_t YV_cluster_y=0.0; //Y value for all YV matches
 
   Double_t X_reco_best=0.0;
   Double_t Y_reco_best=0.0;
@@ -244,7 +246,7 @@ ClusterTrackDistance::ClusterTrackDistance(fhicl::ParameterSet const & p)
 
 void ClusterTrackDistance::analyze(art::Event const & e)
 {
-  // std::cout << "Event Number: " << e.event() << " Run Number: " << e.run() << std::endl;
+  // std::cout << "****************Event Number: " << e.event() << " Run Number: " << e.run() <<"**********************"<< std::endl;
 
   // Implementation of required member function here.
   art::Handle<std::vector<recob::Cluster> > cluster_handle;
@@ -414,6 +416,8 @@ U_t_max_common = -999.; // end point of the overlap
 
 auto const* geom = ::lar::providerFrom<geo::Geometry>();
 for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR LOOP (Y-COLLECTION PLANE LOOP)
+  // cout<<"Y Cluster # : "<<i<<endl;
+
   Y_clus_hitSize=Y_clus_hitsize[i];
   distance_smallestV=1e10;
   distance_smallestU=1e10;
@@ -446,11 +450,13 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
 
   V_biggest_iou=-1;
   V_cluster_y= -999.0;
+  V_iou=-999.0;
+
 
   for (size_t j = 0; j < Start_Cluster1.size(); j++) {//START V-INDUCTION PLANE FOR LOOP)
 
+    YV_cluster_y=-999.0;
 
-    V_iou=-999.0;
     // cout<<"Start_Cluster2 : "<<Start_Cluster2[i]<<endl;
     // cout<<"End_Cluster2 : "<<End_Cluster2[i]<<endl;
 
@@ -492,22 +498,26 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
     // V_cluster_charge=0;
 
     geo::WireIDIntersection clusterintersectionV;
-    auto Vintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitj[0]->WireID(),clusterintersectionV);
+    auto Vintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitj[0]->WireID(),clusterintersectionV);// So basically the Y coordinate is the one determined by tg
     // cout<<"Vintersect: "<<Vintersect<<endl;
 
-    if (V_t_min_common > V_t_max_common){//NO OVERLAP
+    if (Vintersect==0)
+    continue;
+
+
+    if ((V_t_min_common > V_t_max_common)){//NO OVERLAP
       V_iou = -1;
     }
-    if ((V_t_min_common < V_t_max_common) && (Vintersect==1))//OVERLAP
+    if ((V_t_min_common < V_t_max_common))//OVERLAP
     {
       V_iou = (V_t_max_common - V_t_min_common) / (V_t_max_abs - V_t_min_abs);
       V_match_multiplicity++;
-
+      YV_cluster_y=clusterintersectionV.y;
     }
 
     // cout<<"V_iou: "<<V_iou<<endl;
 
-    if ((V_iou > V_biggest_iou) && (Vintersect==1)){
+    if ((V_iou > V_biggest_iou) ){
       V_biggest_iou = V_iou;
       V_cluster_y= clusterintersectionV.y;
       V_cluster_z= clusterintersectionV.z;
@@ -518,6 +528,7 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
         V_cluster_charge += V_charge;
         V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
 
+
       }//END CLUSTER HIT LOOP
 
 
@@ -527,19 +538,24 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
 
 
 
-
-
+    // cout<<"V Cluster # : "<<j<<endl;
+    // cout<<"V_iou: "<<V_iou<<endl;
+    // cout<<"YV_cluster_y: "<<YV_cluster_y<<endl;
 
   }//END V-INDUCTION PLANE FOR LOOP
 
   U_biggest_iou=-1;
   U_cluster_y= -999.0;
+
+  U_iou=-999.0;
+
+
   for (size_t k = 0; k < Start_Cluster0.size(); k++) {//START U-INDUCTION PLANE FOR LOOP
     // cout<<"Start_Cluster0 at "<<k<<" :"<<Start_Cluster0[k]<<endl;
     // cout<<"End_Cluster0 at "<<k<<" :"<<End_Cluster0[k]<<endl;
 
+    YU_cluster_y=-999.0;
 
-    U_iou=-999.0;
     U_t_min_abs = 9600.0;
     U_t_max_abs = 0.0;
 
@@ -573,22 +589,24 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
 
     geo::WireIDIntersection clusterintersectionU;
     // geo::WireIDIntersection clusterintersectionUnew;
-    auto Uintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitk[0]->WireID(),clusterintersectionU);
+    auto Uintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitk[0]->WireID(),clusterintersectionU);//
 
     // cout<<"Uintersect: "<<Uintersect<<endl;
-
+    if (Uintersect==0)
+    continue;
 
     if (U_t_min_common > U_t_max_common)//NO OVERLAP
-    U_iou = U_biggest_iou;
-    if ((U_t_min_common < U_t_max_common) && (Uintersect==1) )//OVERLAP
+    U_iou = -1;
+    if ((U_t_min_common < U_t_max_common) )//OVERLAP
     {
       U_iou = (U_t_max_common - U_t_min_common) / (U_t_max_abs - U_t_min_abs);
       U_match_multiplicity++;
+      YU_cluster_y=clusterintersectionU.y;
     }
 
     // cout<<"iou: "<<iou<<endl;
 
-    if ((U_iou > U_biggest_iou) && (Uintersect==1)){
+    if ((U_iou > U_biggest_iou)){
       U_biggest_iou = U_iou;
       U_cluster_y= clusterintersectionU.y;
       U_cluster_z= clusterintersectionU.z;
@@ -635,8 +653,8 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
       for (auto const& hitY : hiti) {//START CLUSTER HIT LOOP
         Y_cluster_3d_hit_z = hitY->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
         Y_cluster_3d_hit_x = (hitY->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
-        auto  YU_cluster_3d_hit_y = U_cluster_y;
-        auto  YV_cluster_3d_hit_y = V_cluster_y;
+        YU_cluster_3d_hit_y = U_cluster_y;
+        YV_cluster_3d_hit_y = V_cluster_y;
 
         pointdistance3dV=sqrt((pow(Y_cluster_3d_hit_z-Z_reco3d,2))+(pow(Y_cluster_3d_hit_x-X_reco3d,2))+ (pow(YV_cluster_3d_hit_y-Y_reco3d,2)));
 
@@ -703,13 +721,24 @@ for (size_t i = 0; i < Start_Cluster2.size(); i++) {//START PLANE MATCHING FOR L
   }//END CLUSTER HIT LOOP
 
 
-/*
+  /*
   cout<<"Y_cluster_charge: "<<Y_cluster_charge<<endl;
   cout<<"V_match_multiplicity: "<<V_match_multiplicity<<endl;
   cout<<"V_biggest_iou: "<<V_biggest_iou<<endl;
   cout<<"V_cluster_charge: "<<V_cluster_charge<<endl;
 
-*/
+
+
+  cout<<"V_match_multiplicity: "<<V_match_multiplicity<<endl;
+
+  cout<<"V_biggest_iou: "<<V_biggest_iou<<endl;
+
+  cout<<"YV_cluster_3d_hit_y: "<<YV_cluster_3d_hit_y<<endl;
+  cout<<"Y_cluster_3d_hit_x: "<<Y_cluster_3d_hit_x<<endl;
+  cout<<"Y_cluster_3d_hit_z: "<<Y_cluster_3d_hit_z<<endl;
+  cout<<"V_cluster_y: "<<V_cluster_y<<endl;
+  */
+
   Matchingtree->Fill();
 
 }//END PLANE MATCHING FOR LOOP (Y-COLLECTION PLANE LOOP)
@@ -779,6 +808,10 @@ void ClusterTrackDistance::beginJob()
   Matchingtree->Branch("Y_cluster_charge",&Y_cluster_charge,"Y_cluster_charge/D");
   Matchingtree->Branch("V_cluster_charge",&V_cluster_charge,"V_cluster_charge/D");
   Matchingtree->Branch("U_cluster_charge",&U_cluster_charge,"U_cluster_charge/D");
+  Matchingtree->Branch("U_iou",&U_iou,"U_iou/D");
+  Matchingtree->Branch("V_iou",&V_iou,"V_iou/D");
+  Matchingtree->Branch("YV_cluster_y",&YV_cluster_y,"YV_cluster_y/D");
+  Matchingtree->Branch("YU_cluster_y",&YU_cluster_y,"YU_cluster_y/D");
 
 
 }
