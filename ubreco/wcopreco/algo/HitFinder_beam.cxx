@@ -60,7 +60,7 @@ namespace wcopreco {
     decon_vv[ch].resize(_cfg._nbins_beam/_cfg._rebin_frac);
     for (int i=0;i!=_cfg._nbins_beam/_cfg._rebin_frac;i++){
       decon_vv[ch].at(i) = rebin_v[i];
-
+      if(gain<=0) decon_vv[ch].at(i) = 0.;
     }
 
     //if gain is zero ignore contribution to PE
