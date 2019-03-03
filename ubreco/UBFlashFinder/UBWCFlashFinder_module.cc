@@ -82,6 +82,8 @@ private:
   bool _saveAnaTree;
   //for ana output
   TTree* _outtree;
+  Int_t   fRun;
+  Int_t   fSubrun;
   Int_t   fEventID;
   Int_t   fFlashID;
   Float_t fFlashTime; 
@@ -97,7 +99,8 @@ private:
   Float_t fYWidth;
   Float_t fZCenter;
   Float_t fZWidth;
-  //TH1F* hdecon[32];
+  TTree* _histtree;
+  std::vector<std::vector<double>> decon_vv;
 
   void reco_default(art::Event &evt, double &triggerTime);
   void reco_external_sat(art::Event &evt, double &triggerTime);
@@ -146,6 +149,8 @@ UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
   if(_saveAnaTree){
     art::ServiceHandle< art::TFileService > tfs;
     _outtree = tfs->make<TTree>("outtree","per flash tree");
+    _outtree->Branch("Run",        &fRun,         "Run/I");
+    _outtree->Branch("Subrun",     &fSubrun,      "Subrun/I");
     _outtree->Branch("EventID",    &fEventID,     "EventID/I");
     _outtree->Branch("FlashID",    &fFlashID,     "FlashID/I");
     _outtree->Branch("FlashType",  &fFlashType,   "FlashType/I");
@@ -163,13 +168,12 @@ UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
     _outtree->Branch("PEPerCh", &fPEPerCh);
     _outtree->Branch("gains", &pmt_gain);
     _outtree->Branch("gains_err", &pmt_gainerr);
-    /*
-    for(int i=0; i<32; i++){
-      std::string hist ="hdecon_";
-      hist += std::to_string(i);
-      hdecon[i] = tfs->make<TH1F>(hist.c_str(),"",250,0,250);
-    }
-    */
+    
+    _histtree = tfs->make<TTree>("histtree","decon beam wf");
+    _histtree->Branch("Run",        &fRun,         "Run/I");
+    _histtree->Branch("Subrun",     &fSubrun,      "Subrun/I");
+    _histtree->Branch("EventID",    &fEventID,     "EventID/I");
+    _histtree->Branch("decon_vv",   &decon_vv);
   }
 
 
@@ -183,6 +187,8 @@ UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
 void UBWCFlashFinder::produce(art::Event & evt)
 {
   fEventID = evt.event();
+  fRun     = evt.run();
+  fSubrun  = evt.subRun();
 
   std::unique_ptr< std::vector<recob::OpFlash> > opflashes_beam(new std::vector<recob::OpFlash>);
   std::unique_ptr< std::vector<recob::OpFlash> > opflashes_cosmic(new std::vector<recob::OpFlash>);
@@ -214,7 +220,6 @@ void UBWCFlashFinder::produce(art::Event & evt)
       pmt_gainerr.assign(32, 0.30);
     }    
   }
-
   //reconstruct
   flash_algo.Configure(flash_pset);
   if(!_useExtSat) reco_default(evt, triggerTime);
@@ -246,20 +251,14 @@ void UBWCFlashFinder::produce(art::Event & evt)
     wf.clear();
 
   }
-
-  /*
-  //get deconvolved WF
-  std::vector<std::vector<double> > decon_vv;
-  if(_saveAnaTree){
-  decon_vv = flash_algo.get_decon_vv();
   
-  for(unsigned int i=0; i<decon_vv.size(); i++){
-  for(unsigned int j=0; j<decon_vv.at(i).size(); j++){
-  hdecon[i]->SetBinContent(j+1,decon_vv.at(i).at(j));
-  }	
+  //get deconvolved WF
+  if(_saveAnaTree){
+    decon_vv.clear();
+    decon_vv = flash_algo.get_decon_vv();
+    _histtree->Fill();
   }
-  }
-  */
+  
 
   //get flashes
   auto const flash_v = flash_algo.get_flashes();

@@ -11,6 +11,7 @@ namespace wcopreco {
     wcopreco::Deconvolver filtered_wfm(deconvolved_beam, true, kernel_container_v, cfg_DC);
 
     OpWaveformCollection filtered_collection = filtered_wfm.Deconvolve_Collection(deconvolved_beam);
+    filtered_collection.set_op_gain(deconvolved_beam.get_op_gain());//set the gains back
 
     totPE_v.resize(_cfg._nbins_beam/_cfg._rebin_frac);
     mult_v.resize(_cfg._nbins_beam/_cfg._rebin_frac);
@@ -20,6 +21,7 @@ namespace wcopreco {
 
     //loop through each channel and perform the l1 fit
     for (int ch=0; ch<_cfg._num_channels; ch++){
+      float chgain = filtered_collection.get_op_gain().at(ch);
       //totPE mult, and their l1 versions are additive (each element is always +=). Each iteration of ch will add to these values.
       decon_vv.at(ch).reserve(300);
       Perform_L1( filtered_collection.at(ch),
@@ -28,17 +30,19 @@ namespace wcopreco {
                   mult_v,
                   l1_totPE_v,
                   l1_mult_v,
-                  ch);
+                  ch,
+		  chgain);
     }
   }
 
   void HitFinder_beam::Perform_L1(std::vector<double> inverse_res1,
-                               std::vector< std::vector<double> > &decon_vv,
-                               std::vector<double> &totPE_v,
-                               std::vector<double> &mult_v,
-                               std::vector<double> &l1_totPE_v,
-                               std::vector<double> &l1_mult_v,
-                               int ch)
+				  std::vector< std::vector<double> > &decon_vv,
+				  std::vector<double> &totPE_v,
+				  std::vector<double> &mult_v,
+				  std::vector<double> &l1_totPE_v,
+				  std::vector<double> &l1_mult_v,
+				  int ch,
+				  float gain)
   {
     // prepare L1 fit ...
     std::vector<float> rebin_v;
@@ -58,6 +62,9 @@ namespace wcopreco {
       decon_vv[ch].at(i) = rebin_v[i];
 
     }
+
+    //if gain is zero ignore contribution to PE
+    if(gain<=0) return;
 
     // work on the L1 ...
     std::vector<double> vals_y;
