@@ -107,19 +107,19 @@ private:
   bool   TrackEntersTop     (const std::vector<TVector3>& sorted_trk);
   bool   TrackEntersFront   (const std::vector<TVector3>& sorted_trk);
   bool   TrackEntersBack    (const std::vector<TVector3>& sorted_trk);
-  bool   TrackEntersAnode   (const std::vector<TVector3>& sorted_trk);
+  bool   TrackEntersAnode   (std::vector<TVector3>& sorted_trk);
   bool   TrackEntersSide    (const std::vector<TVector3>& sorted_trk);
-  bool   TrackExitsBottom   (const std::vector<TVector3>& sorted_trk);
-  bool   TrackExitsFront    (const std::vector<TVector3>& sorted_trk);
-  bool   TrackExitsBack     (const std::vector<TVector3>& sorted_trk);
-  bool   TrackExitsAnode    (const std::vector<TVector3>& sorted_trk);
-  bool   TrackExitsSide     (const std::vector<TVector3>& sorted_trk);
+  bool   TrackExitsBottom   (std::vector<TVector3>& sorted_trk);
+  bool   TrackExitsFront    (std::vector<TVector3>& sorted_trk);
+  bool   TrackExitsBack     (std::vector<TVector3>& sorted_trk);
+  bool   TrackExitsAnode    (std::vector<TVector3>& sorted_trk);
+  bool   TrackExitsSide     (std::vector<TVector3>& sorted_trk);
 
   // functions to be used for organization in the module
   void   SortTrackPoints      (const recob::Track& track,
 			       std::vector<TVector3>& sorted_trk);
   double GetEnteringTimeCoord (const std::vector<TVector3>& sorted_trk);
-  double GetExitingTimeCoord  (const std::vector<TVector3>& sorted_trk);
+  double GetExitingTimeCoord  (std::vector<TVector3>& sorted_trk);
 
   // validate flash matching by requiring PMT flash
   std::pair<double,size_t> FlashMatch(const double reco_time);
@@ -468,7 +468,7 @@ bool T0RecoAnodeCathodePiercing::TrackEntersBack(const std::vector<TVector3>& so
 }
 
 
-bool   T0RecoAnodeCathodePiercing::TrackEntersAnode(const std::vector<TVector3>& sorted_trk)
+bool   T0RecoAnodeCathodePiercing::TrackEntersAnode(std::vector<TVector3>& sorted_trk)
 {
 
   // we know the track enters either the                                                                                                                               
@@ -484,7 +484,14 @@ bool   T0RecoAnodeCathodePiercing::TrackEntersAnode(const std::vector<TVector3>&
   // return TRUE if passes the ANODE                                                                                                                                                
   
   auto const& top    = sorted_trk.at(0);
-  auto const& bottom = sorted_trk.at( sorted_trk.size() - 1 );
+  //auto const& bottom = sorted_trk.at( sorted_trk.size() - 1 );
+  auto & bottom = sorted_trk.at(sorted_trk.size() - 1);
+
+  int counter = 1;
+  while(bottom.X()==-999 && (sorted_trk.size()-counter) >=0) { //from Lorca, end point is ussually -999                                                         
+    bottom = sorted_trk.at(sorted_trk.size() - counter);
+    counter++;
+  }
 
   if (top.X() < bottom.X())
     return true;
@@ -517,19 +524,29 @@ bool   T0RecoAnodeCathodePiercing::TrackEntersSide(const std::vector<TVector3>& 
 }
 
 
-bool   T0RecoAnodeCathodePiercing::TrackExitsBottom(const std::vector<TVector3>& sorted_trk)
+bool   T0RecoAnodeCathodePiercing::TrackExitsBottom(std::vector<TVector3>& sorted_trk)
 {
 
   // check that the last point in the track                                                                                                                                    
-  // pierces the bottom boundary of the TPC                                                                                                                                   
-  if ( sorted_trk.at( sorted_trk.size() - 1).Y() < _BOTTOM )
+  // pierces the bottom boundary of the TPC                                                                                                                    
+
+  auto &  bottom = sorted_trk.at(sorted_trk.size() - 1);
+
+  int counter = 1;
+  while(bottom.X()==-999 && (sorted_trk.size()-counter) >=0) { //from Lorca, end point is ussually -999                                                                                                                                                                             
+    bottom = sorted_trk.at(sorted_trk.size() - counter);
+    counter++;
+  }
+
+  // if ( sorted_trk.at( sorted_trk.size() - 1).Y() < _BOTTOM )                                                                                                 
+  if ( bottom.Y() < _BOTTOM )
     return true;
 
   return false;
 }
 
 
-bool   T0RecoAnodeCathodePiercing::TrackExitsFront(const std::vector<TVector3>& sorted_trk)
+bool   T0RecoAnodeCathodePiercing::TrackExitsFront(std::vector<TVector3>& sorted_trk)
 {
 
   // Determine if the track exits the                                                                                                                                      
@@ -538,7 +555,14 @@ bool   T0RecoAnodeCathodePiercing::TrackExitsFront(const std::vector<TVector3>& 
   // the location of the front of the TPC in Z                                                                                                                           
   
   // First define 'bottom_pt' to mean the point at the end of the track                                                                                             
-  auto const& bottom_pt = sorted_trk.at(sorted_trk.size() - 1);
+  // auto const& bottom_pt = sorted_trk.at(sorted_trk.size() - 1);
+  auto &  bottom_pt = sorted_trk.at(sorted_trk.size() - 1);
+
+  int counter = 1;
+  while(bottom_pt.X()==-999 && (sorted_trk.size()-counter) >=0) { //from Lorca, end point is ussually -999                                                                                                                                                                                                               
+    bottom_pt = sorted_trk.at(sorted_trk.size() - counter);
+    counter++;
+  }
 
   if (bottom_pt.Z() < _FRONT)
     return true;
@@ -547,7 +571,7 @@ bool   T0RecoAnodeCathodePiercing::TrackExitsFront(const std::vector<TVector3>& 
 }
 
 
-bool   T0RecoAnodeCathodePiercing::TrackExitsBack(const std::vector<TVector3>& sorted_trk)
+bool   T0RecoAnodeCathodePiercing::TrackExitsBack(std::vector<TVector3>& sorted_trk)
 {
 
   // Determine if the track exits the                                                                                            
@@ -556,7 +580,14 @@ bool   T0RecoAnodeCathodePiercing::TrackExitsBack(const std::vector<TVector3>& s
   // the location of the front of the TPC in Z                                                                                                                          
   
   // First define 'bottom_pt' to mean the point at the end of the track                                              
-  auto const& bottom_pt = sorted_trk.at(sorted_trk.size() - 1);
+  //auto const& bottom_pt = sorted_trk.at(sorted_trk.size() - 1);
+  auto &  bottom_pt = sorted_trk.at(sorted_trk.size() - 1);
+
+  int counter = 1;
+  while(bottom_pt.X()==-999 && (sorted_trk.size()-counter) >=0) { //from Lorca, end point is ussually -999                                                                                                                                                                                                         
+    bottom_pt = sorted_trk.at(sorted_trk.size() - counter);
+    counter++;
+  }
 
   if (bottom_pt.Z() > _BACK)
     return true;
@@ -565,7 +596,7 @@ bool   T0RecoAnodeCathodePiercing::TrackExitsBack(const std::vector<TVector3>& s
 }
 
 
-bool   T0RecoAnodeCathodePiercing::TrackExitsAnode(const std::vector<TVector3>& sorted_trk)
+bool   T0RecoAnodeCathodePiercing::TrackExitsAnode(std::vector<TVector3>& sorted_trk)
 {
 
   // Check, once it's known that the track doesn't exit out of the bottom, whether it's the anode or                                                                           
@@ -574,7 +605,14 @@ bool   T0RecoAnodeCathodePiercing::TrackExitsAnode(const std::vector<TVector3>& 
   // Define 'top' as the point at the start of the track, and 'bottom' as the point at the end of the track                                                                     
 
   auto const& top    = sorted_trk.at(0);
-  auto const& bottom = sorted_trk.at(sorted_trk.size() - 1);
+  // auto const& bottom = sorted_trk.at(sorted_trk.size() - 1);
+  auto &  bottom = sorted_trk.at(sorted_trk.size() - 1);
+
+  int counter = 1;
+  while(bottom.X()==-999 && (sorted_trk.size()-counter) >=0) { //from Lorca, end point is ussually -999                                                                                                                                                                                                                    
+    bottom = sorted_trk.at(sorted_trk.size() - counter);
+    counter++;
+  }
 
   // Check to see which point has a lower x coordinate                                                                                                                         
   // If the bottom does, then it exits out of the anode                                                                                                                       
@@ -586,15 +624,23 @@ bool   T0RecoAnodeCathodePiercing::TrackExitsAnode(const std::vector<TVector3>& 
 }
 
 
-bool   T0RecoAnodeCathodePiercing::TrackExitsSide(const std::vector<TVector3>& sorted_trk)
+bool   T0RecoAnodeCathodePiercing::TrackExitsSide(std::vector<TVector3>& sorted_trk)
 {
 
   // check that the bottom-most point                                                                                                                                           
   // is not on the bottom of the TPC                                                                                                                                            
   // nor on the front & back of the TPC                                                                                                                                              
 
-  auto const& bottom_pt = sorted_trk.at(sorted_trk.size() - 1);
+  // auto const& bottom_pt = sorted_trk.at(sorted_trk.size() - 1);
+  auto &  bottom_pt = sorted_trk.at(sorted_trk.size() - 1);
 
+  int counter = 1;
+  while(bottom_pt.X()==-999 && (sorted_trk.size()-counter) >=0) { //from Lorca, end point is ussually -999                                                                                          
+    
+    bottom_pt = sorted_trk.at(sorted_trk.size() - counter);
+    counter++;
+  }
+  
   // if lowest point below the BOTTOM -> false                                                                                                            
   // Within this resolution, this means that it's likely that the track exited out of the bottom (at a point earlier on in the process than the last point) OR is just about to
 
@@ -653,13 +699,25 @@ double T0RecoAnodeCathodePiercing::GetEnteringTimeCoord(const std::vector<TVecto
 }
 
 
-double T0RecoAnodeCathodePiercing::GetExitingTimeCoord(const std::vector<TVector3>& sorted_trk) 
+double T0RecoAnodeCathodePiercing::GetExitingTimeCoord(std::vector<TVector3>& sorted_trk) 
 {
   // get the drift-coordinate value                                                                                                                                           
   // associated with the point                                                                                                                                                
   // along the track piercing the anode / cathode                                                                                                                            
   // ** WHEN the track exits the anode / cathode
-  return sorted_trk.at(sorted_trk.size() - 1).X();
+  // return sorted_trk.at(sorted_trk.size() - 1).X();
+
+  auto &  bottom = sorted_trk.at(sorted_trk.size() - 1);
+
+  int counter = 1;
+  while(bottom.X()==-999 && (sorted_trk.size()-counter) >=0) { //from Lorca, end point is ussually -999                                                  
+                                                                                                                                                            
+    bottom = sorted_trk.at(sorted_trk.size() - counter);
+    counter++;
+  }
+
+
+  return bottom.X();
 }
 
 DEFINE_ART_MODULE(T0RecoAnodeCathodePiercing)
