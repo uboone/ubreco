@@ -2,6 +2,56 @@
 #include "triggeralgo_service.fcl"
 #include "acpttrig.fcl"
 
+CRTT0: {
+          module_type: "ubcrt/CRT/CRTTzeroProducer"
+           data_label: "merger"
+           max_time_difference: 100.
+           store_tzero: 1
+           verbose: 0
+      }
+
+CRTTrack:
+     {
+      module_type: "ubcrt/CRT/CRTTrackProducer"
+      data_label_hits: "merger"
+      data_label_tzeros: "crtt0"
+      track_method_type: 2
+      store_track: 1
+      verbose: 0
+    }
+
+
+CRTTrackT0:  {
+   module_type: T0recoCRTHit
+   data_label_TPCtrack: "pandoraCosmic"
+   data_label_CRTtzero: "crtt0"
+   data_label_CRThit: "merger"
+   data_label_flash: "simpleFlashCosmic"
+   data_label_DAQHeader: "daq"
+   HardDelay: 40000   #BNB data is 35520, for TimeSelect=1
+   TimeZeroOffset: 69200   #used for TimeSelect=0
+   verbose: false
+   # set =0 for GPS ref and =1 to use trigger time
+   TimeSelect: 0
+   # distance squared in cm^2 from track extrapolation to CRT hit 
+   #   must be less than this to be considered a match
+   MatchCut: 40
+   DriftVel: 0.11436  # in cm/us, should be 0.1098 eventually
+   # alignment offsets for CRT planes in cm, default is 0.0 for all
+   AlignBotX:    -4.4
+   AlignBotY:     0.0
+   AlignBotZ:    30.2
+   AlignAnodeX:   0.0
+   AlignAnodeY:  20.0
+   AlignAnodeZ:   5.7
+   AlignCathX:    0.0
+   AlignCathY:   -9.8
+   AlignCathZ:    0.4
+   AlignTopX:    20.8
+   AlignTopY:     0.0
+   AlignTopZ:   -28.1
+}
+
 process_name: ACPTtrig
 
 services:
@@ -54,12 +104,17 @@ physics:
   ### random number saver
   rns:                 { module_type: RandomNumberSaver }
 
-  ### shower reco module
+  ### CRT track-tagger
+  crtt0:      @local::CRTT0
+  crttrack:   @local::CRTTrack
+  crttrackt0: @local::CRTTrackT0
+
+  ### ACPT in time with trigger tagger
   acpttrig: @local::ACPTtrig
  }
  analyzers:{}
 
- reco: [ acpttrig ]
+ reco: [ crtt0, crttrack, crttrackt0, acpttrig ]
  ana: [ ]
 
  #define the output stream, there could be more than one if using filters 

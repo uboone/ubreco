@@ -11,8 +11,10 @@ ACPTtrig: {
     YMax: 80
     BeamSpillStart: 3.0
     BeamSpillEnd:   6.0
-    TrackProducer: "pandoraTrack"
+    #TrackProducer: "pandoraTrack"
+    TrackProducer: "pandoraCosmic"
     FlashProducer: "simpleFlashBeam"
+    CRTTagProducer: "crttrackt0"
     OpDetWfmProducer: "pmtreadout:OpdetBeamHighGain"
     SaveTree: true
 }
