@@ -78,8 +78,9 @@ namespace showerreco {
     auto const& geomH = ::util::GeometryUtilities::GetME();
     
     if (proto_shower.hasVertex() == false){
-      std::cout << "Number of vertices is not one!" << std::endl;
-      return;
+      std::stringstream ss;
+      ss << "Fail @ algo " << this->name() << " due to number of vertices != one!";
+      throw ShowerRecoException(ss.str());
     }
     
     // get the proto-shower 3D vertex
@@ -93,9 +94,6 @@ namespace showerreco {
     std::vector<int> planeHits(3,0);
     std::vector<::util::PxPoint> planeDir(3);
 
-    // keep track of minimum 2D distance
-    double dmin2d = 1e6;
-    
     // we want an energy for each plane
     for (size_t n = 0; n < clusters.size(); n++) {
       
@@ -120,24 +118,17 @@ namespace showerreco {
 
       // get the charge-averaged 2D vector pointing from vtx in shower direction
       ::util::PxPoint weightedDir;
-      ::util::PxPoint ptmin;
       weightedDir.w = 0;
       weightedDir.t = 0;
       double Qtot = 0;
       for (auto const& hit : hits){
 	weightedDir.w += (hit.w - vtx2D.w) * hit.charge;
 	weightedDir.t += (hit.t - vtx2D.t) * hit.charge;
-	double dd = sqrt( (hit.w - vtx2D.w) * (hit.w - vtx2D.w) + (hit.t - vtx2D.t) * (hit.t - vtx2D.t) );
-	if (dd < dmin2d) {
-	  dmin2d = dd;
-	  ptmin = hit;
-	}
 	Qtot += hit.charge;
       }
 
       if (_verbose){
-	std::cout << "Closest pt @ [w,t] -> [ " << ptmin.w << ", " << ptmin.t << " ]" << std::endl;
-	std::cout << "Cluster on plane " << pl << " w/ " << hits.size() << " hits has 2d dist min : " << dmin2d << " in cm" << std::endl;
+	std::cout << "Qtot is " << Qtot << std::endl;
       }
 
       weightedDir.w /= Qtot;
@@ -163,6 +154,13 @@ namespace showerreco {
 	n_min  = planeHits[pl];
       }
     }
+
+    if (pl_max == pl_min) {
+      std::stringstream ss;
+      ss << "Fail @ algo " << this->name() << " due to PL max and PL min being the same!";
+      throw ShowerRecoException(ss.str());
+    }
+
     // find the medium plane
     std::vector<int> planes = {0,1,2};
     planes.erase( std::find( planes.begin(), planes.end(), pl_max) );

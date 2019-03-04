@@ -51,16 +51,15 @@
 class MuCSMCGen : public art::EDProducer {
 public:
   explicit MuCSMCGen(fhicl::ParameterSet const& pset);
-  virtual ~MuCSMCGen();                        
+  virtual ~MuCSMCGen();
 
-  void produce(art::Event& evt);  
+  void produce(art::Event& evt);
   //void beginJob();
   void beginRun(art::Run& run);
-  void reconfigure(fhicl::ParameterSet const& p);
 
 private:
 
-  CRYSetup*      fSetup; 
+  CRYSetup*      fSetup;
   CRYGenerator*  fGen;
   std::vector<double> fTopLayerDims; //<Dimensions of each layer (linearized multi-dim array layers vs dims (x1,x2,y1,y2,z1,z2))
   std::vector<double> fBottomLayerDims; //<Dimensions of each layer (linearized multi-dim array layers vs dims (x1,x2,y1,y2,z1,z2))
@@ -68,21 +67,27 @@ private:
   double fEnergyThreshold; //<Only keep particles above this energy
   std::string fCRYConfigStr; //<Configuration string that gets passed to CRY
   int fParticlesPerEvent; //<How many particles to keep per event
+  CLHEP::HepRandomEngine& fEngine;
 };
 
 
 //____________________________________________________________________________
-MuCSMCGen::MuCSMCGen(fhicl::ParameterSet const& pset)
-{
+MuCSMCGen::MuCSMCGen(fhicl::ParameterSet const& pset) :
+  EDProducer{pset},
+  fTopLayerDims{pset.get< std::vector<double> >( "TopLayerDims" )},
+  fBottomLayerDims{pset.get< std::vector<double> >( "BottomLayerDims" )},
+  fSampleTime{pset.get<double>("SampleTime",0)},
+  fEnergyThreshold{pset.get<double>("EnergyThreshold",0.05)},
+  fCRYConfigStr{pset.get<std::string>("CRYConfigStr")},
+  fParticlesPerEvent{pset.get<int>("ParticlesPerEvent",1)},
   // create a default random engine; obtain the random seed from NuRandomService,
   // unless overridden in configuration with key "Seed"
-  art::ServiceHandle<rndm::NuRandomService>()->createEngine(*this, pset, "Seed");
-  
-  this->reconfigure(pset);
-  
+  fEngine(art::ServiceHandle<rndm::NuRandomService>()->createEngine(*this, pset, "Seed"))
+{
+
   produces< std::vector<simb::MCTruth> >();
   produces< sumdata::RunData, art::InRun >();
-  
+
   // Find the pointer to the CRY data tables
   std::string crydatadir;
   const char* datapath = getenv("CRYDATAPATH");
@@ -91,15 +96,12 @@ MuCSMCGen::MuCSMCGen(fhicl::ParameterSet const& pset)
     mf::LogError("CRYHelper") << "no variable CRYDATAPATH set for cry data location, bail";
     exit(0);
   }
-    
+
   // Construct the event generator object
   fSetup = new CRYSetup(fCRYConfigStr, crydatadir);
-  art::ServiceHandle<art::RandomNumberGenerator> rng;
-  CLHEP::HepRandomEngine &engine = rng->getEngine(art::ScheduleID::first(),
-                                                  moduleDescription().moduleLabel());
-  evgb::RNGWrapper<CLHEP::HepRandomEngine>::set(&engine, &CLHEP::HepRandomEngine::flat);
+  evgb::RNGWrapper<CLHEP::HepRandomEngine>::set(&fEngine, &CLHEP::HepRandomEngine::flat);
   fSetup->setRandomFunction(evgb::RNGWrapper<CLHEP::HepRandomEngine>::rng);
-  fGen = new CRYGenerator(fSetup);  
+  fGen = new CRYGenerator(fSetup);
 }
 
 MuCSMCGen::~MuCSMCGen(){
@@ -111,25 +113,8 @@ void MuCSMCGen::beginRun(art::Run& run)
 {
   // grab the geometry object to see what geometry we are using
   art::ServiceHandle<geo::Geometry> geo;
-  std::unique_ptr<sumdata::RunData> runcol(new sumdata::RunData(geo->DetectorName()));
-  run.put(std::move(runcol));
-  return;
+  run.put(std::make_unique<sumdata::RunData>(geo->DetectorName()));
 }
-  
-//____________________________________________________________________________
-void MuCSMCGen::reconfigure(fhicl::ParameterSet const& p){
-
-  art::ServiceHandle<geo::Geometry> geo;
-  fTopLayerDims = p.get< std::vector<double> >( "TopLayerDims" );
-  fBottomLayerDims = p.get< std::vector<double> >( "BottomLayerDims" );
-  fSampleTime=p.get<double>("SampleTime",0);
-  fEnergyThreshold=p.get<double>("EnergyThreshold",0.05);
-  fCRYConfigStr=p.get<std::string>("CRYConfigStr");
-  fParticlesPerEvent=p.get<int>("ParticlesPerEvent",1);
-  
-  return;
-}
-
 
 //____________________________________________________________________________
 void MuCSMCGen::produce(art::Event& evt)
@@ -147,27 +132,27 @@ void MuCSMCGen::produce(art::Event& evt)
     for (unsigned int i=0; i<parts.size(); ++i) {
       // Take ownership of the particle from the vector
       std::unique_ptr<CRYParticle> cryp(parts[i]);
-      
+
       // Get the energies of the particles
       double ke = cryp->ke()*1.0E-3; // MeV to GeV conversion
       if (ke<fEnergyThreshold) continue;
-      
+
       double m = 0.; // in GeV
       static TDatabasePDG*  pdgt = TDatabasePDG::Instance();
       TParticlePDG* pdgp = pdgt->GetParticle(cryp->PDGid());
       if (pdgp) m = pdgp->Mass();
-      
+
       double etot = ke + m;
       double ptot = etot*etot-m*m;
       if (ptot>0.0) ptot = sqrt(ptot);
       else          ptot = 0.0;
-      
+
       // Sort out the momentum components. Remember that the NOvA
       // frame has y up and z along the beam. So uvw -> zxy
       double px = ptot * cryp->v();
       double py = ptot * cryp->w();
       double pz = ptot * cryp->u();
-      
+
       // Particle start position. CRY distributes uniformly in x-y
       // plane at fixed z, where z is the vertical direction. This
       // requires some offsets and rotations to put the particles at
@@ -183,11 +168,11 @@ void MuCSMCGen::produce(art::Event& evt)
       if(py==0.) continue; //ignore horizontal particles
       double dt=(fBottomLayerDims[3]-vy)/py;
       double nv[]={vx + dt*px, vy + dt*py, vz + dt*pz};
-      
+
       if( nv[0]<fBottomLayerDims[0] || nv[0]>fBottomLayerDims[1]
           || nv[2]<fBottomLayerDims[4] || nv[2]>fBottomLayerDims[5])
           continue;
-      
+
       // Boiler plate...
       int istatus    =  1;
       int imother1   = evgb::kCosmicRayGenerator;
@@ -196,13 +181,13 @@ void MuCSMCGen::produce(art::Event& evt)
       TLorentzVector pos(vx,vy,vz,t*1e9);// time needs to be in ns to match GENIE, etc
       TLorentzVector mom(px,py,pz,etot);
       p.AddTrajectoryPoint(pos,mom);
-      
+
       mctruth.Add(p);
       ++idctr;
       break;
     } // Loop on particles in event
   } // Loop on events simulated
-    
+
   mctruth.SetOrigin(simb::kCosmicRay);
 
   truthcol->push_back(mctruth);
@@ -213,4 +198,3 @@ void MuCSMCGen::produce(art::Event& evt)
 
 
 DEFINE_ART_MODULE(MuCSMCGen)
-

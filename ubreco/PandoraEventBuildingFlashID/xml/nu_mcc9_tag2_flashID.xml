@@ -3,7 +3,7 @@
 <!-- Production Project -->
 
 <!DOCTYPE project [
-<!ENTITY release "v07_07_03">
+<!ENTITY release "v07_11_00">
 <!ENTITY quals "e17:prof">
 <!ENTITY name "OctMini_MCC9_tag2_BNB_nu_cosmic">
 <!ENTITY dataset "prodgenie_bnb_nu_cosmic_uboone_mcc9.0_beta2_oct_reco_2d_wc_reco2">
@@ -32,14 +32,14 @@
   <larsoft>
     <tag>&release;</tag>
     <qual>&quals;</qual>
-    <local>/pnfs/uboone/resilient/users/&user;/submission/localprod_22_10_FlashID.tar</local>
+    <local>/pnfs/uboone/resilient/users/&user;/submission/ubc_v7_11_16Nov.tar</local>
   </larsoft>
 
   <!-- Project stages -->
   <stage name="flashNeutrinoId">
     <inputdef>&dataset;</inputdef>
     <schema>root</schema>
-    <fcl>run_flash_event_building_MC.fcl</fcl>
+    <fcl>run_pandora_event_analyser_MC.fcl</fcl>
     <outdir>/pnfs/uboone/scratch/users/&user;/&name;/flashNeutrinoId_MC</outdir>
     <logdir>/pnfs/uboone/scratch/users/&user;/&name;/flashNeutrinoId_MC</logdir>
     <workdir>/pnfs/uboone/resilient/users/&user;/work/&name;/</workdir>

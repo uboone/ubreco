@@ -14,9 +14,9 @@
 #include "lardataobj/RecoBase/PFParticle.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
 #include "lardataobj/RecoBase/Hit.h"
+#include "ubreco/LLSelectionTool/OpT0Finder/Base/OpT0FinderTypes.h"
+#include "ubreco/LLSelectionTool/OpT0Finder/Base/FlashMatchManager.h"
 
-#include "ubana/LLSelectionTool/OpT0Finder/Base/OpT0FinderTypes.h"
-#include "ubana/LLSelectionTool/OpT0Finder/Base/FlashMatchManager.h"
 
 #include "larpandora/LArPandoraInterface/LArPandoraHelper.h"
 #include "larpandora/LArPandoraEventBuilding/LArPandoraSliceIdHelper.h"
@@ -96,12 +96,19 @@ private:
         int  m_run;                   ///< The run number
         int  m_subRun;                ///< The subRun number
         int  m_event;                 ///< The event number
+
+        UInt_t m_timeHigh;            ///< The event time stamp, seconds part
+        UInt_t m_timeLow;             ///< The event time stamp, nanoseconds part
+
         int  m_nFlashes;              ///< The number of flashes
         int  m_nFlashesInBeamWindow;  ///< The number of flashes in the beam window
         bool m_hasBeamFlash;          ///< If a beam flash was found
         int  m_nSlices;               ///< The number of slices
         int  m_nSlicesAfterPrecuts;   ///< The number of slices remaining after the preselection cuts
         bool m_foundATargetSlice;     ///< If a slice was identified as the target (neutrino)
+
+        int  m_targetSliceMethod;     ///< 0: only one slice passed precuts, 1: has best toposcore, 2: has best flashmatchscore
+
     };
     
     // -------------------------------------------------------------------------------------------------------------------------------------
@@ -153,6 +160,10 @@ private:
         int                 m_run;                  ///< The run number
         int                 m_subRun;               ///< The subRun number
         int                 m_event;                ///< The event number
+
+        UInt_t              m_timeHigh;            ///< The event time stamp, seconds part
+        UInt_t              m_timeLow;             ///< The event time stamp, nanoseconds part
+
         float               m_time;                 ///< Time of the flash
         std::vector<float>  m_peSpectrum;           ///< The number of PEs on each PMT
         float               m_totalPE;              ///< The total number of photoelectrons over all PMTs in the flash
@@ -217,7 +228,9 @@ private:
          */
         SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
             const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
-            const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower);
+
+            const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceIndex);
+
 
         /**
          *  @brief  Parametrized constructor for slices that aren't considered by the flash neutrino ID module - monitoring only
@@ -270,7 +283,8 @@ private:
             const SpacePointsToHits &spacePointToHitMap, const Slice &slice) const;
     
         /**
-         *  @breif  Collect all downstream particles of those in the input vector
+
+         *  @brief  Collect all downstream particles of those in the input vector
          *
          *  @param  pfParticleMap the mapping from PFParticle ID to PFParticle
          *  @param  parentPFParticles the input vector of PFParticles
@@ -280,7 +294,9 @@ private:
             PFParticleVector &downstreamPFParticles) const;
     
         /**
-         *  @breif  Collect all downstream particles of a given particle
+
+         *  @brief  Collect all downstream particles of a given particle
+
          *
          *  @param  pfParticleMap the mapping from PFParticle ID to PFParticle
          *  @param  particle the input PFParticle
@@ -337,9 +353,14 @@ private:
     
     public:
         // Features of the slice are used when writing to file is enabled
+
+        int                  m_sliceId;                  ///< The sliceId   
         int                  m_run;                      ///< The run number
         int                  m_subRun;                   ///< The subRun number
         int                  m_event;                    ///< The event number
+        UInt_t               m_timeHigh;                 ///< The event time stamp, seconds part
+        UInt_t               m_timeLow;                  ///< The event time stamp, nanoseconds part
+
         bool                 m_hasDeposition;            ///< If the slice has any charge deposited on the collection plane which produced a spacepoint
         float                m_totalCharge;              ///< The total charge deposited on the collection plane by hits that produced spacepoints
         float                m_centerX;                  ///< The charge weighted center of the slice in X
@@ -351,18 +372,24 @@ private:
         float                m_deltaYSigma;              ///< deltaY but in units of the flash width in Y
         float                m_deltaZSigma;              ///< deltaZ but in units of the flash width in Z
         float                m_chargeToLightRatio;       ///< The ratio between the total charge and the total PE of the beam flash
+
+        float                m_xChargeLightVariable;     ///< m_xclCoef*log10(chargeToLightRatio)- centerX
         bool                 m_passesPrecuts;            ///< If the slice passes the preselection cuts
         float                m_flashMatchScore;          ///< The flash matching score between the slice and the beam flash
         float                m_flashMatchX;              ///< The etimated X coordinate of the flashmatching
         float                m_totalPEHypothesis;        ///< The total PE of the hypothesized flash for this slice
         std::vector<float>   m_peHypothesisSpectrum;     ///< The PE of the hypothesized flash of this slice 
         bool                 m_isTaggedAsTarget;         ///< If the slice has been tagged as the target (neutrino)
+
+        int                  m_targetMethod;             ///< 0: only one slice passed precuts, 1: has best toposcore, 2: had best flashmatchscore
         bool                 m_isConsideredByFlashId;    ///< If the slice was considered by the flash ID tool - this will be false if there wasn't a beam flash found in the event
         float                m_topologicalNeutrinoScore; ///< The topological-information-only neutrino ID score from Pandora
         bool                 m_hasBestTopologicalScore;  ///< If this slice has the highest topological score in the event
-        
+        bool                 m_hasBestFlashMatchScore;   ///< From the slices passing the precuts, if this one has the highest flashmatch score
         float                m_chargeToNPhotonsTrack;    ///< The conversion factor between charge and number of photons for tracks
         float                m_chargeToNPhotonsShower;   ///< The conversion factor between charge and number of photons for showers
+        float                m_xclCoef;                  ///< m_xclCoef*log10(chargeToLightRatio)- centerX
+
         flashana::QCluster_t m_lightCluster;             ///< The hypothesised light produced - used by flashmatching
     };
     
@@ -432,7 +459,9 @@ private:
      *  @param  slices the input vector of slices
      *  @param  sliceCandidates the candidate slices
      */
-    void FillSliceTree(const art::Event &evt, const SliceVector &slices, SliceCandidateVector &sliceCandidates);
+
+    void FillSliceTree(const art::Event &evt, const SliceVector &slices, const SliceCandidateVector &sliceCandidates);
+
 
     /**
      *  @brief  Identify the slice which has the largest topological neutrino ID score, and flag it
@@ -449,6 +478,10 @@ private:
     float        m_beamWindowStart;  ///< The start time of the beam window
     float        m_beamWindowEnd;    ///< The end time of the beam window
     float        m_minBeamFlashPE;   ///< The minimum number of photoelectrons required to consider a flash as the beam flash
+
+    // Coefficient to account for the x-dependency in the charge light-ratio
+    float        m_xclCoef;          ///< m_xclCoef*log10(chargeToLightRatio)- centerX
+
 
     // Pre-selection cuts to determine if a slice is compatible with the beam flash
     float        m_maxDeltaY;              ///< The maximum difference in Y between the beam flash center and the weighted charge center
@@ -468,7 +501,9 @@ private:
     bool                                    m_shouldWriteToFile;   ///< If we should write interesting information to a root file
     bool                                    m_hasMCNeutrino;       ///< If there is an MC neutrino we can use to get truth information
     int                                     m_nuInteractionType;   ///< The interaction type code from MCTruth
-    int                                     m_nuCCNC;              ///< Charged current or neutral current?
+
+    int                                     m_nuCCNC;                ///< Charged current or neutral current?
+
     float                                   m_nuEnergy;            ///< The true neutrino energy
     float                                   m_leptonEnergy;        ///< The true energy of the lepton coming from the CC interaction
     float                                   m_nuVertexX;           ///< The true neutrino vertex X position
@@ -499,13 +534,17 @@ DEFINE_ART_CLASS_TOOL(FlashNeutrinoId)
 namespace lar_pandora
 {
 
-// TODO Why is the implementation of the constructor in the header file? Is it just cosmetic? 
+    
+
 FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
     m_flashLabel(pset.get<std::string>("FlashLabel")),
     m_pandoraLabel(pset.get<std::string>("PandoraAllOutcomesLabel")),
     m_beamWindowStart(pset.get<float>("BeamWindowStartTime")),
     m_beamWindowEnd(pset.get<float>("BeamWindowEndTime")),
     m_minBeamFlashPE(pset.get<float>("BeamFlashPEThreshold")),
+
+    m_xclCoef(pset.get<float>("CoefXCL")),
+
     m_maxDeltaY(pset.get<float>("MaxDeltaY")),
     m_maxDeltaZ(pset.get<float>("MaxDeltaZ")),
     m_maxDeltaYSigma(pset.get<float>("MaxDeltaYSigma")),
@@ -551,12 +590,18 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
     m_pEventTree->Branch("run"                 , &m_outputEvent.m_run                 , "run/I");
     m_pEventTree->Branch("subRun"              , &m_outputEvent.m_subRun              , "subRun/I");
     m_pEventTree->Branch("event"               , &m_outputEvent.m_event               , "event/I");
+
+    m_pEventTree->Branch("evt_time_sec"        , &m_outputEvent.m_timeHigh            , "evt_time_sec/i");
+    m_pEventTree->Branch("evt_time_nsec"       , &m_outputEvent.m_timeLow             , "evt_time_nsec/i");
     m_pEventTree->Branch("nFlashes"            , &m_outputEvent.m_nFlashes            , "nFlashes/I");
     m_pEventTree->Branch("nFlashesInBeamWindow", &m_outputEvent.m_nFlashesInBeamWindow, "nFlashesInBeamWindow/I");
     m_pEventTree->Branch("hasBeamFlash"        , &m_outputEvent.m_hasBeamFlash        , "hasBeamFlash/O");
     m_pEventTree->Branch("nSlices"             , &m_outputEvent.m_nSlices             , "nSlices/I");
     m_pEventTree->Branch("nSlicesAfterPrecuts" , &m_outputEvent.m_nSlicesAfterPrecuts , "nSlicesAfterPrecuts/I");
     m_pEventTree->Branch("foundATargetSlice"   , &m_outputEvent.m_foundATargetSlice   , "foundATarget/O");
+
+    m_pEventTree->Branch("targetSliceMethod"   , &m_outputEvent.m_targetSliceMethod   , "targetSliceMethod/I");
+    
     if (m_hasMCNeutrino)
     {
         // Truth MC information about the neutrino
@@ -575,6 +620,9 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
     m_pFlashTree->Branch("run"                , &m_outputFlash.m_run                , "run/I");
     m_pFlashTree->Branch("subRun"             , &m_outputFlash.m_subRun             , "subRun/I");
     m_pFlashTree->Branch("event"              , &m_outputFlash.m_event              , "event/I");
+
+    m_pFlashTree->Branch("evt_time_sec"       , &m_outputFlash.m_timeHigh           , "evt_time_sec/i");
+    m_pFlashTree->Branch("evt_time_nsec"      , &m_outputFlash.m_timeLow            , "evt_time_nsec/i");
     m_pFlashTree->Branch("time"               , &m_outputFlash.m_time               , "time/F");
     m_pFlashTree->Branch("centerY"            , &m_outputFlash.m_centerY            , "centerY/F");
     m_pFlashTree->Branch("centerZ"            , &m_outputFlash.m_centerZ            , "centerZ/F");
@@ -587,9 +635,12 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
     m_pFlashTree->Branch("isBeamFlash"        , &m_outputFlash.m_isBeamFlash        , "isBeamFlash/O");
 
     m_pSliceTree = fileService->make<TTree>("slices","");
+    m_pSliceTree->Branch("sliceId"                , &m_outputSlice.m_sliceId                 , "sliceId/I");
     m_pSliceTree->Branch("run"                    , &m_outputSlice.m_run                     , "run/I");
     m_pSliceTree->Branch("subRun"                 , &m_outputSlice.m_subRun                  , "subRun/I");
     m_pSliceTree->Branch("event"                  , &m_outputSlice.m_event                   , "event/I");
+    m_pSliceTree->Branch("evt_time_sec"           , &m_outputSlice.m_timeHigh                , "evt_time_sec/i");
+    m_pSliceTree->Branch("evt_time_nsec"          , &m_outputSlice.m_timeLow                 , "evt_time_nsec/i");
     m_pSliceTree->Branch("hasDeposition"          , &m_outputSlice.m_hasDeposition           , "hasDeposition/O");
     m_pSliceTree->Branch("totalCharge"            , &m_outputSlice.m_totalCharge             ,  "totalCharge/F");
     m_pSliceTree->Branch("centerX"                , &m_outputSlice.m_centerX                 , "centerX/F");
@@ -601,15 +652,22 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
     m_pSliceTree->Branch("deltaYSigma"            , &m_outputSlice.m_deltaYSigma             , "deltaYSigma/F");
     m_pSliceTree->Branch("deltaZSigma"            , &m_outputSlice.m_deltaZSigma             , "deltaZSigma/F");
     m_pSliceTree->Branch("chargeToLightRatio"     , &m_outputSlice.m_chargeToLightRatio      , "chargeToLightRatio/F");
+
+    m_pSliceTree->Branch("xclVariable"            , &m_outputSlice.m_xChargeLightVariable    , "xclVariable/F");
     m_pSliceTree->Branch("passesPreCuts"          , &m_outputSlice.m_passesPrecuts           , "passesPrecuts/O");
     m_pSliceTree->Branch("flashMatchScore"        , &m_outputSlice.m_flashMatchScore         , "flashMatchScore/F");
     m_pSliceTree->Branch("flashMatchX"            , &m_outputSlice.m_flashMatchX             , "flashMatchX/F");
     m_pSliceTree->Branch("totalPEHypothesis"      , &m_outputSlice.m_totalPEHypothesis       , "totalPEHypothesis/F");
     m_pSliceTree->Branch("peHypothesisSpectrum"   , "std::vector< float >"                   , &m_outputSlice.m_peHypothesisSpectrum);
     m_pSliceTree->Branch("isTaggedAsTarget"       , &m_outputSlice.m_isTaggedAsTarget        , "isTaggedAsTarget/O");
+
+    m_pSliceTree->Branch("targetMethod"           , &m_outputSlice.m_targetMethod            , "targetMethod/I");
     m_pSliceTree->Branch("isConsideredByFlashId"  , &m_outputSlice.m_isConsideredByFlashId   , "isConsideredByFlashId/O");
     m_pSliceTree->Branch("topologicalScore"       , &m_outputSlice.m_topologicalNeutrinoScore, "topologicalScore/F");
     m_pSliceTree->Branch("hasBestTopologicalScore", &m_outputSlice.m_hasBestTopologicalScore , "hasBestTopologicalScore/O");
+    m_pSliceTree->Branch("hasBestFlashMatchScore" , &m_outputSlice.m_hasBestFlashMatchScore  , "hasBestFlashMatchScore/O");
+    m_pSliceTree->Branch("nHits"            , &m_outputSliceMetadata.m_nHits         , "nHits/I");
+
 
     if (m_hasMCNeutrino)
     {
@@ -617,7 +675,6 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
         m_pSliceTree->Branch("purity"           , &m_outputSliceMetadata.m_purity        , "purity/F");
         m_pSliceTree->Branch("completeness"     , &m_outputSliceMetadata.m_completeness  , "completeness/F");
         m_pSliceTree->Branch("isMostComplete"   , &m_outputSliceMetadata.m_isMostComplete, "isMostComplete/O");
-        m_pSliceTree->Branch("nHits"            , &m_outputSliceMetadata.m_nHits         , "nHits/I");
         m_pSliceTree->Branch("nuInteractionType", &m_nuInteractionType                   , "nuInteractionType/I");
         m_pSliceTree->Branch("nuCCNC"           , &m_nuCCNC                              , "nuCCNC/I");
         m_pSliceTree->Branch("nuEnergy"         , &m_nuEnergy                            , "nuEnergy/F");

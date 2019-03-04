@@ -18,7 +18,6 @@ set(
                         larreco_Calorimetry
                         ${PANDORASDK}
                         ${PANDORAMONITORING}
-                        LArPandoraContent
                         larpandora_LArPandoraInterface
                         larpandora_LArPandoraEventBuilding
                         nusimdata_SimulationBase
@@ -40,8 +39,8 @@ set(
                         ${ROOT_GEOM}
                         ${ROOT_BASIC_LIB_LIST}
                         ${ROOT_GENVECTOR}
-                        ubana_SelectionTool_OpT0FinderBase
-                        ubana_SelectionTool_OpT0FinderAlgorithms
+                        ubreco_SelectionTool_OpT0FinderBase
+                        ubreco_SelectionTool_OpT0FinderAlgorithms
                         MODULE_LIBRARIES larpandora_LArPandoraEventBuilding
           )
 

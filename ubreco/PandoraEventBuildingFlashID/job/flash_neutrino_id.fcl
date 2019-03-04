@@ -1,4 +1,6 @@
 #include "flashmatchalg.fcl"
+#include "external_event_building.fcl"
+
 
 BEGIN_PROLOG
 
@@ -19,17 +21,20 @@ flash_neutrino_id_tool :
     BeamWindowEndTime:        4.8
     BeamFlashPEThreshold:     50.0
     
+    # Coefficient linking the chargelightration and the x-dependence
+    CoefXCL:                  190
+        
     # Pre-selection cut values
     MaxDeltaY:                95.0
     MaxDeltaZ:                105.0
     MaxDeltaYSigma:           2.1 
     MaxDeltaZSigma:           1.0
-    MinChargeToLightRatio:    2.0
-    MaxChargeToLightRatio:    200.0
+    MinChargeToLightRatio:    50.0 #2.0
+    MaxChargeToLightRatio:    250.0 #200.0
 
     # Flash matching congifuration
-    ChargeToNPhotonsTrack:    363.636
-    ChargeToNPhotonsShower:   512.815
+    ChargeToNPhotonsTrack:    164.0 #363.636
+    ChargeToNPhotonsShower:   230.0 #512.815
     FlashMatchConfig:         @local::flashmatch_config
 
     # Debug
@@ -43,5 +48,8 @@ flash_neutrino_id_tool :
     
 flash_neutrino_id_tool.FlashMatchConfig.FlashMatchManager.AllowReuseFlash: true
 flash_neutrino_id_tool.FlashMatchConfig.QLLMatch.NormalizeHypothesis:      false
+
+pandora_flash_event_building: @local::pandora_event_building
+pandora_flash_event_building.SliceIdTool: @local::flash_neutrino_id_tool
 
 END_PROLOG

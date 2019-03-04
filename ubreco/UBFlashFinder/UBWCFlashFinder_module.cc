@@ -97,7 +97,7 @@ private:
   Float_t fYWidth;
   Float_t fZCenter;
   Float_t fZWidth;
-
+  //TH1F* hdecon[32];
 
   void reco_default(art::Event &evt, double &triggerTime);
   void reco_external_sat(art::Event &evt, double &triggerTime);
@@ -141,6 +141,7 @@ UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
   flash_pset.Check_common_parameters();
   flash_algo.Configure(flash_pset);
 
+
   //make ana tree
   if(_saveAnaTree){
     art::ServiceHandle< art::TFileService > tfs;
@@ -160,6 +161,15 @@ UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
     _outtree->Branch("OnBeamTime", &fOnBeamTime,  "OnBeamTime/I");
     _outtree->Branch("TotalPE",    &fTotalPE,     "TotalPE/F");
     _outtree->Branch("PEPerCh", &fPEPerCh);
+    _outtree->Branch("gains", &pmt_gain);
+    _outtree->Branch("gains_err", &pmt_gainerr);
+    /*
+    for(int i=0; i<32; i++){
+      std::string hist ="hdecon_";
+      hist += std::to_string(i);
+      hdecon[i] = tfs->make<TH1F>(hist.c_str(),"",250,0,250);
+    }
+    */
   }
 
 
@@ -172,6 +182,8 @@ UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
 
 void UBWCFlashFinder::produce(art::Event & evt)
 {
+  fEventID = evt.event();
+
   std::unique_ptr< std::vector<recob::OpFlash> > opflashes_beam(new std::vector<recob::OpFlash>);
   std::unique_ptr< std::vector<recob::OpFlash> > opflashes_cosmic(new std::vector<recob::OpFlash>);
   std::unique_ptr< std::vector<raw::OpDetWaveform> > saturation_beam(new std::vector<raw::OpDetWaveform>);
@@ -190,11 +202,17 @@ void UBWCFlashFinder::produce(art::Event & evt)
     for (unsigned int i=0; i!= geo->NOpDets(); ++i) {
       if (geo->IsValidOpChannel(i) && i<32) {
 	pmt_gain.push_back(gain_provider.Gain(i));
-	pmt_gain.push_back(gain_provider.GainErr(i));
+	pmt_gainerr.push_back(gain_provider.GainErr(i));
 	//pmt_gain.push_back(gain_provider.ExtraInfo(i).GetFloatData("amplitude_gain"));
 	//pmt_gainerr.push_back(gain_provider.ExtraInfo(i).GetFloatData("amplitude_gain_err"));
       }
     }
+    //in case we somehow did not retrieve gains for all PMTs force a const value
+    if(pmt_gain.size()<32 || pmt_gainerr.size()<32){
+      std::cout << "Could not retrieve PMT gain from DB; revert to default values" << std::endl;
+      pmt_gain.assign(32, 120.);
+      pmt_gainerr.assign(32, 0.30);
+    }    
   }
 
   //reconstruct
@@ -229,18 +247,32 @@ void UBWCFlashFinder::produce(art::Event & evt)
 
   }
 
+  /*
+  //get deconvolved WF
+  std::vector<std::vector<double> > decon_vv;
+  if(_saveAnaTree){
+  decon_vv = flash_algo.get_decon_vv();
+  
+  for(unsigned int i=0; i<decon_vv.size(); i++){
+  for(unsigned int j=0; j<decon_vv.at(i).size(); j++){
+  hdecon[i]->SetBinContent(j+1,decon_vv.at(i).at(j));
+  }	
+  }
+  }
+  */
+
   //get flashes
   auto const flash_v = flash_algo.get_flashes();
 
   int idx=0;
   for(const auto& lflash :  flash_v) {
     double Ycenter, Zcenter, Ywidth, Zwidth;
-    GetFlashLocation(lflash->get_pe_v(), Ycenter, Zcenter, Ywidth, Zwidth);
+    GetFlashLocation(lflash->get_pe_v_nocor(), Ycenter, Zcenter, Ywidth, Zwidth);
 
     recob::OpFlash flash(lflash->get_time(), lflash->get_high_time()-lflash->get_low_time(),
 			 triggerTime + lflash->get_time(),
 			 (triggerTime + lflash->get_time()) / 1600.,
-			 lflash->get_pe_v(),
+			 lflash->get_pe_v_nocor(),
                          0, 0, 1, // this are just default values
                          Ycenter, Ywidth, Zcenter, Zwidth);
     //fill ana tree if requested

@@ -1,6 +1,7 @@
 #include "pandoramodules_microboone.fcl"
 #include "external_event_building.fcl"
 #include "pandora_event_analyser.fcl"
+#include "flash_neutrino_id.fcl"
 
 BEGIN_PROLOG
 
@@ -14,7 +15,7 @@ END_PROLOG
 
 #include "services_microboone.fcl"
 #include "time_memory_tracker_microboone.fcl"
-#include "reco_uboone_mcc8.fcl"
+#include "reco_uboone_mcc9_8.fcl"
 
 services:
 {
@@ -64,6 +65,9 @@ physics:
 # Configuration
 physics.producers.pandoraAllOutcomesTrack.PFParticleLabel:  "pandoraPatRec:allOutcomes"
 physics.producers.pandoraAllOutcomesShower.PFParticleLabel: "pandoraPatRec:allOutcomes"
+
+physics.producers.pandoraFlashEventBuilding.ShouldUseTestBeamMode: false
+
 
 outputs:
 {

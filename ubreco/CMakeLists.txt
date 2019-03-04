@@ -1,8 +1,10 @@
 add_subdirectory(MichelReco)
 add_subdirectory(MicroBooNEPandora)
 add_subdirectory(MuCS)
+add_subdirectory(PandoraEventBuildingFlashID)
 add_subdirectory(T0Reco)
 add_subdirectory(wcopreco)
 add_subdirectory(UBFlashFinder)
 add_subdirectory(ShowerReco)
-add_subdirectory(PandoraEventBuildingFlashID)
+add_subdirectory(LLSelectionTool)
+

@@ -53,7 +53,9 @@ namespace showerreco {
     }
 
     if (proto_shower.hasVertex() == false){
-      std::cout << "Number of vertices is not one!" << std::endl;
+      std::stringstream ss;
+      ss << "Fail @ algo " << this->name() << " due to != 1 vertex";
+      throw ShowerRecoException(ss.str());
       return;
     }
     
@@ -62,11 +64,6 @@ namespace showerreco {
     auto const& dir3D = resultShower.fDCosStart;
     double d2D;
 
-    std::cout << std::endl << " START 3D Start Point CALCULATION" << std::endl;
-
-    std::cout << " Vtx 3D : [" << vtx3D[0] << ", " << vtx3D[1] << ", " << vtx3D[2] << " ]" << std::endl;
-    std::cout << " dir 3D : [" << dir3D[0] << ", " << dir3D[1] << ", " << dir3D[2] << " ]" << std::endl;
-    
     auto & clusters = proto_shower.clusters();
 
     // STEP 1:
@@ -98,8 +95,6 @@ namespace showerreco {
       // calculate 2D distance between vertex and cluster start point on plane
       d2D = sqrt( (start.w - vtx2D.w) * (start.w - vtx2D.w) + (start.t - vtx2D.t) * (start.t - vtx2D.t) );
 
-      std::cout << " Strt 2D : [" << start.w << ", " << start.t << " ]" << std::endl;
-      std::cout << " Vtx  2D : [" << vtx2D.w << ", " << vtx2D.t << " ]" << std::endl;
 
       pl0 = pl;
       strtpt0 = start;
@@ -115,20 +110,11 @@ namespace showerreco {
     double f   = (1 - dir3D[1]*dir3D[1] );
     double d3D = d2D / f;//(1-fabs(dir3D[1]));
 
-    std::cout << " d2D : " << d2D << std::endl;
-    std::cout << " d3D : " << d3D << std::endl;
-
     // extend by this amount in 3D
     auto start3D = vtx3D + d3D * dir3D;
 
-    std::cout << " Strt 3D : [" << start3D[0] << ", " << start3D[1] << ", " << start3D[2] << " ]" << std::endl;
-
-    std::cout << " END 3D Start Point CALCULATION" << std::endl << std::endl;
-    
     resultShower.fXYZStart = start3D;
 
-    //std::cout << "DONE " << std::endl << std::endl;
-    
 }
 
   DEFINE_ART_CLASS_TOOL(YPlaneStartPoint3D)
