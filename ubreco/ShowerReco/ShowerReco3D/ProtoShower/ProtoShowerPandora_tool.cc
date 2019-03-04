@@ -155,8 +155,7 @@ namespace protoshower {
       */
 
       // save vertex for PFP
-      std::vector< art::Ptr<recob::Vertex> > vtx_v;
-      vtx_v.clear();
+      std::vector< art::Ptr<recob::Vertex> > vtx_v = pfp_vtx_assn_v.at( p );;
 
       bool foundParent = false;
       // find parent based on pfp Self
@@ -178,7 +177,7 @@ namespace protoshower {
 	
 	if (!parentMetadataList.empty()) {
 
-	  vtx_v = pfp_vtx_assn_v.at( parent.key() );
+	  //vtx_v = pfp_vtx_assn_v.at( parent.key() );
 	  
 	  for (unsigned int j=0; j<parentMetadataList.size(); ++j)
 	    {
@@ -198,12 +197,12 @@ namespace protoshower {
 	}// if PFP metadata exists!
 
       }// if there is a parent
+      /*
       else {
-	vtx_v = pfp_vtx_assn_v.at( p );
       }// if there is no parent
-
+      */
       if (vtx_v.size() == 0) {
-	//std::cout << "\t SKIPPING because no vertex was found" << std::endl;
+	std::cout << "\t SKIPPING because no vertex was found" << std::endl;
 	continue;
       }
 
