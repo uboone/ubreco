@@ -26,6 +26,11 @@
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardataobj/RawData/OpDetWaveform.h"
 
+// save info associated to common optical filter
+#include "ubobj/Optical/UbooneOpticalFilter.h"
+
+#include "larevt/SpaceChargeServices/SpaceChargeService.h"
+
 #include "art/Framework/Services/Optional/TFileService.h"
 #include <TTree.h>
 
@@ -61,12 +66,17 @@ private:
   double fYMin, fYMax;
   double fBeamSpillStart, fBeamSpillEnd;
   std::string fTrackProducer, fFlashProducer, fOpDetWfmProducer;
-  bool fSaveTree;
+  bool fSaveTree, fSaveWf;
 
   TTree* _tree;
-  double _trk_beg_x, _trk_beg_y, _trk_beg_z;
-  double _trk_end_x, _trk_end_y, _trk_end_z;
-  double _flash_t, _flash_pe, _flash_yw, _flash_yc, _flash_zw, _flash_zc;
+  float _len;
+  float _trk_beg_x, _trk_beg_y, _trk_beg_z;
+  float _trk_end_x, _trk_end_y, _trk_end_z;
+  float _trk_beg_x_off, _trk_beg_y_off, _trk_beg_z_off;
+  float _trk_end_x_off, _trk_end_y_off, _trk_end_z_off;
+  float _trk_len;
+  float _flash_t, _flash_pe, _flash_yw, _flash_yc, _flash_zw, _flash_zc;
+  float  _opfilter_pe_beam, _opfilter_pe_beam_tot, _opfilter_pe_veto, _opfilter_pe_veto_tot;
   int    _nflash;
   std::vector<double> _flash_pe_v;
   std::vector<std::vector<short>> _wf_v;
@@ -97,58 +107,73 @@ ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
   fBeamSpillStart   = p.get<double>("BeamSpillStart");
   fBeamSpillEnd     = p.get<double>("BeamSpillEnd");
   fSaveTree         = p.get<bool>("SaveTree",false);
+  fSaveWf           = p.get<bool>("SaveWf",false);
 
   _wf_v.resize(32);
 
   art::ServiceHandle<art::TFileService> tfs;
   _tree = tfs->make<TTree>("_tree","ACPT trigger tree");
-  _tree->Branch("_trk_beg_x",&_trk_beg_x,"trk_beg_x/D");
-  _tree->Branch("_trk_beg_y",&_trk_beg_y,"trk_beg_y/D");
-  _tree->Branch("_trk_beg_z",&_trk_beg_z,"trk_beg_z/D");
-  _tree->Branch("_trk_end_x",&_trk_end_x,"trk_end_x/D");
-  _tree->Branch("_trk_end_y",&_trk_end_y,"trk_end_y/D");
-  _tree->Branch("_trk_end_z",&_trk_end_z,"trk_end_z/D");
+  _tree->Branch("_trk_beg_x",&_trk_beg_x,"trk_beg_x/F");
+  _tree->Branch("_trk_beg_y",&_trk_beg_y,"trk_beg_y/F");
+  _tree->Branch("_trk_beg_z",&_trk_beg_z,"trk_beg_z/F");
+  _tree->Branch("_trk_end_x",&_trk_end_x,"trk_end_x/F");
+  _tree->Branch("_trk_end_y",&_trk_end_y,"trk_end_y/F");
+  _tree->Branch("_trk_end_z",&_trk_end_z,"trk_end_z/F");
+  /*
+  _tree->Branch("_trk_beg_x_off",&_trk_beg_x_off,"trk_beg_x_off/F");
+  _tree->Branch("_trk_beg_y_off",&_trk_beg_y_off,"trk_beg_y_off/F");
+  _tree->Branch("_trk_beg_z_off",&_trk_beg_z_off,"trk_beg_z_off/F");
+  _tree->Branch("_trk_end_x_off",&_trk_end_x_off,"trk_end_x_off/F");
+  _tree->Branch("_trk_end_y_off",&_trk_end_y_off,"trk_end_y_off/F");
+  _tree->Branch("_trk_end_z_off",&_trk_end_z_off,"trk_end_z_off/F");
+  */
   _tree->Branch("_nflash",&_nflash,"nflash/I");
-  _tree->Branch("_flash_t",&_flash_t,"flash_t/D");
-  _tree->Branch("_flash_pe",&_flash_pe,"flash_pe/D");
+  _tree->Branch("_flash_t",&_flash_t,"flash_t/F");
+  _tree->Branch("_flash_pe",&_flash_pe,"flash_pe/F");
   _tree->Branch("_flash_pe_v","std::vector<double>",&_flash_pe_v);
-  _tree->Branch("_flash_yw",&_flash_yw,"flash_yw/D");
-  _tree->Branch("_flash_zw",&_flash_zw,"flash_zw/D");
-  _tree->Branch("_flash_yc",&_flash_yc,"flash_yc/D");
-  _tree->Branch("_flash_zc",&_flash_zc,"flash_zc/D");
+  _tree->Branch("_flash_yw",&_flash_yw,"flash_yw/F");
+  _tree->Branch("_flash_zw",&_flash_zw,"flash_zw/F");
+  _tree->Branch("_flash_yc",&_flash_yc,"flash_yc/F");
+  _tree->Branch("_flash_zc",&_flash_zc,"flash_zc/F");
+  _tree->Branch("_opfilter_pe_beam",&_opfilter_pe_beam,"opfilter_pe_beam/F");
+  _tree->Branch("_opfilter_pe_beam_tot",&_opfilter_pe_beam_tot,"opfilter_pe_beam_tot/F");
+  _tree->Branch("_opfilter_pe_veto",&_opfilter_pe_veto,"opfilter_pe_veto/F");
+  _tree->Branch("_opfilter_pe_veto_tot",&_opfilter_pe_veto_tot,"opfilter_pe_veto_tot/F");
   // save waveform
-  _tree->Branch( "wf_00", "std::vector<short>", &(_wf_v[0])  );
-  _tree->Branch( "wf_01", "std::vector<short>", &(_wf_v[1])  );
-  _tree->Branch( "wf_02", "std::vector<short>", &(_wf_v[2])  );
-  _tree->Branch( "wf_03", "std::vector<short>", &(_wf_v[3])  );
-  _tree->Branch( "wf_04", "std::vector<short>", &(_wf_v[4])  );
-  _tree->Branch( "wf_05", "std::vector<short>", &(_wf_v[5])  );
-  _tree->Branch( "wf_06", "std::vector<short>", &(_wf_v[6])  );
-  _tree->Branch( "wf_07", "std::vector<short>", &(_wf_v[7])  );
-  _tree->Branch( "wf_08", "std::vector<short>", &(_wf_v[8])  );
-  _tree->Branch( "wf_09", "std::vector<short>", &(_wf_v[9])  );
-  _tree->Branch( "wf_10", "std::vector<short>", &(_wf_v[10])  );
-  _tree->Branch( "wf_11", "std::vector<short>", &(_wf_v[11])  );
-  _tree->Branch( "wf_12", "std::vector<short>", &(_wf_v[12])  );
-  _tree->Branch( "wf_13", "std::vector<short>", &(_wf_v[13])  );
-  _tree->Branch( "wf_14", "std::vector<short>", &(_wf_v[14])  );
-  _tree->Branch( "wf_15", "std::vector<short>", &(_wf_v[15])  );
-  _tree->Branch( "wf_16", "std::vector<short>", &(_wf_v[16])  );
-  _tree->Branch( "wf_17", "std::vector<short>", &(_wf_v[17])  );
-  _tree->Branch( "wf_18", "std::vector<short>", &(_wf_v[18])  );
-  _tree->Branch( "wf_19", "std::vector<short>", &(_wf_v[19])  );
-  _tree->Branch( "wf_20", "std::vector<short>", &(_wf_v[20])  );
-  _tree->Branch( "wf_21", "std::vector<short>", &(_wf_v[21])  );
-  _tree->Branch( "wf_22", "std::vector<short>", &(_wf_v[22])  );
-  _tree->Branch( "wf_23", "std::vector<short>", &(_wf_v[23])  );
-  _tree->Branch( "wf_24", "std::vector<short>", &(_wf_v[24])  );
-  _tree->Branch( "wf_25", "std::vector<short>", &(_wf_v[25])  );
-  _tree->Branch( "wf_26", "std::vector<short>", &(_wf_v[26])  );
-  _tree->Branch( "wf_27", "std::vector<short>", &(_wf_v[27])  );
-  _tree->Branch( "wf_28", "std::vector<short>", &(_wf_v[28])  );
-  _tree->Branch( "wf_29", "std::vector<short>", &(_wf_v[29])  );
-  _tree->Branch( "wf_30", "std::vector<short>", &(_wf_v[30])  );
-  _tree->Branch( "wf_31", "std::vector<short>", &(_wf_v[31])  );
+  if (fSaveWf) {
+    _tree->Branch( "wf_00", "std::vector<short>", &(_wf_v[0])  );
+    _tree->Branch( "wf_01", "std::vector<short>", &(_wf_v[1])  );
+    _tree->Branch( "wf_02", "std::vector<short>", &(_wf_v[2])  );
+    _tree->Branch( "wf_03", "std::vector<short>", &(_wf_v[3])  );
+    _tree->Branch( "wf_04", "std::vector<short>", &(_wf_v[4])  );
+    _tree->Branch( "wf_05", "std::vector<short>", &(_wf_v[5])  );
+    _tree->Branch( "wf_06", "std::vector<short>", &(_wf_v[6])  );
+    _tree->Branch( "wf_07", "std::vector<short>", &(_wf_v[7])  );
+    _tree->Branch( "wf_08", "std::vector<short>", &(_wf_v[8])  );
+    _tree->Branch( "wf_09", "std::vector<short>", &(_wf_v[9])  );
+    _tree->Branch( "wf_10", "std::vector<short>", &(_wf_v[10])  );
+    _tree->Branch( "wf_11", "std::vector<short>", &(_wf_v[11])  );
+    _tree->Branch( "wf_12", "std::vector<short>", &(_wf_v[12])  );
+    _tree->Branch( "wf_13", "std::vector<short>", &(_wf_v[13])  );
+    _tree->Branch( "wf_14", "std::vector<short>", &(_wf_v[14])  );
+    _tree->Branch( "wf_15", "std::vector<short>", &(_wf_v[15])  );
+    _tree->Branch( "wf_16", "std::vector<short>", &(_wf_v[16])  );
+    _tree->Branch( "wf_17", "std::vector<short>", &(_wf_v[17])  );
+    _tree->Branch( "wf_18", "std::vector<short>", &(_wf_v[18])  );
+    _tree->Branch( "wf_19", "std::vector<short>", &(_wf_v[19])  );
+    _tree->Branch( "wf_20", "std::vector<short>", &(_wf_v[20])  );
+    _tree->Branch( "wf_21", "std::vector<short>", &(_wf_v[21])  );
+    _tree->Branch( "wf_22", "std::vector<short>", &(_wf_v[22])  );
+    _tree->Branch( "wf_23", "std::vector<short>", &(_wf_v[23])  );
+    _tree->Branch( "wf_24", "std::vector<short>", &(_wf_v[24])  );
+    _tree->Branch( "wf_25", "std::vector<short>", &(_wf_v[25])  );
+    _tree->Branch( "wf_26", "std::vector<short>", &(_wf_v[26])  );
+    _tree->Branch( "wf_27", "std::vector<short>", &(_wf_v[27])  );
+    _tree->Branch( "wf_28", "std::vector<short>", &(_wf_v[28])  );
+    _tree->Branch( "wf_29", "std::vector<short>", &(_wf_v[29])  );
+    _tree->Branch( "wf_30", "std::vector<short>", &(_wf_v[30])  );
+    _tree->Branch( "wf_31", "std::vector<short>", &(_wf_v[31])  );
+  }
   
 }
 
@@ -163,6 +188,19 @@ void ACPTtrig::produce(art::Event& e)
   // load Flash
   art::Handle<std::vector<recob::OpFlash> > flash_h;
   e.getByLabel(fFlashProducer,flash_h);
+
+  // load commont-optical-filter output
+  art::Handle<uboone::UbooneOpticalFilter> CommonOpticalFilter_h;
+  art::InputTag fCommonOpFiltTag("opfiltercommonext");
+  e.getByLabel(fCommonOpFiltTag, CommonOpticalFilter_h);
+
+  _opfilter_pe_beam     = CommonOpticalFilter_h->PE_Beam();
+  _opfilter_pe_beam_tot = CommonOpticalFilter_h->PE_Beam_Total();
+  _opfilter_pe_veto     = CommonOpticalFilter_h->PE_Veto();
+  _opfilter_pe_veto_tot = CommonOpticalFilter_h->PE_Veto_Total();
+
+  // SCE service
+  ///auto const* sce = lar::providerFrom<spacecharge::SpaceChargeService>();
 
   // make sure flash look good
   if(!flash_h.isValid()) {
@@ -279,12 +317,33 @@ void ACPTtrig::produce(art::Event& e)
 
       // save TTree
       if (fSaveTree) {
+
+	_len = track->Length();
+
 	_trk_beg_x = beg.X();
 	_trk_end_x = end.X();
 	_trk_beg_y = beg.y();
 	_trk_end_y = end.y();
 	_trk_beg_z = beg.Z();
 	_trk_end_z = end.Z();
+
+	/*
+	if(sce->EnableCalSpatialSCE()) {
+	  begOffsets = GetCalPosOffsets(beg);
+	  _trk_beg_x_off = _trk_beg_x - begOffsets.X();
+	  _trk_beg_y_off = _trk_beg_y + begOffsets.Y();
+	  _trk_beg_z_off = _trk_beg_z + begOffsets.Z();
+	}
+
+	if(sce->EnableCalSpatialSCE()) {
+	  endOffsets = GetCalPosOffsets(end);
+	  _trk_end_x_off = _trk_end_x - endOffsets.X();
+	  _trk_end_y_off = _trk_end_y + endOffsets.Y();
+	  _trk_end_z_off = _trk_end_z + endOffsets.Z();
+	}
+	*/
+
+
 	_nflash    = flash_ctr;
 	_flash_t   = time;
 	if (flash_ctr > 0) {
