@@ -26,7 +26,6 @@
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardataobj/RawData/OpDetWaveform.h"
 
-
 // save info associated to common optical filter
 #include "ubobj/Optical/UbooneOpticalFilter.h"
 
@@ -220,6 +219,13 @@ void ACPTtrig::produce(art::Event& e)
   // SCE service
   ///auto const* sce = lar::providerFrom<spacecharge::SpaceChargeService>();
 
+
+  // make sure flash look good
+  if(!flash_h.isValid()) {
+    std::cerr<<"\033[93m[ERROR]\033[00m ... could not locate Flash!"<<std::endl;
+    throw std::exception();
+  }
+
   //  select largest flash within beam-spill window, if available
   size_t flash_ctr = 0;
   double PEmax = 0;
@@ -283,7 +289,7 @@ void ACPTtrig::produce(art::Event& e)
     trkctr += 1;
 
     if (track->Length() < fTrackLenMin) continue;
-
+    
     auto const& beg = track->Vertex();
     auto const& end = track->End();
 
@@ -293,9 +299,9 @@ void ACPTtrig::produce(art::Event& e)
       auto crttag = trk_crttag_assn_v.at( trkctr - 1 ).at(0);
       _crtt0 = crttag->Time();
     }
-
+    
     bool tagged = false;
-
+    
     // cathode-side tracks
     // for tracks that enter from the cathode:
     if ( (beg.X() > end.X()) && (beg.Y() < fYMax) && (end.Y() < fYMin) ) {
