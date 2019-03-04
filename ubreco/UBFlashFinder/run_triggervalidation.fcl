@@ -1,0 +1,119 @@
+#include "services_microboone.fcl"
+##include "reco_uboone_mcc8.fcl"
+#include "time_memory_tracker_microboone.fcl"
+#include "triggeralgo_service.fcl"
+
+#include "subevent_module.fcl"
+#include "seedservice_microboone.fcl"
+#include "triggerenforcement.fcl"
+#include "time_memory_tracker_microboone.fcl" 
+#include "reco_uboone_data_notpc.fcl"
+#include "nearline_swtrigger_monitor.fcl"
+
+
+process_name: MuCSTrackTagger
+
+
+services:
+{
+  scheduler:               { defaultExceptions: false }    # Make all uncaught exceptions fatal.
+  # Load the service that manages root files for histograms.
+  TFileService:            { fileName: "triggervalidation_ana.root" }
+  TimeTracker:             @local::microboone_time_tracker
+  MemoryTracker:           @local::microboone_memory_tracker
+  RandomNumberGenerator:   {} #ART native random number generator
+  message:                 @local::microboone_message_services_prod_debug
+  FileCatalogMetadata:     @local::art_file_catalog_mc
+  PhotonVisibilityService:    @local::microboone_photonvisibilityservice
+  OpDigiProperties:           @local::microboone_opdigiproperties
+                              @table::microboone_services_reco
+}
+
+#DetectorClocksService.InheritClockConfig: false
+services.DetectorPropertiesService.NumberTimeSamples:        6400
+services.DetectorPropertiesService.ReadOutWindowSize:        6400
+services.DetectorClocksService.InheritClockConfig:           false
+services.DetectorClocksService.TriggerOffsetTPC:             -0.400e3
+
+services.BackTrackerService:  @local::microboone_backtrackerservice
+services.ParticleInventoryService: @local::standard_particleinventoryservice
+
+services.PmtGainService: {
+      CalibrationHelper: {
+         EventMixingModuleLabel: "retriever"
+      }
+      PmtGainProvider: {
+         DatabaseRetrievalAlg: {
+            AlgName: "DatabaseRetrievalAlg"
+            DBFolderName: "detpmtgains_data"
+            DBTag: "v1r0"
+            DBUrl: "http://dbdata0vm.fnal.gov:8186/uboonecon_prod/app/"
+         }
+         DefaultAmplitudeGain: 20
+         DefaultAmplitudeGainErr: 1e-2
+         DefaultBaselineMean: 0
+         DefaultBaselineRms: 6e-1
+         DefaultGain: 130
+         DefaultGainErr: 1e-1
+         UseDB: true
+         UseFile: false
+      }
+      service_provider: "UboonePmtGainService"
+   }
+#source is now a root file
+source:
+{
+  module_type: RootInput
+  maxEvents:  -1            # Number of events to create
+}
+
+outputs:
+{
+ out1:
+ {
+   module_type: RootOutput
+   fileName:    "%ifb_triggervalidation.root"    #default file name, can override from command line with -o or --output
+   dataTier: reco
+   compressionLevel: 1
+   SelectEvents: { SelectEvents:[path_ext_unbiased_swtrig] }
+ } 
+}
+
+physics:
+{
+ producers:{
+  rns:                 { module_type: RandomNumberSaver }
+}
+ filters:  {
+  @table::microboone_reco_notpc_filters
+  swtrigBNB:  @local::swtriggerBNB
+  #swtrigNUMI: @local::swtriggerNUMI
+  swtrigEXT:  @local::swtriggerEXT
+        triggervalidation: { module_type: "TriggerValidation" }
+
+} 
+ analyzers:{ 
+}
+
+ #path_ext_unbiased_gain:    [ swtrigextunbiased,  triggervalidation  ]
+ path_ext_unbiased_swtrig:  [ swtrigextunbiased,  triggervalidation  ]
+ path_bnb_unbiased_swtrig:  [ swtrigbnbunbiased,  swtrigBNB  ]
+ #path_numi_unbiased_swtrig: [ swtrignumiunbiased, swtrigNUMI ]
+
+
+ met: []
+ ana:  []
+ #define the output stream, there could be more than one if using filters 
+ stream1:  [ out1 ]
+
+ #trigger_paths is a keyword and contains the paths that modify the art::event, 
+ #ie filters and producers
+ trigger_paths: [ path_ext_unbiased_swtrig]#, path_bnb_unbiased_swtrig]#, path_ext_unbiased_gain ] 
+
+ #end_paths is a keyword and contains the paths that do not modify the art::Event, 
+ #ie analyzers and output streams.  these all run simultaneously
+ end_paths:     [ ana ] 
+}
+
+
+
