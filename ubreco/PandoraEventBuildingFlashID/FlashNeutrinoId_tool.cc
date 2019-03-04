@@ -236,7 +236,6 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
     m_outputEvent.m_targetSliceMethod = sliceCandidates.at(bestCombinedSliceIndex).m_targetMethod;
     std::cout << "[FlashNeutrinoId] Slice with index " << bestCombinedSliceIndex << " is tagged as neutrino. Method: " << m_outputEvent.m_targetSliceMethod << std::endl;
     return bestCombinedSliceIndex;
->>>>>>> tags/v08_00_00_06
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
