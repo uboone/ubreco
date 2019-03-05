@@ -77,9 +77,13 @@ services.DetectorPropertiesService.ReadOutWindowSize: 6400
 services.DetectorClocksService.InheritClockConfig:       false
 services.DetectorClocksService.TriggerOffsetTPC:         -0.400e3
 
-services.SpaceCharge.EnableCorrSCE: true
-services.SpaceCharge.EnableSimEFieldSCE: true
-services.SpaceCharge.EnableSimSpatialSCE: true
+#services.SpaceCharge.EnableCorrSCE: true
+#services.SpaceCharge.EnableSimEFieldSCE: true
+#services.SpaceCharge.EnableSimSpatialSCE: true
+
+services.SpaceCharge.EnableCalSpatialSCE: true
+services.SpaceCharge.RepresentationType: "Voxelized_TH3"
+services.SpaceCharge.CalibrationInputFilename: "SpaceCharge/SCEoffsets_dataDriven_combined_bkwd_Jan18.root"
 
 #source is now a root file
 source:

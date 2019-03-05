@@ -75,7 +75,7 @@ private:
   float _trk_end_x, _trk_end_y, _trk_end_z;
   float _trk_beg_x_off, _trk_beg_y_off, _trk_beg_z_off;
   float _trk_end_x_off, _trk_end_y_off, _trk_end_z_off;
-  float _trk_len;
+  float _trk_len; //corrected by SCE
   float _flash_t, _flash_pe, _flash_yw, _flash_yc, _flash_zw, _flash_zc;
   float  _opfilter_pe_beam, _opfilter_pe_beam_tot, _opfilter_pe_veto, _opfilter_pe_veto_tot;
   int _crttag;
@@ -125,14 +125,14 @@ ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
   _tree->Branch("_trk_end_y",&_trk_end_y,"trk_end_y/F");
   _tree->Branch("_trk_end_z",&_trk_end_z,"trk_end_z/F");
   _tree->Branch("_len",&_len,"len/F");
-  /*
+  
   _tree->Branch("_trk_beg_x_off",&_trk_beg_x_off,"trk_beg_x_off/F");
   _tree->Branch("_trk_beg_y_off",&_trk_beg_y_off,"trk_beg_y_off/F");
   _tree->Branch("_trk_beg_z_off",&_trk_beg_z_off,"trk_beg_z_off/F");
   _tree->Branch("_trk_end_x_off",&_trk_end_x_off,"trk_end_x_off/F");
   _tree->Branch("_trk_end_y_off",&_trk_end_y_off,"trk_end_y_off/F");
   _tree->Branch("_trk_end_z_off",&_trk_end_z_off,"trk_end_z_off/F");
-  */
+  _tree->Branch("_trk_len",&_trk_len,"trk_len/F");
   _tree->Branch("_nflash",&_nflash,"nflash/I");
   _tree->Branch("_flash_t",&_flash_t,"flash_t/F");
   _tree->Branch("_flash_pe",&_flash_pe,"flash_pe/F");
@@ -358,22 +358,31 @@ void ACPTtrig::produce(art::Event& e)
 	_trk_end_y = end.y();
 	_trk_beg_z = beg.Z();
 	_trk_end_z = end.Z();
-
-	/*
+	
+	//Space Charge Effects Corrections implementation
+	//	geo::Point_t posOffsets;
+	geo::Point_t begOffsets;
+	geo::Point_t endOffsets;
+	auto const* sce = lar::providerFrom<spacecharge::SpaceChargeService>();
+	//	if(sce->EnableCalSpatialSCE()){
+	//  posOffsets = sce->GetCalPosOffsets(beg);
+	//	}
+	
 	if(sce->EnableCalSpatialSCE()) {
-	  begOffsets = GetCalPosOffsets(beg);
+	  begOffsets = sce->GetCalPosOffsets(beg);
 	  _trk_beg_x_off = _trk_beg_x - begOffsets.X();
 	  _trk_beg_y_off = _trk_beg_y + begOffsets.Y();
 	  _trk_beg_z_off = _trk_beg_z + begOffsets.Z();
 	}
 
 	if(sce->EnableCalSpatialSCE()) {
-	  endOffsets = GetCalPosOffsets(end);
+	  endOffsets = sce->GetCalPosOffsets(end);
 	  _trk_end_x_off = _trk_end_x - endOffsets.X();
 	  _trk_end_y_off = _trk_end_y + endOffsets.Y();
 	  _trk_end_z_off = _trk_end_z + endOffsets.Z();
 	}
-	*/
+	
+	_trk_len = sqrt((_trk_beg_x_off-_trk_end_x_off)*(_trk_beg_x_off-_trk_end_x_off)+(_trk_beg_y_off-_trk_end_y_off)*(_trk_beg_y_off-_trk_end_y_off)+(_trk_beg_z_off-_trk_end_z_off)*(_trk_beg_z_off-_trk_end_z_off));
 
 	_nflash    = flash_ctr;
 	_flash_t   = time;
