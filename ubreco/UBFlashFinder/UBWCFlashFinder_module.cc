@@ -71,6 +71,7 @@ private:
   std::string _TriggerProducer;
   std::vector<float> pmt_gain;
   std::vector<float> pmt_gainerr;
+  std::vector<float> lghg_scale;
   bool _usePmtGainDB;
   bool _remap_ch;
   bool _useExtSat;
@@ -132,6 +133,7 @@ UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
   _TriggerProducer  = p.get<std::string>("TriggerProducer","daq");
   pmt_gain          = p.get<std::vector<float> >("PMTGains");
   pmt_gainerr       = p.get<std::vector<float> >("PMTGainErrors");
+  lghg_scale        = p.get<std::vector<float> >("LGHGGainScale");
   _usePmtGainDB     = p.get<bool>("usePmtGainDB");
   _remap_ch         = p.get<bool>("RemapCh");
   _useExtSat        = p.get<bool>("ExtSaturation",false);
@@ -141,6 +143,7 @@ UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
   // configure
   flash_pset.set_do_swap_channels(_remap_ch);
   flash_pset.set_tick_width_us(1./_OpDetFreq*1.e6);
+  flash_pset.set_scaling_by_channel(lghg_scale);
   flash_pset.Check_common_parameters();
   flash_algo.Configure(flash_pset);
 
