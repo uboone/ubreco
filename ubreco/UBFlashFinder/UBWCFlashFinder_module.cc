@@ -65,7 +65,8 @@ private:
 
   // Declare member data here.
   typedef enum {kBeamHighGain=0,kBeamLowGain,kCosmicHighGain,kCosmicLowGain} OpDiscrTypes;
-  std::string _OpDataProducer;
+  std::string _OpDataProducerBeam;
+  std::string _OpDataProducerCosmic;
   std::string _OpSatDataProducer;
   std::vector<std::string> _OpDataTypes;
   std::string _TriggerProducer;
@@ -125,20 +126,21 @@ UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
 // :
 // Initialize member data here.
 {
-  _OpDataProducer   = p.get<std::string>("OpDataProducer", "pmtreadout" );   // Waveform Module name, to get waveforms
-  _OpSatDataProducer= p.get<std::string>("OpSatDataProducer", "saturation" );   // Saturation corrected waveforms
-  _OpDataTypes      = p.get<std::vector<std::string> >("OpDataTypes");
-  _flashProducts    = p.get<std::vector<std::string> >("FlashProducts");
+  _OpDataProducerBeam = p.get<std::string>("OpDataProducerBeam", "pmtreadout" );   // Waveform Module name, to get waveforms
+  _OpDataProducerCosmic = p.get<std::string>("OpDataProducerCosmic", "pmtreadout" );   // Waveform Module name, to get waveforms
+  _OpSatDataProducer = p.get<std::string>("OpSatDataProducer", "saturation" );   // Saturation corrected waveforms
+  _OpDataTypes       = p.get<std::vector<std::string> >("OpDataTypes");
+  _flashProducts     = p.get<std::vector<std::string> >("FlashProducts");
   _saturationProducts = p.get<std::vector<std::string> >("SaturationProducts");
-  _TriggerProducer  = p.get<std::string>("TriggerProducer","daq");
-  pmt_gain          = p.get<std::vector<float> >("PMTGains");
-  pmt_gainerr       = p.get<std::vector<float> >("PMTGainErrors");
-  lghg_scale        = p.get<std::vector<float> >("LGHGGainScale");
-  _usePmtGainDB     = p.get<bool>("usePmtGainDB");
-  _remap_ch         = p.get<bool>("RemapCh");
-  _useExtSat        = p.get<bool>("ExtSaturation",false);
-  _OpDetFreq        = p.get<float>("OpDetFreq");
-  _saveAnaTree      = p.get<bool>("SaveAnaTree");
+  _TriggerProducer   = p.get<std::string>("TriggerProducer","daq");
+  pmt_gain           = p.get<std::vector<float> >("PMTGains");
+  pmt_gainerr        = p.get<std::vector<float> >("PMTGainErrors");
+  lghg_scale         = p.get<std::vector<float> >("LGHGGainScale");
+  _usePmtGainDB      = p.get<bool>("usePmtGainDB");
+  _remap_ch          = p.get<bool>("RemapCh");
+  _useExtSat         = p.get<bool>("ExtSaturation",false);
+  _OpDetFreq         = p.get<float>("OpDetFreq");
+  _saveAnaTree       = p.get<bool>("SaveAnaTree");
 
   // configure
   flash_pset.set_do_swap_channels(_remap_ch);
@@ -306,13 +308,13 @@ void UBWCFlashFinder::reco_default(art::Event &evt, double &triggerTime){
   art::Handle< std::vector< raw::OpDetWaveform > > wfCLGHandle;
   art::Handle< std::vector< raw::OpDetWaveform > > wfBLGHandle;
 
-  evt.getByLabel( _OpDataProducer, _OpDataTypes[kBeamHighGain], wfBHGHandle);
+  evt.getByLabel( _OpDataProducerBeam, _OpDataTypes[kBeamHighGain], wfBHGHandle);
   std::vector<raw::OpDetWaveform> const& opwfms_bhg(*wfBHGHandle);
-  evt.getByLabel( _OpDataProducer, _OpDataTypes[kBeamLowGain], wfBLGHandle);
+  evt.getByLabel( _OpDataProducerBeam, _OpDataTypes[kBeamLowGain], wfBLGHandle);
   std::vector<raw::OpDetWaveform> const& opwfms_blg(*wfBLGHandle);
-  evt.getByLabel( _OpDataProducer, _OpDataTypes[kCosmicHighGain], wfCHGHandle);
+  evt.getByLabel( _OpDataProducerCosmic, _OpDataTypes[kCosmicHighGain], wfCHGHandle);
   std::vector<raw::OpDetWaveform> const& opwfms_chg(*wfCHGHandle);
-  evt.getByLabel( _OpDataProducer, _OpDataTypes[kCosmicLowGain], wfCLGHandle);
+  evt.getByLabel( _OpDataProducerCosmic, _OpDataTypes[kCosmicLowGain], wfCLGHandle);
   std::vector<raw::OpDetWaveform> const& opwfms_clg(*wfCLGHandle);
 
   std::vector<raw::OpDetWaveform> sort_blg;
