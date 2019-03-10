@@ -7,7 +7,7 @@
 // from cetlib version v3_04_00.
 ////////////////////////////////////////////////////////////////////////
 
-#include "art/Framework/Core/EDProducer.h"
+#include "art/Framework/Core/EDFilter.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/Handle.h"
@@ -38,7 +38,7 @@
 class ACPTtrig;
 
 
-class ACPTtrig : public art::EDProducer {
+class ACPTtrig : public art::EDFilter {
 public:
   explicit ACPTtrig(fhicl::ParameterSet const& p);
   // The compiler-generated destructor is fine for non-base
@@ -51,7 +51,7 @@ public:
   ACPTtrig& operator=(ACPTtrig&&) = delete;
 
   // Required functions.
-  void produce(art::Event& e) override;
+  bool filter(art::Event& e) override;
 
   // Selected optional functions.
   void beginJob() override;
@@ -90,7 +90,7 @@ private:
 
 
 ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
-  : EDProducer{p}  // ,
+  : EDFilter{p}  // ,
   // More initializers here.
 {
 
@@ -101,7 +101,7 @@ ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
   fTrackProducer    = p.get<std::string>("TrackProducer");
   fFlashProducer    = p.get<std::string>("FlashProducer");
   fOpDetWfmProducer = p.get<std::string>("OpDetWfmProducer");
-  fCRTTagProducer   = p.get<std::string>("CRTTagProducer");
+  fCRTTagProducer   = p.get<std::string>("CRTTagProducer","");
   fTrackLenMin      = p.get<double>("TrackLenMin");
   fCathodeMin       = p.get<double>("CathodeMin");
   fCathodeMax       = p.get<double>("CathodeMax");
@@ -186,7 +186,7 @@ ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
   }
 }
 
-void ACPTtrig::produce(art::Event& e)
+bool ACPTtrig::filter(art::Event& e)
 {
 
   ResetTTree();
@@ -276,7 +276,16 @@ void ACPTtrig::produce(art::Event& e)
   }
 
   // if we are using CRT tagged tracks
-  art::FindMany<anab::T0> trk_crttag_assn_v(track_h, e, fCRTTagProducer);
+  // create map linking track index to CRT hit time
+  std::map<unsigned int, double> CRThitMap;
+  if (fCRTTagProducer != "") {
+    art::FindMany<anab::T0> trk_crttag_assn_v(track_h, e, fCRTTagProducer);
+    for (size_t a=0; a < trk_crttag_assn_v.size(); a++) {
+      auto trk_crttag_assn = trk_crttag_assn_v.at(a);
+      if (trk_crttag_assn.size() == 1) 
+	CRThitMap[ a ] = trk_crttag_assn.at(0)->Time();
+    }// for all track -> crt t0 associations
+  }// if we are loading CRT tags in the first place
 
   std::vector<art::Ptr<recob::Track> > TrkVec;
   art::fill_ptr_vector(TrkVec, track_h);
@@ -294,11 +303,25 @@ void ACPTtrig::produce(art::Event& e)
     auto const& end = track->End();
 
     // is this track associated to a CRT hit?
+    if (CRThitMap.find(trkctr - 1) != CRThitMap.end()) {
+      _crttag = 1;
+      _crtt0 = CRThitMap[ trkctr - 1 ];
+    }// found CRT hit
+    else { _crttag = 0; }
+    /*
     _crttag = trk_crttag_assn_v.at( trkctr - 1 ).size();
     if (_crttag) {
       auto crttag = trk_crttag_assn_v.at( trkctr - 1 ).at(0);
       _crtt0 = crttag->Time();
     }
+    */
+
+    // filter out events that do not have a CRT tag if a CRT producer was specified  
+    if ( (fCRTTagProducer != "") && (_crttag == 0) )
+      continue;
+    // if CRT tag out of time, skip
+    if ( ( _crtt0 < (fBeamSpillStart - 5.) ) || ( _crtt0 > (fBeamSpillEnd + 5.) ) )
+      continue;
     
     bool tagged = false;
     
@@ -403,11 +426,15 @@ void ACPTtrig::produce(art::Event& e)
 
   }// for all tracks
 
+  bool selected = false;
+  if (T0_v->size() > 0)
+    selected = true;
+
   e.put(std::move(T0_v));
   e.put(std::move(trk_t0_assn_v));
   e.put(std::move(trk_flash_assn_v));
 
-  return;
+  return selected;
 }
 
 void ACPTtrig::ResetTTree() {
