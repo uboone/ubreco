@@ -674,10 +674,9 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
   U_match_multiplicity=IoU_U.size();
   V_match_multiplicity=IoU_V.size();
 
-  // Double_t U_biggest_iou=-1.0;
-  // Double_t V_biggest_iou=-1.0;
+  cluster_y_new=-9999.0;
 
-
+  //********************V=0,U=0 bin Start********************//
 
   if (IoU_U.size()==0 && IoU_V.size()==0 ) { //V=0,U=0 bin
     cluster_y_new=-9999.0;
@@ -687,6 +686,12 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
     YU_iou=-1.0;
   }//V=0,U=0 bin
 
+  //********************V=0,U=0 bin End********************//
+
+
+
+
+  //********************V=0,U=1 bin Start********************//
 
   if (IoU_U.size()==1 && IoU_V.size()==0 ) { //V=0,U=1 bin
 
@@ -696,6 +701,8 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
     U_biggest_iou=IoU_U.at(0);
     YV_iou=-1.0;
     V_biggest_iou=-1.0;
+
+
     auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[0]]);
 
     for (auto const& hitnewU : hitknew) {//START CLUSTER HIT LOOP
@@ -706,9 +713,19 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
 
 
     }//END CLUSTER HIT LOOP
-    //cout<<"U_cluster_charge10: "<<U_cluster_charge<<endl;
+
 
   }//V=0,U=1 bin
+
+
+  //********************V=0,U=1 bin End********************//
+
+
+
+
+
+  //********************V=1,U=0 bin Start********************//
+
 
   if (IoU_U.size()==0 && IoU_V.size()==1 ) { //V=1,U=0 bin
 
@@ -718,24 +735,30 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
     V_biggest_iou=IoU_V.at(0);
     YU_iou=-1.0;
     U_biggest_iou=-1.0;
+
+
     auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[0]]);
 
     for (auto const& hitnewV : hitjnew) {//START CLUSTER HIT LOOP
-      //  charge=0;
+
       V_charge = hitnewV->Integral();
       V_cluster_charge += V_charge;
       V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
 
 
     }//END CLUSTER HIT LOOP
-    //cout<<"V_cluster_charge01: "<<V_cluster_charge<<endl;
+
 
   }//V=1,U=0 bin
 
-  // //std:://cout << "REACHED THIS POINT (a)" << std::endl;
+
+  //********************V=0,U=1 bin End********************//
 
 
 
+
+
+  //********************V=1,U=1 bin Start********************//
 
 
   if (IoU_U.size()==1 && IoU_V.size()==1 ) { //V=1,U=1 bin
@@ -744,16 +767,21 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
     YV_iou=IoU_V.at(0);
 
     deltaY=y_V.at(0)-y_U.at(0);
+
     if (abs(deltaY)< Y_cut){
       auto avg=0.5*(y_V.at(0)+y_U.at(0));
       cluster_y_new=avg;
 
+
+
       U_biggest_iou=IoU_U.at(0);
       V_biggest_iou=IoU_V.at(0);
+
+
       auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[0]]);
 
       for (auto const& hitnewV : hitjnew) {//START CLUSTER HIT LOOP
-        //  charge=0;
+
         V_charge = hitnewV->Integral();
         V_cluster_charge += V_charge;
         V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
@@ -761,26 +789,32 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
 
       }//END CLUSTER HIT LOOP
 
+
       auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[0]]);
 
       for (auto const& hitnewU : hitknew) {//START CLUSTER HIT LOOP
-        //  charge=0;
+
         U_charge = hitnewU->Integral();
         U_cluster_charge += U_charge;
         U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
 
 
       }//END CLUSTER HIT LOOP
-      //cout<<"U_cluster_charge11: "<<U_cluster_charge<<endl;
-
-      //cout<<"V_cluster_charge11: "<<V_cluster_charge<<endl;
 
     }
     else{
       cluster_y_new=-9999.0;
     }
-    //cout<<"deltaY: "<<deltaY<<endl;
+
   }//V=1,U=1 bin
+
+
+
+  //********************V=1,U=1 bin End********************//
+
+
+
+  //********************V>1,U=0 bin Start********************//
 
 
   if (IoU_U.size()==0 && IoU_V.size()>1 ) { //V>1,U=0 bin
@@ -798,10 +832,11 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
         V_biggest_ious=YV_iou;
         cluster_y_new=y_V.at(Vious);
         V_biggest_iou=V_biggest_ious;
+
         auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[Vious]]);
 
         for (auto const& hitnewV : hitjnew) {//START CLUSTER HIT LOOP
-          //  charge=0;
+
           V_charge = hitnewV->Integral();
           V_cluster_charge += V_charge;
           V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
@@ -809,14 +844,21 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
 
         }//END CLUSTER HIT LOOP
 
-        //cout<<"V_cluster_charge0>1: "<<V_cluster_charge<<endl;
+
 
       }
 
-      //cout<<"IoU_V.at(Vious): "<<IoU_V.at(Vious)<<"     Y Values : "<<y_V.at(Vious)<<endl;
+
     }
 
   }//V>1,U=0 bin
+
+
+  //********************V>1,U=0 bin End********************//
+
+
+
+  //********************V=0,U=>1 bin Start********************//
 
   if (IoU_V.size()==0 && IoU_U.size()>1 ) { //V=0,U>1 bin
 
@@ -833,38 +875,47 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
         U_biggest_ious=YU_iou;
         cluster_y_new=y_U.at(Uious);
         U_biggest_iou=U_biggest_ious;
+
+
+
+
+        auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[Uious]]);
+
+        for (auto const& hitnewU : hitknew) {//START CLUSTER HIT LOOP
+
+          U_charge = hitnewU->Integral();
+          U_cluster_charge += U_charge;
+          U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
+
+
+        }//END CLUSTER HIT LOOP
+
       }
-      auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[Uious]]);
-
-      for (auto const& hitnewU : hitknew) {//START CLUSTER HIT LOOP
-        //  charge=0;
-        U_charge = hitnewU->Integral();
-        U_cluster_charge += U_charge;
-        U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
-
-
-      }//END CLUSTER HIT LOOP
-
-
-      //cout<<"IoU_U.at(Uious): "<<IoU_U.at(Uious)<<"     Y Values : "<<y_U.at(Uious)<<endl;
     }
 
-
-    //cout<<"U_cluster_charge>10: "<<U_cluster_charge<<endl;
   }//V=0,U>1 bin
 
 
+  //********************V=0,U=>1 bin End********************//
+
+
+
+  //********************V=1,U>1 bin Start********************//
 
   if (IoU_V.size()==1 && IoU_U.size()>1 ) { //V=1,U>1 bin
+
+
 
     YV_iou=IoU_V.at(0);
     V_biggest_iou=IoU_V.at(0);
     Double_t U_biggest_ious=-1.0;
-
+    Double_t deltaY_smallest1=1e5;
     auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[0]]);
 
+
+
     for (auto const& hitnewV : hitjnew) {//START CLUSTER HIT LOOP
-      //  charge=0;
+
       V_charge = hitnewV->Integral();
       V_cluster_charge += V_charge;
       V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
@@ -877,10 +928,11 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
     for (size_t Uious=0; Uious<IoU_U.size(); Uious++) {
 
       YU_iou=IoU_U.at(Uious);
-      Double_t deltaY_biggest=10e5;
+
+
       if ((YU_iou > U_biggest_ious)){
         U_biggest_ious=YU_iou;
-        cluster_y_new=y_U.at(Uious);
+
         U_biggest_iou=U_biggest_ious;
       }
 
@@ -888,20 +940,18 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
 
 
         deltaY=((y_V.at(Vious))-(y_U.at(Uious)));
-        //cout<<"*************###############****************"<<deltaY<<endl;
-        if(abs(deltaY)<Y_cut){
 
-          if(abs(deltaY)<deltaY_biggest){
-            deltaY_biggest=abs(deltaY);
+        if(abs(deltaY)<deltaY_smallest1){
+          deltaY_smallest1=abs(deltaY);
 
-            //cout<<"*************###############****************"<<deltaY_biggest<<endl;
+          if(abs(deltaY_smallest1)<Y_cut){
             cluster_y_new=0.5*(y_V.at(Vious)+y_U.at(Uious));
 
 
             auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[Uious]]);
 
             for (auto const& hitnewU : hitknew) {//START CLUSTER HIT LOOP
-              //  charge=0;
+
               U_charge = hitnewU->Integral();
               U_cluster_charge += U_charge;
               U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
@@ -909,51 +959,38 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
 
             }//END CLUSTER HIT LOOP
 
-
-
-
           }
 
+          else{
+            cluster_y_new=-9999.0;
+          }
 
         }
 
-
-
       }
 
-
-
-
-
-
-
-
-
-
-      //cout<<"IoU_U.at(Uious): "<<IoU_U.at(Uious)<<"     Y Values : "<<y_U.at(Uious)<<endl;
     }
-
-    //cout<<"IoU_V.at(0): "<<IoU_V.at(0)<<"     Y Values : "<<y_V.at(0)<<endl;
-    //cout<<"U_cluster_charge=1>1: "<<U_cluster_charge<<endl;
-    //cout<<"V_cluster_charge=1>1: "<<V_cluster_charge<<endl;
 
   }//V=1,U>1 bin
 
 
+  //********************V=1,U>1 bin End********************//
 
 
 
-
+  //********************V>1,U=1 bin Start********************//
   if (IoU_U.size()==1 && IoU_V.size()>1 ) { //V>1,U=1 bin
 
+    Double_t deltaY_smallest=10e5;
     YU_iou=IoU_U.at(0);
     U_biggest_iou=IoU_U.at(0);
     Double_t V_biggest_ious=-1.0;
 
+
     auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[0]]);
 
     for (auto const& hitnewU : hitknew) {//START CLUSTER HIT LOOP
-      //  charge=0;
+
       U_charge = hitnewU->Integral();
       U_cluster_charge += U_charge;
       U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
@@ -966,10 +1003,10 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
     for (size_t Vious=0; Vious<IoU_V.size(); Vious++) {
 
       YV_iou=IoU_V.at(Vious);
-      Double_t deltaY_biggest=10e5;
+
       if ((YV_iou > V_biggest_ious)){
         V_biggest_ious=YV_iou;
-        cluster_y_new=y_V.at(Vious);
+
         V_biggest_iou=V_biggest_ious;
       }
 
@@ -977,122 +1014,90 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
 
 
         deltaY=((y_V.at(Vious))-(y_U.at(Uious)));
-        //cout<<"*************###############****************"<<deltaY<<endl;
+
         if(abs(deltaY)<Y_cut){
 
-          if(abs(deltaY)<deltaY_biggest){
-            deltaY_biggest=abs(deltaY);
+          if(abs(deltaY)<deltaY_smallest){
+            deltaY_smallest=abs(deltaY);
 
-            //cout<<"*************###############****************"<<deltaY_biggest<<endl;
+
             cluster_y_new=0.5*(y_V.at(Vious)+y_U.at(Uious));
+
 
 
             auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[Vious]]);
 
             for (auto const& hitnewV : hitjnew) {//START CLUSTER HIT LOOP
-              //  charge=0;
+
               V_charge = hitnewV->Integral();
               V_cluster_charge += V_charge;
               V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
 
-
             }//END CLUSTER HIT LOOP
-
-
-
 
           }
 
-
         }
-
-
 
       }
 
-
-
-
-
-
-
-
-
-
-      //cout<<"IoU_V.at(Vious): "<<IoU_V.at(Vious)<<"     Y Values : "<<y_V.at(Vious)<<endl;
     }
-
-
-    //cout<<"IoU_U.at(0): "<<IoU_U.at(0)<<"     Y Values : "<<y_U.at(0)<<endl;
-    //cout<<"U_cluster_charge>1=1: "<<U_cluster_charge<<endl;
-    //cout<<"V_cluster_charge>1=1: "<<V_cluster_charge<<endl;
 
   }//V>1,U=1 bin
 
+  //********************V>1,U=1 bin End********************//
 
 
 
 
 
-
-
-
-
-
+  //********************V>1,U>1 bin Start********************//
 
 
   if (IoU_V.size()>1 && IoU_U.size()>1 ) { //V>1,U>1 bin
 
-
-
-
-
+    Double_t deltaY_smallest=10e5;
     for (size_t Vious=0; Vious<IoU_V.size(); Vious++) {
-      Double_t deltaY_biggest=10e5;
+
       Double_t U_biggest_ious=-1.0;
       Double_t V_biggest_ious=-1.0;
 
       YV_iou=IoU_V.at(Vious);
+      if ((YV_iou > V_biggest_ious)){
+        V_biggest_ious=YV_iou;
+
+        V_biggest_iou=V_biggest_ious;
+
+      }
+
+
       for (size_t Uious=0; Uious<IoU_U.size(); Uious++) {
 
-        //cout<<"****************************************************************************IoU_U.at(Y_U_index[k]): "<<IoU_U.at(Uious)<<"     Y Values : "<<y_U.at(Uious)<<endl;
-        //cout<<"*****************************************************************************IoU_V.at(Y_V_index[j]): "<<IoU_V.at(Vious)<<"     Y Values : "<<y_V.at(Vious)<<endl;
-
-        deltaY=((y_V.at(Vious))-(y_U.at(Uious)));
 
         YU_iou=IoU_U.at(Uious);
 
         if ((YU_iou > U_biggest_ious)){
           U_biggest_ious=YU_iou;
-          cluster_y_new=y_U.at(Uious);
+
           U_biggest_iou=U_biggest_ious;
 
         }
 
 
+        deltaY=((y_V.at(Vious))-(y_U.at(Uious)));
 
-        if ((YV_iou > V_biggest_ious)){
-          V_biggest_ious=YV_iou;
-          cluster_y_new=y_V.at(Vious);
-          V_biggest_iou=V_biggest_ious;
-
-        }
+        if(abs(deltaY)<deltaY_smallest){
+          deltaY_smallest=abs(deltaY);
 
 
-
-
-
-        if(abs(deltaY)<Y_cut){
-
-          if(abs(deltaY)<deltaY_biggest){
-            deltaY_biggest=abs(deltaY);
-            //cout<<"*************###############****************"<<deltaY<<endl;
-            //cout<<"*************###############****************"<<deltaY_biggest<<endl;
+          if (deltaY_smallest<Y_cut){
             cluster_y_new=0.5*(y_V.at(Vious)+y_U.at(Uious));
+
+
             auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[Uious]]);
 
             for (auto const& hitnewU : hitknew) {//START CLUSTER HIT LOOP
-              //  charge=0;
+
               U_charge = hitnewU->Integral();
               U_cluster_charge += U_charge;
               U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
@@ -1100,35 +1105,38 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
 
             }//END CLUSTER HIT LOOP
 
+
+
             auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[Vious]]);
 
             for (auto const& hitnewV : hitjnew) {//START CLUSTER HIT LOOP
-              //  charge=0;
+
               V_charge = hitnewV->Integral();
               V_cluster_charge += V_charge;
               V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
 
-
             }//END CLUSTER HIT LOOP
 
-            //cout<<"V_cluster_charge>1>1: "<<V_cluster_charge<<endl;
+          }
 
-
-
-            //cout<<"U_cluster_charge>1>1: "<<U_cluster_charge<<endl;
+          else{
+            cluster_y_new=-9999.0;
 
           }
-        }
-        else {
-          cluster_y_new=-9999.0;
+
         }
 
       }
 
     }
 
-
   }//V>1,U>1 bin
+
+
+  //********************V>1,U>1 bin End********************//
+
+
+
 
 
   for (auto const& hitnewY : hiti) {//START CLUSTER HIT LOOP
@@ -1247,6 +1255,10 @@ Y_index_vector.clear();
 V_index_vector.clear();
 U_index_vector.clear();
 
+
+
+std::cout << "DONE! ----------------------" << std::endl;
+
 }//END EVENT LOOP
 
 
@@ -1295,7 +1307,7 @@ void ClusterTrackDistance::beginJob()
   Matchingtree->Branch("YV_iou",&YV_iou,"YV_iou/D");
   Matchingtree->Branch("YU_iou",&YU_iou,"YU_iou/D");
   Matchingtree->Branch("deltaY",&deltaY,"deltaY/D");
-  
+
 
 }
 
