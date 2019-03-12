@@ -88,8 +88,8 @@ private:
   Double_t cluster_hit_z=0.0;
   Double_t cluster_hit_x=0.0;
 
-  Double_t Y_cluster_hit_z=0.0;
-  Double_t Y_cluster_hit_x=0.0;
+  // Double_t Y_cluster_hit_z=0.0;
+  // Double_t Y_cluster_hit_x=0.0;
 
   Double_t Y_cluster_3d_hit_x;
   Double_t Y_cluster_3d_hit_z;
@@ -249,7 +249,7 @@ Gamma3D::Gamma3D(fhicl::ParameterSet const & p)
 
 }
 
-void Gamma3D::produce(art::Event & e)
+void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 {
 
   std::unique_ptr< std::vector< recob::SpacePoint> > SpacePoint_v(new std::vector<recob::SpacePoint>);
@@ -280,7 +280,7 @@ void Gamma3D::produce(art::Event & e)
 
 
 
-  for (size_t i_c = 0, size_cluster = cluster_handle->size(); i_c != size_cluster; ++i_c) { //START CLUSTER FOR LOOP
+  for (size_t i_c = 0, size_cluster = cluster_handle->size(); i_c != size_cluster; ++i_c) { //start cluster FOR loop for calculating 2-D distance
 
 
     distance_smallest=1e10; //Variable for 2D distance between a cluster and nearest reco track, initialized to a large number for comparison
@@ -356,8 +356,8 @@ void Gamma3D::produce(art::Event & e)
 
       if(pointdistance_smallest<distance_smallest){
         distance_smallest=pointdistance_smallest;
-        X_reco_best=X_reco_smallest;
-        Z_reco_best=Z_reco_smallest;
+        X_reco_best=X_reco_smallest; //variables for the coordinates of the nearest reco track
+        Z_reco_best=Z_reco_smallest; //variables for the coordinates of the nearest reco track
       }
 
     }//END RECO TRACK FOR LOOP
@@ -379,7 +379,7 @@ void Gamma3D::produce(art::Event & e)
       Start_Cluster2.push_back((cluster[i_c].StartTick ())-3.0);//added +- 3.0 time tick tolerances
       End_Cluster2.push_back((cluster[i_c].EndTick ())+3.0);
       Y_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
-      Y_index_vector.push_back(i_c);
+      Y_index_vector.push_back(i_c); //Y Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
     }
 
     if(cluster[i_c].View()==1 && distance_smallest>f2DcutUV){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
@@ -387,7 +387,7 @@ void Gamma3D::produce(art::Event & e)
 
       Start_Cluster1.push_back((cluster[i_c].StartTick ())-3.0);
       End_Cluster1.push_back((cluster[i_c].EndTick ())+3.0);
-      V_index_vector.push_back(i_c);
+      V_index_vector.push_back(i_c);//V Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
     }
 
     if(cluster[i_c].View()==0 && distance_smallest>f2DcutUV){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
@@ -395,12 +395,12 @@ void Gamma3D::produce(art::Event & e)
 
       Start_Cluster0.push_back((cluster[i_c].StartTick ())-3.0);
       End_Cluster0.push_back((cluster[i_c].EndTick ())+3.0);
-      U_index_vector.push_back(i_c);
+      U_index_vector.push_back(i_c);//U Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
     }
 
 
 
-  }//END CLUSTER FOR LOOP
+  }//end cluster FOR loop for calculating 2-D distance
 
 
 
@@ -412,8 +412,9 @@ void Gamma3D::produce(art::Event & e)
 
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
 
-  for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR LOOP (Y-COLLECTION PLANE LOOP)
+  for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR LOOP (Y-COLLECTION PLANE LOOP). A Match is to be found for this cluster always if it exists
 
+    //Match variables (vectors) cleared or set to crazy values at the beginning of each Y Cluster Loop
     IoU_U.clear();
     IoU_V.clear();
     y_U.clear();
@@ -443,12 +444,12 @@ void Gamma3D::produce(art::Event & e)
     U_cluster_charge=0;
     V_cluster_charge=0;
 
-    for (auto const& hity : hiti) {//START CLUSTER HIT LOOP
-
-      Y_cluster_hit_z = hity->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
-      Y_cluster_hit_x = (hity->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
-
-    }
+    // for (auto const& hity : hiti) {//START CLUSTER HIT LOOP
+    //
+    //   Y_cluster_hit_z = hity->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
+    //   Y_cluster_hit_x = (hity->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
+    //
+    // }
 
 
 
@@ -465,8 +466,8 @@ void Gamma3D::produce(art::Event & e)
     for (size_t j = 0; j < V_index_vector.size(); j++) {//START V-INDUCTION PLANE FOR LOOP)
 
 
-      V_t_min_abs = 9600.0;
-      V_t_max_abs = 0.0;
+      V_t_min_abs = 9600.0;//variable for smallest time of the two clusters
+      V_t_max_abs = 0.0;//variable for largest time of the two clusters
       if ( Start_Cluster2[i] < V_t_min_abs )
       V_t_min_abs = Start_Cluster2[i];
       if ( End_Cluster2[i]   > V_t_max_abs )
@@ -539,8 +540,8 @@ void Gamma3D::produce(art::Event & e)
     for (size_t k = 0; k < U_index_vector.size(); k++) {//START U-INDUCTION PLANE FOR LOOP
 
 
-      U_t_min_abs = 9600.0;
-      U_t_max_abs = 0.0;
+      U_t_min_abs = 9600.0;//variable for smallest time of the two clusters
+      U_t_max_abs = 0.0;//variable for largest time of the two clusters
 
 
       if ( Start_Cluster2[i] < U_t_min_abs )
@@ -600,7 +601,7 @@ void Gamma3D::produce(art::Event & e)
     V_match_multiplicity=IoU_V.size();
 
 
-    cluster_y_new=-9999.0;
+    cluster_y_new=-9999.0;//variable for storing the value of the y coordinate initialized to a crazy value
 
     //********************V=0,U=0 bin Start********************//
 
@@ -628,7 +629,7 @@ void Gamma3D::produce(art::Event & e)
       YV_iou=-1.0;
       V_biggest_iou=-1.0;
 
-      U_Match_Ev_Index=U_index_vector[Y_U_index[0]];
+      U_Match_Ev_Index=U_index_vector[Y_U_index[0]];//index of the cluster from the main event
       auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[0]]);
 
       for (auto const& hitnewU : hitknew) {//START CLUSTER HIT LOOP
@@ -662,7 +663,7 @@ void Gamma3D::produce(art::Event & e)
       YU_iou=-1.0;
       U_biggest_iou=-1.0;
 
-      V_Match_Ev_Index=V_index_vector[Y_V_index[0]];
+      V_Match_Ev_Index=V_index_vector[Y_V_index[0]];//index of the cluster from the main event
       auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[0]]);
 
       for (auto const& hitnewV : hitjnew) {//START CLUSTER HIT LOOP
@@ -1122,6 +1123,8 @@ void Gamma3D::produce(art::Event & e)
 
     Matchingtree->Fill();
 
+
+
     Y_Match_Ev_Index=Y_index_vector[i];
 
 
@@ -1131,11 +1134,7 @@ void Gamma3D::produce(art::Event & e)
     if (cluster_y_new ==-9999.0)
     continue;
 
-    /*
-    std::cout<<"Y_Match_Ev_Index: "<<Y_Match_Ev_Index<<std::endl;
-    std::cout<<"V_Match_Ev_Index: "<<V_Match_Ev_Index<<"    V_match_multiplicity: "<<V_match_multiplicity<<std::endl;
-    std::cout<<"U_Match_Ev_Index: "<<U_Match_Ev_Index<<"    U_match_multiplicity: "<<U_match_multiplicity<<std::endl;
-    */
+
 
     Double_t weighted_numX = 0;
     Double_t weighted_numZ = 0;
@@ -1193,38 +1192,33 @@ void Gamma3D::produce(art::Event & e)
 
 
     if((U_match_multiplicity==1 && V_match_multiplicity==0) || (U_match_multiplicity>1 && V_match_multiplicity==0)){
-    art::Ptr<recob::Cluster> ClusPtrY(cluster_handle,Y_Match_Ev_Index);
-    art::Ptr<recob::Cluster> ClusPtrU(cluster_handle,U_Match_Ev_Index);
-    util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrY, *sps_clus_assn_v);
-    util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrU, *sps_clus_assn_v);
+      art::Ptr<recob::Cluster> ClusPtrY(cluster_handle,Y_Match_Ev_Index);
+      art::Ptr<recob::Cluster> ClusPtrU(cluster_handle,U_Match_Ev_Index);
+      util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrY, *sps_clus_assn_v);
+      util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrU, *sps_clus_assn_v);
     }
 
     if((U_match_multiplicity==0 && V_match_multiplicity==1) || (U_match_multiplicity==0 && V_match_multiplicity>1)){
-    art::Ptr<recob::Cluster> ClusPtrY(cluster_handle,Y_Match_Ev_Index);
-    art::Ptr<recob::Cluster> ClusPtrV(cluster_handle,V_Match_Ev_Index);
-    util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrY, *sps_clus_assn_v);
-    util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrV, *sps_clus_assn_v);
+      art::Ptr<recob::Cluster> ClusPtrY(cluster_handle,Y_Match_Ev_Index);
+      art::Ptr<recob::Cluster> ClusPtrV(cluster_handle,V_Match_Ev_Index);
+      util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrY, *sps_clus_assn_v);
+      util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrV, *sps_clus_assn_v);
     }
 
 
     if((U_match_multiplicity==1 && V_match_multiplicity>1) || (U_match_multiplicity>1 && V_match_multiplicity==1) || (U_match_multiplicity>1 && V_match_multiplicity>1) || (U_match_multiplicity==1 && V_match_multiplicity==1) ){
-    art::Ptr<recob::Cluster> ClusPtrY(cluster_handle,Y_Match_Ev_Index);
-    art::Ptr<recob::Cluster> ClusPtrU(cluster_handle,U_Match_Ev_Index);
-    art::Ptr<recob::Cluster> ClusPtrV(cluster_handle,V_Match_Ev_Index);
-    util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrY, *sps_clus_assn_v);
-    util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrV, *sps_clus_assn_v);
-    util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrU, *sps_clus_assn_v);
+      art::Ptr<recob::Cluster> ClusPtrY(cluster_handle,Y_Match_Ev_Index);
+      art::Ptr<recob::Cluster> ClusPtrU(cluster_handle,U_Match_Ev_Index);
+      art::Ptr<recob::Cluster> ClusPtrV(cluster_handle,V_Match_Ev_Index);
+      util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrY, *sps_clus_assn_v);
+      util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrV, *sps_clus_assn_v);
+      util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrU, *sps_clus_assn_v);
     }
 
 
-
-
-    // art::Ptr<recob::Cluster> ClusPtr(cluster_handle,0);
-    // util::CreateAssn(*this, e, *SpacePoint_v, ClusPtr, *sps_clus_assn_v);
-
-
-
   }//END PLANE MATCHING FOR LOOP (Y-COLLECTION PLANE LOOP)
+
+//Lets clear these variables at the end of every event
 
   Start_Cluster0.clear();
   End_Cluster0.clear();
@@ -1243,7 +1237,7 @@ void Gamma3D::produce(art::Event & e)
   e.put(std::move(SpacePoint_v));
   e.put(std::move(sps_clus_assn_v));
 
-}
+}//END EVENT LOOP
 
 void Gamma3D::beginJob()
 {
