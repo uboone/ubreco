@@ -233,7 +233,7 @@ void CosmicFilter::produce(art::Event & e)
     if (trk.Length() < fMinTrkLength) continue;
 
     // and track length must be < twice start-end distance
-    if (trk.Length() > 2 * (trk.Vertex()-trk.End()).R() ) continue;
+    if (trk.Length() > 2 * (trk.Vertex()-trk.End()).Mag() ) continue;
 
     //if we are using the vertex
     if (fVtxProducer != "") {
