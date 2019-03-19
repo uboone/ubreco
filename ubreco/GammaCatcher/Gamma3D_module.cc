@@ -8,7 +8,7 @@
 // Avinay Bhat  avbhat@syr.edu
 ////////////////////////////////////////////////////////////////////////
 
-
+#include "art/Framework/Core/EDAnalyzer.h"
 #include "art/Framework/Core/EDProducer.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
@@ -25,6 +25,9 @@
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardataobj/RecoBase/Track.h"
+#include "lardataobj/RecoBase/Vertex.h"
+#include "lardataobj/RecoBase/PFParticle.h"
+
 
 #include "lardata/Utilities/GeometryUtilities.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
@@ -65,8 +68,10 @@ private:
 
 
 
-  std::string fMC_track_tag,fReco_track_tag,fCluster_tag,fHit_tag;
 
+  std::string fMC_track_tag,fReco_track_tag,fCluster_tag,fHit_tag,fpfparticle_tag,fVertex_tag;
+  // std::string fAssnProducer;
+  // std::string fAssn_tag;
 
   UInt_t  Y_Wire;
 
@@ -161,7 +166,7 @@ private:
   Double_t U_cluster_energy;
 
 
-
+  Double_t deltaY_smallest;
 
   Double_t wire2cm,time2cm;
 
@@ -178,6 +183,8 @@ private:
   std::vector<Int_t> U_index_vector;
   std::vector<Int_t> Y_U_index;
   std::vector<Int_t> Y_V_index;
+
+  // std::vector<UInt_t> Nu_track_index;
 
 
 
@@ -241,11 +248,10 @@ Gamma3D::Gamma3D(fhicl::ParameterSet const & p)
   fReco_track_tag = p.get<std::string>("recotrack_tag"  );
   fCluster_tag = p.get<std::string>("cluster_tag"  );
   fHit_tag = p.get<std::string>("hit_tag"  );
-
-
-
-
-
+  //fAssnProducer = p.get<std::string>("AssnProducer");
+  // fAssn_tag= p.get<std::string>("Assn_tag");
+  fpfparticle_tag=p.get<std::string>("pfparticle_tag");
+  fVertex_tag=p.get<std::string>("vertex_tag");
 
 }
 
@@ -254,7 +260,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
   std::unique_ptr< std::vector< recob::SpacePoint> > SpacePoint_v(new std::vector<recob::SpacePoint>);
   std::unique_ptr< art::Assns <recob::Cluster, recob::SpacePoint> > sps_clus_assn_v(new art::Assns<recob::Cluster,recob::SpacePoint> );
-  // std::unique_ptr< art::Assns <recob::Spacepoint, recob::Hit> > sps_hit_assn_v(new art::Assns<recob::SpacePoint,recob::Hit> );
+
 
   // code goes here...
 
@@ -275,571 +281,513 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
   art::FindMany<recob::Hit> clus_hit_assn_v(cluster_handle, e, fCluster_tag);
 
+
+  art::Handle<std::vector<recob::PFParticle> > pfparticle_handle;
+  e.getByLabel(fpfparticle_tag,pfparticle_handle);
+
+  art::Handle<std::vector<recob::Vertex> > vertex_handle;
+  e.getByLabel(fVertex_tag,vertex_handle);
+
+  art::FindMany<recob::Vertex> pfp_vertex_assn_v(pfparticle_handle, e, fVertex_tag);
+
   auto const& cluster(*cluster_handle);
 
+  // load neutrino vertex
+  //   loop through tracks and identify those that are associated to the vertex (i.e. come very close to it)
+  // if so, flag that track index as "neutrino track"
 
 
-
-  for (size_t i_c = 0, size_cluster = cluster_handle->size(); i_c != size_cluster; ++i_c) { //start cluster FOR loop for calculating 2-D distance
-
-
-    distance_smallest=1e10; //Variable for 2D distance between a cluster and nearest reco track, initialized to a large number for comparison
-
-
-    auto hits = clus_hit_assn_v.at(i_c);
+  // Nu_track_index.clear();
 
 
 
 
-    for (size_t i_t = 0, size_track = recotrack_handle->size(); i_t != size_track; ++i_t) {//START RECO TRACK FOR LOOP
+  recob::Vertex nuvtx;
+  size_t neutrinos = 0;
 
+  for (size_t p=0; p < pfparticle_handle->size(); p++) {
+    auto pfp = pfparticle_handle->at(p);
 
-      auto const& track = recotrack_handle->at(i_t);
+    if (pfp.IsPrimary() == false) continue;
 
+    auto PDG = fabs(pfp.PdgCode());
+    if ( (PDG == 12) || (PDG == 14) ) {
 
-      pointdistance_smallest=1e10;////Variable for distance between a cluster hit and a reco track point, initialized to a large number for comparison
-      for(size_t m=0;m<(track.NumberTrajectoryPoints());m++){//START RECO POINT LOOP
+      neutrinos += 1;
 
+      // auto pfpkey = p;
+      auto ass_vtx_v  =pfp_vertex_assn_v.at( p );
+      if (ass_vtx_v.size() != 1)
+      std::cout << "ERROR. Neutrino not associated with a single vertex..." << std::endl;
+      nuvtx = *(ass_vtx_v.at(0));
+      // V_xyz = nuvtx.position();
 
-        X_reco=track.LocationAtPoint(m).X();
-        Y_reco=track.LocationAtPoint(m).Y();
-        Z_reco=track.LocationAtPoint(m).Z();
+      // std::cout<<V_xyz.x()<<std::endl;
 
-
-        auto const* geom = ::lar::providerFrom<geo::Geometry>();
-        auto V_wire_cm = geom->WireCoordinate(Y_reco,Z_reco,geo::PlaneID(0,0,1)) * wire2cm;
-
-        auto V_time_cm = X_reco;
-
-        auto U_wire_cm = geom->WireCoordinate(Y_reco,Z_reco,geo::PlaneID(0,0,0)) * wire2cm;
-
-        auto U_time_cm = X_reco;
-
-
-        for (auto const& hit : hits) {//START CLUSTER HIT LOOP
-
-          cluster_hit_z = hit->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
-          cluster_hit_x = (hit->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
-
-          if(cluster[i_c].View()==2){
-            plane=2;
-            pointdistance=sqrt((pow(cluster_hit_z-Z_reco,2))+(pow(cluster_hit_x-X_reco,2)));
-
-          }
-          if (cluster[i_c].View()==1){
-            plane=1;
-
-            pointdistance=sqrt((pow(cluster_hit_z-V_wire_cm,2))+(pow(cluster_hit_x-V_time_cm,2)));
-          }
-
-          if (cluster[i_c].View()==0){
-            plane=0;
-            pointdistance=sqrt((pow(cluster_hit_z-U_wire_cm,2))+(pow(cluster_hit_x-U_time_cm,2)));
-          }
-
-          if(pointdistance<pointdistance_smallest){//comparison IF loop
-
-            pointdistance_smallest=pointdistance;
-
-            X_reco_smallest=X_reco;
-            Z_reco_smallest=Z_reco;
-
-          }
-
-        }//END CLUSTER HIT LOOP
-
-
-
-
-      }//END RECO POINT LOOP
-
-
-      if(pointdistance_smallest<distance_smallest){
-        distance_smallest=pointdistance_smallest;
-        X_reco_best=X_reco_smallest; //variables for the coordinates of the nearest reco track
-        Z_reco_best=Z_reco_smallest; //variables for the coordinates of the nearest reco track
-      }
-
-    }//END RECO TRACK FOR LOOP
-
-
-
-
-
-
-    Clustertree->Fill();
-
-
-
-
-
-    if(cluster[i_c].View()==2 && distance_smallest > f2DcutY ){// IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
-
-
-      Start_Cluster2.push_back((cluster[i_c].StartTick ())-3.0);//added +- 3.0 time tick tolerances
-      End_Cluster2.push_back((cluster[i_c].EndTick ())+3.0);
-      Y_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
-      Y_index_vector.push_back(i_c); //Y Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
     }
 
-    if(cluster[i_c].View()==1 && distance_smallest>f2DcutUV){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+  }
 
 
-      Start_Cluster1.push_back((cluster[i_c].StartTick ())-3.0);
-      End_Cluster1.push_back((cluster[i_c].EndTick ())+3.0);
-      V_index_vector.push_back(i_c);//V Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
+  /*
+
+  art::Handle< art::Assns<recob::Vertex,recob::Track,void> > numuCCassn_h;
+  e.getByLabel(fAssn_tag,numuCCassn_h);
+  if (numuCCassn_h->size() != 1){
+  std::cout << "Number of vertices != 1 -> ERROR ERROR ERROR" << std::endl;
+  return;
+}
+
+numuCCassn_h->at(0).first->XYZ(V_xyz);
+
+std::cout << "Vertex coordinates are : " << V_xyz[0] << ", " << V_xyz[1] << ", " << V_xyz[2] << std::endl;
+
+
+auto ccmuon = numuCCassn_h->at(0).second;
+
+for (unsigned int i = 0; i < ccmuon->NumberTrajectoryPoints(); i++) {
+// project a point into 2D:
+if (ccmuon->HasValidPoint(i)) {
+auto loc = ccmuon->LocationAtPoint(i);
+std::cout << "muon track point : [ " << loc.X() << ", " << loc.Y() << ", " << loc.Z() << " ]" << std::endl;
+}// if valid point
+}// for all points
+
+return;
+*/
+
+
+
+
+
+for (size_t i_c = 0, size_cluster = cluster_handle->size(); i_c != size_cluster; ++i_c) { //start cluster FOR loop for calculating 2-D distance
+
+
+
+  distance_smallest=1e10; //Variable for 2D distance between a cluster and nearest reco track, initialized to a large number for comparison
+
+
+  auto hits = clus_hit_assn_v.at(i_c);
+
+
+
+
+  for (size_t i_t = 0, size_track = recotrack_handle->size(); i_t != size_track; ++i_t) {//START RECO TRACK FOR LOOP
+
+
+    auto const& track = recotrack_handle->at(i_t);
+    if ( (sqrt((pow(nuvtx.position().x()-track.Start().X(),2))+(pow(nuvtx.position().y()-track.Start().Y(),2))+ (pow(nuvtx.position().z()-track.Start().Z(),2))) <5.0) ||  (sqrt((pow(nuvtx.position().x()-track.End().X(),2))+(pow(nuvtx.position().y()-track.End().Y(),2))+ (pow(nuvtx.position().z()-track.End().Z(),2)))<5.0))
+    continue;
+
+    pointdistance_smallest=1e10;////Variable for distance between a cluster hit and a reco track point, initialized to a large number for comparison
+    for(size_t m=0;m<(track.NumberTrajectoryPoints());m++){//START RECO POINT LOOP
+
+
+      X_reco=track.LocationAtPoint(m).X();
+      Y_reco=track.LocationAtPoint(m).Y();
+      Z_reco=track.LocationAtPoint(m).Z();
+
+
+      auto const* geom = ::lar::providerFrom<geo::Geometry>();
+      auto V_wire_cm = geom->WireCoordinate(Y_reco,Z_reco,geo::PlaneID(0,0,1)) * wire2cm;
+
+      auto V_time_cm = X_reco;
+
+      auto U_wire_cm = geom->WireCoordinate(Y_reco,Z_reco,geo::PlaneID(0,0,0)) * wire2cm;
+
+      auto U_time_cm = X_reco;
+
+
+      for (auto const& hit : hits) {//START CLUSTER HIT LOOP
+
+        cluster_hit_z = hit->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
+        cluster_hit_x = (hit->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
+
+        if(cluster[i_c].View()==2){
+          plane=2;
+          pointdistance=sqrt((pow(cluster_hit_z-Z_reco,2))+(pow(cluster_hit_x-X_reco,2)));
+
+        }
+        if (cluster[i_c].View()==1){
+          plane=1;
+
+          pointdistance=sqrt((pow(cluster_hit_z-V_wire_cm,2))+(pow(cluster_hit_x-V_time_cm,2)));
+        }
+
+        if (cluster[i_c].View()==0){
+          plane=0;
+          pointdistance=sqrt((pow(cluster_hit_z-U_wire_cm,2))+(pow(cluster_hit_x-U_time_cm,2)));
+        }
+
+        if(pointdistance<pointdistance_smallest){//comparison IF loop
+
+          pointdistance_smallest=pointdistance;
+
+          X_reco_smallest=X_reco;
+          Z_reco_smallest=Z_reco;
+
+        }
+
+      }//END CLUSTER HIT LOOP
+
+
+
+
+    }//END RECO POINT LOOP
+
+
+    if(pointdistance_smallest<distance_smallest){
+      distance_smallest=pointdistance_smallest;
+      X_reco_best=X_reco_smallest; //variables for the coordinates of the nearest reco track
+      Z_reco_best=Z_reco_smallest; //variables for the coordinates of the nearest reco track
     }
 
-    if(cluster[i_c].View()==0 && distance_smallest>f2DcutUV){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+  }//END RECO TRACK FOR LOOP
 
 
-      Start_Cluster0.push_back((cluster[i_c].StartTick ())-3.0);
-      End_Cluster0.push_back((cluster[i_c].EndTick ())+3.0);
-      U_index_vector.push_back(i_c);//U Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
+
+
+
+
+  Clustertree->Fill();
+
+
+
+
+
+  if(cluster[i_c].View()==2 && distance_smallest > f2DcutY ){// IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+
+
+    Start_Cluster2.push_back((cluster[i_c].StartTick ())-3.0);//added +- 3.0 time tick tolerances
+    End_Cluster2.push_back((cluster[i_c].EndTick ())+3.0);
+    Y_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
+    Y_index_vector.push_back(i_c); //Y Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
+  }
+
+  if(cluster[i_c].View()==1 && distance_smallest>f2DcutUV){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+
+
+    Start_Cluster1.push_back((cluster[i_c].StartTick ())-3.0);
+    End_Cluster1.push_back((cluster[i_c].EndTick ())+3.0);
+    V_index_vector.push_back(i_c);//V Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
+  }
+
+  if(cluster[i_c].View()==0 && distance_smallest>f2DcutUV){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+
+
+    Start_Cluster0.push_back((cluster[i_c].StartTick ())-3.0);
+    End_Cluster0.push_back((cluster[i_c].EndTick ())+3.0);
+    U_index_vector.push_back(i_c);//U Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
+  }
+
+
+
+}//end cluster FOR loop for calculating 2-D distance
+
+
+
+V_t_min_common = -9999.; //  start point of the overlap
+V_t_max_common = -9999.; // end point of the overlap
+
+U_t_min_common = -9999.; //  start point of the overlap
+U_t_max_common = -9999.; // end point of the overlap
+
+auto const* geom = ::lar::providerFrom<geo::Geometry>();
+
+for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR LOOP (Y-COLLECTION PLANE LOOP). A Match is to be found for this cluster always if it exists
+
+  //Match variables (vectors) cleared or set to crazy values at the beginning of each Y Cluster Loop
+  IoU_U.clear();
+  IoU_V.clear();
+  y_U.clear();
+  y_V.clear();
+
+  Y_V_index.clear();
+  Y_U_index.clear();
+
+  Int_t Y_Match_Ev_Index=-45;
+  Int_t U_Match_Ev_Index=-46;
+  Int_t V_Match_Ev_Index=-47;
+
+  Y_clus_hitSize=Y_clus_hitsize[i];
+
+  distance_smallest3d=1e10;
+
+  deltaY=-9999.0;
+  // if (Y_clus_hitSize < 1)
+  // continue;
+  auto hiti = clus_hit_assn_v.at(Y_index_vector[i]);
+
+  Y_Wire=hiti[0]->WireID().Wire;
+
+
+
+  Y_cluster_charge=0;
+  U_cluster_charge=0;
+  V_cluster_charge=0;
+
+  // for (auto const& hity : hiti) {//START CLUSTER HIT LOOP
+  //
+  //   Y_cluster_hit_z = hity->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
+  //   Y_cluster_hit_x = (hity->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
+  //
+  // }
+
+
+
+
+  Y_clus_lifetime=End_Cluster2[i]-Start_Cluster2[i];
+
+
+
+
+  V_iou=-9999.0;
+
+
+
+  for (size_t j = 0; j < V_index_vector.size(); j++) {//START V-INDUCTION PLANE FOR LOOP)
+
+
+    V_t_min_abs = 9600.0;//variable for smallest time of the two clusters
+    V_t_max_abs = 0.0;//variable for largest time of the two clusters
+    if ( Start_Cluster2[i] < V_t_min_abs )
+    V_t_min_abs = Start_Cluster2[i];
+    if ( End_Cluster2[i]   > V_t_max_abs )
+    V_t_max_abs = End_Cluster2[i];
+
+    if ( Start_Cluster1[j] < V_t_min_abs )
+    V_t_min_abs = Start_Cluster1[j];
+    if ( End_Cluster1[j]   > V_t_max_abs )
+    V_t_max_abs = End_Cluster1[j];
+
+    if (Start_Cluster2[i]<Start_Cluster1[j])
+    V_t_min_common = Start_Cluster1[j];
+    if (Start_Cluster2[i]>Start_Cluster1[j])
+    V_t_min_common = Start_Cluster2[i];
+
+    if (End_Cluster2[i]<End_Cluster1[j])
+    V_t_max_common = End_Cluster2[i];
+    if (End_Cluster2[i]>End_Cluster1[j])
+    V_t_max_common = End_Cluster1[j];
+
+
+
+
+
+    auto hitj = clus_hit_assn_v.at(V_index_vector[j]);
+
+
+
+
+
+    geo::WireIDIntersection clusterintersectionV;
+    auto Vintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitj[0]->WireID(),clusterintersectionV);
+
+
+    if (Vintersect==0)
+    continue;
+
+
+    if ((V_t_min_common > V_t_max_common)){//NO OVERLAP
+      V_iou = -1;
+    }
+    if ((V_t_min_common < V_t_max_common)){//OVERLAP
+      V_iou = (V_t_max_common - V_t_min_common) / (V_t_max_abs - V_t_min_abs);
+      //  V_match_multiplicity++;
+
+    }
+
+    if (V_iou>0){
+
+      Y_V_index.push_back(j);
+      IoU_V.push_back(V_iou);
+      y_V.push_back(clusterintersectionV.y);
+
+
     }
 
 
 
-  }//end cluster FOR loop for calculating 2-D distance
 
 
 
-  V_t_min_common = -9999.; //  start point of the overlap
-  V_t_max_common = -9999.; // end point of the overlap
+  }//END V-INDUCTION PLANE FOR LOOP
 
-  U_t_min_common = -9999.; //  start point of the overlap
-  U_t_max_common = -9999.; // end point of the overlap
 
-  auto const* geom = ::lar::providerFrom<geo::Geometry>();
 
-  for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR LOOP (Y-COLLECTION PLANE LOOP). A Match is to be found for this cluster always if it exists
 
-    //Match variables (vectors) cleared or set to crazy values at the beginning of each Y Cluster Loop
-    IoU_U.clear();
-    IoU_V.clear();
-    y_U.clear();
-    y_V.clear();
+  U_iou=-9999.0;
 
-    Y_V_index.clear();
-    Y_U_index.clear();
 
-    Int_t Y_Match_Ev_Index=-45;
-    Int_t U_Match_Ev_Index=-46;
-    Int_t V_Match_Ev_Index=-47;
+  for (size_t k = 0; k < U_index_vector.size(); k++) {//START U-INDUCTION PLANE FOR LOOP
 
-    Y_clus_hitSize=Y_clus_hitsize[i];
 
-    distance_smallest3d=1e10;
+    U_t_min_abs = 9600.0;//variable for smallest time of the two clusters
+    U_t_max_abs = 0.0;//variable for largest time of the two clusters
 
-    deltaY=-9999.0;
-    // if (Y_clus_hitSize < 1)
-    // continue;
-    auto hiti = clus_hit_assn_v.at(Y_index_vector[i]);
 
-    Y_Wire=hiti[0]->WireID().Wire;
+    if ( Start_Cluster2[i] < U_t_min_abs )
+    U_t_min_abs = Start_Cluster2[i];
+    if ( End_Cluster2[i]   > U_t_max_abs )
+    U_t_max_abs = End_Cluster2[i];
 
+    if ( Start_Cluster0[k] < U_t_min_abs )
+    U_t_min_abs = Start_Cluster0[k];
+    if ( End_Cluster0[k]   > U_t_max_abs )
+    U_t_max_abs = End_Cluster0[k];
 
+    if (Start_Cluster2[i]<Start_Cluster0[k])
+    U_t_min_common = Start_Cluster0[k];
+    if (Start_Cluster2[i]>Start_Cluster0[k])
+    U_t_min_common = Start_Cluster2[i];
 
-    Y_cluster_charge=0;
-    U_cluster_charge=0;
-    V_cluster_charge=0;
+    if (End_Cluster2[i]<End_Cluster0[k])
+    U_t_max_common = End_Cluster2[i];
+    if (End_Cluster2[i]>End_Cluster0[k])
+    U_t_max_common = End_Cluster0[k];
 
-    // for (auto const& hity : hiti) {//START CLUSTER HIT LOOP
-    //
-    //   Y_cluster_hit_z = hity->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
-    //   Y_cluster_hit_x = (hity->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
-    //
-    // }
 
+    auto hitk = clus_hit_assn_v.at(U_index_vector[k]);
 
 
 
-    Y_clus_lifetime=End_Cluster2[i]-Start_Cluster2[i];
+    geo::WireIDIntersection clusterintersectionU;
 
+    auto Uintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitk[0]->WireID(),clusterintersectionU);//
 
 
+    if (Uintersect==0)
+    continue;
 
-    V_iou=-9999.0;
 
 
+    if (U_t_min_common > U_t_max_common)//NO OVERLAP
+    U_iou = -1;
+    if ((U_t_min_common < U_t_max_common) )//OVERLAP
+    {
+      U_iou = (U_t_max_common - U_t_min_common) / (U_t_max_abs - U_t_min_abs);
 
-    for (size_t j = 0; j < V_index_vector.size(); j++) {//START V-INDUCTION PLANE FOR LOOP)
 
+    }
 
-      V_t_min_abs = 9600.0;//variable for smallest time of the two clusters
-      V_t_max_abs = 0.0;//variable for largest time of the two clusters
-      if ( Start_Cluster2[i] < V_t_min_abs )
-      V_t_min_abs = Start_Cluster2[i];
-      if ( End_Cluster2[i]   > V_t_max_abs )
-      V_t_max_abs = End_Cluster2[i];
+    if (U_iou>0){
+      Y_U_index.push_back(k);
+      IoU_U.push_back(U_iou);
+      y_U.push_back(clusterintersectionU.y);
+    }
 
-      if ( Start_Cluster1[j] < V_t_min_abs )
-      V_t_min_abs = Start_Cluster1[j];
-      if ( End_Cluster1[j]   > V_t_max_abs )
-      V_t_max_abs = End_Cluster1[j];
+  }//END U-INDUCTION PLANE FOR LOOP
 
-      if (Start_Cluster2[i]<Start_Cluster1[j])
-      V_t_min_common = Start_Cluster1[j];
-      if (Start_Cluster2[i]>Start_Cluster1[j])
-      V_t_min_common = Start_Cluster2[i];
 
-      if (End_Cluster2[i]<End_Cluster1[j])
-      V_t_max_common = End_Cluster2[i];
-      if (End_Cluster2[i]>End_Cluster1[j])
-      V_t_max_common = End_Cluster1[j];
+  U_match_multiplicity=IoU_U.size();
+  V_match_multiplicity=IoU_V.size();
 
 
+  cluster_y_new=-9999.0;//variable for storing the value of the y coordinate initialized to a crazy value
 
+  //********************V=0,U=0 bin Start********************//
 
+  if (IoU_U.size()==0 && IoU_V.size()==0 ) { //V=0,U=0 bin
+    cluster_y_new=-9999.0;
+    V_biggest_iou=-1.0;
+    U_biggest_iou=-1.0;
+    YV_iou=-1.0;
+    YU_iou=-1.0;
+  }//V=0,U=0 bin
 
-      auto hitj = clus_hit_assn_v.at(V_index_vector[j]);
+  //********************V=0,U=0 bin End********************//
 
 
 
 
+  //********************V=0,U=1 bin Start********************//
 
-      geo::WireIDIntersection clusterintersectionV;
-      auto Vintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitj[0]->WireID(),clusterintersectionV);
+  if (IoU_U.size()==1 && IoU_V.size()==0 ) { //V=0,U=1 bin
 
 
-      if (Vintersect==0)
-      continue;
+    cluster_y_new=y_U.at(0);
+    YU_iou=IoU_U.at(0);
+    U_biggest_iou=IoU_U.at(0);
+    YV_iou=-1.0;
+    V_biggest_iou=-1.0;
 
+    U_Match_Ev_Index=U_index_vector[Y_U_index[0]];//index of the cluster from the main event
+    auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[0]]);
 
-      if ((V_t_min_common > V_t_max_common)){//NO OVERLAP
-        V_iou = -1;
-      }
-      if ((V_t_min_common < V_t_max_common)){//OVERLAP
-        V_iou = (V_t_max_common - V_t_min_common) / (V_t_max_abs - V_t_min_abs);
-        //  V_match_multiplicity++;
+    for (auto const& hitnewU : hitknew) {//START CLUSTER HIT LOOP
+      //  charge=0;
+      U_charge = hitnewU->Integral();
+      U_cluster_charge += U_charge;
+      U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
 
-      }
 
-      if (V_iou>0){
+    }//END CLUSTER HIT LOOP
 
-        Y_V_index.push_back(j);
-        IoU_V.push_back(V_iou);
-        y_V.push_back(clusterintersectionV.y);
 
+  }//V=0,U=1 bin
 
-      }
 
+  //********************V=0,U=1 bin End********************//
 
 
 
 
 
-    }//END V-INDUCTION PLANE FOR LOOP
+  //********************V=1,U=0 bin Start********************//
 
 
+  if (IoU_U.size()==0 && IoU_V.size()==1 ) { //V=1,U=0 bin
 
 
-    U_iou=-9999.0;
+    cluster_y_new=y_V.at(0);
+    YV_iou=IoU_V.at(0);
+    V_biggest_iou=IoU_V.at(0);
+    YU_iou=-1.0;
+    U_biggest_iou=-1.0;
 
+    V_Match_Ev_Index=V_index_vector[Y_V_index[0]];//index of the cluster from the main event
+    auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[0]]);
 
-    for (size_t k = 0; k < U_index_vector.size(); k++) {//START U-INDUCTION PLANE FOR LOOP
+    for (auto const& hitnewV : hitjnew) {//START CLUSTER HIT LOOP
 
+      V_charge = hitnewV->Integral();
+      V_cluster_charge += V_charge;
+      V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
 
-      U_t_min_abs = 9600.0;//variable for smallest time of the two clusters
-      U_t_max_abs = 0.0;//variable for largest time of the two clusters
 
+    }//END CLUSTER HIT LOOP
 
-      if ( Start_Cluster2[i] < U_t_min_abs )
-      U_t_min_abs = Start_Cluster2[i];
-      if ( End_Cluster2[i]   > U_t_max_abs )
-      U_t_max_abs = End_Cluster2[i];
 
-      if ( Start_Cluster0[k] < U_t_min_abs )
-      U_t_min_abs = Start_Cluster0[k];
-      if ( End_Cluster0[k]   > U_t_max_abs )
-      U_t_max_abs = End_Cluster0[k];
+  }//V=1,U=0 bin
 
-      if (Start_Cluster2[i]<Start_Cluster0[k])
-      U_t_min_common = Start_Cluster0[k];
-      if (Start_Cluster2[i]>Start_Cluster0[k])
-      U_t_min_common = Start_Cluster2[i];
 
-      if (End_Cluster2[i]<End_Cluster0[k])
-      U_t_max_common = End_Cluster2[i];
-      if (End_Cluster2[i]>End_Cluster0[k])
-      U_t_max_common = End_Cluster0[k];
+  //********************V=0,U=1 bin End********************//
 
 
-      auto hitk = clus_hit_assn_v.at(U_index_vector[k]);
 
 
 
-      geo::WireIDIntersection clusterintersectionU;
+  //********************V=1,U=1 bin Start********************//
 
-      auto Uintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitk[0]->WireID(),clusterintersectionU);//
 
+  if (IoU_U.size()==1 && IoU_V.size()==1 ) { //V=1,U=1 bin
 
-      if (Uintersect==0)
-      continue;
+    YU_iou=IoU_U.at(0);
+    YV_iou=IoU_V.at(0);
 
+    deltaY=y_V.at(0)-y_U.at(0);
 
+    if (abs(deltaY)< fdeltaY){
+      auto avg=0.5*(y_V.at(0)+y_U.at(0));
+      cluster_y_new=avg;
 
-      if (U_t_min_common > U_t_max_common)//NO OVERLAP
-      U_iou = -1;
-      if ((U_t_min_common < U_t_max_common) )//OVERLAP
-      {
-        U_iou = (U_t_max_common - U_t_min_common) / (U_t_max_abs - U_t_min_abs);
 
 
-      }
-
-      if (U_iou>0){
-        Y_U_index.push_back(k);
-        IoU_U.push_back(U_iou);
-        y_U.push_back(clusterintersectionU.y);
-      }
-
-    }//END U-INDUCTION PLANE FOR LOOP
-
-
-    U_match_multiplicity=IoU_U.size();
-    V_match_multiplicity=IoU_V.size();
-
-
-    cluster_y_new=-9999.0;//variable for storing the value of the y coordinate initialized to a crazy value
-
-    //********************V=0,U=0 bin Start********************//
-
-    if (IoU_U.size()==0 && IoU_V.size()==0 ) { //V=0,U=0 bin
-      cluster_y_new=-9999.0;
-      V_biggest_iou=-1.0;
-      U_biggest_iou=-1.0;
-      YV_iou=-1.0;
-      YU_iou=-1.0;
-    }//V=0,U=0 bin
-
-    //********************V=0,U=0 bin End********************//
-
-
-
-
-    //********************V=0,U=1 bin Start********************//
-
-    if (IoU_U.size()==1 && IoU_V.size()==0 ) { //V=0,U=1 bin
-
-
-      cluster_y_new=y_U.at(0);
-      YU_iou=IoU_U.at(0);
       U_biggest_iou=IoU_U.at(0);
-      YV_iou=-1.0;
-      V_biggest_iou=-1.0;
-
-      U_Match_Ev_Index=U_index_vector[Y_U_index[0]];//index of the cluster from the main event
-      auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[0]]);
-
-      for (auto const& hitnewU : hitknew) {//START CLUSTER HIT LOOP
-        //  charge=0;
-        U_charge = hitnewU->Integral();
-        U_cluster_charge += U_charge;
-        U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
-
-
-      }//END CLUSTER HIT LOOP
-
-
-    }//V=0,U=1 bin
-
-
-    //********************V=0,U=1 bin End********************//
-
-
-
-
-
-    //********************V=1,U=0 bin Start********************//
-
-
-    if (IoU_U.size()==0 && IoU_V.size()==1 ) { //V=1,U=0 bin
-
-
-      cluster_y_new=y_V.at(0);
-      YV_iou=IoU_V.at(0);
       V_biggest_iou=IoU_V.at(0);
-      YU_iou=-1.0;
-      U_biggest_iou=-1.0;
-
-      V_Match_Ev_Index=V_index_vector[Y_V_index[0]];//index of the cluster from the main event
-      auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[0]]);
-
-      for (auto const& hitnewV : hitjnew) {//START CLUSTER HIT LOOP
-
-        V_charge = hitnewV->Integral();
-        V_cluster_charge += V_charge;
-        V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
-
-
-      }//END CLUSTER HIT LOOP
-
-
-    }//V=1,U=0 bin
-
-
-    //********************V=0,U=1 bin End********************//
-
-
-
-
-
-    //********************V=1,U=1 bin Start********************//
-
-
-    if (IoU_U.size()==1 && IoU_V.size()==1 ) { //V=1,U=1 bin
-
-      YU_iou=IoU_U.at(0);
-      YV_iou=IoU_V.at(0);
-
-      deltaY=y_V.at(0)-y_U.at(0);
-
-      if (abs(deltaY)< fdeltaY){
-        auto avg=0.5*(y_V.at(0)+y_U.at(0));
-        cluster_y_new=avg;
-
-
-
-        U_biggest_iou=IoU_U.at(0);
-        V_biggest_iou=IoU_V.at(0);
-
-        V_Match_Ev_Index=V_index_vector[Y_V_index[0]];
-        auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[0]]);
-
-        for (auto const& hitnewV : hitjnew) {//START CLUSTER HIT LOOP
-
-          V_charge = hitnewV->Integral();
-          V_cluster_charge += V_charge;
-          V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
-
-
-        }//END CLUSTER HIT LOOP
-
-        U_Match_Ev_Index=U_index_vector[Y_U_index[0]];
-        auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[0]]);
-
-        for (auto const& hitnewU : hitknew) {//START CLUSTER HIT LOOP
-
-          U_charge = hitnewU->Integral();
-          U_cluster_charge += U_charge;
-          U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
-
-
-        }//END CLUSTER HIT LOOP
-
-      }
-      else{
-        cluster_y_new=-9999.0;
-      }
-
-    }//V=1,U=1 bin
-
-
-
-    //********************V=1,U=1 bin End********************//
-
-
-
-    //********************V>1,U=0 bin Start********************//
-
-
-    if (IoU_U.size()==0 && IoU_V.size()>1 ) { //V>1,U=0 bin
-
-      U_biggest_iou=-1.0;
-      YU_iou=-1.0;
-      Double_t V_biggest_ious=-1.0;
-
-
-      for (size_t Vious=0; Vious<IoU_V.size(); Vious++) {
-
-        YV_iou=IoU_V.at(Vious);
-
-        if ((YV_iou > V_biggest_ious)){
-          V_biggest_ious=YV_iou;
-          cluster_y_new=y_V.at(Vious);
-          V_biggest_iou=V_biggest_ious;
-          V_Match_Ev_Index=V_index_vector[Y_V_index[Vious]];
-          auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[Vious]]);
-
-          for (auto const& hitnewV : hitjnew) {//START CLUSTER HIT LOOP
-
-            V_charge = hitnewV->Integral();
-            V_cluster_charge += V_charge;
-            V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
-
-
-          }//END CLUSTER HIT LOOP
-
-
-
-        }
-
-
-      }
-
-    }//V>1,U=0 bin
-
-
-    //********************V>1,U=0 bin End********************//
-
-
-
-    //********************V=0,U=>1 bin Start********************//
-
-    if (IoU_V.size()==0 && IoU_U.size()>1 ) { //V=0,U>1 bin
-
-      YV_iou=-1.0;
-      V_biggest_iou=-1.0;
-      Double_t U_biggest_ious=-1.0;
-
-
-      for (size_t Uious=0; Uious<IoU_U.size(); Uious++) {
-
-        YU_iou=IoU_U.at(Uious);
-
-        if ((YU_iou > U_biggest_ious)){
-          U_biggest_ious=YU_iou;
-          cluster_y_new=y_U.at(Uious);
-          U_biggest_iou=U_biggest_ious;
-
-          U_Match_Ev_Index=U_index_vector[Y_U_index[Uious]];
-
-
-          auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[Uious]]);
-
-          for (auto const& hitnewU : hitknew) {//START CLUSTER HIT LOOP
-
-            U_charge = hitnewU->Integral();
-            U_cluster_charge += U_charge;
-            U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
-
-
-          }//END CLUSTER HIT LOOP
-
-        }
-      }
-
-    }//V=0,U>1 bin
-
-
-    //********************V=0,U=>1 bin End********************//
-
-
-
-    //********************V=1,U>1 bin Start********************//
-
-    if (IoU_V.size()==1 && IoU_U.size()>1 ) { //V=1,U>1 bin
-
-
-
-      YV_iou=IoU_V.at(0);
-      V_biggest_iou=IoU_V.at(0);
-      Double_t U_biggest_ious=-1.0;
-      Double_t deltaY_smallest1=1e5;
-      auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[0]]);
 
       V_Match_Ev_Index=V_index_vector[Y_V_index[0]];
+      auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[0]]);
 
       for (auto const& hitnewV : hitjnew) {//START CLUSTER HIT LOOP
 
@@ -849,70 +797,6 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
 
       }//END CLUSTER HIT LOOP
-
-
-
-      for (size_t Uious=0; Uious<IoU_U.size(); Uious++) {
-
-        YU_iou=IoU_U.at(Uious);
-
-
-        if ((YU_iou > U_biggest_ious)){
-          U_biggest_ious=YU_iou;
-
-          U_biggest_iou=U_biggest_ious;
-        }
-
-        for (size_t Vious=0; Vious<IoU_V.size(); Vious++) {
-
-
-          deltaY=((y_V.at(Vious))-(y_U.at(Uious)));
-
-          if(abs(deltaY)<deltaY_smallest1){
-            deltaY_smallest1=abs(deltaY);
-
-            if(abs(deltaY_smallest1)<fdeltaY){
-              cluster_y_new=0.5*(y_V.at(Vious)+y_U.at(Uious));
-
-              U_Match_Ev_Index=U_index_vector[Y_U_index[Uious]];
-
-              auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[Uious]]);
-
-              for (auto const& hitnewU : hitknew) {//START CLUSTER HIT LOOP
-
-                U_charge = hitnewU->Integral();
-                U_cluster_charge += U_charge;
-                U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
-
-
-              }//END CLUSTER HIT LOOP
-
-            }
-
-            else{
-              cluster_y_new=-9999.0;
-            }
-
-          }
-
-        }
-
-      }
-
-    }//V=1,U>1 bin
-
-
-    //********************V=1,U>1 bin End********************//
-
-
-
-    //********************V>1,U=1 bin Start********************//
-    if (IoU_U.size()==1 && IoU_V.size()>1 ) { //V>1,U=1 bin
-
-      Double_t deltaY_smallest=10e5;
-      YU_iou=IoU_U.at(0);
-      U_biggest_iou=IoU_U.at(0);
-      Double_t V_biggest_ious=-1.0;
 
       U_Match_Ev_Index=U_index_vector[Y_U_index[0]];
       auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[0]]);
@@ -926,44 +810,332 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
       }//END CLUSTER HIT LOOP
 
+    }
+    else{
+      cluster_y_new=-9999.0;
+    }
+
+  }//V=1,U=1 bin
 
 
-      for (size_t Vious=0; Vious<IoU_V.size(); Vious++) {
 
-        YV_iou=IoU_V.at(Vious);
+  //********************V=1,U=1 bin End********************//
 
-        if ((YV_iou > V_biggest_ious)){
-          V_biggest_ious=YV_iou;
 
-          V_biggest_iou=V_biggest_ious;
+
+  //********************V>1,U=0 bin Start********************//
+
+
+  if (IoU_U.size()==0 && IoU_V.size()>1 ) { //V>1,U=0 bin
+
+    U_biggest_iou=-1.0;
+    YU_iou=-1.0;
+    Double_t V_biggest_ious=-1.0;
+
+
+    for (size_t Vious=0; Vious<IoU_V.size(); Vious++) {
+
+      YV_iou=IoU_V.at(Vious);
+
+      if ((YV_iou > V_biggest_ious)){
+        V_biggest_ious=YV_iou;
+        cluster_y_new=y_V.at(Vious);
+        V_biggest_iou=V_biggest_ious;
+        V_Match_Ev_Index=V_index_vector[Y_V_index[Vious]];
+        auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[Vious]]);
+
+        for (auto const& hitnewV : hitjnew) {//START CLUSTER HIT LOOP
+
+          V_charge = hitnewV->Integral();
+          V_cluster_charge += V_charge;
+          V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
+
+
+        }//END CLUSTER HIT LOOP
+
+
+
+      }
+
+
+    }
+
+  }//V>1,U=0 bin
+
+
+  //********************V>1,U=0 bin End********************//
+
+
+
+  //********************V=0,U=>1 bin Start********************//
+
+  if (IoU_V.size()==0 && IoU_U.size()>1 ) { //V=0,U>1 bin
+
+    YV_iou=-1.0;
+    V_biggest_iou=-1.0;
+    Double_t U_biggest_ious=-1.0;
+
+
+    for (size_t Uious=0; Uious<IoU_U.size(); Uious++) {
+
+      YU_iou=IoU_U.at(Uious);
+
+      if ((YU_iou > U_biggest_ious)){
+        U_biggest_ious=YU_iou;
+        cluster_y_new=y_U.at(Uious);
+        U_biggest_iou=U_biggest_ious;
+
+        U_Match_Ev_Index=U_index_vector[Y_U_index[Uious]];
+
+
+        auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[Uious]]);
+
+        for (auto const& hitnewU : hitknew) {//START CLUSTER HIT LOOP
+
+          U_charge = hitnewU->Integral();
+          U_cluster_charge += U_charge;
+          U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
+
+
+        }//END CLUSTER HIT LOOP
+
+      }
+    }
+
+  }//V=0,U>1 bin
+
+
+  //********************V=0,U=>1 bin End********************//
+
+
+
+  //********************V=1,U>1 bin Start********************//
+
+  if (IoU_V.size()==1 && IoU_U.size()>1 ) { //V=1,U>1 bin
+
+
+
+    YV_iou=IoU_V.at(0);
+    V_biggest_iou=IoU_V.at(0);
+    Double_t U_biggest_ious=-1.0;
+    deltaY_smallest=1e5;
+
+
+
+
+    for (size_t Uious=0; Uious<IoU_U.size(); Uious++) {
+
+      YU_iou=IoU_U.at(Uious);
+
+
+      if ((YU_iou > U_biggest_ious)){
+        U_biggest_ious=YU_iou;
+
+        U_biggest_iou=U_biggest_ious;
+      }
+
+      for (size_t Vious=0; Vious<IoU_V.size(); Vious++){
+
+
+        deltaY=((y_V.at(Vious))-(y_U.at(Uious)));
+
+        if(abs(deltaY)<deltaY_smallest){
+          deltaY_smallest=abs(deltaY);
+
+          if(abs(deltaY_smallest)<fdeltaY){
+            cluster_y_new=0.5*(y_V.at(Vious)+y_U.at(Uious));
+
+            U_Match_Ev_Index=U_index_vector[Y_U_index[Uious]];
+
+            auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[Uious]]);
+
+            for (auto const& hitnewU : hitknew) {//START CLUSTER HIT LOOP
+
+              U_charge = hitnewU->Integral();
+              U_cluster_charge += U_charge;
+              U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
+
+
+            }//END CLUSTER HIT LOOP
+
+            auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[0]]);
+
+            V_Match_Ev_Index=V_index_vector[Y_V_index[0]];
+
+            for (auto const& hitnewV : hitjnew) {//START CLUSTER HIT LOOP
+
+              V_charge = hitnewV->Integral();
+              V_cluster_charge += V_charge;
+              V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
+
+
+            }//END CLUSTER HIT LOOP
+
+          }
+
+          else{
+            cluster_y_new=-9999.0;
+          }
+
         }
 
-        for (size_t Uious=0; Uious<IoU_U.size(); Uious++) {
+      }
+
+    }
+
+  }//V=1,U>1 bin
 
 
-          deltaY=((y_V.at(Vious))-(y_U.at(Uious)));
-
-          if(abs(deltaY)<fdeltaY){
-
-            if(abs(deltaY)<deltaY_smallest){
-              deltaY_smallest=abs(deltaY);
+  //********************V=1,U>1 bin End********************//
 
 
-              cluster_y_new=0.5*(y_V.at(Vious)+y_U.at(Uious));
+
+  //********************V>1,U=1 bin Start********************//
+  if (IoU_U.size()==1 && IoU_V.size()>1 ) { //V>1,U=1 bin
+
+    deltaY_smallest=10e5;
+    YU_iou=IoU_U.at(0);
+    U_biggest_iou=IoU_U.at(0);
+    Double_t V_biggest_ious=-1.0;
 
 
-              V_Match_Ev_Index=V_index_vector[Y_V_index[Vious]];
-              auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[Vious]]);
 
-              for (auto const& hitnewV : hitjnew) {//START CLUSTER HIT LOOP
 
-                V_charge = hitnewV->Integral();
-                V_cluster_charge += V_charge;
-                V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
+    for (size_t Vious=0; Vious<IoU_V.size(); Vious++) {
 
-              }//END CLUSTER HIT LOOP
+      YV_iou=IoU_V.at(Vious);
 
-            }
+      if ((YV_iou > V_biggest_ious)){
+        V_biggest_ious=YV_iou;
+
+        V_biggest_iou=V_biggest_ious;
+      }
+
+      for (size_t Uious=0; Uious<IoU_U.size(); Uious++) {
+
+
+        deltaY=((y_V.at(Vious))-(y_U.at(Uious)));
+
+
+
+        if(abs(deltaY)<deltaY_smallest){
+          deltaY_smallest=abs(deltaY);
+
+          if(abs(deltaY_smallest)<fdeltaY){
+            cluster_y_new=0.5*(y_V.at(Vious)+y_U.at(Uious));
+
+
+            V_Match_Ev_Index=V_index_vector[Y_V_index[Vious]];
+            auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[Vious]]);
+
+            for (auto const& hitnewV : hitjnew) {//START CLUSTER HIT LOOP
+
+              V_charge = hitnewV->Integral();
+              V_cluster_charge += V_charge;
+              V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
+
+            }//END CLUSTER HIT LOOP
+
+
+
+            U_Match_Ev_Index=U_index_vector[Y_U_index[0]];
+            auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[0]]);
+
+            for (auto const& hitnewU : hitknew) {//START CLUSTER HIT LOOP
+
+              U_charge = hitnewU->Integral();
+              U_cluster_charge += U_charge;
+              U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
+
+
+            }//END CLUSTER HIT LOOP
+
+          }
+        }
+
+
+      }
+
+    }
+
+  }//V>1,U=1 bin
+
+  //********************V>1,U=1 bin End********************//
+
+
+
+
+
+  //********************V>1,U>1 bin Start********************//
+
+
+  if (IoU_V.size()>1 && IoU_U.size()>1 ) { //V>1,U>1 bin
+
+    deltaY_smallest=10e5;
+    for (size_t Vious=0; Vious<IoU_V.size(); Vious++) {
+
+      Double_t U_biggest_ious=-1.0;
+      Double_t V_biggest_ious=-1.0;
+
+      YV_iou=IoU_V.at(Vious);
+      if ((YV_iou > V_biggest_ious)){
+        V_biggest_ious=YV_iou;
+
+        V_biggest_iou=V_biggest_ious;
+
+      }
+
+
+      for (size_t Uious=0; Uious<IoU_U.size(); Uious++) {
+
+
+        YU_iou=IoU_U.at(Uious);
+
+        if ((YU_iou > U_biggest_ious)){
+          U_biggest_ious=YU_iou;
+
+          U_biggest_iou=U_biggest_ious;
+
+        }
+
+
+        deltaY=((y_V.at(Vious))-(y_U.at(Uious)));
+
+        if(abs(deltaY)<deltaY_smallest){
+          deltaY_smallest=abs(deltaY);
+
+
+          if (deltaY_smallest<fdeltaY){
+            cluster_y_new=0.5*(y_V.at(Vious)+y_U.at(Uious));
+
+            U_Match_Ev_Index=U_index_vector[Y_U_index[Uious]];
+            auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[Uious]]);
+
+            for (auto const& hitnewU : hitknew) {//START CLUSTER HIT LOOP
+
+              U_charge = hitnewU->Integral();
+              U_cluster_charge += U_charge;
+              U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
+
+
+            }//END CLUSTER HIT LOOP
+
+
+            V_Match_Ev_Index=V_index_vector[Y_V_index[Vious]];
+            auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[Vious]]);
+
+            for (auto const& hitnewV : hitjnew) {//START CLUSTER HIT LOOP
+
+              V_charge = hitnewV->Integral();
+              V_cluster_charge += V_charge;
+              V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
+
+            }//END CLUSTER HIT LOOP
+
+          }
+
+          else{
+            cluster_y_new=-9999.0;
 
           }
 
@@ -971,271 +1143,186 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
       }
 
-    }//V>1,U=1 bin
+    }
 
-    //********************V>1,U=1 bin End********************//
-
-
+  }//V>1,U>1 bin
 
 
-
-    //********************V>1,U>1 bin Start********************//
-
-
-    if (IoU_V.size()>1 && IoU_U.size()>1 ) { //V>1,U>1 bin
-
-      Double_t deltaY_smallest=10e5;
-      for (size_t Vious=0; Vious<IoU_V.size(); Vious++) {
-
-        Double_t U_biggest_ious=-1.0;
-        Double_t V_biggest_ious=-1.0;
-
-        YV_iou=IoU_V.at(Vious);
-        if ((YV_iou > V_biggest_ious)){
-          V_biggest_ious=YV_iou;
-
-          V_biggest_iou=V_biggest_ious;
-
-        }
+  //********************V>1,U>1 bin End********************//
 
 
-        for (size_t Uious=0; Uious<IoU_U.size(); Uious++) {
 
 
-          YU_iou=IoU_U.at(Uious);
 
-          if ((YU_iou > U_biggest_ious)){
-            U_biggest_ious=YU_iou;
+  for (size_t i_tr = 0, size_tr = recotrack_handle->size(); i_tr != size_tr; ++i_tr) {//START RECO TRACK FOR LOOP
 
-            U_biggest_iou=U_biggest_ious;
-
-          }
+    auto const& rtrack = recotrack_handle->at(i_tr);
 
 
-          deltaY=((y_V.at(Vious))-(y_U.at(Uious)));
 
-          if(abs(deltaY)<deltaY_smallest){
-            deltaY_smallest=abs(deltaY);
+    Double_t pointdistance_smallest3d=1e10;
 
 
-            if (deltaY_smallest<fdeltaY){
-              cluster_y_new=0.5*(y_V.at(Vious)+y_U.at(Uious));
-
-              U_Match_Ev_Index=U_index_vector[Y_U_index[Uious]];
-              auto hitknew = clus_hit_assn_v.at(U_index_vector[Y_U_index[Uious]]);
-
-              for (auto const& hitnewU : hitknew) {//START CLUSTER HIT LOOP
-
-                U_charge = hitnewU->Integral();
-                U_cluster_charge += U_charge;
-                U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
+    for(size_t n=0;n<(rtrack.NumberTrajectoryPoints());n++){//START RECO POINT LOOP
+      X_reco3d=rtrack.LocationAtPoint(n).X();
+      Y_reco3d=rtrack.LocationAtPoint(n).Y();
+      Z_reco3d=rtrack.LocationAtPoint(n).Z();
 
 
-              }//END CLUSTER HIT LOOP
+      for (auto const& hitY : hiti) {//START CLUSTER HIT LOOP
+        Y_cluster_3d_hit_z = hitY->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
+        Y_cluster_3d_hit_x = (hitY->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
+
+        Y_cluster_3d_hit_y=cluster_y_new;
+
+        pointdistance3d=sqrt((pow(Y_cluster_3d_hit_z-Z_reco3d,2))+(pow(Y_cluster_3d_hit_x-X_reco3d,2))+ (pow(Y_cluster_3d_hit_y-Y_reco3d,2)));
 
 
-              V_Match_Ev_Index=V_index_vector[Y_V_index[Vious]];
-              auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[Vious]]);
 
-              for (auto const& hitnewV : hitjnew) {//START CLUSTER HIT LOOP
+        if(pointdistance3d<pointdistance_smallest3d){//comparison IF loop
 
-                V_charge = hitnewV->Integral();
-                V_cluster_charge += V_charge;
-                V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
+          pointdistance_smallest3d=pointdistance3d;
 
-              }//END CLUSTER HIT LOOP
-
-            }
-
-            else{
-              cluster_y_new=-9999.0;
-
-            }
-
-          }
+          X_reco_smallest3d=X_reco3d;
+          Z_reco_smallest3d=Z_reco3d;
+          Y_reco_smallest3d=Y_reco3d;
 
         }
 
       }
 
-    }//V>1,U>1 bin
+    }//END RECO POINT LOOP
 
 
-    //********************V>1,U>1 bin End********************//
 
+    if(pointdistance_smallest3d<distance_smallest3d){
+      distance_smallest3d=pointdistance_smallest3d;
 
-
-
-
-    for (size_t i_tr = 0, size_tr = recotrack_handle->size(); i_tr != size_tr; ++i_tr) {//START RECO TRACK FOR LOOP
-
-      auto const& rtrack = recotrack_handle->at(i_tr);
-
-
-
-      Double_t pointdistance_smallest3d=1e10;
-
-
-      for(size_t n=0;n<(rtrack.NumberTrajectoryPoints());n++){//START RECO POINT LOOP
-        X_reco3d=rtrack.LocationAtPoint(n).X();
-        Y_reco3d=rtrack.LocationAtPoint(n).Y();
-        Z_reco3d=rtrack.LocationAtPoint(n).Z();
-
-
-        for (auto const& hitY : hiti) {//START CLUSTER HIT LOOP
-          Y_cluster_3d_hit_z = hitY->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
-          Y_cluster_3d_hit_x = (hitY->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
-
-          Y_cluster_3d_hit_y=cluster_y_new;
-
-          pointdistance3d=sqrt((pow(Y_cluster_3d_hit_z-Z_reco3d,2))+(pow(Y_cluster_3d_hit_x-X_reco3d,2))+ (pow(Y_cluster_3d_hit_y-Y_reco3d,2)));
-
-
-
-          if(pointdistance3d<pointdistance_smallest3d){//comparison IF loop
-
-            pointdistance_smallest3d=pointdistance3d;
-
-            X_reco_smallest3d=X_reco3d;
-            Z_reco_smallest3d=Z_reco3d;
-            Y_reco_smallest3d=Y_reco3d;
-
-          }
-
-        }
-
-      }//END RECO POINT LOOP
-
-
-
-      if(pointdistance_smallest3d<distance_smallest3d){
-        distance_smallest3d=pointdistance_smallest3d;
-
-        X_reco_best3d=X_reco_smallest3d;
-        Z_reco_best3d=Z_reco_smallest3d;
-        Y_reco_best3d=Y_reco_smallest3d;
-      }
-
-    }// END RECO TRACK FOR LOOP
-
-
-
-
-    Matchingtree->Fill();
-
-
-
-    Y_Match_Ev_Index=Y_index_vector[i];
-
-
-
-
-
-    if (cluster_y_new ==-9999.0)
-    continue;
-
-
-
-    Double_t weighted_numX = 0;
-    Double_t weighted_numZ = 0;
-
-
-
-    for (auto const& hitnewY : hiti) {//START Y CLUSTER HIT LOOP
-
-      Y_charge = hitnewY->Integral();
-      Y_cluster_charge += Y_charge;
-      Y_cluster_energy += Y_charge*240*23.6*1e-6/0.5;
-      weighted_numX +=Y_charge*((hitnewY->PeakTime() * time2cm)-44.575) ;
-      weighted_numZ +=Y_charge*(hitnewY->WireID().Wire * wire2cm);
-
-
-    }//END Y CLUSTER HIT LOOP
-
-
-
-
-
-
-    double x,y,z,errXYZ,chisq;
-    Double32_t xyz[3];
-    Double32_t ErrXYZ[6];
-    Double32_t  Chisq;
-
-    x= weighted_numX/Y_cluster_charge;
-    y= cluster_y_new;
-    z= weighted_numZ/Y_cluster_charge;
-    errXYZ=0;
-    chisq=0;
-
-
-
-    xyz[0] = x;
-    xyz[1] = y;
-    xyz[2] = z;
-
-    ErrXYZ[0]=errXYZ;
-    ErrXYZ[1]=errXYZ;
-    ErrXYZ[2]=errXYZ;
-    ErrXYZ[3]=errXYZ;
-    ErrXYZ[4]=errXYZ;
-    ErrXYZ[5]=errXYZ;
-    Chisq=chisq;
-
-
-
-    recob::SpacePoint newpt(xyz,ErrXYZ,Chisq);
-    SpacePoint_v->emplace_back(newpt);
-
-
-
-
-
-    if((U_match_multiplicity==1 && V_match_multiplicity==0) || (U_match_multiplicity>1 && V_match_multiplicity==0)){
-      art::Ptr<recob::Cluster> ClusPtrY(cluster_handle,Y_Match_Ev_Index);
-      art::Ptr<recob::Cluster> ClusPtrU(cluster_handle,U_Match_Ev_Index);
-      util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrY, *sps_clus_assn_v);
-      util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrU, *sps_clus_assn_v);
+      X_reco_best3d=X_reco_smallest3d;
+      Z_reco_best3d=Z_reco_smallest3d;
+      Y_reco_best3d=Y_reco_smallest3d;
     }
 
-    if((U_match_multiplicity==0 && V_match_multiplicity==1) || (U_match_multiplicity==0 && V_match_multiplicity>1)){
-      art::Ptr<recob::Cluster> ClusPtrY(cluster_handle,Y_Match_Ev_Index);
-      art::Ptr<recob::Cluster> ClusPtrV(cluster_handle,V_Match_Ev_Index);
-      util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrY, *sps_clus_assn_v);
-      util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrV, *sps_clus_assn_v);
-    }
+  }// END RECO TRACK FOR LOOP
 
 
-    if((U_match_multiplicity==1 && V_match_multiplicity>1) || (U_match_multiplicity>1 && V_match_multiplicity==1) || (U_match_multiplicity>1 && V_match_multiplicity>1) || (U_match_multiplicity==1 && V_match_multiplicity==1) ){
-      art::Ptr<recob::Cluster> ClusPtrY(cluster_handle,Y_Match_Ev_Index);
-      art::Ptr<recob::Cluster> ClusPtrU(cluster_handle,U_Match_Ev_Index);
-      art::Ptr<recob::Cluster> ClusPtrV(cluster_handle,V_Match_Ev_Index);
-      util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrY, *sps_clus_assn_v);
-      util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrV, *sps_clus_assn_v);
-      util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrU, *sps_clus_assn_v);
-    }
 
 
-  }//END PLANE MATCHING FOR LOOP (Y-COLLECTION PLANE LOOP)
+  Matchingtree->Fill();
+
+
+
+  Y_Match_Ev_Index=Y_index_vector[i];
+
+
+
+
+
+  if (cluster_y_new ==-9999.0)
+  continue;
+
+
+
+  Double_t weighted_numX = 0;
+  Double_t weighted_numZ = 0;
+
+
+
+  for (auto const& hitnewY : hiti) {//START Y CLUSTER HIT LOOP
+
+    Y_charge = hitnewY->Integral();
+    Y_cluster_charge += Y_charge;
+    Y_cluster_energy += Y_charge*240*23.6*1e-6/0.5;
+    weighted_numX +=Y_charge*((hitnewY->PeakTime() * time2cm)-44.575) ;
+    weighted_numZ +=Y_charge*(hitnewY->WireID().Wire * wire2cm);
+
+
+  }//END Y CLUSTER HIT LOOP
+
+
+
+
+
+
+  double x,y,z,errXYZ,chisq;
+  Double32_t xyz[3];
+  Double32_t ErrXYZ[6];
+  Double32_t  Chisq;
+
+  x= weighted_numX/Y_cluster_charge;
+  y= cluster_y_new;
+  z= weighted_numZ/Y_cluster_charge;
+  errXYZ=0;
+  chisq=0;
+
+
+
+  xyz[0] = x;
+  xyz[1] = y;
+  xyz[2] = z;
+
+  ErrXYZ[0]=errXYZ;
+  ErrXYZ[1]=errXYZ;
+  ErrXYZ[2]=errXYZ;
+  ErrXYZ[3]=errXYZ;
+  ErrXYZ[4]=errXYZ;
+  ErrXYZ[5]=errXYZ;
+  Chisq=chisq;
+
+
+
+  recob::SpacePoint newpt(xyz,ErrXYZ,Chisq);
+  SpacePoint_v->emplace_back(newpt);
+
+
+
+
+
+  if((U_match_multiplicity==1 && V_match_multiplicity==0) || (U_match_multiplicity>1 && V_match_multiplicity==0)){
+    art::Ptr<recob::Cluster> ClusPtrY(cluster_handle,Y_Match_Ev_Index);
+    art::Ptr<recob::Cluster> ClusPtrU(cluster_handle,U_Match_Ev_Index);
+    util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrY, *sps_clus_assn_v);
+    util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrU, *sps_clus_assn_v);
+  }
+
+  if((U_match_multiplicity==0 && V_match_multiplicity==1) || (U_match_multiplicity==0 && V_match_multiplicity>1)){
+    art::Ptr<recob::Cluster> ClusPtrY(cluster_handle,Y_Match_Ev_Index);
+    art::Ptr<recob::Cluster> ClusPtrV(cluster_handle,V_Match_Ev_Index);
+    util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrY, *sps_clus_assn_v);
+    util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrV, *sps_clus_assn_v);
+  }
+
+
+  if((U_match_multiplicity==1 && V_match_multiplicity>1) || (U_match_multiplicity>1 && V_match_multiplicity==1) || (U_match_multiplicity>1 && V_match_multiplicity>1) || (U_match_multiplicity==1 && V_match_multiplicity==1) ){
+    art::Ptr<recob::Cluster> ClusPtrY(cluster_handle,Y_Match_Ev_Index);
+    art::Ptr<recob::Cluster> ClusPtrU(cluster_handle,U_Match_Ev_Index);
+    art::Ptr<recob::Cluster> ClusPtrV(cluster_handle,V_Match_Ev_Index);
+    util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrY, *sps_clus_assn_v);
+    util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrV, *sps_clus_assn_v);
+    util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrU, *sps_clus_assn_v);
+  }
+
+
+}//END PLANE MATCHING FOR LOOP (Y-COLLECTION PLANE LOOP)
 
 //Lets clear these variables at the end of every event
 
-  Start_Cluster0.clear();
-  End_Cluster0.clear();
-  Start_Cluster1.clear();
-  End_Cluster1.clear();
-  Start_Cluster2.clear();
-  End_Cluster2.clear();
-  Y_clus_hitsize.clear();
-  Y_index_vector.clear();
-  V_index_vector.clear();
-  U_index_vector.clear();
+Start_Cluster0.clear();
+End_Cluster0.clear();
+Start_Cluster1.clear();
+End_Cluster1.clear();
+Start_Cluster2.clear();
+End_Cluster2.clear();
+Y_clus_hitsize.clear();
+Y_index_vector.clear();
+V_index_vector.clear();
+U_index_vector.clear();
 
 
 
 
-  e.put(std::move(SpacePoint_v));
-  e.put(std::move(sps_clus_assn_v));
+e.put(std::move(SpacePoint_v));
+e.put(std::move(sps_clus_assn_v));
 
 }//END EVENT LOOP
 
@@ -1284,6 +1371,7 @@ void Gamma3D::beginJob()
   Matchingtree->Branch("YV_iou",&YV_iou,"YV_iou/D");
   Matchingtree->Branch("YU_iou",&YU_iou,"YU_iou/D");
   Matchingtree->Branch("deltaY",&deltaY,"deltaY/D");
+  Matchingtree->Branch("deltaY_smallest",&deltaY_smallest,"deltaY_smallest/D");
   Matchingtree->Branch("Y_Wire",&Y_Wire,"Y_Wire/i");
 
 }

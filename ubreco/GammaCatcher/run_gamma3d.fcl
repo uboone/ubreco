@@ -111,7 +111,7 @@ gamma3d: {
 module_type: "Gamma3D"
 TwoDcutY: 15.
 TwoDcutUV: 5.
-deltaYcut: 1.
+deltaYcut: 5.
 mctrack_tag:   "mcreco"
 recotrack_tag : "pandora"
 cluster_tag : "gaushitproximity"
