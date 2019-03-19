@@ -1,7 +1,7 @@
 BEGIN_PROLOG
 
 ProximityClustering: {
- module_type   : "ProximityClustering"  
+ module_type   : "ProximityClustering"
  HitProducer   : "gammacatcher"
  VtxProducer   : "ccvertex"
  CellSize      : 2.0
