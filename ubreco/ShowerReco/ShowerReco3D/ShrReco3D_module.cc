@@ -330,6 +330,23 @@ void ShrReco3D::SaveShower(art::Event & e,
     throw showerreco::ShowerRecoException(ss.str());
   }
 
+  // make sure associations exist for PFP, clusters, and hits
+  if (pfp_h->size() <= shower.fIndex) {
+    std::stringstream ss;
+    ss << "Shower " << idx << " does not have PFP associated to index " << shower.fIndex;
+    throw showerreco::ShowerRecoException(ss.str());
+  }
+  if (pfp_clus_assn_v.size() <= shower.fIndex) {
+    std::stringstream ss;
+    ss << "Shower " << idx << " does not have CLUSTERS associated to index " << shower.fIndex;
+    throw showerreco::ShowerRecoException(ss.str());
+  }
+  if (pfp_hit_assn_v.size() <= shower.fIndex) {
+    std::stringstream ss;
+    ss << "Shower " << idx << " does not have HITS associated to index " << shower.fIndex;
+    throw showerreco::ShowerRecoException(ss.str());
+  }
+
   // save shower variables to TTree
   _shr_dedx_pl0_v = shower.fdEdx_v_v[0];
   _shr_dedx_pl1_v = shower.fdEdx_v_v[1];
@@ -365,16 +382,16 @@ void ShrReco3D::SaveShower(art::Event & e,
   // now take care of associations
   
   // step 1 : pfp
-  const art::Ptr<recob::PFParticle> PFPPtr(pfp_h, idx);
+  const art::Ptr<recob::PFParticle> PFPPtr(pfp_h, shower.fIndex);
   Shower_PFP_assn_v->addSingle( ShrPtr, PFPPtr );
 
   // step 2 : clusters
-  std::vector<art::Ptr<recob::Cluster> > clus_v = pfp_clus_assn_v.at(idx);
+  std::vector<art::Ptr<recob::Cluster> > clus_v = pfp_clus_assn_v.at(shower.fIndex);
   for (size_t c=0; c < clus_v.size(); c++)
     Shower_Cluster_assn_v->addSingle( ShrPtr, clus_v.at(c) );
 
   // step 3 : hits
-  std::vector<art::Ptr<recob::Hit> > hit_v = pfp_hit_assn_v.at(idx);
+  std::vector<art::Ptr<recob::Hit> > hit_v = pfp_hit_assn_v.at(shower.fIndex);
   // for backtracking purposes save the vector of collection-plane hit indices associated to the shower
   std::vector<unsigned int> hit_idx_v;
   for (size_t h=0; h < hit_v.size(); h++) {

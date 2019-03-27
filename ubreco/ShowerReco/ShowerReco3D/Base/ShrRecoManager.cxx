@@ -40,9 +40,9 @@ namespace showerreco {
     showers.reserve(_proto_showers.size());
     
     // for all pfparticle proto-showers
-    for (auto const& proto_shower : _proto_showers) 
+    for (auto const& proto_shower : _proto_showers)
       showers.push_back(RecoOneShower(proto_shower));
-    
+
     // Check that the showers reconstructed are the same length as the proto_showers vector
     if (showers.size() != _proto_showers.size()) {
       throw ShowerRecoException("ERROR: number of reconstructed showers doesn't match input list!!");
@@ -61,6 +61,7 @@ namespace showerreco {
     // make a local copy of the shower to track differences
     Shower_t localCopy = result;
 
+    result.fIndex = proto_shower._index;
 
     // loop through reconstruction modules
     for (size_t n = 0; n < _alg_v.size(); n++) {
