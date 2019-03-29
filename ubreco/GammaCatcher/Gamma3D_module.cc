@@ -719,8 +719,6 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
       U_charge = hitnewU->Integral();
       U_cluster_charge += U_charge;
       U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
-
-
     }//END CLUSTER HIT LOOP
 
 
@@ -1205,9 +1203,16 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
 
   }// END RECO TRACK FOR LOOP
 
+  for (auto const& hitnewY : hiti) {//START Y CLUSTER HIT LOOP
 
+    Y_charge = hitnewY->Integral();
+    Y_cluster_charge += Y_charge;
+    Y_cluster_energy += Y_charge*240*23.6*1e-6/0.5;
 
+  }//END Y CLUSTER HIT LOOP
 
+  // std::cout<<"Y_cluster_charge: "<<Y_cluster_charge<<std::endl;
+  // std::cout<<"V_cluster_charge: "<<V_cluster_charge<<std::endl;
   Matchingtree->Fill();
 
 
@@ -1225,16 +1230,20 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
 
   Double_t weighted_numX = 0;
   Double_t weighted_numZ = 0;
+  Double_t Y_cluster_charge_w = 0;
+  Double_t Y_charge_w = 0;
+
+
 
 
 
   for (auto const& hitnewY : hiti) {//START Y CLUSTER HIT LOOP
 
-    Y_charge = hitnewY->Integral();
-    Y_cluster_charge += Y_charge;
-    Y_cluster_energy += Y_charge*240*23.6*1e-6/0.5;
-    weighted_numX +=Y_charge*((hitnewY->PeakTime() * time2cm)-44.575) ;
-    weighted_numZ +=Y_charge*(hitnewY->WireID().Wire * wire2cm);
+    Y_charge_w = hitnewY->Integral();
+    Y_cluster_charge_w += Y_charge_w;
+
+    weighted_numX +=Y_charge_w*((hitnewY->PeakTime() * time2cm)-44.575) ;
+    weighted_numZ +=Y_charge_w*(hitnewY->WireID().Wire * wire2cm);
 
 
   }//END Y CLUSTER HIT LOOP
@@ -1249,9 +1258,9 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
   Double32_t ErrXYZ[6];
   Double32_t  Chisq;
 
-  x= weighted_numX/Y_cluster_charge;
+  x= weighted_numX/Y_cluster_charge_w;
   y= cluster_y_new;
-  z= weighted_numZ/Y_cluster_charge;
+  z= weighted_numZ/Y_cluster_charge_w;
   errXYZ=0;
   chisq=0;
 
