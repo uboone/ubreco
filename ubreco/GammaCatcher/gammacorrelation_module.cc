@@ -64,12 +64,12 @@ private:
 
   std::string fHit_tag,fpfparticle_tag,fvertex_tag,fsps_tag,fcluster_tag;
 
-  Double32_t sps_x,sps_y,sps_z,sps_hit_charge,sps_cluster_charge;
+  Double32_t sps_x,sps_y,sps_z,sps_hit_charge,sps_cluster_charge,sps_cluster_charge10,sps_cluster_charge20,sps_cluster_charge50;
   Double_t distance, distance_smallest,Event_cluster_charge;
   Double_t Vertex_x,Vertex_y,Vertex_z;
   TRandom3 rand;
   Double_t _rand_vtx_x, _rand_vtx_y, _rand_vtx_z, distance_rand_vtx, distance_smallest_rand_vtx;
-  Int_t N_sps,N_Event,N_Run,N_SubRun;
+  Int_t N_sps,N_Event,N_Run,N_SubRun,N_sps10,N_sps20,N_sps50;
 
 
   TTree *Event_Correlationtree;
@@ -133,7 +133,7 @@ void gammacorrelation::analyze(art::Event const& e)
   recob::Vertex nuvtx;
   TVector3 rndvtx;
   size_t neutrinos = 0;
-  Event_cluster_charge=0;
+  Event_cluster_charge=0,sps_cluster_charge50=0,sps_cluster_charge20=0,sps_cluster_charge10=0;
   for (size_t p=0; p < pfparticle_handle->size(); p++) {
     auto pfp = pfparticle_handle->at(p);
 
@@ -158,16 +158,16 @@ void gammacorrelation::analyze(art::Event const& e)
   }
   distance_smallest=1e10;
   distance_smallest_rand_vtx=1e10;
-  N_sps=0;
+  N_sps=0,N_sps10=0,N_sps20=0,N_sps50=0;
   Vertex_x=-9999.0;
   Vertex_y=-9999.0;
   Vertex_z=-9999.0;
 
 
   // random generated "neutrino" vtx in the fiducial volume
-	_rand_vtx_x = rand.Uniform(fidVolMinX,fidVolMaxX);
-	_rand_vtx_y = rand.Uniform(fidVolMinY,fidVolMaxY);
-	_rand_vtx_z = rand.Uniform(fidVolMinZ,fidVolMaxZ);
+  _rand_vtx_x = rand.Uniform(fidVolMinX,fidVolMaxX);
+  _rand_vtx_y = rand.Uniform(fidVolMinY,fidVolMaxY);
+  _rand_vtx_z = rand.Uniform(fidVolMinZ,fidVolMaxZ);
 
   rndvtx = TVector3(_rand_vtx_x,_rand_vtx_y,_rand_vtx_z);
 
@@ -222,6 +222,36 @@ void gammacorrelation::analyze(art::Event const& e)
 
     }
 
+    if (distance<10.0){
+      N_sps10++;
+      for (auto const& cluster: cluster_v){
+        auto plane = cluster->View();
+        if (plane==2){
+          sps_cluster_charge10 += cluster->Integral();
+        }
+      }
+    }
+
+    if (distance<20.0){
+      N_sps20++;
+      for (auto const& cluster: cluster_v){
+        auto plane = cluster->View();
+        if (plane==2){
+          sps_cluster_charge20 += cluster->Integral();
+        }
+      }
+    }
+
+    if (distance<50.0){
+      N_sps50++;
+      for (auto const& cluster: cluster_v){
+        auto plane = cluster->View();
+        if (plane==2){
+          sps_cluster_charge50 += cluster->Integral();
+        }
+      }
+    }
+
     // std::cout<<"sps_cluster_charge: "<<sps_cluster_charge<<std::endl;
     Sps_Correlationtree->Fill();
   }
@@ -244,6 +274,14 @@ void gammacorrelation::beginJob()
   Event_Correlationtree->Branch("N_sps",&N_sps,"N_sps/I");
   Event_Correlationtree->Branch("Event_cluster_charge",&Event_cluster_charge,"Event_cluster_charge/D");
   Event_Correlationtree->Branch("distance_smallest_rand_vtx",&distance_smallest_rand_vtx,"distance_smallest_rand_vtx/D");
+  Event_Correlationtree->Branch("N_sps10",&N_sps10,"N_sps10/I");
+  Event_Correlationtree->Branch("N_sps20",&N_sps20,"N_sps20/I");
+  Event_Correlationtree->Branch("N_sps50",&N_sps50,"N_sps50/I");
+  Event_Correlationtree->Branch("sps_cluster_charge10",&sps_cluster_charge10,"sps_cluster_charge10/D");
+  Event_Correlationtree->Branch("sps_cluster_charge20",&sps_cluster_charge20,"sps_cluster_charge20/D");
+  Event_Correlationtree->Branch("sps_cluster_charge50",&sps_cluster_charge50,"sps_cluster_charge50/D");
+
+
 
   Sps_Correlationtree = tfs->make<TTree>("Sps_Correlationtree",    "Sps_Correlationtree");
   Sps_Correlationtree->Branch("sps_x",&sps_x,"sps_x/D");
