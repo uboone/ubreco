@@ -21,7 +21,7 @@
 
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
 
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 
 #include "lardataobj/RecoBase/Vertex.h"
 #include "nusimdata/SimulationBase/MCTruth.h"

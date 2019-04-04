@@ -11,7 +11,7 @@ art_make(
                         ${Boost_SYSTEM_LIBRARY}
                         ${ROOT_BASIC_LIB_LIST}
 		   	${ART_FRAMEWORK_SERVICES_REGISTRY}
-		   	${ART_FRAMEWORK_SERVICES_OPTIONAL}
+		   	${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
 
         )
 
