@@ -89,7 +89,8 @@ private:
 
 };
 
-MuCSTrackTagger::MuCSTrackTagger(fhicl::ParameterSet const & p){
+MuCSTrackTagger::MuCSTrackTagger(fhicl::ParameterSet const & p)
+: EDProducer(p) {
   this->reconfigure(p);
   // Call appropriate Produces<>() functions here.
   produces< std::vector<anab::CosmicTag> >();

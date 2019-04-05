@@ -102,7 +102,7 @@ private:
 
 
 CosmicFilter::CosmicFilter(fhicl::ParameterSet const & p)
-// :
+: EDProducer(p)
 // Initialize member data here.
 {
   produces< std::vector< recob::Hit > >();

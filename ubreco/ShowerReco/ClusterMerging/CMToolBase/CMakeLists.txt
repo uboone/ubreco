@@ -18,6 +18,7 @@ art_make(
                         ${Boost_SYSTEM_LIBRARY}
                         ${ROOT_BASIC_LIB_LIST}
 		   	${ART_FRAMEWORK_SERVICES_REGISTRY}
+			${ART_ROOT_IO_TFILESERVICE_SERVICE}
 		   	${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
           TOOL_LIBRARIES  
 			  ubreco_ShowerReco_TwoDimTools

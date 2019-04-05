@@ -60,7 +60,7 @@ private:
 
 
 Pi0EventFilter::Pi0EventFilter(fhicl::ParameterSet const & p)
-// :
+: EDFilter(p)
 // Initialize member data here.
 {
   fTTreeName = p.get<std::string>("TTreeName");

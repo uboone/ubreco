@@ -59,7 +59,7 @@ private:
 
 
 CosmicBackgrounds::CosmicBackgrounds(fhicl::ParameterSet const & p)
-// :
+: EDFilter(p)
 // Initialize member data here.
 {
   

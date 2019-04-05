@@ -97,7 +97,7 @@ private:
 
 
 ProximityClustering::ProximityClustering(fhicl::ParameterSet const & p)
-// :
+: EDProducer(p)
 // Initialize member data here.
 {
 

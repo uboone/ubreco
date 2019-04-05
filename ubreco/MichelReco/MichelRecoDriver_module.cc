@@ -82,7 +82,7 @@ private:
 
 
 MichelRecoDriver::MichelRecoDriver(fhicl::ParameterSet const & p)
-  : _mgr(nullptr)
+  : EDProducer(p), _mgr(nullptr)
     // Initialize member data here.
 {
   

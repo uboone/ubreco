@@ -55,6 +55,7 @@ private:
 
 //____________________________________________________________________________
 MuCSRecoToMC::MuCSRecoToMC(fhicl::ParameterSet const& pset)
+: EDProducer(pset)
 {
   this->reconfigure(pset);
   

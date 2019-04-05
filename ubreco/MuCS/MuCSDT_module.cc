@@ -91,7 +91,8 @@ namespace MuCSDT
     ifdh_ns::ifdh* fIFDH=0; ///< For MuCS data file retrieval
   }; 
   
-  MuCSDT::MuCSDT( fhicl::ParameterSet const& pset ){
+  MuCSDT::MuCSDT( fhicl::ParameterSet const& pset )
+  : EDProducer(pset) {
     this->reconfigure(pset);
     produces< std::vector<MuCS::MuCSDTOffset>, art::InRun >();
   }

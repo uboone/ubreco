@@ -94,7 +94,8 @@ void MuCSReco::reconfigure( fhicl::ParameterSet const &p ){
     return;
 }
 
-MuCSReco::MuCSReco( fhicl::ParameterSet const &pset ){
+MuCSReco::MuCSReco( fhicl::ParameterSet const &pset )
+: EDProducer(pset) {
   this->reconfigure( pset );
   
   produces< std::vector<MuCS::MuCSRecoData> >();  

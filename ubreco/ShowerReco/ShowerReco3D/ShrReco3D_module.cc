@@ -165,7 +165,7 @@ private:
 
 
 ShrReco3D::ShrReco3D(fhicl::ParameterSet const & p)
-// :
+: EDProducer(p)
 // Initialize member data here.
 {
 

@@ -91,7 +91,7 @@ private:
 
 
 Pi0Filter::Pi0Filter(fhicl::ParameterSet const & p)
-// :
+: EDFilter(p)
 // Initialize member data here.
 {
   fShrProducer = p.get<std::string>("ShrProducer");  

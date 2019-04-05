@@ -118,7 +118,7 @@ private:
 
 
 UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
-// :
+: EDProducer(p)
 // Initialize member data here.
 {
   _OpDataProducer   = p.get<std::string>("OpDataProducer", "pmtreadout" );   // Waveform Module name, to get waveforms

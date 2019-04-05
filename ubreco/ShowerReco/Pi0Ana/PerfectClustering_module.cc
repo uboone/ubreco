@@ -79,7 +79,7 @@ private:
 
 
 PerfectClustering::PerfectClustering(fhicl::ParameterSet const & p)
-// :
+: EDProducer(p)
 // Initialize member data here.
 {
   

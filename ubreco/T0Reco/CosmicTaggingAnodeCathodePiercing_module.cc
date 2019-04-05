@@ -133,7 +133,7 @@ private:
 
 
 CosmicTaggingAnodeCathodePiercing::CosmicTaggingAnodeCathodePiercing(fhicl::ParameterSet const & p)
-// :
+: EDProducer(p)
 // Initialize member data here.
 {
 

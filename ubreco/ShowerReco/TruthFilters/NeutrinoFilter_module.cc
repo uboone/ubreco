@@ -71,7 +71,7 @@ private:
 
 
 NeutrinoFilter::NeutrinoFilter(fhicl::ParameterSet const & p)
-// :
+: EDFilter(p)
 // Initialize member data here.
 {
   produces< std::vector< recob::Vertex > >();
