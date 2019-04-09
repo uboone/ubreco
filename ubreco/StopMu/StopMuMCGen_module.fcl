@@ -1,0 +1,16 @@
+BEGIN_PROLOG
+
+microboone_StopMuMCGen:
+{ 
+ module_type:              "StopMuMCGen"
+ TopLayerDims:                [-30,280,200,200,-30,1060] # top box edges [cm]
+ BottomLayerDims:             [-25,275,130,130,-25,1055] # bottom box edges [cm]
+ EnergyThresholdLow: 0.1
+ EnergyThresholdHigh: 2.0
+ #subboxLength should be full width of top box (in m)
+ CRYConfigStr: "date 1-1-2016 returnGammas 0 returnElectrons 0 returnMuons 1 returnPions 0 returnNeutrons 0 returnProtons 0 latitude 41.8 subboxLength 0.48 altitude 0"
+ ParticlesPerEvent: 1
+}
+
+END_PROLOG
+

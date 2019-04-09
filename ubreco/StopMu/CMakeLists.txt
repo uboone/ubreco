@@ -1,3 +1,10 @@
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
+include_directories( $ENV{NUTOOLS_INC} )
+cet_find_library( SQLITE3 NAMES sqlite3 PATHS ENV NO_DEFAULT_PATH )
+cet_find_library( CRY NAMES CRY PATHS ENV CRY_LIB NO_DEFAULT_PATH )
+cet_find_library( IFDH NAMES ifdh PATHS ENV IFDHC_LIB NO_DEFAULT_PATH )
+include_directories ( $ENV{CRYHOME}/src )
+include_directories( $ENV{IFDHC_FQ_DIR}/inc )
 
 art_make(	
 	  LIB_LIBRARIES
@@ -18,8 +25,13 @@ art_make(
 			larcore_Geometry_Geometry_service
           MODULE_LIBRARIES 
 		   	#larpandora_LArPandoraInterface	
+			larevt_CalibrationDBI_IOVData
+			larsim_Simulation nutools_ParticleNavigation lardataobj_Simulation
+			larsim_MCCheater_ParticleInventoryService_service
+			larsim_MCCheater_BackTrackerService_service
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
+			larcoreobj_SummaryData
 			lardataobj_RecoBase
 			lardataobj_MCBase
 			lardataobj_Simulation	
@@ -29,6 +41,7 @@ art_make(
 			lardata_Utilities
 			larevt_Filters
 			nusimdata_SimulationBase
+			nutools_RandomUtils_NuRandomService_service
 			${LARRECO_LIB}
 			${LARDATA_LIB}
                         ${ART_FRAMEWORK_CORE}
@@ -45,10 +58,14 @@ art_make(
 	                ${FHICLCPP}
 			cetlib cetlib_except
 			${CLHEP}
-                        ${ROOT_GEOM}
-                        ${ROOT_XMLIO}
-                        ${ROOT_GDML}
+			${ROOT_PHYSICS}
+      			${ROOT_GEOM}
+      			${ROOT_XMLIO}
+      			${ROOT_GDML}
 			${ROOT_BASIC_LIB_LIST}
+			${ROOT_CORE}
+			${ROOT_EG}
+			${CRY}
         )
 
 
