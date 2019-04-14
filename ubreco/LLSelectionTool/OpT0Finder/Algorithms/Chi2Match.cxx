@@ -17,17 +17,7 @@ namespace flashana {
   { throw OpT0FinderException("Use the other ctor"); }
   
   void Chi2Match::_Configure_(const Config_t &pset) {
-    _normalize = pset.get<bool>("NormalizeHypothesis");
     _penalty_threshold_v = pset.get<std::vector<double> >("PEPenaltyThreshold");
-    _penalty_value_v = pset.get<std::vector<double> >("PEPenaltyValue");
-
-    _recox_penalty_threshold = pset.get<double>("XPenaltyThreshold");
-    _recoz_penalty_threshold = pset.get<double>("ZPenaltyThreshold");
-
-    _onepmt_score_threshold = pset.get<double>("OnePMTScoreThreshold");
-    _onepmt_xdiff_threshold = pset.get<double>("OnePMTXDiffThreshold");
-    _onepmt_pesum_threshold = pset.get<double>("OnePMTPESumThreshold");
-    _onepmt_pefrac_threshold = pset.get<double>("OnePMTPEFracThreshold");
   }
   
   FlashMatch_t Chi2Match::Match(const QCluster_t &pt_v, const Flash_t &flash) {
@@ -36,16 +26,11 @@ namespace flashana {
     // Prepare TPC
     //
     _raw_trk.resize(pt_v.size());
-    double min_x = 1e9;
-    double max_x = 0;
+
     for (size_t i = 0; i < pt_v.size(); ++i) {
       auto const &pt = pt_v[i];
       _raw_trk[i] = pt;
-      if (pt.x < min_x) { min_x = pt.x; _raw_xmin_pt = pt; }
-      if (pt.x > max_x) { max_x = pt.x; _raw_xmax_pt = pt; }
     }
-    //for (auto &pt : _raw_trk) pt.x -= min_x;
-
     //
     // Prepare Flash
     //
@@ -83,38 +68,15 @@ namespace flashana {
     res.tpc_point.y /= weight;
     res.tpc_point.z /= weight;
 
-    res.tpc_point.x = _reco_x_offset;
-    res.tpc_point_err.x = _reco_x_offset_err;
+    res.tpc_point.x = 0;
+    res.tpc_point_err.x = 0;
     
     res.hypothesis  = _hypothesis.pe_v;
 
-    //
     // Compute score
-    //
     res.score = Chi2(_hypothesis, flash);
     
     return res;
-
-    /*
-    auto res1 = PESpectrumMatch(pt_v,flash,true);
-    auto res2 = PESpectrumMatch(pt_v,flash,false);
-
-    std::cout << "Using   mid-x-init: " << res1.tpc_point.x << " [cm] @ " << res1.score << std::endl;
-    std::cout << "Without mid-x-init: " << res2.tpc_point.x << " [cm] @ " << res2.score << std::endl;
-
-
-    auto res = (res1.score > res2.score ? res1 : res2);
-
-    if(res.score < _onepmt_score_threshold) {
-
-      auto res_onepmt = OnePMTMatch(flash);
-
-      if(res_onepmt.score >= 0.)
-	return res_onepmt;
-    }
-
-    return res;
-    */
   }
   
   
@@ -133,7 +95,7 @@ namespace flashana {
     _current_chi2 = 0.;
     
     if (measurement.pe_v.size() != hypothesis.pe_v.size())
-      throw OpT0FinderException("Cannot compute QLL for unmatched length!");
+      throw OpT0FinderException("Cannot compute Chi2 for unmatched length!");
     
     double O, H, Error;
     for (size_t pmt_index = 0; pmt_index < hypothesis.pe_v.size(); ++pmt_index) {

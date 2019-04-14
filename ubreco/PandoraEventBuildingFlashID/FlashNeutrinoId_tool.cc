@@ -195,7 +195,11 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
         // Apply the pre-selection cuts to ensure that the slice is compatible with the beam flash
         if (!sliceCandidate.IsCompatibleWithBeamFlash(beamFlash, m_maxDeltaY, m_maxDeltaZ, m_maxDeltaYSigma, m_maxDeltaZSigma,
                                                       m_minChargeToLightRatio, m_maxChargeToLightRatio))
+        {
+            // TEMP: this line guarantees that the score is availible for every slice!
+            sliceCandidate.GetFlashMatchScore(beamFlash, m_flashMatchManager, m_opDetVector);
             continue;
+        }
 
         foundViableSlice = true;
         m_outputEvent.m_nSlicesAfterPrecuts++;
@@ -403,11 +407,6 @@ FlashNeutrinoId::FlashCandidate::FlashCandidate(const art::Event &event, const r
                                                                                                         m_timeHigh(event.time().timeHigh()),
                                                                                                         m_timeLow(event.time().timeLow()),
                                                                                                         m_time(flash.Time()),
-                                                                                                        m_totalPE(flash.TotalPE()),
-                                                                                                        m_centerY(flash.YCenter()),
-                                                                                                        m_centerZ(flash.ZCenter()),
-                                                                                                        m_widthY(flash.YWidth()),
-                                                                                                        m_widthZ(flash.ZWidth()),
                                                                                                         m_inBeamWindow(false),
                                                                                                         m_isBrightestInWindow(false),
                                                                                                         m_isBeamFlash(false)
@@ -418,11 +417,45 @@ FlashNeutrinoId::FlashCandidate::FlashCandidate(const art::Event &event, const r
 
     for (uint i = 0; i < nOpDets; ++i) {
       uint opdet = geometry->OpDetFromOpChannel(i);
-      m_peSpectrum[opdet] = flash.PEs().at(i);
+      m_peSpectrum[opdet] = flash.PEs().at(i);  // THIS IS THE PLACE TO APPLY DAVIC CORRECTIONS!
     }
+    GetFlashLocation();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+
+void FlashNeutrinoId::FlashCandidate::GetFlashLocation()
+{
+  // Reset variables
+  m_centerY = m_centerZ = 0.;
+  m_widthY  = m_widthZ  = -999.;
+  m_totalPE = 0.;
+  float sumy = 0., sumz = 0., sumy2 = 0., sumz2 = 0.;
+
+  art::ServiceHandle<geo::Geometry> geometry;
+  for (unsigned int opdet = 0; opdet < m_peSpectrum.size(); opdet++) {
+    double PMTxyz[3];
+    geometry->OpDetGeoFromOpDet(opdet).GetCenter(PMTxyz);
+
+    // Add up the position, weighting with PEs
+    sumy    += m_peSpectrum[opdet]*PMTxyz[1];
+    sumy2   += m_peSpectrum[opdet]*PMTxyz[1]*PMTxyz[1];
+    sumz    += m_peSpectrum[opdet]*PMTxyz[2];
+    sumz2   += m_peSpectrum[opdet]*PMTxyz[2]*PMTxyz[2];
+    m_totalPE += m_peSpectrum[opdet];
+  }
+  m_centerY = sumy/m_totalPE;
+  m_centerZ = sumz/m_totalPE;
+  // This is just sqrt(<x^2> - <x>^2)
+  if ( (sumy2*m_totalPE - sumy*sumy) > 0. ) 
+    m_widthY = std::sqrt(sumy2*m_totalPE - sumy*sumy)/m_totalPE;
+  
+  if ( (sumz2*m_totalPE - sumz*sumz) > 0. ) 
+    m_widthZ = std::sqrt(sumz2*m_totalPE - sumz*sumz)/m_totalPE;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
 
 bool FlashNeutrinoId::FlashCandidate::IsInBeamWindow(const float beamWindowStart, const float beamWindowEnd)
 {

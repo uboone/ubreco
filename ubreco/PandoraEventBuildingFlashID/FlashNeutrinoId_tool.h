@@ -129,6 +129,12 @@ private:
         FlashCandidate(const art::Event &event, const recob::OpFlash &flash);
 
         /**
+         *  @brief  Calculate the totalPE, flash location and width based on the PE spectrum, using correction factors (to do)
+         *
+         */
+        void GetFlashLocation();
+
+        /**
          *  @brief  Check if the time of the flash is in the beam window, and save the information for later
          *
          *  @param  beamWindowStart the starting time of the beam window

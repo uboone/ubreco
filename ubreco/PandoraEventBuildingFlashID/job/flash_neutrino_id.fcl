@@ -3,6 +3,33 @@
 
 BEGIN_PROLOG
 
+PMTService: {
+    CalibrationHelper: {
+        EventMixingModuleLabel: "retriever"
+        }
+    PmtGainProvider: {
+        DatabaseRetrievalAlg: {
+            AlgName: "DatabaseRetrievalAlg"
+            DBFolderName: "detpmtgains_data"
+            DBTag: "v1r0"
+            DBUrl: "http://dbdata0vm.fnal.gov:8186/uboonecon_prod/app/"
+            }
+        DefaultAmplitudeGain: 20
+        DefaultAmplitudeGainErr: 1e-2
+        DefaultBaselineMean: 0
+        DefaultBaselineRms: 6e-1
+        DefaultGain: 130
+        DefaultGainErr: 1e-1
+        UseDB: true
+        UseFile: false
+        }
+    service_provider: "UboonePmtGainService"
+    }
+
+PMTServiceNoGain: @local::PMTService
+PMTServiceNoGain.PmtGainProvider.UseDB: false
+
+
 flash_neutrino_id_tool :
 {
     tool_type: "FlashNeutrinoId"
@@ -32,8 +59,8 @@ flash_neutrino_id_tool :
     MaxChargeToLightRatio:    250.0 #200.0
 
     # Flash matching congifuration
-    ChargeToNPhotonsTrack:    164.0 #363.636
-    ChargeToNPhotonsShower:   230.0 #512.815
+    ChargeToNPhotonsTrack:    363.636
+    ChargeToNPhotonsShower:   512.815
     FlashMatchConfig:         @local::flashmatch_config
 
     # Debug
@@ -46,7 +73,13 @@ flash_neutrino_id_tool :
 }
     
 flash_neutrino_id_tool.FlashMatchConfig.FlashMatchManager.AllowReuseFlash: true
-flash_neutrino_id_tool.FlashMatchConfig.QLLMatch.NormalizeHypothesis:      false
+#flash_neutrino_id_tool.FlashMatchConfig.QLLMatch.NormalizeHypothesis:      false
+flash_neutrino_id_tool.FlashMatchConfig.FlashMatchManager.MatchAlgo: "Chi2Match"
+flash_neutrino_id_tool.FlashMatchConfig.Chi2Match:
+{
+  PEPenaltyThreshold: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+}
+
 
 pandora_flash_event_building: @local::pandora_event_building
 pandora_flash_event_building.SliceIdTool: @local::flash_neutrino_id_tool
