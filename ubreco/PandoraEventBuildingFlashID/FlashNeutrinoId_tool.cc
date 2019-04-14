@@ -186,7 +186,7 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
     bool foundHighestTopoligicalScore(false);
     unsigned int bestFlashMatchSliceIndex(std::numeric_limits<unsigned int>::max());
     unsigned int bestCombinedSliceIndex(std::numeric_limits<unsigned int>::max());
-    float maxScore(-std::numeric_limits<float>::max());
+    float minScore(-std::numeric_limits<float>::min());
     m_outputEvent.m_nSlicesAfterPrecuts = 0;
 
     for (unsigned int sliceIndex = 0; sliceIndex < sliceCandidates.size(); ++sliceIndex)
@@ -210,11 +210,11 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
         }
         // ATTN if there is only one slice that passes the pre-selection cuts, then the score won't be used
         const auto &score(sliceCandidate.GetFlashMatchScore(beamFlash, m_flashMatchManager, m_opDetVector));
-        if (score < maxScore)
+        if (score > minscore)
             continue;
 
         bestFlashMatchSliceIndex = sliceIndex;
-        maxScore = score;
+        minScore = score;
     }
     if (!foundViableSlice)
         throw FailureMode("None of the slices passed the pre-selection cuts");
