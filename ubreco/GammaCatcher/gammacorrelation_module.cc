@@ -23,6 +23,7 @@
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardataobj/RecoBase/Track.h"
+#include "lardataobj/RecoBase/Shower.h"
 #include "lardataobj/RecoBase/Vertex.h"
 #include "lardataobj/RecoBase/PFParticle.h"
 
@@ -62,6 +63,9 @@ private:
 
   // Declare member data here.
 
+  // a map linking the PFP Self() attribute used for hierarchy building to the PFP index in the event record
+  std::map<unsigned int, unsigned int> _pfpmap;
+  
   std::string fHit_tag,fpfparticle_tag,fvertex_tag,fsps_tag,fcluster_tag;
 
   Double32_t sps_x,sps_y,sps_z,sps_hit_charge,sps_cluster_charge,sps_cluster_charge10,sps_cluster_charge20,sps_cluster_charge50;
@@ -70,6 +74,10 @@ private:
   TRandom3 rand;
   Double_t _rand_vtx_x, _rand_vtx_y, _rand_vtx_z, distance_rand_vtx, distance_smallest_rand_vtx;
   Int_t neutrinos,N_sps,N_Event,N_Run,N_SubRun,N_sps10,N_sps20,N_sps50;
+  float _maxTrkLen;
+  int   _neutrinoshowers;
+  int   _neutrinotracks;
+  float _muon_px, _muon_py, _muon_pz;
 
 
   TTree *Event_Correlationtree;
@@ -107,6 +115,11 @@ void gammacorrelation::analyze(art::Event const& e)
 
   std::cout << "****************Event Number: " << e.event() << " Run Number: " << e.run() << " SubRun Number: " << e.subRun() <<"**********************"<< std::endl;
 
+
+  // create list of tracks and showers associated to neutrino candidate
+  std::vector<recob::Track  > sliceTracks;
+  std::vector<recob::Shower > sliceShowers;
+
   N_Event=e.event();
   N_Run=e.run();
   N_SubRun=e.subRun();
@@ -119,6 +132,9 @@ void gammacorrelation::analyze(art::Event const& e)
 
   art::Handle<std::vector<recob::PFParticle> > pfparticle_handle;
   e.getByLabel(fpfparticle_tag,pfparticle_handle);
+  // get tracks and showers associated to PFP
+  art::FindMany<recob::Track> pfp_track_assn_v  (pfparticle_handle, e, fpfparticle_tag);
+  art::FindMany<recob::Shower> pfp_shower_assn_v(pfparticle_handle, e, fpfparticle_tag);
 
   art::Handle<std::vector<recob::Vertex> > vertex_handle;
   e.getByLabel(fvertex_tag,vertex_handle);
@@ -130,6 +146,16 @@ void gammacorrelation::analyze(art::Event const& e)
 
   art::FindMany<recob::Cluster> sps_clus_assn_v(spacepoint_handle, e, fsps_tag);
 
+  // build PFParticle map  for this event
+  _pfpmap.clear();
+  for (unsigned int p=0; p < pfparticle_handle->size(); p++)
+    _pfpmap[pfparticle_handle->at(p).Self()] = p;
+
+
+  _neutrinoshowers = 0;
+  _neutrinotracks = 0;
+  _maxTrkLen = 0;
+
   recob::Vertex nuvtx;
   TVector3 rndvtx;
   neutrinos = 0;
@@ -139,19 +165,48 @@ void gammacorrelation::analyze(art::Event const& e)
 
     if (pfp.IsPrimary() == false) continue;
 
+
+
     auto PDG = fabs(pfp.PdgCode());
     if ( (PDG == 12) || (PDG == 14) ) {
 
       neutrinos += 1;
 
+      // grab daughter PFParticles
+      auto daughters = pfp.Daughters();
+      
+      for(auto const& daughterid : daughters) {
+	
+	if (_pfpmap.find(daughterid) == _pfpmap.end()) {
+	  std::cout << "Did not find DAUGHTERID in map! error"<< std::endl;
+	  continue;
+	}
+	
+	const auto daughter = pfparticle_handle->at( _pfpmap[daughterid] );
 
+	// if there is a track associated to the PFParticle, add it
+	auto const& ass_trk_v = pfp_track_assn_v.at( _pfpmap[daughterid] );
+	if (ass_trk_v.size() == 1) {
+	  sliceTracks.push_back( *(ass_trk_v.at(0)) );
+	  if (ass_trk_v.at(0)->Length() > _maxTrkLen) {
+	    _maxTrkLen = ass_trk_v.at(0)->Length();
+	    _muon_px   = ass_trk_v.at(0)->StartDirection().X();
+	    _muon_py   = ass_trk_v.at(0)->StartDirection().Y();
+	    _muon_pz   = ass_trk_v.at(0)->StartDirection().Z();
+	  }// if longest track
+	}
+	// if there is a shower associated to the PFParticle, add it
+	auto const& ass_shr_v = pfp_shower_assn_v.at( _pfpmap[daughterid] );
+	if (ass_shr_v.size() == 1) sliceShowers.push_back( *(ass_shr_v.at(0)) );
+      }// for all PFParticles in the slice
+      
       auto ass_vtx_v  =pfp_vertex_assn_v.at( p );
       if (ass_vtx_v.size() != 1)
-      std::cout << "ERROR. Neutrino not associated with a single vertex..." << std::endl;
+	std::cout << "ERROR. Neutrino not associated with a single vertex..." << std::endl;
       nuvtx = *(ass_vtx_v.at(0));
-
-
-      // std::cout<<V_xyz.x()<<std::endl;
+      
+      _neutrinoshowers = sliceShowers.size();
+      _neutrinotracks  = sliceTracks.size();
 
     }
 
@@ -287,6 +342,12 @@ void gammacorrelation::beginJob()
   Event_Correlationtree->Branch("sps_cluster_charge20",&sps_cluster_charge20,"sps_cluster_charge20/D");
   Event_Correlationtree->Branch("sps_cluster_charge50",&sps_cluster_charge50,"sps_cluster_charge50/D");
   Event_Correlationtree->Branch("neutrinos",&neutrinos,"neutrinos/I");
+  Event_Correlationtree->Branch("neutrinoshowers",&_neutrinoshowers,"neutrinoshowers/I");
+  Event_Correlationtree->Branch("neutrinotracks" ,&_neutrinotracks ,"neutrinotracks/I" );
+  Event_Correlationtree->Branch("muon_px" ,&_muon_px ,"muon_px/F" );
+  Event_Correlationtree->Branch("muon_py" ,&_muon_py ,"muon_py/F" );
+  Event_Correlationtree->Branch("muon_pz" ,&_muon_pz ,"muon_pz/F" );
+  Event_Correlationtree->Branch("maxTrkLen" ,&_maxTrkLen ,"maxTrkLen/F" );
 
 
   Sps_Correlationtree = tfs->make<TTree>("Sps_Correlationtree",    "Sps_Correlationtree");
@@ -301,6 +362,12 @@ void gammacorrelation::beginJob()
   Sps_Correlationtree->Branch("Vertex_x",&Vertex_x,"Vertex_x/D");
   Sps_Correlationtree->Branch("Vertex_y",&Vertex_y,"Vertex_y/D");
   Sps_Correlationtree->Branch("Vertex_z",&Vertex_z,"Vertex_z/D");
+  Sps_Correlationtree->Branch("neutrinoshowers",&_neutrinoshowers,"neutrinoshowers/I");
+  Sps_Correlationtree->Branch("neutrinotracks" ,&_neutrinotracks ,"neutrinotracks/I" );
+  Sps_Correlationtree->Branch("muon_px" ,&_muon_px ,"muon_px/F" );
+  Sps_Correlationtree->Branch("muon_py" ,&_muon_py ,"muon_py/F" );
+  Sps_Correlationtree->Branch("muon_pz" ,&_muon_pz ,"muon_pz/F" );
+  Sps_Correlationtree->Branch("maxTrkLen" ,&_maxTrkLen ,"maxTrkLen/F" );
   Sps_Correlationtree->Branch("distance_rand_vtx",&distance_rand_vtx,"distance_rand_vtx/D");
   Sps_Correlationtree->Branch("_rand_vtx_x",&_rand_vtx_x,"_rand_vtx_x/D");
   Sps_Correlationtree->Branch("_rand_vtx_y",&_rand_vtx_y,"_rand_vtx_y/D");
