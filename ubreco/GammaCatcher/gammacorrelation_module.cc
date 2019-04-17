@@ -69,7 +69,7 @@ private:
   Double_t Vertex_x,Vertex_y,Vertex_z;
   TRandom3 rand;
   Double_t _rand_vtx_x, _rand_vtx_y, _rand_vtx_z, distance_rand_vtx, distance_smallest_rand_vtx;
-  Int_t N_sps,N_Event,N_Run,N_SubRun,N_sps10,N_sps20,N_sps50;
+  Int_t neutrinos,N_sps,N_Event,N_Run,N_SubRun,N_sps10,N_sps20,N_sps50;
 
 
   TTree *Event_Correlationtree;
@@ -132,7 +132,7 @@ void gammacorrelation::analyze(art::Event const& e)
 
   recob::Vertex nuvtx;
   TVector3 rndvtx;
-  size_t neutrinos = 0;
+  neutrinos = 0;
   Event_cluster_charge=0,sps_cluster_charge50=0,sps_cluster_charge20=0,sps_cluster_charge10=0;
   for (size_t p=0; p < pfparticle_handle->size(); p++) {
     auto pfp = pfparticle_handle->at(p);
@@ -189,8 +189,11 @@ void gammacorrelation::analyze(art::Event const& e)
     }
 
 
-    if (nuvtx.position().x()==0 && nuvtx.position().y()==0 && nuvtx.position().z()==0 )
-    continue;
+    if (neutrinos==0){
+      Sps_Correlationtree->Fill();
+      continue;
+    }
+
     Vertex_x=nuvtx.position().x();
     Vertex_y=nuvtx.position().y();
     Vertex_z=nuvtx.position().z();
@@ -270,6 +273,9 @@ void gammacorrelation::beginJob()
   Event_Correlationtree->Branch("Vertex_x",&Vertex_x,"Vertex_x/D");
   Event_Correlationtree->Branch("Vertex_y",&Vertex_y,"Vertex_y/D");
   Event_Correlationtree->Branch("Vertex_z",&Vertex_z,"Vertex_z/D");
+  Event_Correlationtree->Branch("_rand_vtx_x",&_rand_vtx_x,"_rand_vtx_x/D");
+  Event_Correlationtree->Branch("_rand_vtx_y",&_rand_vtx_y,"_rand_vtx_y/D");
+  Event_Correlationtree->Branch("_rand_vtx_z",&_rand_vtx_z,"_rand_vtx_z/D");
   Event_Correlationtree->Branch("distance_smallest",&distance_smallest,"distance_smallest/D");
   Event_Correlationtree->Branch("N_sps",&N_sps,"N_sps/I");
   Event_Correlationtree->Branch("Event_cluster_charge",&Event_cluster_charge,"Event_cluster_charge/D");
@@ -280,7 +286,7 @@ void gammacorrelation::beginJob()
   Event_Correlationtree->Branch("sps_cluster_charge10",&sps_cluster_charge10,"sps_cluster_charge10/D");
   Event_Correlationtree->Branch("sps_cluster_charge20",&sps_cluster_charge20,"sps_cluster_charge20/D");
   Event_Correlationtree->Branch("sps_cluster_charge50",&sps_cluster_charge50,"sps_cluster_charge50/D");
-
+  Event_Correlationtree->Branch("neutrinos",&neutrinos,"neutrinos/I");
 
 
   Sps_Correlationtree = tfs->make<TTree>("Sps_Correlationtree",    "Sps_Correlationtree");
@@ -299,6 +305,7 @@ void gammacorrelation::beginJob()
   Sps_Correlationtree->Branch("_rand_vtx_x",&_rand_vtx_x,"_rand_vtx_x/D");
   Sps_Correlationtree->Branch("_rand_vtx_y",&_rand_vtx_y,"_rand_vtx_y/D");
   Sps_Correlationtree->Branch("_rand_vtx_z",&_rand_vtx_z,"_rand_vtx_z/D");
+  Sps_Correlationtree->Branch("neutrinos",&neutrinos,"neutrinos/I");
 }
 
 void gammacorrelation::endJob(){}
