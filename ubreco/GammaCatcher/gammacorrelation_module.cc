@@ -26,6 +26,7 @@
 #include "lardataobj/RecoBase/Shower.h"
 #include "lardataobj/RecoBase/Vertex.h"
 #include "lardataobj/RecoBase/PFParticle.h"
+#include "larcoreobj/SummaryData/POTSummary.h"
 
 
 
@@ -58,6 +59,7 @@ public:
 
   void beginJob() override;
   void endJob() override;
+  bool endSubRun(art::SubRun &subrun);
 
 private:
 
@@ -83,12 +85,21 @@ private:
   TTree *Event_Correlationtree;
   TTree *Sps_Correlationtree;
 
+  TTree* _subrun_tree;
+    int _run_sr;                  // The run number
+    int _sub_sr;                  // The subRun number
+    float _pot;                   // The total amount of POT for the current sub run
+
+
   Double_t fidVolMinX =    0; //Fiducial Volume dimensions for MicroBooNE
   Double_t fidVolMaxX =  256;
   Double_t fidVolMinY = -116;
   Double_t fidVolMaxY =  116;
   Double_t fidVolMinZ =    0;
   Double_t fidVolMaxZ = 1030;
+
+  bool fData;
+  art::InputTag fMCTproducer;
 
 };
 
@@ -106,6 +117,8 @@ gammacorrelation::gammacorrelation(fhicl::ParameterSet const& p)
   fvertex_tag=p.get<std::string>("vertex_tag");
   fsps_tag=p.get<std::string>("sps_tag");
   fcluster_tag=p.get<std::string>("cluster_tag");
+  fData     = p.get< bool >             ("IsData");
+  fMCTproducer = p.get< art::InputTag > ("MCTproducer");
 
 }
 
@@ -373,8 +386,34 @@ void gammacorrelation::beginJob()
   Sps_Correlationtree->Branch("_rand_vtx_y",&_rand_vtx_y,"_rand_vtx_y/D");
   Sps_Correlationtree->Branch("_rand_vtx_z",&_rand_vtx_z,"_rand_vtx_z/D");
   Sps_Correlationtree->Branch("neutrinos",&neutrinos,"neutrinos/I");
+
+  _subrun_tree = tfs->make<TTree>("SubRun", "SubRun TTree");
+  _subrun_tree->Branch("run"   , &_run_sr   , "run/I");
+  _subrun_tree->Branch("subRun", &_sub_sr   , "subRun/I");
+
+  if (!fData)
+        _subrun_tree->Branch("pot", &_pot, "pot/F");
 }
 
 void gammacorrelation::endJob(){}
+
+bool gammacorrelation::endSubRun(art::SubRun &subrun)
+{
+    std::cout << "DAVIDC END SUBRUN" << std::endl;
+    if (!fData)
+    {
+        std::cout << "DAVIDC MC!" << std::endl;
+        art::Handle<sumdata::POTSummary> potSummaryHandle;
+        _pot = subrun.getByLabel(fMCTproducer, potSummaryHandle) ? static_cast<float>(potSummaryHandle->totpot) : 0.f;
+        std::cout << "POT is " << _pot << std::endl;
+        std::cout << "[LArPandoraExternalEventBuilding::endSubRun] Storing POT info!" << std::endl;
+    }
+
+    _run_sr = subrun.run();
+    _sub_sr = subrun.subRun();
+    _subrun_tree->Fill();
+    return true;
+}
+
 
 DEFINE_ART_MODULE(gammacorrelation)
