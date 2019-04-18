@@ -23,7 +23,3 @@
 // Do not include the objects they contain internally.
 //
 
-template class art::Assns<recob::Hit,recob::PFParticle,void>;
-template class art::Assns<recob::PFParticle,recob::Hit,void>;
-template class art::Wrapper<art::Assns<recob::Hit,recob::PFParticle,void> >;
-template class art::Wrapper<art::Assns<recob::PFParticle,recob::Hit,void> >;
