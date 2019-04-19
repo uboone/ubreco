@@ -66,8 +66,6 @@
    doxygen documentation!
 */
 
-static const double kINVALID_DOUBLE = std::numeric_limits<double>::max();
-
 class TruncMean;
 
 class TruncMean{
@@ -115,7 +113,7 @@ class TruncMean{
 			       const size_t& nmax, const size_t& currentiteration,
 			       const size_t& lmin,
 			       const double& convergencelimit,
-			       const double& nsigma, const double& oldmed = kINVALID_DOUBLE);
+			       const double& nsigma, const double& oldmed);
 
   /**
      @brief Set the smearing radius over which to take hits for truncated mean computaton.
