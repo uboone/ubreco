@@ -6,40 +6,6 @@
 
 #include "FlashNeutrinoId_tool.h"
 
-void FlashNeutrinoId::GetOrderedOpDetVector(fhicl::ParameterSet const &pset)
-{
-    art::ServiceHandle<geo::Geometry> geometry;
-    const auto nOpDets(geometry->NOpDets());
-
-    // Get the OpDets in their default order
-    std::vector<unsigned int> opDetVector;
-    for (unsigned int iChannel = 0; iChannel < nOpDets; ++iChannel)
-        opDetVector.push_back(geometry->OpDetFromOpChannel(iChannel));
-
-    // Get the remapped OpDets if required
-    if (pset.get<bool>("ShouldRemapPMTs"))
-    {
-        const auto pmtMapping(pset.get<std::vector<unsigned int>>("OrderedPMTList"));
-
-        // Ensure there are the correct number of OpDets
-        if (pmtMapping.size() != nOpDets)
-            throw cet::exception("FlashNeutrinoId") << "The input PMT remapping vector has the wrong size. Expected " << nOpDets << " elements." << std::endl;
-
-        for (const auto &opDet : pmtMapping)
-        {
-            // Each OpDet in the default list must be listed once and only once
-            if (std::count(opDetVector.begin(), opDetVector.end(), opDet) != 1)
-                throw cet::exception("FlashNeutrinoId") << "Unknown or repeated PMT ID: " << opDet << std::endl;
-
-            m_opDetVector.push_back(opDet);
-        }
-    }
-    else
-    {
-        m_opDetVector = opDetVector;
-    }
-}
-
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
@@ -100,7 +66,7 @@ void FlashNeutrinoId::GetFlashCandidates(const art::Event &event, FlashCandidate
     const auto flashes(*event.getValidHandle<FlashVector>(flashTag));
 
     for (const auto &flash : flashes)
-        flashCandidates.emplace_back(event, flash);
+        flashCandidates.emplace_back(event, flash, m_PMTch_correction);
 
     m_outputEvent.m_nFlashes = flashCandidates.size();
 }
@@ -186,18 +152,19 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
     bool foundHighestTopoligicalScore(false);
     unsigned int bestFlashMatchSliceIndex(std::numeric_limits<unsigned int>::max());
     unsigned int bestCombinedSliceIndex(std::numeric_limits<unsigned int>::max());
-    float minScore(-std::numeric_limits<float>::min());
+    float minScore(std::numeric_limits<float>::max());
     m_outputEvent.m_nSlicesAfterPrecuts = 0;
 
     for (unsigned int sliceIndex = 0; sliceIndex < sliceCandidates.size(); ++sliceIndex)
     {
         auto &sliceCandidate(sliceCandidates.at(sliceIndex));
+        std::cout << "Slice: " << sliceIndex << std::endl;
         // Apply the pre-selection cuts to ensure that the slice is compatible with the beam flash
         if (!sliceCandidate.IsCompatibleWithBeamFlash(beamFlash, m_maxDeltaY, m_maxDeltaZ, m_maxDeltaYSigma, m_maxDeltaZSigma,
                                                       m_minChargeToLightRatio, m_maxChargeToLightRatio))
         {
             // TEMP: this line guarantees that the score is availible for every slice!
-            sliceCandidate.GetFlashMatchScore(beamFlash, m_flashMatchManager, m_opDetVector);
+            sliceCandidate.GetFlashMatchScore(beamFlash, m_flashMatchManager);
             continue;
         }
 
@@ -209,17 +176,24 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
             bestCombinedSliceIndex = sliceIndex;
         }
         // ATTN if there is only one slice that passes the pre-selection cuts, then the score won't be used
-        const auto &score(sliceCandidate.GetFlashMatchScore(beamFlash, m_flashMatchManager, m_opDetVector));
-        if (score > minscore)
+        const auto &score(sliceCandidate.GetFlashMatchScore(beamFlash, m_flashMatchManager));
+        if (score > minScore)
             continue;
 
         bestFlashMatchSliceIndex = sliceIndex;
         minScore = score;
+        std::cout << "End of this slice: " << sliceIndex << std::endl;
     }
     if (!foundViableSlice)
         throw FailureMode("None of the slices passed the pre-selection cuts");
 
     sliceCandidates.at(bestFlashMatchSliceIndex).m_hasBestFlashMatchScore = true;
+
+
+    // DEBUGGING
+    for( uint i=0; i<32; ++i){
+        std::cout << i << "\tPE:\t" << beamFlash.m_peSpectrum.at(i) << "\tHypo:\t" << sliceCandidates.at(bestFlashMatchSliceIndex).m_peHypothesisSpectrum.at(i) << std::endl;
+    }
 
     if (!foundHighestTopoligicalScore)
         bestCombinedSliceIndex = bestFlashMatchSliceIndex;
@@ -401,24 +375,34 @@ FlashNeutrinoId::FlashCandidate::FlashCandidate() : m_run(-std::numeric_limits<i
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-FlashNeutrinoId::FlashCandidate::FlashCandidate(const art::Event &event, const recob::OpFlash &flash) : m_run(event.run()),
-                                                                                                        m_subRun(event.subRun()),
-                                                                                                        m_event(event.event()),
-                                                                                                        m_timeHigh(event.time().timeHigh()),
-                                                                                                        m_timeLow(event.time().timeLow()),
-                                                                                                        m_time(flash.Time()),
-                                                                                                        m_inBeamWindow(false),
-                                                                                                        m_isBrightestInWindow(false),
-                                                                                                        m_isBeamFlash(false)
+FlashNeutrinoId::FlashCandidate::FlashCandidate(const art::Event &event, const recob::OpFlash &flash, const std::vector<float> PMTch_correction) : m_run(event.run()),
+                                                                                                                                                   m_subRun(event.subRun()),
+                                                                                                                                                   m_event(event.event()),
+                                                                                                                                                   m_timeHigh(event.time().timeHigh()),
+                                                                                                                                                   m_timeLow(event.time().timeLow()),
+                                                                                                                                                   m_time(flash.Time()),
+                                                                                                                                                   m_inBeamWindow(false),
+                                                                                                                                                   m_isBrightestInWindow(false),
+                                                                                                                                                   m_isBeamFlash(false)
 {
-    art::ServiceHandle<geo::Geometry> geometry;
+    // Correct the PE values using the gain database and save the values in the OpDet order
+    // gain service
+    const ::lariov::PmtGainProvider &gain_provider = art::ServiceHandle<lariov::PmtGainService>()->GetProvider();
+    // pmt remapping service
+    const ::util::PMTRemapProvider &pmtremap_provider = art::ServiceHandle<util::PMTRemapService>()->GetProvider();
+    const art::ServiceHandle<geo::Geometry> geometry;
     uint nOpDets(geometry->NOpDets());
     m_peSpectrum.resize(nOpDets);
 
-    for (uint i = 0; i < nOpDets; ++i) {
-      uint opdet = geometry->OpDetFromOpChannel(i);
-      m_peSpectrum[opdet] = flash.PEs().at(i);  // THIS IS THE PLACE TO APPLY DAVIC CORRECTIONS!
+    //std::cout << "Original flash PE: " << flash.TotalPE() << std::endl;
+    for (uint OpChannel = 0; OpChannel < nOpDets; ++OpChannel)
+    {
+        auto oldch = pmtremap_provider.OriginalOpChannel(OpChannel);
+        auto gain = gain_provider.Gain(oldch);
+        uint opdet = geometry->OpDetFromOpChannel(OpChannel);
+        m_peSpectrum[opdet] = flash.PEs().at(OpChannel) * 120 / gain * PMTch_correction.at(OpChannel);
     }
+
     GetFlashLocation();
 }
 
@@ -426,36 +410,35 @@ FlashNeutrinoId::FlashCandidate::FlashCandidate(const art::Event &event, const r
 
 void FlashNeutrinoId::FlashCandidate::GetFlashLocation()
 {
-  // Reset variables
-  m_centerY = m_centerZ = 0.;
-  m_widthY  = m_widthZ  = -999.;
-  m_totalPE = 0.;
-  float sumy = 0., sumz = 0., sumy2 = 0., sumz2 = 0.;
+    // Reset variables
+    m_centerY = m_centerZ = 0.;
+    m_widthY = m_widthZ = -999.;
+    m_totalPE = 0.;
+    float sumy = 0., sumz = 0., sumy2 = 0., sumz2 = 0.;
 
-  art::ServiceHandle<geo::Geometry> geometry;
-  for (unsigned int opdet = 0; opdet < m_peSpectrum.size(); opdet++) {
-    double PMTxyz[3];
-    geometry->OpDetGeoFromOpDet(opdet).GetCenter(PMTxyz);
+    art::ServiceHandle<geo::Geometry> geometry;
+    for (unsigned int opdet = 0; opdet < m_peSpectrum.size(); opdet++)
+    {
+        double PMTxyz[3];
+        geometry->OpDetGeoFromOpDet(opdet).GetCenter(PMTxyz);
+        // Add up the position, weighting with PEs
+        sumy += m_peSpectrum[opdet] * PMTxyz[1];
+        sumy2 += m_peSpectrum[opdet] * PMTxyz[1] * PMTxyz[1];
+        sumz += m_peSpectrum[opdet] * PMTxyz[2];
+        sumz2 += m_peSpectrum[opdet] * PMTxyz[2] * PMTxyz[2];
+        m_totalPE += m_peSpectrum[opdet];
+    }
+    m_centerY = sumy / m_totalPE;
+    m_centerZ = sumz / m_totalPE;
+    // This is just sqrt(<x^2> - <x>^2)
+    if ((sumy2 * m_totalPE - sumy * sumy) > 0.)
+        m_widthY = std::sqrt(sumy2 * m_totalPE - sumy * sumy) / m_totalPE;
 
-    // Add up the position, weighting with PEs
-    sumy    += m_peSpectrum[opdet]*PMTxyz[1];
-    sumy2   += m_peSpectrum[opdet]*PMTxyz[1]*PMTxyz[1];
-    sumz    += m_peSpectrum[opdet]*PMTxyz[2];
-    sumz2   += m_peSpectrum[opdet]*PMTxyz[2]*PMTxyz[2];
-    m_totalPE += m_peSpectrum[opdet];
-  }
-  m_centerY = sumy/m_totalPE;
-  m_centerZ = sumz/m_totalPE;
-  // This is just sqrt(<x^2> - <x>^2)
-  if ( (sumy2*m_totalPE - sumy*sumy) > 0. ) 
-    m_widthY = std::sqrt(sumy2*m_totalPE - sumy*sumy)/m_totalPE;
-  
-  if ( (sumz2*m_totalPE - sumz*sumz) > 0. ) 
-    m_widthZ = std::sqrt(sumz2*m_totalPE - sumz*sumz)/m_totalPE;
+    if ((sumz2 * m_totalPE - sumz * sumz) > 0.)
+        m_widthZ = std::sqrt(sumz2 * m_totalPE - sumz * sumz) / m_totalPE;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
-
 
 bool FlashNeutrinoId::FlashCandidate::IsInBeamWindow(const float beamWindowStart, const float beamWindowEnd)
 {
@@ -472,10 +455,11 @@ bool FlashNeutrinoId::FlashCandidate::PassesPEThreshold(const float minBeamFlash
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-flashana::Flash_t FlashNeutrinoId::FlashCandidate::ConvertFlashFormat(const std::vector<unsigned int> &opDetVector) const
+flashana::Flash_t FlashNeutrinoId::FlashCandidate::ConvertFlashFormat() const
 {
     // Ensure the input flash is valid
-    const auto nOpDets(opDetVector.size());
+    const art::ServiceHandle<geo::Geometry> geometry;
+    uint nOpDets(geometry->NOpDets());
     if (m_peSpectrum.size() != nOpDets)
         throw cet::exception("FlashNeutrinoId") << "Number of channels in beam flash doesn't match the number of OpDets!" << std::endl;
 
@@ -494,13 +478,9 @@ flashana::Flash_t FlashNeutrinoId::FlashCandidate::ConvertFlashFormat(const std:
     // Fill the flash with the PE spectrum
     for (unsigned int i = 0; i < nOpDets; ++i)
     {
-        const unsigned int opDet(opDetVector.at(i));
-        if (opDet >= nOpDets)
-            throw cet::exception("FlashNeutrinoId") << "OpDet ID, " << opDet << ", is out of range: 0 - " << (nOpDets - 1) << std::endl;
-
         const auto PE(m_peSpectrum.at(i));
-        flash.pe_v.at(opDet) = PE;
-        flash.pe_err_v.at(opDet) = std::sqrt(PE);
+        flash.pe_v.at(i) = PE;
+        flash.pe_err_v.at(i) = std::sqrt(PE);
     }
 
     return flash;
@@ -809,13 +789,12 @@ bool FlashNeutrinoId::SliceCandidate::IsCompatibleWithBeamFlash(const FlashCandi
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-float FlashNeutrinoId::SliceCandidate::GetFlashMatchScore(const FlashCandidate &beamFlash, flashana::FlashMatchManager &flashMatchManager,
-                                                          const std::vector<unsigned int> &opDetVector)
+float FlashNeutrinoId::SliceCandidate::GetFlashMatchScore(const FlashCandidate &beamFlash, flashana::FlashMatchManager &flashMatchManager)
 {
     flashMatchManager.Reset();
 
     // Convert the flash and the charge cluster into the required format for flash matching
-    auto flash(beamFlash.ConvertFlashFormat(opDetVector));
+    auto flash(beamFlash.ConvertFlashFormat());
 
     // Perform the match
     flashMatchManager.Emplace(std::move(flash));
@@ -840,12 +819,8 @@ float FlashNeutrinoId::SliceCandidate::GetFlashMatchScore(const FlashCandidate &
     if (!m_peHypothesisSpectrum.empty())
         throw cet::exception("FlashNeutrinoId") << "Hypothesized PE spectrum already set for this flash" << std::endl;
 
-    const unsigned int nOpDets(opDetVector.size());
-    if (match.hypothesis.size() != nOpDets)
-        throw cet::exception("FlashNeutrinoId") << "Hypothesized PE spectrum has the wrong size" << std::endl;
-
-    for (unsigned int i = 0; i < nOpDets; ++i)
-        m_peHypothesisSpectrum.push_back(static_cast<float>(match.hypothesis.at(i)));
+    for (auto hypo_pe : match.hypothesis)
+        m_peHypothesisSpectrum.push_back(static_cast<float>(hypo_pe));
 
     return m_flashMatchScore;
 }

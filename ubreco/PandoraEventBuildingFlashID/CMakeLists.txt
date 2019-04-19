@@ -41,6 +41,7 @@ set(
                         ${ROOT_GENVECTOR}
                         ubreco_SelectionTool_OpT0FinderBase
                         ubreco_SelectionTool_OpT0FinderAlgorithms
+                        ubevt_Utilities
                         MODULE_LIBRARIES larpandora_LArPandoraEventBuilding
           )
 
