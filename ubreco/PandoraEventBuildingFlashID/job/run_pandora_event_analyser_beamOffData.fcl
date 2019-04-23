@@ -1,5 +1,9 @@
 #include "run_pandora_event_analyser.fcl"
 
-physics.producers.pandoraFlashEventBuilding.SliceIdTool.BeamWindowStartTime: 3.57
-physics.producers.pandoraFlashEventBuilding.SliceIdTool.BeamWindowEndTime:   5.25
+physics.producers.pandoraFlashEventBuilding.SliceIdTool.BeamWindowStartTime: 3.570
+physics.producers.pandoraFlashEventBuilding.SliceIdTool.BeamWindowEndTime:   5.250
 physics.producers.pandoraFlashEventBuilding.SliceIdTool.HasMCNeutrino:       false
+physics.producers.pandoraFlashEventBuilding.IsData: true
+
+physics.producers.pandoraFlashEventBuilding.SliceIdTool.FlashMatchConfig.PhotonLibHypothesis.CCVCorrection: [0.5434427948014964, 0.5052015830497351, 0.6265818804021447, 0.48393859647570736, 0.47010860872745325, 0.5355631482409972, 0.6779032167648068, 0.52002107772293, 0.5505458597831252, 0.47137209378781486, 0.6447906701728547, 0.6361927420946688, 0.6699058225323957, 0.5685736930760763, 0.5107972034648574, 0.5660936664468268, 0.6307748845904867, 0.5126891463141543, 0.6201526155314053, 0.5836004701996632, 0.654545702312418, 0.5700010886863514, 0.6249489987041821, 0.5287614308927939, 0.5387567076426952, 0.47408268636373246, 0.5227584298770096, 0.5582523254850302, 0.3791513936396248, 0.6463214813217287, 0.329487339716182, 0.7658432396109135]
+

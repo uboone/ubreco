@@ -5,6 +5,10 @@
 
 BEGIN_PROLOG
 
+# Flash neutrino ID tool - Use optical information only to select the neutrino slice
+pandora_flash_event_building: @local::pandora_event_building
+pandora_flash_event_building.SliceIdTool: @local::flash_neutrino_id_tool
+
 pandoraAllOutcomesTrack:       @local::microboone_pandoraTrackCreation
 pandoraAllOutcomesShower:      @local::microboone_pandoraShowerCreation
 pandoraFlashEventBuilding:     @local::pandora_flash_event_building
