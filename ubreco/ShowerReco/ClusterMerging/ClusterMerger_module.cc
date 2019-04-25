@@ -82,7 +82,7 @@ private:
 
 
 ClusterMerger::ClusterMerger(fhicl::ParameterSet const & pset)
-// :
+: EDProducer(pset)
 // Initialize member data here.
 {
 

@@ -22,7 +22,7 @@
 #include "Base/ShowerRecoManager.h"
 // include specific protoshower and recomanager instances
 
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 
 #include "art/Utilities/make_tool.h"
 
@@ -165,7 +165,7 @@ private:
 
 
 ShrReco3D::ShrReco3D(fhicl::ParameterSet const & p)
-// :
+: EDProducer(p)
 // Initialize member data here.
 {
 

@@ -25,7 +25,7 @@
 #include "fhiclcpp/ParameterSet.h"
 
 #include "TTree.h"
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 
 
 namespace clusmtool {
