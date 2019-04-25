@@ -107,7 +107,7 @@ private:
 
 
 PhotonMerge::PhotonMerge(fhicl::ParameterSet const & p)
-// :
+: EDProducer(p)
 // Initialize member data here.
 {
   produces<std::vector<recob::PFParticle> >();

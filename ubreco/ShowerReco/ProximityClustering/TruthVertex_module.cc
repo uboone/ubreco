@@ -21,7 +21,7 @@
 
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
 
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 
 #include "lardataobj/RecoBase/Vertex.h"
 #include "nusimdata/SimulationBase/MCTruth.h"
@@ -67,7 +67,7 @@ private:
 
 
 TruthVertex::TruthVertex(fhicl::ParameterSet const & p)
-// :
+: EDFilter(p)
 // Initialize member data here.
 {
   produces< std::vector< recob::Vertex > >();

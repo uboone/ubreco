@@ -21,7 +21,7 @@
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/Handle.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "canvas/Persistency/Common/FindManyP.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
@@ -91,7 +91,8 @@ namespace MuCSDT
     ifdh_ns::ifdh* fIFDH=0; ///< For MuCS data file retrieval
   }; 
   
-  MuCSDT::MuCSDT( fhicl::ParameterSet const& pset ){
+  MuCSDT::MuCSDT( fhicl::ParameterSet const& pset )
+  : EDProducer(pset) {
     this->reconfigure(pset);
     produces< std::vector<MuCS::MuCSDTOffset>, art::InRun >();
   }

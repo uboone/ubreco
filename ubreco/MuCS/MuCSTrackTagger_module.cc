@@ -10,7 +10,7 @@
 #include "canvas/Persistency/Common/FindManyP.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include <vector>
@@ -89,7 +89,8 @@ private:
 
 };
 
-MuCSTrackTagger::MuCSTrackTagger(fhicl::ParameterSet const & p){
+MuCSTrackTagger::MuCSTrackTagger(fhicl::ParameterSet const & p)
+: EDProducer(p) {
   this->reconfigure(p);
   // Call appropriate Produces<>() functions here.
   produces< std::vector<anab::CosmicTag> >();
