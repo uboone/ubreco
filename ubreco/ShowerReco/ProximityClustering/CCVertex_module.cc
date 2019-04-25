@@ -19,7 +19,7 @@
 
 #include <memory>
 
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 
 #include "lardataobj/RecoBase/Vertex.h"
 #include "lardataobj/RecoBase/Track.h"
@@ -58,7 +58,7 @@ private:
 
 
 CCVertex::CCVertex(fhicl::ParameterSet const & p)
-// :
+: EDFilter(p)
 // Initialize member data here.
 {
   produces< std::vector< recob::Vertex > >();

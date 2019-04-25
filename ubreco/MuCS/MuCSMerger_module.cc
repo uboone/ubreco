@@ -104,7 +104,8 @@ void MuCSMerger::reconfigure( fhicl::ParameterSet const &p ){
   return;
 }
 
-MuCSMerger::MuCSMerger( fhicl::ParameterSet const &pset ){
+MuCSMerger::MuCSMerger( fhicl::ParameterSet const &pset )
+: EDProducer(pset) {
   this->reconfigure( pset );
   produces< std::vector<MuCS::MuCSData> >();  
 }

@@ -79,7 +79,7 @@ private:
 
 
 ClusterMatcher::ClusterMatcher(fhicl::ParameterSet const & pset)
-// :
+: EDProducer(pset)
 // Initialize member data here.
 {
 

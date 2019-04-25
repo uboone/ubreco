@@ -8,7 +8,7 @@
 //#include "ubreco/Database/TPCEnergyCalib/TPCEnergyCalibProvider.h"
 
 #include "TTree.h"
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 
 /**
    \class dedxModule : ShowerRecoModuleBase
