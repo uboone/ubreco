@@ -57,7 +57,7 @@ physics:
     pandoraEventAnalyser:      @local::pandora_event_analyser
  }
 
- prod: [ pandoraAllOutcomesTrack, pandoraAllOutcomesShower, pandoraFlashEventBuilding ]
+ prod: [pandoraFlashEventBuilding]
  ana: [pandoraEventAnalyser]
 
  stream1:   [ out1 ]
