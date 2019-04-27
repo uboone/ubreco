@@ -158,7 +158,6 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
     for (unsigned int sliceIndex = 0; sliceIndex < sliceCandidates.size(); ++sliceIndex)
     {
         auto &sliceCandidate(sliceCandidates.at(sliceIndex));
-        std::cout << "Slice: " << sliceIndex << std::endl;
         // Apply the pre-selection cuts to ensure that the slice is compatible with the beam flash
         if (!sliceCandidate.IsCompatibleWithBeamFlash(beamFlash, m_maxDeltaY, m_maxDeltaZ, m_maxDeltaYSigma, m_maxDeltaZSigma,
                                                       m_minChargeToLightRatio, m_maxChargeToLightRatio))
@@ -182,18 +181,11 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
 
         bestFlashMatchSliceIndex = sliceIndex;
         minScore = score;
-        std::cout << "End of this slice: " << sliceIndex << std::endl;
     }
     if (!foundViableSlice)
         throw FailureMode("None of the slices passed the pre-selection cuts");
 
     sliceCandidates.at(bestFlashMatchSliceIndex).m_hasBestFlashMatchScore = true;
-
-
-    // DEBUGGING
-    for( uint i=0; i<32; ++i){
-        std::cout << i << "\tPE:\t" << beamFlash.m_peSpectrum.at(i) << "\tHypo:\t" << sliceCandidates.at(bestFlashMatchSliceIndex).m_peHypothesisSpectrum.at(i) << std::endl;
-    }
 
     if (!foundHighestTopoligicalScore)
         bestCombinedSliceIndex = bestFlashMatchSliceIndex;
@@ -394,7 +386,6 @@ FlashNeutrinoId::FlashCandidate::FlashCandidate(const art::Event &event, const r
     uint nOpDets(geometry->NOpDets());
     m_peSpectrum.resize(nOpDets);
 
-    //std::cout << "Original flash PE: " << flash.TotalPE() << std::endl;
     for (uint OpChannel = 0; OpChannel < nOpDets; ++OpChannel)
     {
         auto oldch = pmtremap_provider.OriginalOpChannel(OpChannel);

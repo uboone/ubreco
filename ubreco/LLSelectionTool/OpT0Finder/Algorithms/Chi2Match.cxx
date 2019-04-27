@@ -87,8 +87,8 @@ double Chi2Match::Chi2(const Flash_t &hypothesis,
                        const Flash_t &measurement)
 {
 
-  std::cout << "Hypothesis PE: " << std::accumulate(hypothesis.pe_v.begin(), hypothesis.pe_v.end(), 0.f) << std::endl;
-  std::cout << "Flash PE: " << std::accumulate(measurement.pe_v.begin(), measurement.pe_v.end(), 0.f) << std::endl;
+  //std::cout << "Hypothesis PE: " << std::accumulate(hypothesis.pe_v.begin(), hypothesis.pe_v.end(), 0.f) << std::endl;
+  //std::cout << "Flash PE: " << std::accumulate(measurement.pe_v.begin(), measurement.pe_v.end(), 0.f) << std::endl;
   double nvalid_pmt = 0;
 
   double PEtot_Hyp = 0;
@@ -110,7 +110,7 @@ double Chi2Match::Chi2(const Flash_t &hypothesis,
     O = measurement.pe_v[pmt_index]; // observation
     H = hypothesis.pe_v[pmt_index];  // hypothesis
 
-    std::cout << "\t\t O : " << O << "\t H : " << H << std::endl;
+    //std::cout << "\t\t O : " << O << "\t H : " << H << std::endl;
 
     if (H < 0)
       throw OpT0FinderException("Cannot have hypothesis value < 0!");
@@ -135,7 +135,7 @@ double Chi2Match::Chi2(const Flash_t &hypothesis,
 
   _current_chi2 /= nvalid_pmt;
 
-  std::cout << "Chi2 final : " << _current_chi2 << " with " << nvalid_pmt << std::endl;
+  // std::cout << "Chi2 final : " << _current_chi2 << " with " << nvalid_pmt << std::endl;
 
   return _current_chi2;
 }

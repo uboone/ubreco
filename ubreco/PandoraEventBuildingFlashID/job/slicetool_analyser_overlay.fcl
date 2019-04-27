@@ -1,0 +1,66 @@
+#include "slicetool_analyser_common.fcl"
+#include "microboone_crtreco.fcl"
+#include "microboone_crthitcorr.fcl"
+
+physics:
+{
+
+ producers:
+ {
+    # SliceID
+    pandoraFlashEventBuilding: @local::pandoraFlashEventBuilding
+    
+    # CRT reco
+    crtsimhitcorr: @local::crtsimhitcorr_filter
+    crthitcorr: @local::crtdatahitcorr
+    crttzero: @local::crttzero
+    trackmatch: @local::t0recocrthit_data
+ }
+ 
+ analyzers: 
+ {
+    nueCCAnalyser:      @local::nuecc_analyser
+ }
+
+ prod: [crtsimhitcorr, 
+        crthitcorr, 
+        crttzero, 
+        trackmatch, 
+        pandoraFlashEventBuilding]
+        
+ ana:  [nueCCAnalyser]
+
+ stream1:   [ out1 ]
+ trigger_paths: [ prod ]
+ end_paths: [ ana ]
+
+}
+
+# this hit modifier acts only on data hits, and make the alignment corrections to the position
+# and cam apply a higher threshold if requested 
+physics.producers.crthitcorr.CrtHitsIn_Label1: "crtsimhitcorr"
+physics.producers.crthitcorr.CorrectAlignment: true
+physics.producers.crthitcorr.StripThreshold: 0.0
+physics.producers.crthitcorr.SiPMThreshold: 0.0
+physics.producers.crthitcorr.HitThreshold: 0.0
+#
+# this filter only acts on the simulated CRT hits, which need a higher threshold
+physics.producers.crtsimhitcorr.HitThreshold: 0.0
+physics.producers.crtsimhitcorr.StripThreshold: 5.0
+physics.producers.crtsimhitcorr.SiPMThreshold: 0.0
+physics.producers.crtsimhitcorr.PEscaleFactor: -1.0 #-1.0 means skip this (or use 1.0)
+physics.producers.crtsimhitcorr.CrtHitsIn_Label: "mixer"
+physics.producers.crtsimhitcorr.RemoveBottomHits: true
+#
+physics.producers.crttzero.data_label: "crthitcorr"
+#
+physics.producers.trackmatch.MatchCutTop: 40
+physics.producers.trackmatch.MatchCut: 25
+physics.producers.trackmatch.data_label_TPCtrack: "pandoraAllOutcomesTrack"
+physics.producers.trackmatch.data_label_CRThit: "crthitcorr"
+physics.producers.trackmatch.data_label_CRTtzero: "crttzero"
+
+physics.producers.pandoraFlashEventBuilding.SliceIdTool.BeamWindowStartTime: 3.57
+physics.producers.pandoraFlashEventBuilding.SliceIdTool.BeamWindowEndTime:   5.25
+physics.producers.pandoraFlashEventBuilding.SliceIdTool.HasMCNeutrino:       true 
+physics.producers.pandoraFlashEventBuilding.SliceIdTool.FlashMatchConfig.PhotonLibHypothesis.CCVCorrection: [0.318 ,0.296 ,0.342 ,0.312 ,0.311 ,0.341 ,0.330 ,0.329 ,0.319 ,0.320 ,0.307 ,0.323 ,0.327 ,0.324 ,0.341 ,0.312 ,0.317 ,0.322 ,0.322 ,0.327 ,0.353 ,0.321 ,0.302 ,0.321 ,0.285 ,0.599 ,0.289 ,0.290 ,0.197 ,0.287 ,0.268 ,0.194]
