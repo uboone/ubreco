@@ -36,6 +36,9 @@ void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
             // Find the slice - if any that matches best with the beamFlash
             bestSliceIndex = this->GetBestSliceIndex(beamFlash, sliceCandidates);
             slices.at(bestSliceIndex).TagAsTarget();
+
+            // Obvious-Cosmic Beam-Flash Matching
+            GetBestObviousCosmicMatch(evt, beamFlash);
         }
         else
         {
@@ -107,6 +110,8 @@ FlashNeutrinoId::FlashCandidate &FlashNeutrinoId::GetBeamFlash(FlashCandidateVec
     auto &brightestFlash(flashCandidates.at(brightestFlashIndex));
     brightestFlash.m_isBrightestInWindow = true;
 
+    std::cout << "Flash PE: " << brightestFlash.m_totalPE << std::endl;
+
     if (!brightestFlash.PassesPEThreshold(m_minBeamFlashPE))
         throw FailureMode("No flashes in the beam window passed the PE threshold");
 
@@ -129,18 +134,26 @@ void FlashNeutrinoId::GetSliceCandidates(const art::Event &event, SliceVector &s
     // Collect the PFParticles and their associations to SpacePoints and Hits
     PFParticleVector pfParticles;
     SpacePointVector spacePoints;
+    TrackVector pftracks;
     SpacePointsToHits spacePointToHitMap;
     PFParticleMap pfParticleMap;
+    PFParticlesToTracks particlesToTracks;
 
     PFParticlesToSpacePoints pfParticleToSpacePointMap;
     LArPandoraHelper::CollectPFParticles(event, m_pandoraLabel, pfParticles, pfParticleToSpacePointMap);
     LArPandoraHelper::CollectSpacePoints(event, m_pandoraLabel, spacePoints, spacePointToHitMap);
     LArPandoraHelper::BuildPFParticleMap(pfParticles, pfParticleMap);
+    LArPandoraHelper::CollectTracks(event, "pandoraAllOutcomesTrack", pftracks, particlesToTracks);
+
+    art::Handle<std::vector<recob::Track>> track_h;
+    event.getByLabel("pandoraAllOutcomesTrack", track_h);
+    const art::FindMany<anab::T0> trk_t0_assn_v(track_h, event, "trackmatch");
 
     for (unsigned int sliceIndex = 0; sliceIndex < slices.size(); ++sliceIndex)
     {
         const auto &slice = slices[sliceIndex];
-        sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1);
+        sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, particlesToTracks,
+                                     trk_t0_assn_v, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1);
     }
 }
 
@@ -198,7 +211,7 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
         sliceCandidates.at(bestCombinedSliceIndex).m_targetMethod = 2;
     m_outputEvent.m_foundATargetSlice = true;
     m_outputEvent.m_targetSliceMethod = sliceCandidates.at(bestCombinedSliceIndex).m_targetMethod;
-    std::cout << "[FlashNeutrinoId] Slice with index " << bestCombinedSliceIndex << " is tagged as neutrino. Method: " << m_outputEvent.m_targetSliceMethod << std::endl;
+    std::cout << "[FlashNeutrinoId] Slice with index " << bestCombinedSliceIndex << " is tagged as neutrino. Method: " << m_outputEvent.m_targetSliceMethod << ", ch2: " << sliceCandidates.at(bestCombinedSliceIndex).m_flashMatchScore << std::endl;
     return bestCombinedSliceIndex;
 }
 
@@ -391,7 +404,15 @@ FlashNeutrinoId::FlashCandidate::FlashCandidate(const art::Event &event, const r
         auto oldch = pmtremap_provider.OriginalOpChannel(OpChannel);
         auto gain = gain_provider.Gain(oldch);
         uint opdet = geometry->OpDetFromOpChannel(OpChannel);
-        m_peSpectrum[opdet] = flash.PEs().at(OpChannel) * 120 / gain * PMTch_correction.at(OpChannel);
+
+        if (gain != 0)
+        {
+            m_peSpectrum[opdet] = flash.PEs().at(OpChannel) * 120 / gain * PMTch_correction.at(OpChannel);
+        }
+        else
+        {
+            m_peSpectrum[opdet] = 0;
+        }
     }
 
     GetFlashLocation();
@@ -491,7 +512,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate() : m_sliceId(-std::numeric_limi
                                                     m_centerX(-std::numeric_limits<float>::max()),
                                                     m_centerY(-std::numeric_limits<float>::max()),
                                                     m_centerZ(-std::numeric_limits<float>::max()),
-                                                    m_minX(-std::numeric_limits<float>::max()),
+                                                    m_minCRTdist(std::numeric_limits<float>::max()),
+                                                    m_CRTtime(-std::numeric_limits<float>::max()),
                                                     m_deltaY(-std::numeric_limits<float>::max()),
                                                     m_deltaZ(-std::numeric_limits<float>::max()),
                                                     m_deltaYSigma(-std::numeric_limits<float>::max()),
@@ -526,7 +548,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
                                                                                                m_centerX(-std::numeric_limits<float>::max()),
                                                                                                m_centerY(-std::numeric_limits<float>::max()),
                                                                                                m_centerZ(-std::numeric_limits<float>::max()),
-                                                                                               m_minX(-std::numeric_limits<float>::max()),
+                                                                                               m_minCRTdist(std::numeric_limits<float>::max()),
+                                                                                               m_CRTtime(-std::numeric_limits<float>::max()),
                                                                                                m_deltaY(-std::numeric_limits<float>::max()),
                                                                                                m_deltaZ(-std::numeric_limits<float>::max()),
                                                                                                m_deltaYSigma(-std::numeric_limits<float>::max()),
@@ -552,6 +575,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 
 FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                                                 const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
+                                                const PFParticlesToTracks &particlesToTracks, const art::FindMany<anab::T0> &trk_t0_assn_v,
                                                 const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId) : m_sliceId(sliceId),
                                                                                                                                                                  m_run(event.run()),
                                                                                                                                                                  m_subRun(event.subRun()),
@@ -563,7 +587,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
                                                                                                                                                                  m_centerX(-std::numeric_limits<float>::max()),
                                                                                                                                                                  m_centerY(-std::numeric_limits<float>::max()),
                                                                                                                                                                  m_centerZ(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_minX(-std::numeric_limits<float>::max()),
+                                                                                                                                                                 m_minCRTdist(std::numeric_limits<float>::max()),
+                                                                                                                                                                 m_CRTtime(-std::numeric_limits<float>::max()),
                                                                                                                                                                  m_deltaY(-std::numeric_limits<float>::max()),
                                                                                                                                                                  m_deltaZ(-std::numeric_limits<float>::max()),
                                                                                                                                                                  m_deltaYSigma(-std::numeric_limits<float>::max()),
@@ -597,7 +622,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
     m_centerY = chargeCenter.GetY();
     m_centerZ = chargeCenter.GetZ();
 
-    m_minX = this->GetMinimumXPosition(chargeDeposition);
+    this->GetClosestCRTCosmic(slice.GetCosmicRayHypothesis(), event, particlesToTracks, trk_t0_assn_v);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -710,14 +735,29 @@ float FlashNeutrinoId::SliceCandidate::GetTotalCharge(const DepositionVector &de
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-float FlashNeutrinoId::SliceCandidate::GetMinimumXPosition(const DepositionVector &depositionVector) const
+void FlashNeutrinoId::SliceCandidate::GetClosestCRTCosmic(const PFParticleVector &parentPFParticles, const art::Event &event,
+                                                          const PFParticlesToTracks &particlesToTracks, const art::FindMany<anab::T0> &trk_t0_assn_v)
 {
-    float minX(std::numeric_limits<float>::max());
-
-    for (const auto &chargePoint : depositionVector)
-        minX = std::min(chargePoint.m_x, minX);
-
-    return minX;
+    for (const art::Ptr<recob::PFParticle> pfp : parentPFParticles)
+    {
+        if (LArPandoraHelper::IsTrack(pfp))
+        {
+            const art::Ptr<recob::Track> this_track = particlesToTracks.at(pfp).front();
+            const std::vector<const anab::T0 *> &T0_v = trk_t0_assn_v.at(this_track.key());
+            if (T0_v.size() == 1)
+            {
+                std::cout << "CRT-track-match found with dca: " << T0_v.front()->TriggerConfidence();
+                std::cout << "\tTime: " << T0_v.front()->Time();
+                std::cout << "\tPlane: " << T0_v.front()->TriggerBits() << std::endl;
+                if (T0_v.front()->TriggerConfidence() < m_minCRTdist)
+                {
+                    m_minCRTdist = T0_v.front()->TriggerConfidence();
+                    m_CRTplane = T0_v.front()->TriggerBits();
+                    m_CRTtime = T0_v.front()->Time();
+                }
+            }
+        }
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -814,6 +854,100 @@ float FlashNeutrinoId::SliceCandidate::GetFlashMatchScore(const FlashCandidate &
         m_peHypothesisSpectrum.push_back(static_cast<float>(hypo_pe));
 
     return m_flashMatchScore;
+}
+
+void FlashNeutrinoId::GetBestObviousCosmicMatch(const art::Event &event, const FlashCandidate &beamFlash)
+{
+    float bestCosmicMatch = -1;
+    std::vector<float> cosmicMatchHypothesis = {};
+    std::cout << "Cosmic matching: Collecting Obvious Cosmics" << std::endl;
+
+    PFParticleVector pfParticles;
+    PFParticlesToMetadata particlesToMetadata;
+    SpacePointVector spacePoints;
+    SpacePointsToHits spacePointToHitMap;
+    PFParticleMap pfParticleMap;
+    PFParticlesToSpacePoints pfParticleToSpacePointMap;
+    LArPandoraHelper::CollectPFParticles(event, m_pandoraLabel, pfParticles, pfParticleToSpacePointMap);
+    LArPandoraHelper::CollectSpacePoints(event, m_pandoraLabel, spacePoints, spacePointToHitMap);
+    LArPandoraHelper::BuildPFParticleMap(pfParticles, pfParticleMap);
+    LArPandoraHelper::CollectPFParticleMetadata(event, m_pandoraLabel, pfParticles, particlesToMetadata);
+
+    m_flashMatchManager.Reset();
+    // Convert the flash and the charge cluster into the required format for flash matching
+    auto flash(beamFlash.ConvertFlashFormat());
+    // Perform the match
+    m_flashMatchManager.Emplace(std::move(flash));
+
+    for (const art::Ptr<recob::PFParticle> &pfp : pfParticles)
+    {
+        MetadataVector pfp_metadata_vec = particlesToMetadata.at(pfp);
+        const larpandoraobj::PFParticleMetadata::PropertiesMap &pfp_properties = pfp_metadata_vec.front()->GetPropertiesMap();
+
+        if (pfp_properties.count("IsClearCosmic"))
+        {
+            if (pfp_properties.at("IsClearCosmic") && pfp->IsPrimary())
+            {
+                PFParticleVector downstreamPFParticles;
+                CollectDownstreamPFParticles(pfParticleMap, pfp, downstreamPFParticles);
+                flashana::QCluster_t lightCluster;
+                for (const auto &particle : downstreamPFParticles)
+                {
+                    // Get the associated spacepoints
+                    const auto &partToSpacePointIter(pfParticleToSpacePointMap.find(particle));
+                    if (partToSpacePointIter == pfParticleToSpacePointMap.end())
+                        continue;
+
+                    for (const auto &spacePoint : partToSpacePointIter->second)
+                    {
+                        // Get the associated hit
+                        const auto &spacePointToHitIter(spacePointToHitMap.find(spacePoint));
+                        if (spacePointToHitIter == spacePointToHitMap.end())
+                            continue;
+
+                        // Only use hits from the collection plane
+                        const auto &hit(spacePointToHitIter->second);
+                        if (hit->View() != geo::kZ)
+                            continue;
+
+                        // Add the charged point to the vector
+                        const auto &position(spacePoint->XYZ());
+                        const auto charge(hit->Integral());
+                        lightCluster.emplace_back(position[0], position[1], position[2], charge * (LArPandoraHelper::IsTrack(particle) ? m_chargeToNPhotonsTrack : m_chargeToNPhotonsShower));
+                        m_flashMatchManager.Emplace(std::move(lightCluster));
+                    }
+                }
+            }
+        }
+    }
+
+    const auto matches(m_flashMatchManager.Match());
+    if (!matches.empty())
+    {
+        const auto match(matches.back());
+        bestCosmicMatch = match.score;
+        for (auto hypo_pe : match.hypothesis)
+            cosmicMatchHypothesis.push_back(static_cast<float>(hypo_pe));
+    }
+    std::cout << "[FlashNeutrinoId] Chi2 best matching cosmic: " << matches.back().score << "\tworst match: " << matches.front().score << std::endl;
+    m_outputEvent.m_bestCosmicMatch = bestCosmicMatch;
+    m_outputEvent.m_cosmicMatchHypothesis = cosmicMatchHypothesis;
+}
+
+void FlashNeutrinoId::CollectDownstreamPFParticles(const PFParticleMap &pfParticleMap, const art::Ptr<recob::PFParticle> &particle,
+                                                   PFParticleVector &downstreamPFParticles) const
+{
+    if (std::find(downstreamPFParticles.begin(), downstreamPFParticles.end(), particle) == downstreamPFParticles.end())
+        downstreamPFParticles.push_back(particle);
+
+    for (const auto &daughterId : particle->Daughters())
+    {
+        const auto iter(pfParticleMap.find(daughterId));
+        if (iter == pfParticleMap.end())
+            throw cet::exception("FlashNeutrinoId") << "Scrambled PFParticle IDs" << std::endl;
+
+        this->CollectDownstreamPFParticles(pfParticleMap, iter->second, downstreamPFParticles);
+    }
 }
 
 } // namespace lar_pandora

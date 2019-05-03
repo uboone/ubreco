@@ -5,7 +5,7 @@ pandora_event_analyser :
     module_type: "PandoraEventAnalyser"
 
     # Input producers
-    PFPproducer:              "pandoraFlashEventBuilding"
+    PFPproducer:              "pandoraSliceId"
 }
 
 END_PROLOG
@@ -67,7 +67,7 @@ services.SpaceCharge.EnableSimSpatialSCE: true
 services.DetectorClocksService.InheritClockConfig:                         false
 services.DetectorClocksService.TriggerOffsetTPC:                          -0.400e3
 
-process_name: NueCCAnalyser
+process_name: SliceIdAnalyser
 
 source:
 {
