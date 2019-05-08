@@ -33,12 +33,12 @@ void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
         this->IdentifySliceWithBestTopologicalScore(sliceCandidates);
         if (m_outputEvent.m_hasBeamFlash)
         {
+            //// WOUTER: If in this sequence, cosmci mtching will always run, if turned around, cosmic matching will only run if event is selected.
+            // Obvious-Cosmic Beam-Flash Matching
+            GetBestObviousCosmicMatch(evt, beamFlash);
             // Find the slice - if any that matches best with the beamFlash
             bestSliceIndex = this->GetBestSliceIndex(beamFlash, sliceCandidates);
             slices.at(bestSliceIndex).TagAsTarget();
-
-            // Obvious-Cosmic Beam-Flash Matching
-            GetBestObviousCosmicMatch(evt, beamFlash);
         }
         else
         {
@@ -127,7 +127,6 @@ FlashNeutrinoId::FlashCandidate &FlashNeutrinoId::GetBeamFlash(FlashCandidateVec
 void FlashNeutrinoId::GetSliceCandidates(const art::Event &event, SliceVector &slices, SliceCandidateVector &sliceCandidates)
 {
     m_outputEvent.m_nSlices = slices.size();
-
     if (slices.empty())
         throw FailureMode("No slices to choose from");
 
@@ -144,16 +143,23 @@ void FlashNeutrinoId::GetSliceCandidates(const art::Event &event, SliceVector &s
     LArPandoraHelper::CollectSpacePoints(event, m_pandoraLabel, spacePoints, spacePointToHitMap);
     LArPandoraHelper::BuildPFParticleMap(pfParticles, pfParticleMap);
     LArPandoraHelper::CollectTracks(event, "pandoraAllOutcomesTrack", pftracks, particlesToTracks);
-
     art::Handle<std::vector<recob::Track>> track_h;
     event.getByLabel("pandoraAllOutcomesTrack", track_h);
-    const art::FindMany<anab::T0> trk_t0_assn_v(track_h, event, "trackmatch");
 
     for (unsigned int sliceIndex = 0; sliceIndex < slices.size(); ++sliceIndex)
     {
         const auto &slice = slices[sliceIndex];
-        sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, particlesToTracks,
-                                     trk_t0_assn_v, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1);
+        if (m_hasCRT)
+        {
+            const art::FindMany<anab::T0> trk_t0_assn_v(track_h, event, "trackmatch");
+            sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, particlesToTracks,
+                                         trk_t0_assn_v, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1);
+        }
+        else
+        {
+            sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, particlesToTracks,
+                                         m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1);
+        }
     }
 }
 
@@ -175,7 +181,7 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
         if (!sliceCandidate.IsCompatibleWithBeamFlash(beamFlash, m_maxDeltaY, m_maxDeltaZ, m_maxDeltaYSigma, m_maxDeltaZSigma,
                                                       m_minChargeToLightRatio, m_maxChargeToLightRatio))
         {
-            // TEMP: this line guarantees that the score is availible for every slice!
+            //// WOUTER: This line guarantees that the score is availible for every slice!
             sliceCandidate.GetFlashMatchScore(beamFlash, m_flashMatchManager);
             continue;
         }
@@ -575,7 +581,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 
 FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                                                 const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
-                                                const PFParticlesToTracks &particlesToTracks, const art::FindMany<anab::T0> &trk_t0_assn_v,
+                                                const PFParticlesToTracks &particlesToTracks,
                                                 const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId) : m_sliceId(sliceId),
                                                                                                                                                                  m_run(event.run()),
                                                                                                                                                                  m_subRun(event.subRun()),
@@ -621,8 +627,22 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
     m_centerX = chargeCenter.GetX();
     m_centerY = chargeCenter.GetY();
     m_centerZ = chargeCenter.GetZ();
+}
 
-    this->GetClosestCRTCosmic(slice.GetCosmicRayHypothesis(), event, particlesToTracks, trk_t0_assn_v);
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
+                                                const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
+                                                const PFParticlesToTracks &particlesToTracks, const art::FindMany<anab::T0> &trk_t0_assn_v,
+                                                const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId) : FlashNeutrinoId::SliceCandidate::SliceCandidate(event, slice, pfParticleMap,
+                                                                                                                                                                                                                 pfParticleToSpacePointMap, spacePointToHitMap,
+                                                                                                                                                                                                                 particlesToTracks, chargeToNPhotonsTrack, chargeToNPhotonsShower, xclCoef, sliceId)
+
+{
+    if (trk_t0_assn_v.size() != 0)
+    {
+        this->GetClosestCRTCosmic(slice.GetCosmicRayHypothesis(), event, particlesToTracks, trk_t0_assn_v);
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -742,18 +762,21 @@ void FlashNeutrinoId::SliceCandidate::GetClosestCRTCosmic(const PFParticleVector
     {
         if (LArPandoraHelper::IsTrack(pfp))
         {
-            const art::Ptr<recob::Track> this_track = particlesToTracks.at(pfp).front();
-            const std::vector<const anab::T0 *> &T0_v = trk_t0_assn_v.at(this_track.key());
-            if (T0_v.size() == 1)
+            if (particlesToTracks.count(pfp))
             {
-                std::cout << "CRT-track-match found with dca: " << T0_v.front()->TriggerConfidence();
-                std::cout << "\tTime: " << T0_v.front()->Time();
-                std::cout << "\tPlane: " << T0_v.front()->TriggerBits() << std::endl;
-                if (T0_v.front()->TriggerConfidence() < m_minCRTdist)
+                const art::Ptr<recob::Track> this_track = particlesToTracks.at(pfp).front();
+                const std::vector<const anab::T0 *> &T0_v = trk_t0_assn_v.at(this_track.key());
+                if (T0_v.size() == 1)
                 {
-                    m_minCRTdist = T0_v.front()->TriggerConfidence();
-                    m_CRTplane = T0_v.front()->TriggerBits();
-                    m_CRTtime = T0_v.front()->Time();
+                    std::cout << "CRT-track-match found with dca: " << T0_v.front()->TriggerConfidence();
+                    std::cout << "\tTime: " << T0_v.front()->Time();
+                    std::cout << "\tPlane: " << T0_v.front()->TriggerBits() << std::endl;
+                    if (T0_v.front()->TriggerConfidence() < m_minCRTdist)
+                    {
+                        m_minCRTdist = T0_v.front()->TriggerConfidence();
+                        m_CRTplane = T0_v.front()->TriggerBits();
+                        m_CRTtime = T0_v.front()->Time();
+                    }
                 }
             }
         }
@@ -843,7 +866,6 @@ float FlashNeutrinoId::SliceCandidate::GetFlashMatchScore(const FlashCandidate &
     const auto match(matches.front());
 
     m_flashMatchScore = match.score;
-    m_flashMatchX = match.tpc_point.x;
     m_totalPEHypothesis = std::accumulate(match.hypothesis.begin(), match.hypothesis.end(), 0.f);
 
     // Fill the slice with the hypothesized PE spectrum
@@ -860,7 +882,6 @@ void FlashNeutrinoId::GetBestObviousCosmicMatch(const art::Event &event, const F
 {
     float bestCosmicMatch = -1;
     std::vector<float> cosmicMatchHypothesis = {};
-    std::cout << "Cosmic matching: Collecting Obvious Cosmics" << std::endl;
 
     PFParticleVector pfParticles;
     PFParticlesToMetadata particlesToMetadata;
