@@ -35,7 +35,7 @@ maxEvents:   -1
 services: {
 
 scheduler:               { defaultExceptions: false }    # Make all uncaught exceptions fatal.
-TFileService: { fileName: "ClusterTrackDistance.root" }
+TFileService: { fileName: "ClusterTrackDistance_hist.root" }
 @table::microboone_services_reco
 #@table::microboone_simulation_services
 #TPCEnergyCalibService:         @local::microboone_tpcenergycalib_service
@@ -111,7 +111,7 @@ gamma3d: {
 module_type: "Gamma3D"
 TwoDcutY: 15.
 TwoDcutUV: 5.
-deltaYcut: 5.
+deltaYcut: 1.
 mctrack_tag:   "mcreco"
 recotrack_tag : "pandora"
 cluster_tag : "gaushitproximity"

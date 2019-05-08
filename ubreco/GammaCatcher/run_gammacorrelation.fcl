@@ -12,7 +12,8 @@ sps_tag: "gamma3d"
 hit_tag : "gaushit"
 cluster_tag: "gaushitproximity"
 MCTproducer: "generator"
-IsData: false
+IsData: true
+recotrack_tag: "pandora"
 }
 
 END_PROLOG

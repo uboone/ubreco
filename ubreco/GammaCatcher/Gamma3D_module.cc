@@ -85,6 +85,10 @@ private:
   Double_t Y_reco=0.0;
   Double_t Z_reco=0.0;
 
+  Double_t X_reco_nu=0.0;
+  Double_t Y_reco_nu=0.0;
+  Double_t Z_reco_nu=0.0;
+
   Double_t X_reco3d=0.0;
   Double_t Y_reco3d=0.0;
   Double_t Z_reco3d=0.0;
@@ -92,6 +96,8 @@ private:
 
   Double_t cluster_hit_z=0.0;
   Double_t cluster_hit_x=0.0;
+  Double_t cluster_hit_z_nu=0.0;
+  Double_t cluster_hit_x_nu=0.0;
 
   // Double_t Y_cluster_hit_z=0.0;
   // Double_t Y_cluster_hit_x=0.0;
@@ -106,13 +112,23 @@ private:
   Double_t Y_reco_best=0.0;
   Double_t Z_reco_best=0.0;
 
+  Double_t X_reco_best_nu=0.0;
+  Double_t Y_reco_best_nu=0.0;
+  Double_t Z_reco_best_nu=0.0;
+
+  Double_t track_point_length=0.0;
+  Double_t track_point_length_smallest=0.0;
+
   Double_t X_reco_best3d=0.0;
   Double_t Y_reco_best3d=0.0;
   Double_t Z_reco_best3d=0.0;
 
 
 
+
+
   Double_t pointdistance=0;
+  Double_t pointdistance_nu=0;
 
   Double_t pointdistance3d=0;
 
@@ -129,6 +145,9 @@ private:
   Double_t X_reco_smallest=0;
   Double_t Z_reco_smallest=0;
 
+  Double_t X_reco_smallest_nu=0;
+  Double_t Z_reco_smallest_nu=0;
+
   Double_t X_reco_smallest3dV=0;
   Double_t Z_reco_smallest3dV=0;
   Double_t Y_reco_smallest3dV=0;
@@ -142,6 +161,8 @@ private:
   Double_t Y_reco_smallest3d=0;
 
   Double_t pointdistance_smallest;
+  Double_t pointdistance_smallest_nu;
+
   Double_t pointdistance_smallestV;
   Double_t pointdistance_smallestU;
 
@@ -149,7 +170,7 @@ private:
   Double_t distance_smallestV;
   Double_t distance_smallestU;
   Double_t distance_smallest;
-
+  Double_t distance_smallest_nu;
   Double_t Y_charge;
   Double_t V_charge;
   Double_t U_charge;
@@ -184,7 +205,7 @@ private:
   std::vector<Int_t> Y_U_index;
   std::vector<Int_t> Y_V_index;
 
-  // std::vector<UInt_t> Nu_track_index;
+
 
 
 
@@ -223,7 +244,6 @@ private:
   TTree *Clustertree;
 
   TTree *Matchingtree;
-
 
 
 
@@ -357,29 +377,108 @@ return;
 */
 
 
-
-
+// std::cout<<"size_cluster: "<<cluster_handle->size()<<std::endl;
+// std::cout<<"size_track: "<<recotrack_handle->size()<<std::endl;
 
 for (size_t i_c = 0, size_cluster = cluster_handle->size(); i_c != size_cluster; ++i_c) { //start cluster FOR loop for calculating 2-D distance
 
-
+  // std::cout<<"Cluster # "<<i_c<<std::endl;
 
   distance_smallest=1e10; //Variable for 2D distance between a cluster and nearest reco track, initialized to a large number for comparison
+  distance_smallest_nu=1e10;
 
-
-  auto hits = clus_hit_assn_v.at(i_c);
+  // auto hits = clus_hit_assn_v.at(i_c);
 
 
 
 
   for (size_t i_t = 0, size_track = recotrack_handle->size(); i_t != size_track; ++i_t) {//START RECO TRACK FOR LOOP
 
-
+    auto hits = clus_hit_assn_v.at(i_c);
     auto const& track = recotrack_handle->at(i_t);
-    if ( (sqrt((pow(nuvtx.position().x()-track.Start().X(),2))+(pow(nuvtx.position().y()-track.Start().Y(),2))+ (pow(nuvtx.position().z()-track.Start().Z(),2))) <5.0) ||  (sqrt((pow(nuvtx.position().x()-track.End().X(),2))+(pow(nuvtx.position().y()-track.End().Y(),2))+ (pow(nuvtx.position().z()-track.End().Z(),2)))<5.0))
-    continue;
+
+    //Neutrino Correlated Tracks See the cone+cylinder cut
+    if ( (sqrt((pow(nuvtx.position().x()-track.Start().X(),2))+(pow(nuvtx.position().y()-track.Start().Y(),2))+ (pow(nuvtx.position().z()-track.Start().Z(),2))) <5.0) ||  (sqrt((pow(nuvtx.position().x()-track.End().X(),2))+(pow(nuvtx.position().y()-track.End().Y(),2))+ (pow(nuvtx.position().z()-track.End().Z(),2)))<5.0)){
+
+      // auto tracklength=track.Length();
+
+      // std::cout<<"Neutrino Track Length: "<<tracklength<<std::endl;
+
+      pointdistance_smallest_nu=1e10;
+
+      track_point_length=0.0;
+      for(size_t m=0;m<(track.NumberTrajectoryPoints());m++){//START RECO POINT LOOP
+
+        X_reco_nu=track.LocationAtPoint(m).X();
+        Y_reco_nu=track.LocationAtPoint(m).Y();
+        Z_reco_nu=track.LocationAtPoint(m).Z();
+
+        // track_point_length= sqrt((pow(X_reco_nu-track.Start().X(),2))+(pow(Y_reco_nu-track.Start().Y(),2))+ (pow(Z_reco_nu-track.Start().Z(),2)));
+
+
+        auto const* geom = ::lar::providerFrom<geo::Geometry>();
+        auto V_wire_cm_nu = geom->WireCoordinate(Y_reco_nu,Z_reco_nu,geo::PlaneID(0,0,1)) * wire2cm;
+
+        auto V_time_cm_nu = X_reco_nu;
+
+        auto U_wire_cm_nu = geom->WireCoordinate(Y_reco_nu,Z_reco_nu,geo::PlaneID(0,0,0)) * wire2cm;
+
+        auto U_time_cm_nu = X_reco_nu;
+
+        for (auto const& hit : hits) {//START CLUSTER HIT LOOP
+          cluster_hit_z_nu = hit->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
+          cluster_hit_x_nu = (hit->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
+
+
+          if(cluster[i_c].View()==2){
+            // plane=2;
+            pointdistance_nu=sqrt((pow(cluster_hit_z_nu-Z_reco_nu,2))+(pow(cluster_hit_x_nu-X_reco_nu,2)));
+
+          }
+          if (cluster[i_c].View()==1){
+            // plane=1;
+
+            pointdistance_nu=sqrt((pow(cluster_hit_z_nu-V_wire_cm_nu,2))+(pow(cluster_hit_x_nu-V_time_cm_nu,2)));
+          }
+
+          if (cluster[i_c].View()==0){
+            // plane=0;
+            pointdistance_nu=sqrt((pow(cluster_hit_z_nu-U_wire_cm_nu,2))+(pow(cluster_hit_x_nu-U_time_cm_nu,2)));
+          }
+
+          if(pointdistance_nu<pointdistance_smallest_nu){//comparison IF loop
+
+            pointdistance_smallest_nu=pointdistance_nu;
+
+            X_reco_smallest_nu=X_reco_nu;
+            Z_reco_smallest_nu=Z_reco_nu;
+            track_point_length= sqrt((pow(X_reco_nu-nuvtx.position().x(),2))+(pow(Y_reco_nu-nuvtx.position().y(),2))+ (pow(Z_reco_nu-nuvtx.position().z(),2)));
+          }
+
+        }//END CLUSTER HIT LOOP
+
+
+
+
+      }//END RECO POINT LOOP
+
+
+      if(pointdistance_smallest_nu<distance_smallest_nu){
+        distance_smallest_nu=pointdistance_smallest_nu;
+        track_point_length_smallest=track_point_length;
+        X_reco_best_nu=X_reco_smallest_nu; //variables for the coordinates of the nearest reco track
+        Z_reco_best_nu=Z_reco_smallest_nu; //variables for the coordinates of the nearest reco track
+      }
+
+      // std::cout<<"distance_smallest_nu: "<<distance_smallest_nu<<std::endl;
+      // std::cout<<"track_point_length_smallest: "<<track_point_length_smallest<<std::endl;
+
+    }//END neutrino correlated tracks IF Loop
+
+
 
     pointdistance_smallest=1e10;////Variable for distance between a cluster hit and a reco track point, initialized to a large number for comparison
+
     for(size_t m=0;m<(track.NumberTrajectoryPoints());m++){//START RECO POINT LOOP
 
 
@@ -432,15 +531,15 @@ for (size_t i_c = 0, size_cluster = cluster_handle->size(); i_c != size_cluster;
 
 
 
-
     }//END RECO POINT LOOP
 
-
+    // std::cout<<"distance_nu_smallest: "<<distance_nu_smallest<<std::endl;
     if(pointdistance_smallest<distance_smallest){
       distance_smallest=pointdistance_smallest;
       X_reco_best=X_reco_smallest; //variables for the coordinates of the nearest reco track
       Z_reco_best=Z_reco_smallest; //variables for the coordinates of the nearest reco track
     }
+
 
   }//END RECO TRACK FOR LOOP
 
@@ -455,7 +554,7 @@ for (size_t i_c = 0, size_cluster = cluster_handle->size(); i_c != size_cluster;
 
 
 
-  if(cluster[i_c].View()==2 && distance_smallest > f2DcutY ){// IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+  if(cluster[i_c].View()==2 && (distance_smallest > f2DcutY || (distance_smallest_nu > 5.0 && track_point_length_smallest>4.0 ) || (distance_smallest_nu > (5.0*track_point_length_smallest/4.0) && track_point_length_smallest<4.0 )  )) {// IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
 
 
     Start_Cluster2.push_back((cluster[i_c].StartTick ())-3.0);//added +- 3.0 time tick tolerances
@@ -464,7 +563,7 @@ for (size_t i_c = 0, size_cluster = cluster_handle->size(); i_c != size_cluster;
     Y_index_vector.push_back(i_c); //Y Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
   }
 
-  if(cluster[i_c].View()==1 && distance_smallest>f2DcutUV){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+  if(cluster[i_c].View()==1 && (distance_smallest > f2DcutUV )){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
 
 
     Start_Cluster1.push_back((cluster[i_c].StartTick ())-3.0);
@@ -472,7 +571,7 @@ for (size_t i_c = 0, size_cluster = cluster_handle->size(); i_c != size_cluster;
     V_index_vector.push_back(i_c);//V Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
   }
 
-  if(cluster[i_c].View()==0 && distance_smallest>f2DcutUV){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+  if(cluster[i_c].View()==0 && (distance_smallest > f2DcutUV )){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
 
 
     Start_Cluster0.push_back((cluster[i_c].StartTick ())-3.0);
@@ -505,7 +604,7 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
   Y_V_index.clear();
   Y_U_index.clear();
 
-  Int_t Y_Match_Ev_Index=-45;
+  Int_t Y_Match_Ev_Index=-45;//Resetting the indexes to random -ve integers
   Int_t U_Match_Ev_Index=-46;
   Int_t V_Match_Ev_Index=-47;
 
@@ -583,7 +682,6 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
     geo::WireIDIntersection clusterintersectionV;
     auto Vintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitj[0]->WireID(),clusterintersectionV);
 
-
     if (Vintersect==0)
     continue;
 
@@ -602,7 +700,9 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
       Y_V_index.push_back(j);
       IoU_V.push_back(V_iou);
       y_V.push_back(clusterintersectionV.y);
-
+      // std::cout<<"Y Cluster hit wire: "<<hiti[0]->WireID()<<std::endl;
+      // std::cout<<"V Cluster hit wire: "<<hitj[0]->WireID()<<std::endl;
+      // std::cout<<"V Intersect: "<<Vintersect<<std::endl;
 
     }
 
@@ -655,7 +755,6 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
 
     auto Uintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitk[0]->WireID(),clusterintersectionU);//
 
-
     if (Uintersect==0)
     continue;
 
@@ -674,6 +773,9 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
       Y_U_index.push_back(k);
       IoU_U.push_back(U_iou);
       y_U.push_back(clusterintersectionU.y);
+      // std::cout<<"Y Cluster hit wire: "<<hiti[0]->WireID()<<std::endl;
+      // std::cout<<"U Cluster hit wire: "<<hitk[0]->WireID()<<std::endl;
+      // std::cout<<"U Intersect: "<<Uintersect<<std::endl;
     }
 
   }//END U-INDUCTION PLANE FOR LOOP
@@ -774,6 +876,9 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
     YV_iou=IoU_V.at(0);
 
     deltaY=y_V.at(0)-y_U.at(0);
+    // std::cout<<"Y-Coordinate from V-Plane"<<y_V.at(0)<<std::endl;
+    // std::cout<<"Y-Coordinate from U-Plane"<<y_U.at(0)<<std::endl;
+    // std::cout<<"Delta Y: "<<deltaY<<std::endl;
 
     if (abs(deltaY)< fdeltaY){
       auto avg=0.5*(y_V.at(0)+y_U.at(0));
