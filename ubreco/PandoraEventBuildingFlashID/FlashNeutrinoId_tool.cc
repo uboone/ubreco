@@ -44,8 +44,14 @@ void FlashNeutrinoId::GetOrderedOpDetVector(fhicl::ParameterSet const &pset)
 
 void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
 {
+  
+  std::cout << "The number of slices in the event = " << slices.size() << "." << std::endl;
+
+
     // Reset the output addresses in case we are writing monitoring details to an output file
     m_outputEvent.Reset(evt);
+    
+    std::cout << "Confirmation that we are using my version of the flash-matching." << std::endl;
 
     FlashCandidateVector flashCandidates;
     SliceCandidateVector sliceCandidates;
@@ -68,7 +74,7 @@ void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
         if (m_outputEvent.m_hasBeamFlash)
         {
             // Find the slice - if any that matches best with the beamFlash
-            bestSliceIndex = this->GetBestSliceIndex(beamFlash, sliceCandidates);
+	    bestSliceIndex = this->GetBestSliceIndex(beamFlash, sliceCandidates);
             slices.at(bestSliceIndex).TagAsTarget();
         }
         else
@@ -120,12 +126,20 @@ FlashNeutrinoId::FlashCandidate &FlashNeutrinoId::GetBeamFlash(FlashCandidateVec
         // ATTN non const reference is required since monitoring variables are stored in the slice candidate
         auto &flashCandidate(flashCandidates.at(flashIndex));
 
+	//std::cout << "m_beamWindowStart = " << m_beamWindowStart << " us." << std::endl;
+	//std::cout << "m_beamWindowEnd = " << m_beamWindowEnd << " us." << std::endl;
+	std::cout << "maxTotalPE = " << maxTotalPE << " PEs." << std::endl;
+	
+	std::cout << "Flash Time = " << flashCandidate.m_time << " us." << std::endl;
+	std::cout << "Flash Total PE = " << flashCandidate.m_totalPE << " PEs." << std::endl;
+
         if (!flashCandidate.IsInBeamWindow(m_beamWindowStart, m_beamWindowEnd))
             continue;
 
         m_outputEvent.m_nFlashesInBeamWindow++;
 
         const auto totalPE(flashCandidate.m_totalPE);
+
         if (totalPE < maxTotalPE)
             continue;
 
@@ -136,6 +150,8 @@ FlashNeutrinoId::FlashCandidate &FlashNeutrinoId::GetBeamFlash(FlashCandidateVec
 
     if (!foundFlashInBeamWindow)
         throw FailureMode("There were no flashes in the beam window");
+
+    //std::cout << "Making it below the 'FailureMode' statement in 'GetBeamFlash'." << std::endl;
 
     // Ensure it is sufficiently bright
     auto &brightestFlash(flashCandidates.at(brightestFlashIndex));
@@ -168,6 +184,10 @@ void FlashNeutrinoId::GetSliceCandidates(const art::Event &event, SliceVector &s
 
     PFParticlesToSpacePoints pfParticleToSpacePointMap;
     LArPandoraHelper::CollectPFParticles(event, m_pandoraLabel, pfParticles, pfParticleToSpacePointMap);
+
+    std::cout << "The number of PFParticles in this event = " << pfParticles.size() << "." << std::endl;
+    std::cout << "m_pandoraLabel = " << m_pandoraLabel << "." << std::endl;
+
     LArPandoraHelper::CollectSpacePoints(event, m_pandoraLabel, spacePoints, spacePointToHitMap);
     LArPandoraHelper::BuildPFParticleMap(pfParticles, pfParticleMap);
 
@@ -192,6 +212,10 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
     for (unsigned int sliceIndex = 0; sliceIndex < sliceCandidates.size(); ++sliceIndex)
     {
         auto &sliceCandidate(sliceCandidates.at(sliceIndex));
+
+	if ( !sliceCandidate.m_HasAllTracksLessThan40cm ) 
+	  continue;
+	
         // Apply the pre-selection cuts to ensure that the slice is compatible with the beam flash
         if (!sliceCandidate.IsCompatibleWithBeamFlash(beamFlash, m_maxDeltaY, m_maxDeltaZ, m_maxDeltaYSigma, m_maxDeltaZSigma,
                                                       m_minChargeToLightRatio, m_maxChargeToLightRatio))
@@ -292,6 +316,8 @@ void FlashNeutrinoId::FillSliceTree(const art::Event &evt, const SliceVector &sl
         if (slices.size() != sliceMetadata.size())
             throw cet::exception("FlashNeutrinoId") << "The number of slice metadata doesn't match the number of slices" << std::endl;
     }
+
+    std::cout << "The number of slices in the event = " << slices.size() << "." << std::endl;
 
     // Output the info for each slice
     for (unsigned int sliceIndex = 0; sliceIndex < slices.size(); ++sliceIndex)
@@ -426,7 +452,11 @@ FlashNeutrinoId::FlashCandidate::FlashCandidate(const art::Event &event, const r
 
 bool FlashNeutrinoId::FlashCandidate::IsInBeamWindow(const float beamWindowStart, const float beamWindowEnd)
 {
-    m_inBeamWindow = (m_time > beamWindowStart && m_time < beamWindowEnd);
+    m_inBeamWindow = ( m_time > beamWindowStart && m_time < beamWindowEnd );
+    std::cout << "beamWindowStart = " << beamWindowStart << " us." << std::endl;
+    std::cout << "beamWindowEnd = " << beamWindowEnd << " us." << std::endl;
+    std::cout << "m_time = " << m_time << " us." << std::endl;
+    std::cout << "m_time is in beam window? " << m_inBeamWindow << std::endl;
     return m_inBeamWindow;
 }
 
@@ -505,7 +535,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate() : m_sliceId(-std::numeric_limi
                                                     m_hasBestFlashMatchScore(false),
                                                     m_chargeToNPhotonsTrack(-std::numeric_limits<float>::max()),
                                                     m_chargeToNPhotonsShower(-std::numeric_limits<float>::max()),
-                                                    m_xclCoef(-std::numeric_limits<float>::max())
+                                                    m_xclCoef(-std::numeric_limits<float>::max()),
+						    m_HasAllTracksLessThan40cm(true)
 {
 }
 
@@ -540,7 +571,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
                                                                                                m_hasBestFlashMatchScore(false),
                                                                                                m_chargeToNPhotonsTrack(-std::numeric_limits<float>::max()),
                                                                                                m_chargeToNPhotonsShower(-std::numeric_limits<float>::max()),
-                                                                                               m_xclCoef(-std::numeric_limits<float>::max())
+                                                                                               m_xclCoef(-std::numeric_limits<float>::max()),
+											       m_HasAllTracksLessThan40cm(true)
 {
 }
 
@@ -577,7 +609,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
                                                                                                                                                                  m_hasBestFlashMatchScore(false),
                                                                                                                                                                  m_chargeToNPhotonsTrack(chargeToNPhotonsTrack),
                                                                                                                                                                  m_chargeToNPhotonsShower(chargeToNPhotonsShower),
-                                                                                                                                                                 m_xclCoef(xclCoef)
+                                                                                                                                                                 m_xclCoef(xclCoef), 
+																				 m_HasAllTracksLessThan40cm(true)
 
 {
     const auto chargeDeposition(this->GetDepositionVector(pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, slice));
@@ -594,6 +627,77 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
     m_centerZ = chargeCenter.GetZ();
 
     m_minX = this->GetMinimumXPosition(chargeDeposition);
+
+    //std::cout << "At the top of all of the new code in the SliceCandidate constructor." << std::endl;
+
+    // Affirm that this is true at this point in the function.
+    m_HasAllTracksLessThan40cm = true;
+
+    // Set the value of if it has all tracks less than 40 cm in this function. (already true, set it to false if that is not the case.)
+    // Do the same thing that is done at the top of the 'GetDepositionVector' function: use the 'CollectDownstreamPFParticles' function.
+    PFParticleVector allParticlesInSlice;
+    this->CollectDownstreamPFParticles( pfParticleMap, slice.GetTargetHypothesis(), allParticlesInSlice );
+
+    std::cout << "The number of particles in the slice under the neutrino hypothesis = " << allParticlesInSlice.size() << "." << std::endl;
+
+    PFParticleVector allParticlesInSlice_CosmicHypothesis;
+    this->CollectDownstreamPFParticles(pfParticleMap, slice.GetCosmicRayHypothesis(), allParticlesInSlice_CosmicHypothesis );
+
+    std::cout << "The number of particles in the slice under the cosmic hypothesis = " << allParticlesInSlice_CosmicHypothesis.size() << "." << std::endl;
+
+    //std::cout << "Above the 'CollectTracks' function in the SliceCandidate constructor." << std::endl;
+    
+    lar_pandora::TrackVector trackVector; // This vector will (tentatively) go unused.
+    lar_pandora::PFParticlesToTracks particlesToTracks;
+    // Use print statements to verify that this does, indeed, contain all of the particles in the slice.
+    // Find tracks that are associated to the PFParticles in this slice.
+    LArPandoraHelper::CollectTracks( event, "pandoraAllOutcomesTrack", trackVector, particlesToTracks );
+
+    //std::cout << "At the top of the loop over all of the PFParticles in the slice." << std::endl;
+
+    // Loop through the vector of PFParticles to find the associated track to each one.
+    for ( size_t pfparticle_pointer_iter = 0; pfparticle_pointer_iter < allParticlesInSlice.size(); pfparticle_pointer_iter++ ) {
+
+      art::Ptr<recob::PFParticle> pfparticle = allParticlesInSlice.at( pfparticle_pointer_iter );
+
+      //std::cout << "At the top of using the 'particlesToTracks' function." << std::endl;
+
+      // Do it just like it is done within the 'GetPrimaryTrack' function of 'LArPandoraHelper'. 
+      PFParticlesToTracks::const_iterator tIter = particlesToTracks.find( pfparticle );
+
+      //std::cout << "At the bottom of using the 'particlesToTracks' function." << std::endl;
+      
+      if (particlesToTracks.end() == tIter || tIter->second.empty()) {
+	//std::cout << "FlashNeutrinoId::SliceCandidate Constructor --- Failed to find associated track.  Continuing!" << std::endl;
+	continue;
+      }
+
+      //if (tIter->second.size() > 1) {
+	//std::cout << "FlashNeutrinoId::SliceCandidate Constructor --- Found more than one associated track.  Will loop through them all!" << std::endl;
+      //}
+
+      //std::cout << "At the bottom of using all of the exceptions associated with the 'particlesToTracks' function." << std::endl;
+
+      const TrackVector &associatedTrackVector = tIter->second;
+
+      if ( associatedTrackVector.empty() )
+	continue;
+
+      // Loop through the track vector to find if even one track is greater than 40 cm.
+      for (TrackVector::const_iterator tIter2 = associatedTrackVector.begin(), tIterEnd2 = associatedTrackVector.end(); tIter2 != tIterEnd2; ++tIter2)
+        {
+	  const art::Ptr<recob::Track> track = *tIter2;
+	  const float trackLength(track->Length());
+
+	  if ( trackLength > 40.0 ) 
+	    m_HasAllTracksLessThan40cm = false;
+
+	}
+
+    } // End of loop over all of the PFParticles in the slice.
+    
+    //std::cout << "At the bottom of all of the new code in the SliceCandidate constructor." << std::endl;
+
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
