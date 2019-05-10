@@ -1,3 +1,7 @@
+#include "pandoramodules_microboone.fcl"
+#include "external_event_building.fcl"
+#include "flash_neutrino_id.fcl"
+
 BEGIN_PROLOG
 
 pandora_event_analyser :
@@ -8,18 +12,6 @@ pandora_event_analyser :
     PFPproducer:              "pandoraSliceId"
 }
 
-END_PROLOG
-
-
-###################################################################################
-
-
-#include "pandoramodules_microboone.fcl"
-#include "external_event_building.fcl"
-#include "flash_neutrino_id.fcl"
-
-BEGIN_PROLOG
-
 # Flash neutrino ID tool - Use optical information only to select the neutrino slice
 pandora_flash_event_building: @local::pandora_event_building
 pandora_flash_event_building.SliceIdTool: @local::flash_neutrino_id_tool
@@ -27,9 +19,10 @@ pandora_flash_event_building.ShouldUseTestBeamMode: false
 pandora_flash_event_building.ShouldOutputSubrunsTree: true
 pandora_flash_event_building.IsData: false
 pandora_flash_event_building.GeneratorLabel: "generator"
+pandora_flash_event_building.SliceIdTool.HasCRT: true
 #pandora_flash_event_building.SliceIdTool.FlashLabel: "wcopflash:beam"
 pandora_flash_event_building.SliceIdTool.FlashLabel: "simpleFlashBeam"
-pandoraFlashEventBuilding:     @local::pandora_flash_event_building
+
 
 END_PROLOG
 
@@ -43,7 +36,7 @@ END_PROLOG
 services:
 {
   scheduler:               {defaultExceptions: false}
-  TFileService:            {fileName: "flashID_tree.root"}
+  TFileService:            {fileName: "SliceID_tree.root"}
 
   @table::microboone_services_reco
   @table::microboone_simulation_services
