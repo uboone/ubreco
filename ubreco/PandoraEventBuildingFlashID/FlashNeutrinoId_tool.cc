@@ -783,6 +783,326 @@ void FlashNeutrinoId::SliceCandidate::GetClosestCRTCosmic(const PFParticleVector
     }
 }
 
+
+//------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
+
+void FlashNeutrinoId::SliceCandidate::ACPTtagger(const PFParticleVector &parentPFParticles, const art::Event &event,
+						 const PFParticlesToTracks &particlesToTracks) 
+{
+
+  // collect OpHits
+  std::vector<art::Ptr<recob::OpHit>> ophit_v;
+  if (m_verbose) { std::cout << "Loading ophits from producer " << _ophit_producer << std::endl; }
+  art::Handle<std::vector<recob::OpHit>> ophit_h;
+  e.getByLabel(_ophit_producer, ophit_h);
+  ophit_v.clear();
+  art::fill_ptr_vector(ophit_v, ophit_h);
+
+  // is the slice cosmic?
+  bool isCosmic = false;
+  
+  for (const art::Ptr<recob::PFParticle> pfp : parentPFParticles)
+    {
+      if (LArPandoraHelper::IsTrack(pfp))
+        {
+	  if (particlesToTracks.count(pfp))
+            {
+	      const art::Ptr<recob::Track> this_track = particlesToTracks.at(pfp).front();
+	      
+	      float y_up = -9999;
+	      float y_dn = -9999;
+	      
+	      // Will store sorted points for the object [assuming downwards going]
+	      // The first vector is to consider end points estimated via different methods
+	      // (spacepoints, hits, tracks). The second vector has length==2, and
+	      // contains the start and end points of the track
+	      std::vector<TVector3>  sorted_pts;
+	      sorted_pts.clear();
+	      
+	      if (this_track->Length() < _min_track_length) continue;   
+	      this->SortTrackPoints(*this_track, sorted_pts);
+	      if (sorted_pts.size() >= 2) {
+		_trk_len.emplace_back(this_track->Length());
+		_trk_x_up.emplace_back(pts[0].X());
+		_trk_x_down.emplace_back(pts[sorted_pts.size()-1].X());
+		double z_center = pts[0].Z();
+		z_center += pts[sorted_pts.size()-1].Z();
+		z_center /= 2.;
+		_trk_z_center.emplace_back(z_center);
+		
+		TVector3 start = pts[0];
+		TVector3 end = pts[sorted_pts.size()-1];
+		sorted_pts.clear();
+		sorted_pts.resize(2);
+		sorted_pts.at(0) = start;
+		sorted_pts.at(1) = end;
+		y_up = sorted_pts.at(0).Y();
+		y_dn = sorted_pts.at(1).Y();
+		sorted_points_v.emplace_back(pts); 
+	      }// if more then two points
+	      
+	      // can this track be a viable ACPT candidate?
+	      // reconstruct the track time assuming it hits the anode/cathode
+	      
+	      
+	      // check if track is compatible with OpHits
+	      if (y_up != -9999 && y_dn != -9999) {
+		double dt_ophits = this->GetClosestDt_OpHits(sorted_pts, y_up, y_dn);
+		if (m_verbose) std::cout << "[ACPTTagger] \t dt_ophits is " << dt_ophits << std::endl;
+		if (dt_ophits != -9999 && dt_ophits < _dt_resolution_ophit) {
+		  isCosmic = true;
+		  if (m_verbose) std::cout << "[ACPTTagger] \t ===> Tagged! (ophit)" << std::endl;
+		}
+		
+	      }
+	      
+	      float cosmicScore = 0;
+	      if (isCosmic) {
+		cosmicScore = 1;
+	      }
+		
+	      if(m_verbose) std::cout << "Cosmic score is: " << cosmicScore << std::endl << std::endl;
+    
+	    }// if there is  track associated to this PFP
+	}// if this is a track
+    }// for all PFParticles
+}// ACPT tagging
+
+
+//------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
+
+void FlashNeutrinoId::SliceCandidate::SortTrackPoints(const recob::Track& track, std::vector<TVector3>& sorted_points) {
+  
+  // vector to store 3D coordinates of
+  // ordered track                              
+  sorted_points.clear();
+  
+  // take the reconstructed 3D track
+  // and assuming it is downwards
+  // going, sort points so that
+  // the track starts at the top
+  // which point is further up in Y coord?
+  // start or end?                                                                                                                 
+  auto const&N     = track.CountValidPoints();
+  auto const&start = track.Vertex();
+  auto const&end   = track.End();
+  
+  if (m_verbose) {
+    std::cout << "[ACPTTagger] \t Track start " << start.X() << " " << start.Y() << " " << start.Z() << std::endl;
+    std::cout << "[ACPTTagger] \t Track end   " << end.X() << " " << end.Y() << " " << end.Z() << std::endl;
+  }
+  
+  // if points are ordered correctly                                                                                                                                       
+  if (start.Y() > end.Y()){
+    for (size_t i=0; i < N; i++)
+      sorted_points.push_back( track.NextValidPoint<TVector3>(i) );
+  }
+  
+  // otherwise flip order                                                                                                                                                 
+  else {
+    if (m_verbose) std::cout << "[ACPTTagger] \t\t These two points will be flipped" << std::endl;
+    for (size_t i=0; i < N; i++)
+      sorted_points.push_back( track.NextValidPoint<TVector3>( N - i - 1) );
+  }
+}
+
+
+//------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
+
+float FlashNeutrinoId::SliceCandidate::GetClosestDt_OpHits(std::vector<TVector3> & sorted_points, double y_up, double y_down) {
+
+  double flash_time_anode_u = sorted_points.at(0).X() / _drift_vel - _anodeTime;
+  double flash_time_anode_d = sorted_points.at(sorted_points.size()-1).X() / _drift_vel - _anodeTime;
+  double flash_time_cathode_u = sorted_points.at(0).X() / _drift_vel - _cathodeTime;
+  double flash_time_cathode_d = sorted_points.at(sorted_points.size()-1).X() / _drift_vel - _cathodeTime;
+
+  if (m_verbose) {
+    std::cout << "[ACPTTagger] >>> Using OpHits." << std::endl;
+    std::cout << "[ACPTTagger] \t Estimated times we will be looking for: " 
+              << "\t flash_time_anode_u: " << flash_time_anode_u 
+              << "\t flash_time_anode_d: " << flash_time_anode_d 
+              << "\t flash_time_cathode_u: " << flash_time_cathode_u 
+              << "\t flash_time_cathode_d: " << flash_time_cathode_d << std::endl;
+  }
+
+  double trk_z_start = sorted_points.at(0).Z();
+  double trk_z_end = sorted_points.at(sorted_points.size()-1).Z();
+
+  if (trk_z_start > trk_z_end)
+    std::swap(trk_z_start, trk_z_end);
+
+  bool sign = this->GetSign(sorted_points);
+  if (m_verbose) std::cout << "[ACPTTagger] \t Sign is " << (sign ? "positive." : "negative.") << std::endl;
+
+  if (m_verbose) std::cout << "[ACPTTagger] \t y_up = " << y_up << ", y_down = " << y_down << std::endl;
+  bool upper_det = this->IsInUpperDet(y_up);
+  bool lower_det = this->IsInLowerDet(y_down);
+
+  std::vector<double> dt_v;
+  dt_v.clear();
+
+  if (sign && upper_det){
+    if (m_verbose) std::cout << "[ACPTTagger] \t Looking at cathode-down" << std::endl;
+    dt_v.emplace_back(this->RunOpHitFinder(flash_time_cathode_d, trk_z_start, trk_z_end));
+  }
+  if (sign && lower_det){
+    if (m_verbose) std::cout << "[ACPTTagger] \t Looking at anode-up" << std::endl;
+    dt_v.emplace_back(this->RunOpHitFinder(flash_time_anode_u, trk_z_start, trk_z_end));
+  }
+  if (!sign && upper_det){
+    if (m_verbose) std::cout << "[ACPTTagger] \t Looking at anode-down" << std::endl;
+    dt_v.emplace_back(this->RunOpHitFinder(flash_time_anode_d, trk_z_start, trk_z_end));
+  }
+  if (!sign && lower_det){
+    if (m_verbose) std::cout << "[ACPTTagger] \t Looking at cathode-up" << std::endl;
+    dt_v.emplace_back(this->RunOpHitFinder(flash_time_cathode_u, trk_z_start, trk_z_end));
+  }
+
+
+  double min_dt = 1e9;
+  bool min_dt_found = false;
+  for (auto dt : dt_v) {
+    if (dt == -9999) continue;
+    if (dt < min_dt) {
+      min_dt = dt;
+      min_dt_found = true;
+    }
+  }
+
+  if (m_verbose && min_dt_found) std::cout << "[ACPTTagger] \t Found dt min from OpHits, dt min is " << min_dt << std::endl;
+
+  if (min_dt_found)
+    return min_dt;
+  else 
+    return -9999;
+
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
+
+bool FlashNeutrinoId::SliceCandidate::GetSign(std::vector<TVector3> sorted_points)
+{
+
+  double t_down = sorted_points[sorted_points.size()-1].X();
+  double t_up = sorted_points[0].X();
+
+  bool is_positive = (t_down - t_up) > 0.;
+
+  return is_positive;
+
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
+
+bool FlashNeutrinoId::SliceCandidate::IsInUpperDet(double y_up) 
+{
+
+  if (y_up > geo->DetHalfHeight() - _UP) {
+    return true;
+  }
+
+  return false;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
+
+bool FlashNeutrinoId::SliceCandidate::IsInLowerDet(double y_down) 
+{
+
+  if (y_down < -geo->DetHalfHeight() + _DOWN) {
+    return true;
+  }
+
+  return false;
+}
+
+
+
+//------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
+
+float FlashNeutrinoId::SliceCandidate::RunOpHitFinder(double the_time, double trk_z_start, double trk_z_end, const std::vector<art::Ptr<recob::OpHit>> ophit_v) {
+
+  ::art::ServiceHandle<geo::Geometry> geo;
+
+  if (m_verbose) {
+    std::cout << "[ACPTTagger] \t _ophit_time_res is " << _ophit_time_res << std::endl;
+    std::cout << "[ACPTTagger] \t _ophit_pos_res is " << _ophit_pos_res << std::endl;
+    std::cout << "[ACPTTagger] \t _n_ophit is " << _n_ophit << std::endl;
+    std::cout << "[ACPTTagger] \t _ophit_pe is " << _ophit_pe << std::endl;
+  }
+
+  std::vector<double> ophit_sel_time;
+  std::vector<double> ophit_sel_pe;
+
+  ophit_sel_time.clear();
+  ophit_sel_pe.clear();
+
+  for (auto oh : ophit_v) {
+
+    double time_diff = std::abs(oh->PeakTime() - the_time);
+
+    if (!geo->IsValidOpChannel(oh->OpChannel())) continue;
+    if (oh->OpChannel() < 200 || oh->OpChannel() > 231) continue;
+
+    size_t opdet = geo->OpDetFromOpChannel(oh->OpChannel());
+
+    double pmt_xyz[3] = {-9999, -9999, -9999};
+    geo->OpDetGeoFromOpChannel(oh->OpChannel()).GetCenter(pmt_xyz);
+    double pmt_z = pmt_xyz[2];
+
+    double dz = 1e9;
+    if (pmt_z > trk_z_start && pmt_z < trk_z_end) {
+      dz = 0.;
+    } else {
+      if (pmt_z < trk_z_start)
+        dz = std::abs(pmt_z - trk_z_start);
+      if (pmt_z > trk_z_end)
+        dz = std::abs(pmt_z - trk_z_end);
+    }
+
+    auto ophitPE = oh->Area();
+ 
+    if(time_diff < m_ophit_time_res && dz < m_ophit_pos_res) {
+      if (m_verbose) std::cout << "[ACPTTagger] \t\t Found ophit, time is " << oh->PeakTime() 
+                            << ", pmt_z is " << pmt_z 
+                            << ", dz is " << dz 
+                            << ", opchannel is " << oh->OpChannel()
+                            << ", PE is " << ophitPE << std::endl;
+
+      ophit_sel_time.emplace_back(oh->PeakTime());
+      ophit_sel_pe.emplace_back(ophitPE);
+    }
+    
+  }
+
+  if (ophit_sel_time.size() < _n_ophit) {
+    if (m_verbose) std::cout << "[ACPTTagger] \t Not enough ophits" << std::endl;
+    return -9999;
+  }
+  
+  double total_pe = std::accumulate(ophit_sel_pe.begin(), ophit_sel_pe.end(), 0.);
+  
+  if (total_pe < _ophit_pe) {
+    if (m_verbose) std::cout << "[ACPTTagger] \t Not enough pe" << std::endl;
+    return -9999;
+  }
+  
+  // Calculate and return average time
+  double time_average = 0.;
+  for (size_t i = 0; i < ophit_sel_time.size(); i++) {
+    time_average += ophit_sel_time.at(i) * ophit_sel_pe.at(i);
+  }
+  time_average /= total_pe;
+  
+  if (m_verbose) std::cout << "[ACPTTagger] \t time_average: " << time_average << ", the_time: " << the_time << std::endl;
+  
+  return std::abs(time_average - the_time);
+  
+
+}
+
+
+
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 flashana::QCluster_t FlashNeutrinoId::SliceCandidate::GetLightCluster(const DepositionVector &depositionVector) const

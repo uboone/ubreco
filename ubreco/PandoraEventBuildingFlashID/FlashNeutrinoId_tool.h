@@ -15,6 +15,7 @@
 #include "ubevt/Utilities/PMTRemapService.h"
 #include "ubevt/Utilities/PMTRemapProvider.h"
 
+#include "lardataobj/RecoBase/OpHit.h"
 #include "lardataobj/RecoBase/OpFlash.h"
 #include "lardataobj/RecoBase/PFParticle.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
@@ -159,10 +160,10 @@ class FlashNeutrinoId : SliceIdBaseTool
           bool PassesPEThreshold(const float minBeamFlashPE) const;
 
           /**
-         *  @breif  Convert to a flashana::Flash_t
-         *
-         *  @return the flashana::Flash_t
-         */
+	   *  @breif  Convert to a flashana::Flash_t
+	   *
+	   *  @return the flashana::Flash_t
+	   */
           flashana::Flash_t ConvertFlashFormat() const;
 
           // Features of the flash are used when writing to file is enabled
@@ -347,6 +348,31 @@ class FlashNeutrinoId : SliceIdBaseTool
           void GetClosestCRTCosmic(const PFParticleVector &parentPFParticles, const art::Event &event,
                                    const PFParticlesToTracks &particlesToTracks, const art::FindMany<anab::T0> &trk_t0_assn_v);
 
+
+	  // DAVIDC
+          /**
+	   *  @brief  tag ACPT tracks using geometry and hit timing
+	   */
+          void ACPTtagger(const PFParticleVector &parentPFParticles, const art::Event &event,
+			  const PFParticlesToTracks &particlesToTracks);
+
+	  // DAVIDC
+	  /**
+	   * @brief sort track points based on up -> down
+	   */
+	  void SortTrackPoints(const recob::Track& track, std::vector<TVector3>& sorted_points);
+
+	  // DAVIDC
+	  /**
+	   * @brief given a track find the DT to the closest ophit
+	   */
+	  float GetClosestDt_OpHits(std::vector<TVector3> & sorted_points, double y_up, double y_down);
+
+	  bool GetSign(std::vector<TVector3> sorted_points);
+	  bool IsInUpperDet(double y_up);
+	  bool IsInLowerDet(double y_down);
+	  float RunOpHitFinder(double the_time, double trk_z_start, double trk_z_end, const std::vector<art::Ptr<recob::OpHit>> ophit_v);
+	  
           /**
          *  @brief  Convert a charge deposition into a light cluster by applying the chargeToPhotonFactor to every point
          *
