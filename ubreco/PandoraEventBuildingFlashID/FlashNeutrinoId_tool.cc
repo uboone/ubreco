@@ -137,12 +137,14 @@ void FlashNeutrinoId::GetSliceCandidates(const art::Event &event, SliceVector &s
     SpacePointsToHits spacePointToHitMap;
     PFParticleMap pfParticleMap;
     PFParticlesToTracks particlesToTracks;
+    PFParticlesToMetadata particlesToMetadata;
 
     PFParticlesToSpacePoints pfParticleToSpacePointMap;
     LArPandoraHelper::CollectPFParticles(event, m_pandoraLabel, pfParticles, pfParticleToSpacePointMap);
     LArPandoraHelper::CollectSpacePoints(event, m_pandoraLabel, spacePoints, spacePointToHitMap);
     LArPandoraHelper::BuildPFParticleMap(pfParticles, pfParticleMap);
     LArPandoraHelper::CollectTracks(event, "pandoraAllOutcomesTrack", pftracks, particlesToTracks);
+    LArPandoraHelper::CollectPFParticleMetadata(event, m_pandoraLabel, pfParticles, particlesToMetadata);
     art::Handle<std::vector<recob::Track>> track_h;
     event.getByLabel("pandoraAllOutcomesTrack", track_h);
 
@@ -152,7 +154,7 @@ void FlashNeutrinoId::GetSliceCandidates(const art::Event &event, SliceVector &s
         if (m_hasCRT)
         {
             const art::FindMany<anab::T0> trk_t0_assn_v(track_h, event, "trackmatch");
-            sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, particlesToTracks,
+            sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, particlesToTracks, particlesToMetadata,
                                          trk_t0_assn_v, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1);
         }
         else
@@ -633,7 +635,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 
 FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                                                 const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
-                                                const PFParticlesToTracks &particlesToTracks, const art::FindMany<anab::T0> &trk_t0_assn_v,
+                                                const PFParticlesToTracks &particlesToTracks, const PFParticlesToMetadata particlesToMetadata, const art::FindMany<anab::T0> &trk_t0_assn_v,
                                                 const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId) : FlashNeutrinoId::SliceCandidate::SliceCandidate(event, slice, pfParticleMap,
                                                                                                                                                                                                                  pfParticleToSpacePointMap, spacePointToHitMap,
                                                                                                                                                                                                                  particlesToTracks, chargeToNPhotonsTrack, chargeToNPhotonsShower, xclCoef, sliceId)
@@ -641,7 +643,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 {
     if (trk_t0_assn_v.size() != 0)
     {
-        this->GetClosestCRTCosmic(slice.GetCosmicRayHypothesis(), event, particlesToTracks, trk_t0_assn_v);
+        this->GetClosestCRTCosmic(slice.GetCosmicRayHypothesis(), event, particlesToTracks, particlesToMetadata, trk_t0_assn_v);
     }
 }
 
@@ -755,9 +757,12 @@ float FlashNeutrinoId::SliceCandidate::GetTotalCharge(const DepositionVector &de
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void FlashNeutrinoId::SliceCandidate::GetClosestCRTCosmic(const PFParticleVector &parentPFParticles, const art::Event &event,
-                                                          const PFParticlesToTracks &particlesToTracks, const art::FindMany<anab::T0> &trk_t0_assn_v)
+void FlashNeutrinoId::SliceCandidate::GetClosestCRTCosmic(const PFParticleVector &parentPFParticles, const art::Event &event, const PFParticlesToTracks &particlesToTracks,
+                                                          const PFParticlesToMetadata particlesToMetadata, const art::FindMany<anab::T0> &trk_t0_assn_v)
 {
+    m_numcosmictrack = 0;
+    m_minCRTdist = 100; //Initialise on a value higher than we would call a match
+
     for (const art::Ptr<recob::PFParticle> pfp : parentPFParticles)
     {
         if (LArPandoraHelper::IsTrack(pfp))
@@ -765,6 +770,10 @@ void FlashNeutrinoId::SliceCandidate::GetClosestCRTCosmic(const PFParticleVector
             if (particlesToTracks.count(pfp))
             {
                 const art::Ptr<recob::Track> this_track = particlesToTracks.at(pfp).front();
+                if (this_track->Length() > 20)
+                {
+                    m_numcosmictrack++;
+                }
                 const std::vector<const anab::T0 *> &T0_v = trk_t0_assn_v.at(this_track.key());
                 if (T0_v.size() == 1)
                 {
@@ -776,6 +785,12 @@ void FlashNeutrinoId::SliceCandidate::GetClosestCRTCosmic(const PFParticleVector
                         m_minCRTdist = T0_v.front()->TriggerConfidence();
                         m_CRTplane = T0_v.front()->TriggerBits();
                         m_CRTtime = T0_v.front()->Time();
+                        MetadataVector pfp_metadata_vec = particlesToMetadata.at(pfp);
+                        const larpandoraobj::PFParticleMetadata::PropertiesMap &pfp_properties = pfp_metadata_vec.front()->GetPropertiesMap();
+                        if (pfp_properties.count("IsClearCosmic"))
+                        {
+                            m_CRTtrackscore = pfp_properties.at("TrackScore");
+                        }
                     }
                 }
             }
