@@ -373,8 +373,8 @@ class FlashNeutrinoId : SliceIdBaseTool
           float m_minCRTdist;                        ///< The closest CRT tagged track distance under the cosmic hypothesis
           float m_CRTtime;                           ///< The time of the CRT hit matched to a track
           UInt_t m_CRTplane;                         ///< The plane of the CRT hit matched to a track
-          float m_CRTtrackscore;                     ///< The trackscore of the cosmic track that is matched with the CRT
-          float m_numcosmictrack;                    ///< The number of tracks that qualify (>20cm) to be matched with a CRT hit
+          float m_CRTtracklength;                     ///< The tracklength of the cosmic track that is matched with the CRT
+          UInt_t m_numcosmictrack;                    ///< The number of tracks that qualify (>20cm) to be matched with a CRT hit
           float m_deltaY;                            ///< The distance of the slice centroid from the flash centroid in Y
           float m_deltaZ;                            ///< The distance of the slice centroid from the flash centroid in Z
           float m_deltaYSigma;                       ///< deltaY but in units of the flash width in Y
@@ -652,8 +652,8 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) : m_flashLabel
      m_pSliceTree->Branch("minCRTdist", &m_outputSlice.m_minCRTdist, "minCRTdist/F");
      m_pSliceTree->Branch("CRTtime", &m_outputSlice.m_CRTtime, "CRTtime/F");
      m_pSliceTree->Branch("CRTplane", &m_outputSlice.m_CRTplane, "CRTplane/i");
-     m_pSliceTree->Branch("CRTtrackscore", &m_outputSlice.m_CRTtrackscore, "CRTtrackscore/F");
-     m_pSliceTree->Branch("CRTnumtracks", &m_outputSlice.m_numcosmictrack, "CRTnumtracks/F");
+     m_pSliceTree->Branch("CRTtracklength", &m_outputSlice.m_CRTtracklength, "CRTtracklength/F");
+     m_pSliceTree->Branch("CRTnumtracks", &m_outputSlice.m_numcosmictrack, "CRTnumtracks/i");
      m_pSliceTree->Branch("deltaY", &m_outputSlice.m_deltaY, "deltaY/F");
      m_pSliceTree->Branch("deltaZ", &m_outputSlice.m_deltaZ, "deltaZ/F");
      m_pSliceTree->Branch("deltaYSigma", &m_outputSlice.m_deltaYSigma, "deltaYSigma/F");

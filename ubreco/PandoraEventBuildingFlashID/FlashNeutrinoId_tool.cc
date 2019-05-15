@@ -785,12 +785,7 @@ void FlashNeutrinoId::SliceCandidate::GetClosestCRTCosmic(const PFParticleVector
                         m_minCRTdist = T0_v.front()->TriggerConfidence();
                         m_CRTplane = T0_v.front()->TriggerBits();
                         m_CRTtime = T0_v.front()->Time();
-                        MetadataVector pfp_metadata_vec = particlesToMetadata.at(pfp);
-                        const larpandoraobj::PFParticleMetadata::PropertiesMap &pfp_properties = pfp_metadata_vec.front()->GetPropertiesMap();
-                        if (pfp_properties.count("IsClearCosmic"))
-                        {
-                            m_CRTtrackscore = pfp_properties.at("TrackScore");
-                        }
+                        m_CRTtracklength = this_track->Length();
                     }
                 }
             }
