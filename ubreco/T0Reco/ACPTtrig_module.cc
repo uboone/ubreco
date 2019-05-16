@@ -16,13 +16,17 @@
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
+#include "lardata/Utilities/FindManyInChainP.h"
 
 #include <memory>
 
 // data-products
 #include "lardataobj/RecoBase/Track.h"
 #include "lardataobj/RecoBase/OpFlash.h"
+#include "lardataobj/RecoBase/Hit.h"
+#include "lardataobj/RecoBase/PFParticle.h"
 #include "lardataobj/AnalysisBase/T0.h"
+#include "lardataobj/AnalysisBase/Calorimetry.h"
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardataobj/RawData/OpDetWaveform.h"
 
@@ -66,7 +70,7 @@ private:
   double fAnodeMin, fAnodeMax;
   double fYMin, fYMax;
   double fBeamSpillStart, fBeamSpillEnd;
-  std::string fTrackProducer, fFlashProducer, fOpDetWfmProducer, fCRTTagProducer;
+  std::string fTrackProducer, fFlashProducer, fOpDetWfmProducer, fCRTTagProducer, fCaloProducer;
   bool fSaveTree, fSaveWf;
 
   TTree* _tree;
@@ -76,6 +80,20 @@ private:
   float _trk_beg_x_off, _trk_beg_y_off, _trk_beg_z_off;
   float _trk_end_x_off, _trk_end_y_off, _trk_end_z_off;
   float _trk_len; //corrected by SCE
+
+  float _calorimetry_energy_plane_0; float _calorimetry_energy_plane_1; float _calorimetry_energy_plane_2; // float _residualrange; float _dedx;
+  //float _dqdx; float _total_charge;
+  std::vector<float> _residualrange_vector_plane_0;
+  std::vector<float> _residualrange_vector_plane_1;
+  std::vector<float> _residualrange_vector_plane_2;
+  std::vector<float> _dedx_vector_plane_0;
+  std::vector<float> _dedx_vector_plane_1;
+  std::vector<float> _dedx_vector_plane_2;
+
+  float _trk_charge_0;
+  float _trk_charge_1;
+  float _trk_charge_2;
+  
   float _flash_t, _flash_pe, _flash_yw, _flash_yc, _flash_zw, _flash_zc;
   float  _opfilter_pe_beam, _opfilter_pe_beam_tot, _opfilter_pe_veto, _opfilter_pe_veto_tot;
   int _crttag;
@@ -83,6 +101,10 @@ private:
   int    _nflash;
   std::vector<double> _flash_pe_v;
   std::vector<std::vector<short>> _wf_v;
+
+  int _run;
+  int _subrun;
+  int _event;
 
   void ResetTTree();
 
@@ -102,6 +124,7 @@ ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
   fFlashProducer    = p.get<std::string>("FlashProducer");
   fOpDetWfmProducer = p.get<std::string>("OpDetWfmProducer");
   fCRTTagProducer   = p.get<std::string>("CRTTagProducer","");
+  fCaloProducer     = p.get<std::string>("CaloProducer");
   fTrackLenMin      = p.get<double>("TrackLenMin");
   fCathodeMin       = p.get<double>("CathodeMin");
   fCathodeMax       = p.get<double>("CathodeMax");
@@ -118,6 +141,11 @@ ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
 
   art::ServiceHandle<art::TFileService> tfs;
   _tree = tfs->make<TTree>("_tree","ACPT trigger tree");
+  
+  _tree->Branch("_run",&_run, "run/I");
+  _tree->Branch("_subrun",&_subrun, "subrun/I");
+  _tree->Branch("_event", &_event, "event/I");
+
   _tree->Branch("_trk_beg_x",&_trk_beg_x,"trk_beg_x/F");
   _tree->Branch("_trk_beg_y",&_trk_beg_y,"trk_beg_y/F");
   _tree->Branch("_trk_beg_z",&_trk_beg_z,"trk_beg_z/F");
@@ -133,6 +161,26 @@ ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
   _tree->Branch("_trk_end_y_off",&_trk_end_y_off,"trk_end_y_off/F");
   _tree->Branch("_trk_end_z_off",&_trk_end_z_off,"trk_end_z_off/F");
   _tree->Branch("_trk_len",&_trk_len,"trk_len/F");
+
+  _tree->Branch("_calorimetry_energy_plane_0",&_calorimetry_energy_plane_0,"calorimetry_energy_plane_0/F");
+  _tree->Branch("_calorimetry_energy_plane_1",&_calorimetry_energy_plane_1,"calorimetry_energy_plane_1/F");
+  _tree->Branch("_calorimetry_energy_plane_2",&_calorimetry_energy_plane_2,"calorimetry_energy_plane_2/F");
+
+  // _tree->Branch("_residualrange",&_residualrange,"residualrange/F");
+  // _tree->Branch("_dedx",&_dedx,"dedx/F");
+  _tree->Branch("_residualrange_vector_plane_0","std::vector<float>",&_residualrange_vector_plane_0);
+  _tree->Branch("_residualrange_vector_plane_1","std::vector<float>",&_residualrange_vector_plane_1);
+  _tree->Branch("_residualrange_vector_plane_2","std::vector<float>",&_residualrange_vector_plane_2);
+  _tree->Branch("_dedx_vector_plane_0","std::vector<float>",&_dedx_vector_plane_0);
+  _tree->Branch("_dedx_vector_plane_1","std::vector<float>",&_dedx_vector_plane_1);
+  _tree->Branch("_dedx_vector_plane_2","std::vector<float>",&_dedx_vector_plane_2);
+//_tree->Branch("_dqdx",&_dqdx,"dqdx/F");
+  //_tree->Branch("_total_charge",&_total_charge,"total_charge/F");
+
+  _tree->Branch("_trk_charge_0",&_trk_charge_0,"trk_charge_0/F");
+  _tree->Branch("_trk_charge_1",&_trk_charge_1,"trk_charge_1/F");
+  _tree->Branch("_trk_charge_2",&_trk_charge_2,"trk_charge_2/F");
+
   _tree->Branch("_nflash",&_nflash,"nflash/I");
   _tree->Branch("_flash_t",&_flash_t,"flash_t/F");
   _tree->Branch("_flash_pe",&_flash_pe,"flash_pe/F");
@@ -219,6 +267,10 @@ bool ACPTtrig::filter(art::Event& e)
   // SCE service
   ///auto const* sce = lar::providerFrom<spacecharge::SpaceChargeService>();
 
+  //Save run, subrun, event in tree
+  _event  = e.id().event();
+  _run    = e.run();
+  _subrun = e.subRun();
 
   // make sure flash look good
   if(!flash_h.isValid()) {
@@ -258,9 +310,9 @@ bool ACPTtrig::filter(art::Event& e)
     auto const& wf = wf_h->at(w);
     auto ch = wf.ChannelNumber();
     if (ch >= 32) continue;
-    _wf_v[ch] = std::vector<short>(650,0);
-    if (wf.size() > 650) {
-      for (size_t tick=0; tick < 650; tick++) 
+    _wf_v[ch] = std::vector<short>(800,0);
+    if (wf.size() > 800) {
+      for (size_t tick=0; tick < 800; tick++) 
 	_wf_v[ch][tick] = wf[tick];
     }// if long enough waveform
   }// for all waveforms
@@ -274,6 +326,15 @@ bool ACPTtrig::filter(art::Event& e)
     std::cerr<<"\033[93m[ERROR]\033[00m ... could not locate Track!"<<std::endl;
     throw std::exception();
   }
+
+
+  // ADDITION FROM PETRILLO
+  e.getValidHandle<std::vector<recob::PFParticle>>(fTrackProducer);
+  // grab the hits associated to the tracks
+  auto trk_hit_assn_v = lar::FindManyInChainP<recob::Hit, recob::PFParticle>::find(track_h, e, fTrackProducer);
+
+  // grab calo associated to tracks
+  art::FindMany<anab::Calorimetry> trk_calo_assn_v(track_h, e, fCaloProducer); 
 
   // if we are using CRT tagged tracks
   // create map linking track index to CRT hit time
@@ -302,19 +363,13 @@ bool ACPTtrig::filter(art::Event& e)
     auto const& beg = track->Vertex();
     auto const& end = track->End();
 
+
     // is this track associated to a CRT hit?
     if (CRThitMap.find(trkctr - 1) != CRThitMap.end()) {
       _crttag = 1;
       _crtt0 = CRThitMap[ trkctr - 1 ];
     }// found CRT hit
     else { _crttag = 0; }
-    /*
-    _crttag = trk_crttag_assn_v.at( trkctr - 1 ).size();
-    if (_crttag) {
-      auto crttag = trk_crttag_assn_v.at( trkctr - 1 ).at(0);
-      _crtt0 = crttag->Time();
-    }
-    */
 
     // filter out events that do not have a CRT tag if a CRT producer was specified  
     if ( (fCRTTagProducer != "") && (_crttag == 0) )
@@ -355,6 +410,88 @@ bool ACPTtrig::filter(art::Event& e)
     
     // has the track been tagged?
     if (tagged == true) {
+
+      // associated hits
+      const std::vector< art::Ptr<recob::Hit> >& hit_v = trk_hit_assn_v.at(trkctr - 1);
+      _trk_charge_0 = 0.;
+      _trk_charge_1 = 0.;
+      _trk_charge_2 = 0.;
+      for (auto const& hit : hit_v) {
+	  if (hit->WireID().Plane == 0 )
+	    _trk_charge_0 += hit->Integral();
+	  if (hit->WireID().Plane == 1 )
+	    _trk_charge_1 += hit->Integral();
+	  if (hit->WireID().Plane == 2 )
+	    _trk_charge_2 += hit->Integral();
+      }/// for all hits
+
+      //Using Calorimetry information
+      const std::vector<const anab::Calorimetry*>& Calo_v = trk_calo_assn_v.at(trkctr - 1);
+      
+      _residualrange_vector_plane_0.clear();
+      _dedx_vector_plane_0.clear();
+      _residualrange_vector_plane_1.clear();
+      _dedx_vector_plane_1.clear();
+      _residualrange_vector_plane_2.clear();
+      _dedx_vector_plane_2.clear();
+
+      for (size_t pl=0; pl < Calo_v.size(); pl++)
+	
+	{
+	  auto const& calo = Calo_v.at(pl);
+	  auto const& plane = calo->PlaneID().Plane;
+	  //	auto const& dqdx  = calo->dQdx();
+	  auto const& dedx  = calo->dEdx();
+	  auto const& rr    = calo->ResidualRange();
+	  //auto const& xyz   = calo->XYZ();
+	  //	fillCalorimetry(plane, dqdx, rr);//, xyz);
+	  //_residualrange = rr;
+	  //_dedx = dedx;
+	  //auto const& Charge = calo->charge();
+	  // auto const& dqdx = calo->dQdx();
+
+	  //Will find the calorimetry energy for all three planes separately to see what we get depending on the plane (induction vs collection)
+	  //Induction 1
+	  if(plane==0){
+	    Int_t N_plane_0 = 0;
+	    N_plane_0 = rr.size();
+	    _calorimetry_energy_plane_0 = 0.;
+	    for(int i = 0; i < (N_plane_0 - 1); i++)
+	      {
+		_calorimetry_energy_plane_0 +=dedx.at(i)*(rr.at(i+1) - rr.at(i));
+		_residualrange_vector_plane_0.push_back(rr.at(i));
+		_dedx_vector_plane_0.push_back(dedx.at(i));
+	      }
+	  }
+	  //induction 2
+	  if(plane==1){
+	    Int_t N_plane_1 = 0;
+	    N_plane_1 = rr.size();
+          _calorimetry_energy_plane_1 = 0.;
+          for(int i = 0; i < (N_plane_1 - 1); i++)
+            {
+              _calorimetry_energy_plane_1 +=dedx.at(i)*(rr.at(i+1) - rr.at(i));
+	      _residualrange_vector_plane_1.push_back(rr.at(i));
+	      _dedx_vector_plane_1.push_back(dedx.at(i));
+	    }
+	  }
+	  //collection
+	  if(plane==2){
+	    Int_t N = 0;
+	    N = rr.size();
+	    _calorimetry_energy_plane_2 = 0.;
+	    for(int i = 0; i < (N-1); i++){
+	      _calorimetry_energy_plane_2 += dedx.at(i)*(rr.at(i+1) - rr.at(i));
+	      _residualrange_vector_plane_2.push_back(rr.at(i));
+	      _dedx_vector_plane_2.push_back(dedx.at(i));
+	    }
+	  }
+	  //	_residualrange_vector.push_back(rr);
+	  //	_dedx_vector.push_back(calo->dEdx());
+	  //_residualrange = rr.at(pl);
+	  
+	}// for all calorimetry objects associated to this track
+
 
       double time = 0.;
       // associate  flash if a flash exits
