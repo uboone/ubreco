@@ -25,6 +25,7 @@
 #include "lardataobj/RecoBase/OpFlash.h"
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RecoBase/PFParticle.h"
+#include "lardataobj/RecoBase/Cluster.h"
 #include "lardataobj/AnalysisBase/T0.h"
 #include "lardataobj/AnalysisBase/Calorimetry.h"
 #include "lardata/Utilities/AssociationUtil.h"
@@ -327,11 +328,15 @@ bool ACPTtrig::filter(art::Event& e)
     throw std::exception();
   }
 
-
+  // grab pfparticles associated to tracks
+  art::FindManyP<recob::PFParticle> trk_pfp_assn_v(track_h, e, fTrackProducer); 
+  // grab pfparticles on their own
+  art::Handle<std::vector<recob::PFParticle> > pfp_h;
+  e.getByLabel(fTrackProducer,pfp_h);
   // ADDITION FROM PETRILLO
-  e.getValidHandle<std::vector<recob::PFParticle>>(fTrackProducer);
-  // grab the hits associated to the tracks
-  auto trk_hit_assn_v = lar::FindManyInChainP<recob::Hit, recob::PFParticle>::find(track_h, e, fTrackProducer);
+  e.getValidHandle<std::vector<recob::Cluster>>(fTrackProducer);
+  // grab the hits associated to the pfparticles
+  auto pfp_hit_assn_v = lar::FindManyInChainP<recob::Hit, recob::Cluster>::find(pfp_h, e, fTrackProducer);
 
   // grab calo associated to tracks
   art::FindMany<anab::Calorimetry> trk_calo_assn_v(track_h, e, fCaloProducer); 
@@ -411,8 +416,16 @@ bool ACPTtrig::filter(art::Event& e)
     // has the track been tagged?
     if (tagged == true) {
 
+      // associated pfparticles
+      auto pfp = trk_pfp_assn_v.at(trkctr - 1).at(0);
+      auto pfpkey = pfp.key();
+      std::cout << "track associated to pfp of key " << pfpkey << std::endl;
+
+      // find hits associated to this pfp key
+      const std::vector< art::Ptr<recob::Hit> >& hit_v = pfp_hit_assn_v.at(pfpkey);
+      
       // associated hits
-      const std::vector< art::Ptr<recob::Hit> >& hit_v = trk_hit_assn_v.at(trkctr - 1);
+
       _trk_charge_0 = 0.;
       _trk_charge_1 = 0.;
       _trk_charge_2 = 0.;
