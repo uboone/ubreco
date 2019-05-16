@@ -373,8 +373,8 @@ class FlashNeutrinoId : SliceIdBaseTool
           float m_minCRTdist;                        ///< The closest CRT tagged track distance under the cosmic hypothesis
           float m_CRTtime;                           ///< The time of the CRT hit matched to a track
           UInt_t m_CRTplane;                         ///< The plane of the CRT hit matched to a track
-          float m_CRTtracklength;                     ///< The tracklength of the cosmic track that is matched with the CRT
-          UInt_t m_numcosmictrack;                    ///< The number of tracks that qualify (>20cm) to be matched with a CRT hit
+          float m_CRTtracklength;                    ///< The tracklength of the cosmic track that is matched with the CRT
+          UInt_t m_numcosmictrack;                   ///< The number of tracks that qualify (>20cm) to be matched with a CRT hit
           float m_deltaY;                            ///< The distance of the slice centroid from the flash centroid in Y
           float m_deltaZ;                            ///< The distance of the slice centroid from the flash centroid in Z
           float m_deltaYSigma;                       ///< deltaY but in units of the flash width in Y
