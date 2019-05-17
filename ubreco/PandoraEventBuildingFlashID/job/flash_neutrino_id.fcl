@@ -45,7 +45,20 @@ flash_neutrino_id_tool :
     
     # Coefficient linking the chargelightration and the x-dependence
     CoefXCL:                  270 #190
-        
+
+    DOWN: 20
+    UP: 20
+    anodeTime: 5.3e-1
+    cathodeTime: 2321
+    dt_resolution_ophit: 10
+    min_track_length: 20
+    nOphit: 2
+    ophitLabel: "ophitCosmic"
+    ophitPE: 20
+    ophit_pos_res: 180
+    ophit_time_res: 20.
+    verbose: false
+
     # Pre-selection cut values
     MaxDeltaY:                95.0
     MaxDeltaZ:                115.0 #105.0
