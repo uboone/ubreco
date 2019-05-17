@@ -153,12 +153,16 @@ void FlashNeutrinoId::GetSliceCandidates(const art::Event &event, SliceVector &s
         {
             const art::FindMany<anab::T0> trk_t0_assn_v(track_h, event, "trackmatch");
             sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, particlesToTracks,
-                                         trk_t0_assn_v, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1);
+                                         trk_t0_assn_v, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1,
+					 m_verbose, m_ophitLabel, m_UP, m_DOWN, m_anodeTime, m_cathodeTime, m_driftVel, m_ophitPE,
+					 m_nOphit, m_ophit_time_res, m_ophit_pos_res, m_min_track_length, m_dt_resolution_ophit);
         }
         else
         {
             sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, particlesToTracks,
-                                         m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1);
+                                         m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1,
+					 m_verbose, m_ophitLabel, m_UP, m_DOWN, m_anodeTime, m_cathodeTime, m_driftVel, m_ophitPE,
+					 m_nOphit, m_ophit_time_res, m_ophit_pos_res, m_min_track_length, m_dt_resolution_ophit);
         }
     }
 }
@@ -177,6 +181,8 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
     for (unsigned int sliceIndex = 0; sliceIndex < sliceCandidates.size(); ++sliceIndex)
     {
         auto &sliceCandidate(sliceCandidates.at(sliceIndex));
+
+
         // Apply the pre-selection cuts to ensure that the slice is compatible with the beam flash
         if (!sliceCandidate.IsCompatibleWithBeamFlash(beamFlash, m_maxDeltaY, m_maxDeltaZ, m_maxDeltaYSigma, m_maxDeltaZSigma,
                                                       m_minChargeToLightRatio, m_maxChargeToLightRatio))
@@ -507,73 +513,75 @@ flashana::Flash_t FlashNeutrinoId::FlashCandidate::ConvertFlashFormat() const
 //------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-FlashNeutrinoId::SliceCandidate::SliceCandidate() : m_sliceId(-std::numeric_limits<int>::max()),
-                                                    m_run(-std::numeric_limits<int>::max()),
-                                                    m_subRun(-std::numeric_limits<int>::max()),
-                                                    m_event(-std::numeric_limits<int>::max()),
-                                                    m_timeHigh(0),
-                                                    m_timeLow(0),
-                                                    m_hasDeposition(false),
-                                                    m_totalCharge(-std::numeric_limits<float>::max()),
-                                                    m_centerX(-std::numeric_limits<float>::max()),
-                                                    m_centerY(-std::numeric_limits<float>::max()),
-                                                    m_centerZ(-std::numeric_limits<float>::max()),
-                                                    m_minCRTdist(std::numeric_limits<float>::max()),
-                                                    m_CRTtime(-std::numeric_limits<float>::max()),
-                                                    m_deltaY(-std::numeric_limits<float>::max()),
-                                                    m_deltaZ(-std::numeric_limits<float>::max()),
-                                                    m_deltaYSigma(-std::numeric_limits<float>::max()),
-                                                    m_deltaZSigma(-std::numeric_limits<float>::max()),
-                                                    m_chargeToLightRatio(-std::numeric_limits<float>::max()),
-                                                    m_xChargeLightVariable(-std::numeric_limits<float>::max()),
-                                                    m_passesPrecuts(false),
-                                                    m_flashMatchScore(-std::numeric_limits<float>::max()),
-                                                    m_totalPEHypothesis(-std::numeric_limits<float>::max()),
-                                                    m_isTaggedAsTarget(false),
-                                                    m_targetMethod(-std::numeric_limits<int>::max()),
-                                                    m_isConsideredByFlashId(false),
-                                                    m_topologicalNeutrinoScore(-std::numeric_limits<float>::max()),
-                                                    m_hasBestTopologicalScore(false),
-                                                    m_hasBestFlashMatchScore(false),
-                                                    m_chargeToNPhotonsTrack(-std::numeric_limits<float>::max()),
-                                                    m_chargeToNPhotonsShower(-std::numeric_limits<float>::max()),
-                                                    m_xclCoef(-std::numeric_limits<float>::max())
+FlashNeutrinoId::SliceCandidate::SliceCandidate() 
+  : m_sliceId(-std::numeric_limits<int>::max()),
+    m_run(-std::numeric_limits<int>::max()),
+    m_subRun(-std::numeric_limits<int>::max()),
+    m_event(-std::numeric_limits<int>::max()),
+    m_timeHigh(0),
+    m_timeLow(0),
+    m_hasDeposition(false),
+    m_totalCharge(-std::numeric_limits<float>::max()),
+    m_centerX(-std::numeric_limits<float>::max()),
+    m_centerY(-std::numeric_limits<float>::max()),
+    m_centerZ(-std::numeric_limits<float>::max()),
+    m_minCRTdist(std::numeric_limits<float>::max()),
+    m_CRTtime(-std::numeric_limits<float>::max()),
+    m_deltaY(-std::numeric_limits<float>::max()),
+    m_deltaZ(-std::numeric_limits<float>::max()),
+    m_deltaYSigma(-std::numeric_limits<float>::max()),
+    m_deltaZSigma(-std::numeric_limits<float>::max()),
+    m_chargeToLightRatio(-std::numeric_limits<float>::max()),
+    m_xChargeLightVariable(-std::numeric_limits<float>::max()),
+    m_passesPrecuts(false),
+    m_flashMatchScore(-std::numeric_limits<float>::max()),
+    m_totalPEHypothesis(-std::numeric_limits<float>::max()),
+    m_isTaggedAsTarget(false),
+    m_targetMethod(-std::numeric_limits<int>::max()),
+    m_isConsideredByFlashId(false),
+    m_topologicalNeutrinoScore(-std::numeric_limits<float>::max()),
+    m_hasBestTopologicalScore(false),
+    m_hasBestFlashMatchScore(false),
+    m_chargeToNPhotonsTrack(-std::numeric_limits<float>::max()),
+    m_chargeToNPhotonsShower(-std::numeric_limits<float>::max()),
+    m_xclCoef(-std::numeric_limits<float>::max())
 {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice) : m_sliceId(-std::numeric_limits<int>::max()),
-                                                                                               m_run(event.run()),
-                                                                                               m_subRun(event.subRun()),
-                                                                                               m_event(event.event()),
-                                                                                               m_timeHigh(event.time().timeHigh()),
-                                                                                               m_timeLow(event.time().timeLow()),
-                                                                                               m_hasDeposition(false),
-                                                                                               m_totalCharge(-std::numeric_limits<float>::max()),
-                                                                                               m_centerX(-std::numeric_limits<float>::max()),
-                                                                                               m_centerY(-std::numeric_limits<float>::max()),
-                                                                                               m_centerZ(-std::numeric_limits<float>::max()),
-                                                                                               m_minCRTdist(std::numeric_limits<float>::max()),
-                                                                                               m_CRTtime(-std::numeric_limits<float>::max()),
-                                                                                               m_deltaY(-std::numeric_limits<float>::max()),
-                                                                                               m_deltaZ(-std::numeric_limits<float>::max()),
-                                                                                               m_deltaYSigma(-std::numeric_limits<float>::max()),
-                                                                                               m_deltaZSigma(-std::numeric_limits<float>::max()),
-                                                                                               m_chargeToLightRatio(-std::numeric_limits<float>::max()),
-                                                                                               m_xChargeLightVariable(-std::numeric_limits<float>::max()),
-                                                                                               m_passesPrecuts(false),
-                                                                                               m_flashMatchScore(-std::numeric_limits<float>::max()),
-                                                                                               m_totalPEHypothesis(-std::numeric_limits<float>::max()),
-                                                                                               m_isTaggedAsTarget(false),
-                                                                                               m_targetMethod(-std::numeric_limits<int>::max()),
-                                                                                               m_isConsideredByFlashId(false),
-                                                                                               m_topologicalNeutrinoScore(slice.GetTopologicalScore()),
-                                                                                               m_hasBestTopologicalScore(false),
-                                                                                               m_hasBestFlashMatchScore(false),
-                                                                                               m_chargeToNPhotonsTrack(-std::numeric_limits<float>::max()),
-                                                                                               m_chargeToNPhotonsShower(-std::numeric_limits<float>::max()),
-                                                                                               m_xclCoef(-std::numeric_limits<float>::max())
+FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice) 
+  : m_sliceId(-std::numeric_limits<int>::max()),
+    m_run(event.run()),
+    m_subRun(event.subRun()),
+    m_event(event.event()),
+    m_timeHigh(event.time().timeHigh()),
+    m_timeLow(event.time().timeLow()),
+    m_hasDeposition(false),
+    m_totalCharge(-std::numeric_limits<float>::max()),
+    m_centerX(-std::numeric_limits<float>::max()),
+    m_centerY(-std::numeric_limits<float>::max()),
+    m_centerZ(-std::numeric_limits<float>::max()),
+    m_minCRTdist(std::numeric_limits<float>::max()),
+    m_CRTtime(-std::numeric_limits<float>::max()),
+    m_deltaY(-std::numeric_limits<float>::max()),
+    m_deltaZ(-std::numeric_limits<float>::max()),
+    m_deltaYSigma(-std::numeric_limits<float>::max()),
+    m_deltaZSigma(-std::numeric_limits<float>::max()),
+    m_chargeToLightRatio(-std::numeric_limits<float>::max()),
+    m_xChargeLightVariable(-std::numeric_limits<float>::max()),
+    m_passesPrecuts(false),
+    m_flashMatchScore(-std::numeric_limits<float>::max()),
+    m_totalPEHypothesis(-std::numeric_limits<float>::max()),
+    m_isTaggedAsTarget(false),
+    m_targetMethod(-std::numeric_limits<int>::max()),
+    m_isConsideredByFlashId(false),
+    m_topologicalNeutrinoScore(slice.GetTopologicalScore()),
+    m_hasBestTopologicalScore(false),
+    m_hasBestFlashMatchScore(false),
+    m_chargeToNPhotonsTrack(-std::numeric_limits<float>::max()),
+    m_chargeToNPhotonsShower(-std::numeric_limits<float>::max()),
+    m_xclCoef(-std::numeric_limits<float>::max())
 {
 }
 
@@ -582,51 +590,78 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                                                 const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
                                                 const PFParticlesToTracks &particlesToTracks,
-                                                const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId) : m_sliceId(sliceId),
-                                                                                                                                                                 m_run(event.run()),
-                                                                                                                                                                 m_subRun(event.subRun()),
-                                                                                                                                                                 m_event(event.event()),
-                                                                                                                                                                 m_timeHigh(event.time().timeHigh()),
-                                                                                                                                                                 m_timeLow(event.time().timeLow()),
-                                                                                                                                                                 m_hasDeposition(false),
-                                                                                                                                                                 m_totalCharge(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_centerX(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_centerY(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_centerZ(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_minCRTdist(std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_CRTtime(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_deltaY(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_deltaZ(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_deltaYSigma(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_deltaZSigma(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_chargeToLightRatio(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_xChargeLightVariable(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_passesPrecuts(false),
-                                                                                                                                                                 m_flashMatchScore(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_totalPEHypothesis(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_isTaggedAsTarget(false),
-                                                                                                                                                                 m_targetMethod(-std::numeric_limits<int>::max()),
-                                                                                                                                                                 m_isConsideredByFlashId(true),
-                                                                                                                                                                 m_topologicalNeutrinoScore(slice.GetTopologicalScore()),
-                                                                                                                                                                 m_hasBestTopologicalScore(false),
-                                                                                                                                                                 m_hasBestFlashMatchScore(false),
-                                                                                                                                                                 m_chargeToNPhotonsTrack(chargeToNPhotonsTrack),
-                                                                                                                                                                 m_chargeToNPhotonsShower(chargeToNPhotonsShower),
-                                                                                                                                                                 m_xclCoef(xclCoef)
-
+                                                const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId,
+						bool m_verbose, std::string m_ophitLabel, float m_UP, float m_DOWN, float m_anodeTime, float m_cathodeTime,
+						float m_driftVel, float m_ophitPE, int m_nOphit, float m_ophit_time_res, float m_ophit_pos_res, float m_min_track_length,
+						float m_dt_resolution_ophit) 
+  : m_sliceId(sliceId),
+    m_run(event.run()),
+    m_subRun(event.subRun()),
+    m_event(event.event()),
+    m_timeHigh(event.time().timeHigh()),
+    m_timeLow(event.time().timeLow()),
+    m_hasDeposition(false),
+    m_totalCharge(-std::numeric_limits<float>::max()),
+    m_centerX(-std::numeric_limits<float>::max()),
+    m_centerY(-std::numeric_limits<float>::max()),
+    m_centerZ(-std::numeric_limits<float>::max()),
+    m_minCRTdist(std::numeric_limits<float>::max()),
+    m_CRTtime(-std::numeric_limits<float>::max()),
+    m_deltaY(-std::numeric_limits<float>::max()),
+    m_deltaZ(-std::numeric_limits<float>::max()),
+    m_deltaYSigma(-std::numeric_limits<float>::max()),
+    m_deltaZSigma(-std::numeric_limits<float>::max()),
+    m_chargeToLightRatio(-std::numeric_limits<float>::max()),
+    m_xChargeLightVariable(-std::numeric_limits<float>::max()),
+    m_passesPrecuts(false),
+    m_flashMatchScore(-std::numeric_limits<float>::max()),
+    m_totalPEHypothesis(-std::numeric_limits<float>::max()),
+    m_isTaggedAsTarget(false),
+    m_targetMethod(-std::numeric_limits<int>::max()),
+    m_isConsideredByFlashId(true),
+    m_topologicalNeutrinoScore(slice.GetTopologicalScore()),
+    m_hasBestTopologicalScore(false),
+    m_hasBestFlashMatchScore(false),
+    m_chargeToNPhotonsTrack(chargeToNPhotonsTrack),
+    m_chargeToNPhotonsShower(chargeToNPhotonsShower),
+    m_xclCoef(xclCoef)
+    
 {
-    const auto chargeDeposition(this->GetDepositionVector(pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, slice));
-    m_lightCluster = this->GetLightCluster(chargeDeposition);
-    m_totalCharge = this->GetTotalCharge(chargeDeposition);
-    m_hasDeposition = (m_totalCharge > std::numeric_limits<float>::epsilon());
+  const auto chargeDeposition(this->GetDepositionVector(pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, slice));
+  m_lightCluster = this->GetLightCluster(chargeDeposition);
+  m_totalCharge = this->GetTotalCharge(chargeDeposition);
+  m_hasDeposition = (m_totalCharge > std::numeric_limits<float>::epsilon());
+  
+  if (!m_hasDeposition)
+    return;
+  
+  const auto chargeCenter(this->GetChargeWeightedCenter(chargeDeposition));
+  m_centerX = chargeCenter.GetX();
+  m_centerY = chargeCenter.GetY();
+  m_centerZ = chargeCenter.GetZ();
+  
+  // copying variables from one class to another
+  if (m_verbose)
+    std::cout << "m_verbose is true " << std::endl;
+  else
+    std::cout << "m_verbose is false " << std::endl;
+  mm_verbose = m_verbose;
+  mm_ophitLabel = m_ophitLabel;
+  mm_UP = m_UP;
+  mm_DOWN = m_DOWN;
+  mm_anodeTime = m_anodeTime;
+  mm_cathodeTime = m_cathodeTime;
+  mm_driftVel = m_driftVel;
+  mm_ophitPE = m_ophitPE;
+  mm_nOphit = m_nOphit;
+  mm_ophit_pos_res = m_ophit_pos_res;
+  mm_ophit_time_res = m_ophit_time_res;
+  mm_min_track_length = m_min_track_length;
+  mm_dt_resolution_ophit = m_dt_resolution_ophit;
 
-    if (!m_hasDeposition)
-        return;
-
-    const auto chargeCenter(this->GetChargeWeightedCenter(chargeDeposition));
-    m_centerX = chargeCenter.GetX();
-    m_centerY = chargeCenter.GetY();
-    m_centerZ = chargeCenter.GetZ();
+  // ACPT tagger
+  this->ACPTtagger(slice.GetCosmicRayHypothesis(), event, particlesToTracks);
+  
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -634,14 +669,20 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                                                 const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
                                                 const PFParticlesToTracks &particlesToTracks, const art::FindMany<anab::T0> &trk_t0_assn_v,
-                                                const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId) : FlashNeutrinoId::SliceCandidate::SliceCandidate(event, slice, pfParticleMap,
-                                                                                                                                                                                                                 pfParticleToSpacePointMap, spacePointToHitMap,
-                                                                                                                                                                                                                 particlesToTracks, chargeToNPhotonsTrack, chargeToNPhotonsShower, xclCoef, sliceId)
-
+                                                const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId,
+						bool m_verbose, std::string m_ophitLabel, float m_UP, float m_DOWN, float m_anodeTime, float m_cathodeTime,
+						float m_driftVel, float m_ophitPE, int m_nOphit, float m_ophit_time_res, float m_ophit_pos_res, float m_min_track_length, float m_dt_resolution_ophit) 
+  : FlashNeutrinoId::SliceCandidate::SliceCandidate(event, slice, pfParticleMap,
+						    pfParticleToSpacePointMap, spacePointToHitMap,
+						    particlesToTracks, chargeToNPhotonsTrack, chargeToNPhotonsShower, xclCoef,
+						    sliceId, m_verbose, m_ophitLabel, m_UP, m_DOWN, m_anodeTime, m_cathodeTime,
+						    m_driftVel, m_ophitPE, m_nOphit, m_ophit_time_res, m_ophit_pos_res, m_min_track_length, m_dt_resolution_ophit)
+    
 {
-    if (trk_t0_assn_v.size() != 0)
+  
+  if (trk_t0_assn_v.size() != 0)
     {
-        this->GetClosestCRTCosmic(slice.GetCosmicRayHypothesis(), event, particlesToTracks, trk_t0_assn_v);
+      this->GetClosestCRTCosmic(slice.GetCosmicRayHypothesis(), event, particlesToTracks, trk_t0_assn_v);
     }
 }
 
@@ -786,17 +827,33 @@ void FlashNeutrinoId::SliceCandidate::GetClosestCRTCosmic(const PFParticleVector
 
 //------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
 
-void FlashNeutrinoId::SliceCandidate::ACPTtagger(const PFParticleVector &parentPFParticles, const art::Event &event,
+void FlashNeutrinoId::SliceCandidate::ACPTtagger(const PFParticleVector &parentPFParticles,
+						 const art::Event &event,
 						 const PFParticlesToTracks &particlesToTracks) 
 {
 
-  // collect OpHits
-  std::vector<art::Ptr<recob::OpHit>> ophit_v;
-  if (m_verbose) { std::cout << "Loading ophits from producer " << _ophit_producer << std::endl; }
+  mm_y_up = -9999.;
+  mm_y_dn = -9999.;
+  mm_x_up = -9999.;
+  mm_x_dn = -9999.;
+  mm_z_up = -9999.;
+  mm_z_dn = -9999.;
+
+  mm_ACPTdt = -9999.;
+
+  mm_z_center = -9999.;
+
+  mm_flash_timeanode_u = -9999.;
+  mm_flash_timeanode_d = -9999.;
+  mm_flash_timecathode_u = -9999.;
+  mm_flash_timecathode_d = -9999.;
+
+  // save OpHits in the event
+  if (mm_verbose) { std::cout << "[ACPTTagger] \t Loading ophits from producer " << mm_ophitLabel << std::endl; }
   art::Handle<std::vector<recob::OpHit>> ophit_h;
-  e.getByLabel(_ophit_producer, ophit_h);
-  ophit_v.clear();
-  art::fill_ptr_vector(ophit_v, ophit_h);
+  event.getByLabel(mm_ophitLabel, ophit_h);
+  mm_ophit_v.clear();
+  art::fill_ptr_vector(mm_ophit_v, ophit_h);
 
   // is the slice cosmic?
   bool isCosmic = false;
@@ -819,39 +876,48 @@ void FlashNeutrinoId::SliceCandidate::ACPTtagger(const PFParticleVector &parentP
 	      std::vector<TVector3>  sorted_pts;
 	      sorted_pts.clear();
 	      
-	      if (this_track->Length() < _min_track_length) continue;   
+	      if (this_track->Length() < mm_min_track_length) continue;   
 	      this->SortTrackPoints(*this_track, sorted_pts);
 	      if (sorted_pts.size() >= 2) {
-		_trk_len.emplace_back(this_track->Length());
-		_trk_x_up.emplace_back(pts[0].X());
-		_trk_x_down.emplace_back(pts[sorted_pts.size()-1].X());
-		double z_center = pts[0].Z();
-		z_center += pts[sorted_pts.size()-1].Z();
-		z_center /= 2.;
-		_trk_z_center.emplace_back(z_center);
+		//_trk_len.emplace_back(this_track->Length());
+		//_trk_x_up.emplace_back(pts[0].X());
+		//_trk_x_down.emplace_back(pts[sorted_pts.size()-1].X());
+		mm_z_center = sorted_pts[0].Z();
+		mm_z_center += sorted_pts[sorted_pts.size()-1].Z();
+		mm_z_center /= 2.;
+		//_trk_z_center.emplace_back(z_center);
 		
-		TVector3 start = pts[0];
-		TVector3 end = pts[sorted_pts.size()-1];
+		TVector3 start = sorted_pts[0];
+		TVector3 end = sorted_pts[sorted_pts.size()-1];
 		sorted_pts.clear();
 		sorted_pts.resize(2);
 		sorted_pts.at(0) = start;
 		sorted_pts.at(1) = end;
 		y_up = sorted_pts.at(0).Y();
 		y_dn = sorted_pts.at(1).Y();
-		sorted_points_v.emplace_back(pts); 
 	      }// if more then two points
-	      
+
+	      mm_x_up = sorted_pts.at(0).X();
+	      mm_x_dn = sorted_pts.at(1).X();
+	      mm_y_up = y_up;
+	      mm_y_dn = y_dn;
+	      mm_z_up = sorted_pts.at(0).Z();
+	      mm_z_dn = sorted_pts.at(1).Z();
+
 	      // can this track be a viable ACPT candidate?
 	      // reconstruct the track time assuming it hits the anode/cathode
 	      
 	      
 	      // check if track is compatible with OpHits
-	      if (y_up != -9999 && y_dn != -9999) {
-		double dt_ophits = this->GetClosestDt_OpHits(sorted_pts, y_up, y_dn);
-		if (m_verbose) std::cout << "[ACPTTagger] \t dt_ophits is " << dt_ophits << std::endl;
-		if (dt_ophits != -9999 && dt_ophits < _dt_resolution_ophit) {
+	      if ( (y_up != -9999 && y_dn != -9999) && ( (y_up - y_dn) > 1.0) && (abs(y_up) > 0.001) ) {
+		float flash_zcenter, flash_time;
+		mm_ACPTdt = this->GetClosestDt_OpHits(sorted_pts, y_up, y_dn, mm_ophit_v, flash_zcenter, flash_time);
+		mm_flashTime    = flash_time;
+		mm_flashZCenter = flash_zcenter;
+		if (mm_verbose) std::cout << "[ACPTTagger] \t dt_ophits is " << mm_ACPTdt << std::endl;
+		if (mm_ACPTdt != -9999 && fabs(mm_ACPTdt) < mm_dt_resolution_ophit) {
 		  isCosmic = true;
-		  if (m_verbose) std::cout << "[ACPTTagger] \t ===> Tagged! (ophit)" << std::endl;
+		  if (mm_verbose) std::cout << "[ACPTTagger] \t ===> Tagged! (ophit)" << std::endl;
 		}
 		
 	      }
@@ -861,11 +927,16 @@ void FlashNeutrinoId::SliceCandidate::ACPTtagger(const PFParticleVector &parentP
 		cosmicScore = 1;
 	      }
 		
-	      if(m_verbose) std::cout << "Cosmic score is: " << cosmicScore << std::endl << std::endl;
+	      if(mm_verbose) std::cout << "Cosmic score is: " << cosmicScore << std::endl << std::endl;
     
 	    }// if there is  track associated to this PFP
 	}// if this is a track
     }// for all PFParticles
+
+  if ( (mm_y_up-mm_y_dn) < 1. )
+    mm_ACPTdt = -9999.;
+  
+  return;
 }// ACPT tagging
 
 
@@ -887,7 +958,7 @@ void FlashNeutrinoId::SliceCandidate::SortTrackPoints(const recob::Track& track,
   auto const&start = track.Vertex();
   auto const&end   = track.End();
   
-  if (m_verbose) {
+  if (mm_verbose) {
     std::cout << "[ACPTTagger] \t Track start " << start.X() << " " << start.Y() << " " << start.Z() << std::endl;
     std::cout << "[ACPTTagger] \t Track end   " << end.X() << " " << end.Y() << " " << end.Z() << std::endl;
   }
@@ -895,34 +966,35 @@ void FlashNeutrinoId::SliceCandidate::SortTrackPoints(const recob::Track& track,
   // if points are ordered correctly                                                                                                                                       
   if (start.Y() > end.Y()){
     for (size_t i=0; i < N; i++)
-      sorted_points.push_back( track.NextValidPoint<TVector3>(i) );
+      sorted_points.push_back( track.LocationAtPoint<TVector3>(track.NextValidPoint(i)) );
   }
   
   // otherwise flip order                                                                                                                                                 
   else {
-    if (m_verbose) std::cout << "[ACPTTagger] \t\t These two points will be flipped" << std::endl;
+    if (mm_verbose) std::cout << "[ACPTTagger] \t\t These two points will be flipped" << std::endl;
     for (size_t i=0; i < N; i++)
-      sorted_points.push_back( track.NextValidPoint<TVector3>( N - i - 1) );
+      sorted_points.push_back( track.LocationAtPoint<TVector3>(track.NextValidPoint( N - i - 1) ) );
   }
 }
 
 
 //------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
 
-float FlashNeutrinoId::SliceCandidate::GetClosestDt_OpHits(std::vector<TVector3> & sorted_points, double y_up, double y_down) {
+float FlashNeutrinoId::SliceCandidate::GetClosestDt_OpHits(std::vector<TVector3> & sorted_points, double y_up, double y_down, const std::vector<art::Ptr<recob::OpHit>> mm_ophit_v,
+							   float &flash_zcenter, float &flash_time) {
 
-  double flash_time_anode_u = sorted_points.at(0).X() / _drift_vel - _anodeTime;
-  double flash_time_anode_d = sorted_points.at(sorted_points.size()-1).X() / _drift_vel - _anodeTime;
-  double flash_time_cathode_u = sorted_points.at(0).X() / _drift_vel - _cathodeTime;
-  double flash_time_cathode_d = sorted_points.at(sorted_points.size()-1).X() / _drift_vel - _cathodeTime;
+  mm_flash_timeanode_u = sorted_points.at(0).X() / mm_driftVel - mm_anodeTime;
+  mm_flash_timeanode_d = sorted_points.at(sorted_points.size()-1).X() / mm_driftVel - mm_anodeTime;
+  mm_flash_timecathode_u = sorted_points.at(0).X() / mm_driftVel - mm_cathodeTime;
+  mm_flash_timecathode_d = sorted_points.at(sorted_points.size()-1).X() / mm_driftVel - mm_cathodeTime;
 
-  if (m_verbose) {
+  if (mm_verbose) {
     std::cout << "[ACPTTagger] >>> Using OpHits." << std::endl;
     std::cout << "[ACPTTagger] \t Estimated times we will be looking for: " 
-              << "\t flash_time_anode_u: " << flash_time_anode_u 
-              << "\t flash_time_anode_d: " << flash_time_anode_d 
-              << "\t flash_time_cathode_u: " << flash_time_cathode_u 
-              << "\t flash_time_cathode_d: " << flash_time_cathode_d << std::endl;
+              << "\t flash_time_anode_u: " << mm_flash_timeanode_u 
+              << "\t flash_time_anode_d: " << mm_flash_timeanode_d 
+              << "\t flash_time_cathode_u: " << mm_flash_timecathode_u 
+              << "\t flash_time_cathode_d: " << mm_flash_timecathode_d << std::endl;
   }
 
   double trk_z_start = sorted_points.at(0).Z();
@@ -932,44 +1004,61 @@ float FlashNeutrinoId::SliceCandidate::GetClosestDt_OpHits(std::vector<TVector3>
     std::swap(trk_z_start, trk_z_end);
 
   bool sign = this->GetSign(sorted_points);
-  if (m_verbose) std::cout << "[ACPTTagger] \t Sign is " << (sign ? "positive." : "negative.") << std::endl;
+  if (mm_verbose) std::cout << "[ACPTTagger] \t Sign is " << (sign ? "positive." : "negative.") << std::endl;
 
-  if (m_verbose) std::cout << "[ACPTTagger] \t y_up = " << y_up << ", y_down = " << y_down << std::endl;
+  if (mm_verbose) std::cout << "[ACPTTagger] \t y_up = " << y_up << ", y_down = " << y_down << std::endl;
   bool upper_det = this->IsInUpperDet(y_up);
   bool lower_det = this->IsInLowerDet(y_down);
 
   std::vector<double> dt_v;
   dt_v.clear();
+  std::vector<double> zpos_average_v;
+  std::vector<double> time_average_v;
+  float zpos_average, time_average;
 
   if (sign && upper_det){
-    if (m_verbose) std::cout << "[ACPTTagger] \t Looking at cathode-down" << std::endl;
-    dt_v.emplace_back(this->RunOpHitFinder(flash_time_cathode_d, trk_z_start, trk_z_end));
+    if (mm_verbose) std::cout << "[ACPTTagger] \t Looking at cathode-down" << std::endl;
+    dt_v.emplace_back(this->RunOpHitFinder(mm_flash_timecathode_d, trk_z_start, trk_z_end, mm_ophit_v, time_average, zpos_average));
+    time_average_v.push_back( time_average );
+    zpos_average_v.push_back( zpos_average );
   }
   if (sign && lower_det){
-    if (m_verbose) std::cout << "[ACPTTagger] \t Looking at anode-up" << std::endl;
-    dt_v.emplace_back(this->RunOpHitFinder(flash_time_anode_u, trk_z_start, trk_z_end));
+    if (mm_verbose) std::cout << "[ACPTTagger] \t Looking at anode-up" << std::endl;
+    dt_v.emplace_back(this->RunOpHitFinder(mm_flash_timeanode_u, trk_z_start, trk_z_end, mm_ophit_v, time_average, zpos_average));
+    time_average_v.push_back( time_average );
+    zpos_average_v.push_back( zpos_average );
   }
   if (!sign && upper_det){
-    if (m_verbose) std::cout << "[ACPTTagger] \t Looking at anode-down" << std::endl;
-    dt_v.emplace_back(this->RunOpHitFinder(flash_time_anode_d, trk_z_start, trk_z_end));
+    if (mm_verbose) std::cout << "[ACPTTagger] \t Looking at anode-down" << std::endl;
+    dt_v.emplace_back(this->RunOpHitFinder(mm_flash_timeanode_d, trk_z_start, trk_z_end, mm_ophit_v, time_average, zpos_average));
+    time_average_v.push_back( time_average );
+    zpos_average_v.push_back( zpos_average );
   }
   if (!sign && lower_det){
-    if (m_verbose) std::cout << "[ACPTTagger] \t Looking at cathode-up" << std::endl;
-    dt_v.emplace_back(this->RunOpHitFinder(flash_time_cathode_u, trk_z_start, trk_z_end));
+    if (mm_verbose) std::cout << "[ACPTTagger] \t Looking at cathode-up" << std::endl;
+    dt_v.emplace_back(this->RunOpHitFinder(mm_flash_timecathode_u, trk_z_start, trk_z_end, mm_ophit_v, time_average, zpos_average));
+    time_average_v.push_back( time_average );
+    zpos_average_v.push_back( zpos_average );
   }
 
 
-  double min_dt = 1e9;
+  double min_dt  = 1e9; 
+  double min_dta = 1e9; // absolute value of minimum dt
   bool min_dt_found = false;
-  for (auto dt : dt_v) {
-    if (dt == -9999) continue;
-    if (dt < min_dt) {
-      min_dt = dt;
+  for(size_t t=0; t < dt_v.size(); t++) {
+    auto dt = dt_v[t];
+    auto dta = fabs(dt);
+    if (dta == -9999) continue;
+    if (dta < min_dta) {
+      min_dt  = dt;
+      min_dta = dta;
       min_dt_found = true;
+      flash_zcenter = zpos_average_v[t];
+      flash_time    = time_average_v[t];
     }
   }
 
-  if (m_verbose && min_dt_found) std::cout << "[ACPTTagger] \t Found dt min from OpHits, dt min is " << min_dt << std::endl;
+  if (mm_verbose && min_dt_found) std::cout << "[ACPTTagger] \t Found dt min from OpHits, dt min is " << min_dt << std::endl;
 
   if (min_dt_found)
     return min_dt;
@@ -997,7 +1086,8 @@ bool FlashNeutrinoId::SliceCandidate::GetSign(std::vector<TVector3> sorted_point
 bool FlashNeutrinoId::SliceCandidate::IsInUpperDet(double y_up) 
 {
 
-  if (y_up > geo->DetHalfHeight() - _UP) {
+  const art::ServiceHandle<geo::Geometry> geometry;
+  if (y_up > geometry->DetHalfHeight() - mm_UP) {
     return true;
   }
 
@@ -1009,7 +1099,8 @@ bool FlashNeutrinoId::SliceCandidate::IsInUpperDet(double y_up)
 bool FlashNeutrinoId::SliceCandidate::IsInLowerDet(double y_down) 
 {
 
-  if (y_down < -geo->DetHalfHeight() + _DOWN) {
+  const art::ServiceHandle<geo::Geometry> geometry;
+  if (y_down < -geometry->DetHalfHeight() + mm_DOWN) {
     return true;
   }
 
@@ -1020,31 +1111,36 @@ bool FlashNeutrinoId::SliceCandidate::IsInLowerDet(double y_down)
 
 //------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
 
-float FlashNeutrinoId::SliceCandidate::RunOpHitFinder(double the_time, double trk_z_start, double trk_z_end, const std::vector<art::Ptr<recob::OpHit>> ophit_v) {
+float FlashNeutrinoId::SliceCandidate::RunOpHitFinder(double the_time, double trk_z_start, double trk_z_end, const std::vector<art::Ptr<recob::OpHit>> mm_ophit_v,
+						      float &time_average, float &zpos_average) {
 
   ::art::ServiceHandle<geo::Geometry> geo;
 
-  if (m_verbose) {
-    std::cout << "[ACPTTagger] \t _ophit_time_res is " << _ophit_time_res << std::endl;
-    std::cout << "[ACPTTagger] \t _ophit_pos_res is " << _ophit_pos_res << std::endl;
-    std::cout << "[ACPTTagger] \t _n_ophit is " << _n_ophit << std::endl;
-    std::cout << "[ACPTTagger] \t _ophit_pe is " << _ophit_pe << std::endl;
+  zpos_average = 0.;
+  time_average = 0.;
+
+  if (mm_verbose) {
+    std::cout << "[ACPTTagger] \t _ophit_time_res is " << mm_ophit_time_res << std::endl;
+    std::cout << "[ACPTTagger] \t _ophit_pos_res is " << mm_ophit_pos_res << std::endl;
+    std::cout << "[ACPTTagger] \t _n_ophit is " << mm_nOphit << std::endl;
+    std::cout << "[ACPTTagger] \t _ophit_pe is " << mm_ophitPE << std::endl;
   }
 
   std::vector<double> ophit_sel_time;
+  std::vector<double> ophit_sel_zpos;
   std::vector<double> ophit_sel_pe;
 
   ophit_sel_time.clear();
   ophit_sel_pe.clear();
 
-  for (auto oh : ophit_v) {
+  for (auto oh : mm_ophit_v) {
 
     double time_diff = std::abs(oh->PeakTime() - the_time);
-
+    
     if (!geo->IsValidOpChannel(oh->OpChannel())) continue;
     if (oh->OpChannel() < 200 || oh->OpChannel() > 231) continue;
 
-    size_t opdet = geo->OpDetFromOpChannel(oh->OpChannel());
+    //size_t opdet = geo->OpDetFromOpChannel(oh->OpChannel());
 
     double pmt_xyz[3] = {-9999, -9999, -9999};
     geo->OpDetGeoFromOpChannel(oh->OpChannel()).GetCenter(pmt_xyz);
@@ -1062,43 +1158,44 @@ float FlashNeutrinoId::SliceCandidate::RunOpHitFinder(double the_time, double tr
 
     auto ophitPE = oh->Area();
  
-    if(time_diff < m_ophit_time_res && dz < m_ophit_pos_res) {
-      if (m_verbose) std::cout << "[ACPTTagger] \t\t Found ophit, time is " << oh->PeakTime() 
+    if(time_diff < mm_ophit_time_res && dz < mm_ophit_pos_res) {
+      if (mm_verbose) std::cout << "[ACPTTagger] \t\t Found ophit, time is " << oh->PeakTime() 
                             << ", pmt_z is " << pmt_z 
                             << ", dz is " << dz 
                             << ", opchannel is " << oh->OpChannel()
                             << ", PE is " << ophitPE << std::endl;
 
       ophit_sel_time.emplace_back(oh->PeakTime());
+      ophit_sel_zpos.emplace_back(pmt_z);
       ophit_sel_pe.emplace_back(ophitPE);
     }
     
   }
 
-  if (ophit_sel_time.size() < _n_ophit) {
-    if (m_verbose) std::cout << "[ACPTTagger] \t Not enough ophits" << std::endl;
+  if (ophit_sel_time.size() < mm_nOphit) {
+    if (mm_verbose) std::cout << "[ACPTTagger] \t Not enough ophits" << std::endl;
     return -9999;
   }
   
   double total_pe = std::accumulate(ophit_sel_pe.begin(), ophit_sel_pe.end(), 0.);
   
-  if (total_pe < _ophit_pe) {
-    if (m_verbose) std::cout << "[ACPTTagger] \t Not enough pe" << std::endl;
+  if (total_pe < mm_ophitPE) {
+    if (mm_verbose) std::cout << "[ACPTTagger] \t Not enough pe" << std::endl;
     return -9999;
   }
   
   // Calculate and return average time
-  double time_average = 0.;
   for (size_t i = 0; i < ophit_sel_time.size(); i++) {
     time_average += ophit_sel_time.at(i) * ophit_sel_pe.at(i);
+    zpos_average += ophit_sel_zpos.at(i) * ophit_sel_pe.at(i);
   }
-  time_average /= total_pe;
-  
-  if (m_verbose) std::cout << "[ACPTTagger] \t time_average: " << time_average << ", the_time: " << the_time << std::endl;
-  
-  return std::abs(time_average - the_time);
-  
 
+  time_average /= total_pe;
+  zpos_average /= total_pe;
+  
+  if (mm_verbose) std::cout << "[ACPTTagger] \t time_average: " << time_average << ", the_time: " << the_time << std::endl;
+  
+  return time_average - the_time;
 }
 
 
@@ -1156,7 +1253,8 @@ bool FlashNeutrinoId::SliceCandidate::IsCompatibleWithBeamFlash(const FlashCandi
                        std::abs(m_deltaYSigma) < maxDeltaYSigma &&
                        std::abs(m_deltaZSigma) < maxDeltaZSigma &&
                        m_xChargeLightVariable > minChargeToLightRatio &&
-                       m_xChargeLightVariable < maxChargeToLightRatio);
+                       m_xChargeLightVariable < maxChargeToLightRatio &&
+		       (fabs(mm_ACPTdt) > mm_dt_resolution_ophit) ); // DAVIDC
 
     return m_passesPrecuts;
 }
