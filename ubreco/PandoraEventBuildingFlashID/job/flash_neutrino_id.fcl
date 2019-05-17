@@ -56,7 +56,7 @@ flash_neutrino_id_tool :
     ophitLabel: "ophitCosmic"
     ophitPE: 20
     ophit_pos_res: 180
-    ophit_time_res: 20.
+    ophit_time_res: 50.
     verbose: false
 
     # Pre-selection cut values

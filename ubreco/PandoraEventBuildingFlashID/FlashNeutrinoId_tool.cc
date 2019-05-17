@@ -42,6 +42,7 @@ void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
         }
         else
         {
+
             for (auto &slice : sliceCandidates)
             {
                 slice.m_isConsideredByFlashId = 0;
@@ -110,8 +111,6 @@ FlashNeutrinoId::FlashCandidate &FlashNeutrinoId::GetBeamFlash(FlashCandidateVec
     auto &brightestFlash(flashCandidates.at(brightestFlashIndex));
     brightestFlash.m_isBrightestInWindow = true;
 
-    std::cout << "Flash PE: " << brightestFlash.m_totalPE << std::endl;
-
     if (!brightestFlash.PassesPEThreshold(m_minBeamFlashPE))
         throw FailureMode("No flashes in the beam window passed the PE threshold");
 
@@ -160,12 +159,15 @@ void FlashNeutrinoId::GetSliceCandidates(const art::Event &event, SliceVector &s
         }
         else
         {
+
+
             sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, particlesToTracks,
                                          m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1,
 					 m_verbose, m_ophitLabel, m_UP, m_DOWN, m_anodeTime, m_cathodeTime, m_driftVel, m_ophitPE,
 					 m_nOphit, m_ophit_time_res, m_ophit_pos_res, m_min_track_length, m_dt_resolution_ophit);
         }
     }
+
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -642,10 +644,6 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
   m_centerZ = chargeCenter.GetZ();
   
   // copying variables from one class to another
-  if (m_verbose)
-    std::cout << "m_verbose is true " << std::endl;
-  else
-    std::cout << "m_verbose is false " << std::endl;
   mm_verbose = m_verbose;
   mm_ophitLabel = m_ophitLabel;
   mm_UP = m_UP;
@@ -662,7 +660,6 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 
   // ACPT tagger
   this->ACPTtagger(slice.GetCosmicRayHypothesis(), event, particlesToTracks);
-  
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -1256,6 +1253,8 @@ bool FlashNeutrinoId::SliceCandidate::IsCompatibleWithBeamFlash(const FlashCandi
     m_chargeToLightRatio = m_totalCharge / beamFlash.m_totalPE;
     m_xChargeLightVariable = m_xclCoef * log10(m_chargeToLightRatio) - m_centerX;
 
+    std::cout << "ACPT passes precuts? " << std::endl;
+
     // Check if the slice passes the pre-selection cuts
     m_passesPrecuts = (std::abs(m_deltaY) < maxDeltaY &&
                        std::abs(m_deltaZ) < maxDeltaZ &&
@@ -1264,6 +1263,9 @@ bool FlashNeutrinoId::SliceCandidate::IsCompatibleWithBeamFlash(const FlashCandi
                        m_xChargeLightVariable > minChargeToLightRatio &&
                        m_xChargeLightVariable < maxChargeToLightRatio &&
 		       (fabs(mm_ACPTdt) > mm_dt_resolution_ophit) ); // DAVIDC
+
+    std::cout << "ACPT passes precuts? " << std::endl;
+    std::cout << m_passesPrecuts << std::endl;
 
     return m_passesPrecuts;
 }
@@ -1319,6 +1321,7 @@ void FlashNeutrinoId::GetBestObviousCosmicMatch(const art::Event &event, const F
     LArPandoraHelper::CollectPFParticles(event, m_pandoraLabel, pfParticles, pfParticleToSpacePointMap);
     LArPandoraHelper::CollectSpacePoints(event, m_pandoraLabel, spacePoints, spacePointToHitMap);
     LArPandoraHelper::BuildPFParticleMap(pfParticles, pfParticleMap);
+    LArPandoraHelper::CollectPFParticleMetadata(event, m_pandoraLabel, pfParticles, particlesToMetadata);
 
     m_flashMatchManager.Reset();
     // Convert the flash and the charge cluster into the required format for flash matching
@@ -1336,11 +1339,13 @@ void FlashNeutrinoId::GetBestObviousCosmicMatch(const art::Event &event, const F
         {
             if (pfp_properties.at("IsClearCosmic") && pfp->IsPrimary())
             {
+
                 PFParticleVector downstreamPFParticles;
                 CollectDownstreamPFParticles(pfParticleMap, pfp, downstreamPFParticles);
                 flashana::QCluster_t lightCluster;
                 for (const auto &particle : downstreamPFParticles)
                 {
+
                     // Get the associated spacepoints
                     const auto &partToSpacePointIter(pfParticleToSpacePointMap.find(particle));
                     if (partToSpacePointIter == pfParticleToSpacePointMap.end())
@@ -1348,6 +1353,7 @@ void FlashNeutrinoId::GetBestObviousCosmicMatch(const art::Event &event, const F
 
                     for (const auto &spacePoint : partToSpacePointIter->second)
                     {
+
                         // Get the associated hit
                         const auto &spacePointToHitIter(spacePointToHitMap.find(spacePoint));
                         if (spacePointToHitIter == spacePointToHitMap.end())
