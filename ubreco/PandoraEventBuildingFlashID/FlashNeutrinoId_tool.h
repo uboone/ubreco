@@ -641,9 +641,6 @@ namespace lar_pandora
 {
      m_flashMatchManager.Configure(pset.get<flashana::Config_t>("FlashMatchConfig"));
 
-     if (!m_shouldWriteToFile)
-          return;
-
      m_verbose = pset.get<bool>("verbose");
      m_ophitLabel = pset.get<std::string>("ophitLabel");
      m_UP = pset.get<float>("UP");
@@ -662,6 +659,9 @@ namespace lar_pandora
      double efield     = _detp->Efield();
      double temp       = _detp->Temperature();
      m_driftVel        = _detp->DriftVelocity(efield,temp);
+
+     if (!m_shouldWriteToFile)
+          return;
 
      // Set up the output branches
      art::ServiceHandle<art::TFileService> fileService;
