@@ -547,7 +547,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate()
       m_chargeToNPhotonsTrack(-std::numeric_limits<float>::max()),
       m_chargeToNPhotonsShower(-std::numeric_limits<float>::max()),
       m_xclCoef(-std::numeric_limits<float>::max()),
-      m_minDeltaLLMCS(-std::numeric_limits<float>::max())
+      m_maxDeltaLLMCS(-std::numeric_limits<float>::max())
 {
 }
 
@@ -585,7 +585,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
       m_chargeToNPhotonsTrack(-std::numeric_limits<float>::max()),
       m_chargeToNPhotonsShower(-std::numeric_limits<float>::max()),
       m_xclCoef(-std::numeric_limits<float>::max()),
-      m_minDeltaLLMCS(-std::numeric_limits<float>::max())
+      m_maxDeltaLLMCS(-std::numeric_limits<float>::max())
 {
 }
 
@@ -630,7 +630,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
       m_chargeToNPhotonsTrack(chargeToNPhotonsTrack),
       m_chargeToNPhotonsShower(chargeToNPhotonsShower),
       m_xclCoef(xclCoef),
-      m_minDeltaLLMCS(-std::numeric_limits<float>::max())
+      m_maxDeltaLLMCS(-std::numeric_limits<float>::max())
 {
     const auto chargeDeposition(this->GetDepositionVector(pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, slice));
     m_lightCluster = this->GetLightCluster(chargeDeposition);
@@ -1488,10 +1488,10 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByDirMCS(const PFParticleVecto
 			<< ", end=" << this_track->End()
 			<< std::endl;
 	      if (vtx_contained && !end_contained) {
-		m_minDeltaLLMCS = std::min(float(fwd_ll - bwd_ll), m_minDeltaLLMCS);
+		m_maxDeltaLLMCS = std::max(float(fwd_ll - bwd_ll), m_maxDeltaLLMCS);
 	      }
 	      else if (!vtx_contained && end_contained){
-		m_minDeltaLLMCS = std::min(float(bwd_ll - fwd_ll), m_minDeltaLLMCS);
+		m_maxDeltaLLMCS = std::max(float(bwd_ll - fwd_ll), m_maxDeltaLLMCS);
 	      }
 
 	      // // std::cout <<"DELTA " << delta_ll << ", cut at " << _mcs_delta_ll_cut << std::endl;

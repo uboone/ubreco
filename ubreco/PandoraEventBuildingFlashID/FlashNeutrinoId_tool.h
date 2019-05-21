@@ -444,7 +444,7 @@ class FlashNeutrinoId : SliceIdBaseTool
           float m_chargeToNPhotonsShower;            ///< The conversion factor between charge and number of photons for showers
           float m_xclCoef;                           ///< m_xclCoef*log10(chargeToLightRatio)- centerX
           flashana::QCluster_t m_lightCluster;       ///< The hypothesised light produced - used by flashmatching
-	  float m_minDeltaLLMCS;                        ///< deltaLL for forward and backward MCS fit (used to tag stopping muons)
+	  float m_maxDeltaLLMCS;                        ///< deltaLL for forward and backward MCS fit (used to tag stopping muons)
 
 	  // DAVIDC
 	  bool mm_verbose;
@@ -780,7 +780,7 @@ namespace lar_pandora
      m_pSliceTree->Branch("hasBestTopologicalScore", &m_outputSlice.m_hasBestTopologicalScore, "hasBestTopologicalScore/O");
      m_pSliceTree->Branch("hasBestFlashMatchScore", &m_outputSlice.m_hasBestFlashMatchScore, "hasBestFlashMatchScore/O");
      m_pSliceTree->Branch("nHits", &m_outputSliceMetadata.m_nHits, "nHits/I");
-     m_pSliceTree->Branch("minDeltaLLMCS", &m_outputSlice.m_minDeltaLLMCS, "minDeltaLLMCS/F");
+     m_pSliceTree->Branch("maxDeltaLLMCS", &m_outputSlice.m_maxDeltaLLMCS, "maxDeltaLLMCS/F");
      m_pSliceTree->Branch("ACPTdt",&m_outputSlice.mm_ACPTdt,"ACPTdt/F");
      m_pSliceTree->Branch("flashZCenter",&m_outputSlice.mm_flashZCenter,"flashZCenter/F");
      m_pSliceTree->Branch("flashTime",&m_outputSlice.mm_flashTime,"flashTime/F");
