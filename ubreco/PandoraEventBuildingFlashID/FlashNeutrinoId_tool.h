@@ -15,6 +15,7 @@
 #include "ubevt/Utilities/PMTRemapService.h"
 #include "ubevt/Utilities/PMTRemapProvider.h"
 
+#include "lardataobj/RecoBase/OpHit.h"
 #include "lardataobj/RecoBase/OpFlash.h"
 #include "lardataobj/RecoBase/PFParticle.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
@@ -161,10 +162,10 @@ class FlashNeutrinoId : SliceIdBaseTool
           bool PassesPEThreshold(const float minBeamFlashPE) const;
 
           /**
-         *  @breif  Convert to a flashana::Flash_t
-         *
-         *  @return the flashana::Flash_t
-         */
+	   *  @breif  Convert to a flashana::Flash_t
+	   *
+	   *  @return the flashana::Flash_t
+	   */
           flashana::Flash_t ConvertFlashFormat() const;
 
           // Features of the flash are used when writing to file is enabled
@@ -239,12 +240,19 @@ class FlashNeutrinoId : SliceIdBaseTool
                          const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
                          const PFParticlesToTracks &particlesToTracks,
 			 const trkf::TrajectoryMCSFitter& mcsfitter,
-                         const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceIndex);
+                         const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceIndex,
+			 bool m_verbose, std::string m_ophitLabel, float m_UP, float m_DOWN, float m_anodeTime, float m_cathodeTime,
+			 float m_driftVel, float m_ophitPE, int m_nOphit, float m_ophit_time_res, float m_ophit_pos_res, float m_min_track_length,
+			 float m_dt_resolution_ophit);
+
           SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                          const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
-                         const PFParticlesToTracks &particlesToTracks, const PFParticlesToMetadata particlesToMetadata, const art::FindMany<anab::T0> &trk_t0_assn_v,
+                         const PFParticlesToTracks &particlesToTracks, const art::FindMany<anab::T0> &trk_t0_assn_v,
 			 const trkf::TrajectoryMCSFitter& mcsfitter,
-                         const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceIndex);
+                         const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceIndex,
+			 bool m_verbose, std::string m_ophitLabel, float m_UP, float m_DOWN, float m_anodeTime, float m_cathodeTime,
+			 float m_driftVel, float m_ophitPE, int m_nOphit, float m_ophit_time_res, float m_ophit_pos_res, float m_min_track_length,
+			 float m_dt_resolution_ophit);
 
           /**
          *  @brief  Parametrized constructor for slices that aren't considered by the flash neutrino ID module - monitoring only
@@ -349,9 +357,36 @@ class FlashNeutrinoId : SliceIdBaseTool
          *
          */
           void GetClosestCRTCosmic(const PFParticleVector &parentPFParticles, const art::Event &event,
-                                   const PFParticlesToTracks &particlesToTracks, const PFParticlesToMetadata particlesToMetadata,
+                                   const PFParticlesToTracks &particlesToTracks,
                                    const art::FindMany<anab::T0> &trk_t0_assn_v);
 
+
+	  // DAVIDC
+          /**
+	   *  @brief  tag ACPT tracks using geometry and hit timing
+	   */
+          void ACPTtagger(const PFParticleVector &parentPFParticles, const art::Event &event,
+			  const PFParticlesToTracks &particlesToTracks);
+
+	  // DAVIDC
+	  /**
+	   * @brief sort track points based on up -> down
+	   */
+	  void SortTrackPoints(const recob::Track& track, std::vector<TVector3>& sorted_points);
+
+	  // DAVIDC
+	  /**
+	   * @brief given a track find the DT to the closest ophit
+	   */
+	  float GetClosestDt_OpHits(std::vector<TVector3> & sorted_points, double y_up, double y_down, const std::vector<art::Ptr<recob::OpHit>> ophit_v,
+				    float &flash_zcenter, float &flash_time);
+
+	  bool GetSign(std::vector<TVector3> sorted_points);
+	  bool IsInUpperDet(double y_up);
+	  bool IsInLowerDet(double y_down);
+	  float RunOpHitFinder(double the_time, double trk_z_start, double trk_z_end, const std::vector<art::Ptr<recob::OpHit>> ophit_v,
+			       float &time_average, float &zpos_average);
+	  
           /**
          *  @brief  Convert a charge deposition into a light cluster by applying the chargeToPhotonFactor to every point
          *
@@ -410,6 +445,28 @@ class FlashNeutrinoId : SliceIdBaseTool
           float m_xclCoef;                           ///< m_xclCoef*log10(chargeToLightRatio)- centerX
           flashana::QCluster_t m_lightCluster;       ///< The hypothesised light produced - used by flashmatching
 	  float m_minDeltaLLMCS;                        ///< deltaLL for forward and backward MCS fit (used to tag stopping muons)
+
+	  // DAVIDC
+	  bool mm_verbose;
+	  std::string mm_ophitLabel;   ///< The label of the flash producer
+	  float mm_UP; // top FV surface of TPC
+	  float mm_DOWN; // bottom FV value of TPC
+	  float mm_anodeTime; // drift time at which anode signals reach the wires 
+	  float mm_cathodeTime; // drift time at which cathode signals reach the wires
+	  float mm_driftVel; // drift velocity
+	  float mm_ophitPE; // ophit PE threshold
+	  float mm_nOphit;  // minimum number of coincident ophits
+	  float mm_ophit_time_res; // time difference that ophits must have to be associated to track [us]
+	  float mm_ophit_pos_res; // position difference
+	  float mm_min_track_length; // minimum track length
+	  float mm_dt_resolution_ophit; 
+	  float mm_ACPTdt; // dt
+	  float mm_flashTime;
+	  float mm_flashZCenter;
+	  float mm_y_up, mm_y_dn, mm_x_up, mm_x_dn, mm_z_up, mm_z_dn;
+	  float mm_z_center;
+	  float mm_flash_timeanode_u, mm_flash_timeanode_d, mm_flash_timecathode_u, mm_flash_timecathode_d;
+	  std::vector<art::Ptr<recob::OpHit>> mm_ophit_v;
      };
 
      // -------------------------------------------------------------------------------------------------------------------------------------
@@ -500,6 +557,21 @@ class FlashNeutrinoId : SliceIdBaseTool
      float m_beamWindowEnd;   ///< The end time of the beam window
      float m_minBeamFlashPE;  ///< The minimum number of photoelectrons required to consider a flash as the beam flash
 
+     // DAVIDC -- ACPT variables
+     bool m_verbose;
+     std::string m_ophitLabel;   ///< The label of the flash producer
+     float m_UP; // top FV surface of TPC
+     float m_DOWN; // bottom FV value of TPC
+     float m_anodeTime; // drift time at which anode signals reach the wires 
+     float m_cathodeTime; // drift time at which cathode signals reach the wires
+     float m_driftVel; // drift velocity
+     float m_ophitPE; // ophit PE threshold
+     int   m_nOphit;  // minimum number of coincident ophits
+     float m_ophit_time_res; // time difference that ophits must have to be associated to track [us]
+     float m_ophit_pos_res; // position difference
+     float m_min_track_length; // minimum track length
+     float m_dt_resolution_ophit;
+
      // Coefficient to account for the x-dependency in the charge light-ratio
      float m_xclCoef; ///< m_xclCoef*log10(chargeToLightRatio)- centerX
 
@@ -554,37 +626,55 @@ DEFINE_ART_CLASS_TOOL(FlashNeutrinoId)
 
 namespace lar_pandora
 {
+  FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset)  : m_flashLabel(pset.get<std::string>("FlashLabel")),
+    m_pandoraLabel(pset.get<std::string>("PandoraAllOutcomesLabel")),
+    m_PMTch_correction(pset.get<std::vector<float>>("PMTChannelCorrection")),
+    m_beamWindowStart(pset.get<float>("BeamWindowStartTime")),
+    m_beamWindowEnd(pset.get<float>("BeamWindowEndTime")),
+    m_minBeamFlashPE(pset.get<float>("BeamFlashPEThreshold")),
+    
+    m_xclCoef(pset.get<float>("CoefXCL")),
+    m_maxDeltaY(pset.get<float>("MaxDeltaY")),
+    m_maxDeltaZ(pset.get<float>("MaxDeltaZ")),
+    m_maxDeltaYSigma(pset.get<float>("MaxDeltaYSigma")),
+    m_maxDeltaZSigma(pset.get<float>("MaxDeltaZSigma")),
+    m_minChargeToLightRatio(pset.get<float>("MinChargeToLightRatio")),
+    m_maxChargeToLightRatio(pset.get<float>("MaxChargeToLightRatio")),
+    m_chargeToNPhotonsTrack(pset.get<float>("ChargeToNPhotonsTrack")),
+    m_chargeToNPhotonsShower(pset.get<float>("ChargeToNPhotonsShower")),
 
-FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) : m_flashLabel(pset.get<std::string>("FlashLabel")),
-                                                                    m_pandoraLabel(pset.get<std::string>("PandoraAllOutcomesLabel")),
-
-                                                                    m_PMTch_correction(pset.get<std::vector<float>>("PMTChannelCorrection")),
-                                                                    m_beamWindowStart(pset.get<float>("BeamWindowStartTime")),
-                                                                    m_beamWindowEnd(pset.get<float>("BeamWindowEndTime")),
-                                                                    m_minBeamFlashPE(pset.get<float>("BeamFlashPEThreshold")),
-
-                                                                    m_xclCoef(pset.get<float>("CoefXCL")),
-                                                                    m_maxDeltaY(pset.get<float>("MaxDeltaY")),
-                                                                    m_maxDeltaZ(pset.get<float>("MaxDeltaZ")),
-                                                                    m_maxDeltaYSigma(pset.get<float>("MaxDeltaYSigma")),
-                                                                    m_maxDeltaZSigma(pset.get<float>("MaxDeltaZSigma")),
-                                                                    m_minChargeToLightRatio(pset.get<float>("MinChargeToLightRatio")),
-                                                                    m_maxChargeToLightRatio(pset.get<float>("MaxChargeToLightRatio")),
-                                                                    m_chargeToNPhotonsTrack(pset.get<float>("ChargeToNPhotonsTrack")),
-                                                                    m_chargeToNPhotonsShower(pset.get<float>("ChargeToNPhotonsShower")),
-                                                                    m_shouldWriteToFile(pset.get<bool>("ShouldWriteToFile", false)),
-                                                                    m_hasMCNeutrino(m_shouldWriteToFile ? pset.get<bool>("HasMCNeutrino") : false),
-                                                                    m_hasCRT(pset.get<bool>("HasCRT")),
-                                                                    m_truthLabel(m_hasMCNeutrino ? pset.get<std::string>("MCTruthLabel") : ""),
-                                                                    m_mcParticleLabel(m_hasMCNeutrino ? pset.get<std::string>("MCParticleLabel") : ""),
-                                                                    m_hitLabel(m_hasMCNeutrino ? pset.get<std::string>("HitLabel") : ""),
-                                                                    m_backtrackLabel(m_hasMCNeutrino ? pset.get<std::string>("BacktrackerLabel") : ""),
-                                                                    m_pEventTree(nullptr),
-                                                                    m_pFlashTree(nullptr),
-                                                                    m_pSliceTree(nullptr),
-                                                                    m_mcsfitter(fhicl::Table<trkf::TrajectoryMCSFitter::Config>(pset.get<fhicl::ParameterSet>("mcsfitter")))
+    m_shouldWriteToFile(pset.get<bool>("ShouldWriteToFile", false)),
+    m_hasMCNeutrino(m_shouldWriteToFile ? pset.get<bool>("HasMCNeutrino") : false),
+    m_hasCRT(pset.get<bool>("HasCRT")),
+    m_truthLabel(m_hasMCNeutrino ? pset.get<std::string>("MCTruthLabel") : ""),
+    m_mcParticleLabel(m_hasMCNeutrino ? pset.get<std::string>("MCParticleLabel") : ""),
+    m_hitLabel(m_hasMCNeutrino ? pset.get<std::string>("HitLabel") : ""),
+    m_backtrackLabel(m_hasMCNeutrino ? pset.get<std::string>("BacktrackerLabel") : ""),
+    m_pEventTree(nullptr),
+    m_pFlashTree(nullptr),
+    m_pSliceTree(nullptr),
+    m_mcsfitter(fhicl::Table<trkf::TrajectoryMCSFitter::Config>(pset.get<fhicl::ParameterSet>("mcsfitter")))
 {
      m_flashMatchManager.Configure(pset.get<flashana::Config_t>("FlashMatchConfig"));
+
+     m_verbose = pset.get<bool>("verbose");
+     m_ophitLabel = pset.get<std::string>("ophitLabel");
+     m_UP = pset.get<float>("UP");
+     m_DOWN = pset.get<float>("DOWN");
+     m_anodeTime = pset.get<float>("anodeTime");
+     m_cathodeTime = pset.get<float>("cathodeTime");
+     m_ophitPE = pset.get<float>("ophitPE");
+     m_nOphit = pset.get<float>("nOphit");
+     m_ophit_time_res = pset.get<float>("ophit_time_res");
+     m_ophit_pos_res = pset.get<float>("ophit_pos_res");
+     m_min_track_length = pset.get<float>("min_track_length");
+     m_dt_resolution_ophit = pset.get<float>("dt_resolution_ophit");
+
+     // setup drift velocity variable
+     auto const* _detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+     double efield     = _detp->Efield();
+     double temp       = _detp->Temperature();
+     m_driftVel        = _detp->DriftVelocity(efield,temp);
 
      if (!m_shouldWriteToFile)
           return;
@@ -691,6 +781,20 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) : m_flashLabel
      m_pSliceTree->Branch("hasBestFlashMatchScore", &m_outputSlice.m_hasBestFlashMatchScore, "hasBestFlashMatchScore/O");
      m_pSliceTree->Branch("nHits", &m_outputSliceMetadata.m_nHits, "nHits/I");
      m_pSliceTree->Branch("minDeltaLLMCS", &m_outputSlice.m_minDeltaLLMCS, "minDeltaLLMCS/F");
+     m_pSliceTree->Branch("ACPTdt",&m_outputSlice.mm_ACPTdt,"ACPTdt/F");
+     m_pSliceTree->Branch("flashZCenter",&m_outputSlice.mm_flashZCenter,"flashZCenter/F");
+     m_pSliceTree->Branch("flashTime",&m_outputSlice.mm_flashTime,"flashTime/F");
+     m_pSliceTree->Branch("z_center",&m_outputSlice.mm_z_center,"z_center/F");
+     m_pSliceTree->Branch("y_up",&m_outputSlice.mm_y_up,"y_up/F");
+     m_pSliceTree->Branch("y_dn",&m_outputSlice.mm_y_dn,"y_dn/F");
+     m_pSliceTree->Branch("x_up",&m_outputSlice.mm_x_up,"x_up/F");
+     m_pSliceTree->Branch("x_dn",&m_outputSlice.mm_x_dn,"x_dn/F");
+     m_pSliceTree->Branch("z_up",&m_outputSlice.mm_z_up,"z_up/F");
+     m_pSliceTree->Branch("z_dn",&m_outputSlice.mm_z_dn,"z_dn/F");
+     m_pSliceTree->Branch("flash_timeanode_u",&m_outputSlice.mm_flash_timeanode_u,"flash_timeanode_u/F");
+     m_pSliceTree->Branch("flash_timeanode_d",&m_outputSlice.mm_flash_timeanode_d,"flash_timeanode_d/F");
+     m_pSliceTree->Branch("flash_timecathode_u",&m_outputSlice.mm_flash_timecathode_u,"flash_timecathode_u/F");
+     m_pSliceTree->Branch("flash_timecathode_d",&m_outputSlice.mm_flash_timecathode_d,"flash_timecathode_d/F");
 
      if (m_hasMCNeutrino)
      {
