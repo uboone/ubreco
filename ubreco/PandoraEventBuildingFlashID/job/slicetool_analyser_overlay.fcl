@@ -23,9 +23,9 @@ physics:
 
 }
 
-physics.producers.pandoraFlashEventBuilding.SliceIdTool.BeamWindowStartTime: 3.57
-physics.producers.pandoraFlashEventBuilding.SliceIdTool.BeamWindowEndTime:   5.25
-physics.producers.pandoraFlashEventBuilding.SliceIdTool.HasMCNeutrino:       true 
-physics.producers.pandoraFlashEventBuilding.SliceIdTool.FlashMatchConfig.PhotonLibHypothesis.CCVCorrection: 
+physics.producers.pandoraSliceId.SliceIdTool.BeamWindowStartTime: 3.57
+physics.producers.pandoraSliceId.SliceIdTool.BeamWindowEndTime:   5.25
+physics.producers.pandoraSliceId.SliceIdTool.HasMCNeutrino:       true
+physics.producers.pandoraSliceId.SliceIdTool.FlashMatchConfig.PhotonLibHypothesis.CCVCorrection:
 [0.318 ,0.296 ,0.342 ,0.312 ,0.311 ,0.341 ,0.330 ,0.329 ,0.319 ,0.320 ,0.307 ,0.323 ,0.327 ,0.324 ,0.341 ,0.312,
 0.317 ,0.322 ,0.322 ,0.327 ,0.353 ,0.321 ,0.302 ,0.321 ,0.285 ,0.599 ,0.289 ,0.290 ,0.197 ,0.287 ,0.268 ,0.194]

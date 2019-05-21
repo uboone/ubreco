@@ -1,4 +1,4 @@
 #include "slicetool_analyser_data.fcl"
 
-physics.producers.pandoraFlashEventBuilding.SliceIdTool.BeamWindowStartTime: 3.195
-physics.producers.pandoraFlashEventBuilding.SliceIdTool.BeamWindowEndTime:   4.875
+physics.producers.pandoraSliceId.SliceIdTool.BeamWindowStartTime: 3.195
+physics.producers.pandoraSliceId.SliceIdTool.BeamWindowEndTime:   4.875

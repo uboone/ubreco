@@ -19,7 +19,7 @@ pandora_flash_event_building.ShouldUseTestBeamMode: false
 pandora_flash_event_building.ShouldOutputSubrunsTree: true
 pandora_flash_event_building.IsData: false
 pandora_flash_event_building.GeneratorLabel: "generator"
-pandora_flash_event_building.SliceIdTool.HasCRT: true
+pandora_flash_event_building.SliceIdTool.HasCRT: false
 #pandora_flash_event_building.SliceIdTool.FlashLabel: "wcopflash:beam"
 pandora_flash_event_building.SliceIdTool.FlashLabel: "simpleFlashBeam"
 
@@ -43,7 +43,7 @@ services:
 
   TimeTracker:              @local::microboone_time_tracker
   MemoryTracker:            @local::microboone_memory_tracker
-  message:                  @local::microboone_message_services_prod_debug
+  #message:                  @local::microboone_message_services_prod_debug
   FileCatalogMetadata:      @local::art_file_catalog_mc
   SpaceCharge:              @local::microboone_spacecharge
   DetectorPropertiesService:@local::microboone_detproperties

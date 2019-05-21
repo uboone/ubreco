@@ -31,6 +31,8 @@
 #include "larpandora/LArPandoraEventBuilding/SliceIdBaseTool.h"
 #include "larpandora/LArPandoraEventBuilding/Slice.h"
 
+#include "larreco/RecoAlg/TrajectoryMCSFitter.h"
+
 #include "Objects/CartesianVector.h"
 
 #include "TFile.h"
@@ -236,10 +238,12 @@ class FlashNeutrinoId : SliceIdBaseTool
           SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                          const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
                          const PFParticlesToTracks &particlesToTracks,
+			 const trkf::TrajectoryMCSFitter& mcsfitter,
                          const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceIndex);
           SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                          const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
                          const PFParticlesToTracks &particlesToTracks, const PFParticlesToMetadata particlesToMetadata, const art::FindMany<anab::T0> &trk_t0_assn_v,
+			 const trkf::TrajectoryMCSFitter& mcsfitter,
                          const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceIndex);
 
           /**
@@ -357,6 +361,16 @@ class FlashNeutrinoId : SliceIdBaseTool
          */
           flashana::QCluster_t GetLightCluster(const DepositionVector &depositionVector) const;
 
+          /**
+         *  @brief  FIXME
+         *
+         *  @param  pfpparticles under the cosmic hypothesis, event
+         *
+         */
+          void RejectStopMuByDirMCS(const PFParticleVector &parentPFParticles, const art::Event &event,
+				    const PFParticlesToTracks &particlesToTracks,
+				    const trkf::TrajectoryMCSFitter& mcsfitter);
+
         public:
           // Features of the slice are used when writing to file is enabled
           int m_sliceId;                             ///< The sliceId
@@ -395,6 +409,7 @@ class FlashNeutrinoId : SliceIdBaseTool
           float m_chargeToNPhotonsShower;            ///< The conversion factor between charge and number of photons for showers
           float m_xclCoef;                           ///< m_xclCoef*log10(chargeToLightRatio)- centerX
           flashana::QCluster_t m_lightCluster;       ///< The hypothesised light produced - used by flashmatching
+	  float m_minDeltaLLMCS;                        ///< deltaLL for forward and backward MCS fit (used to tag stopping muons)
      };
 
      // -------------------------------------------------------------------------------------------------------------------------------------
@@ -525,6 +540,9 @@ class FlashNeutrinoId : SliceIdBaseTool
      TTree *m_pEventTree;                                          ///< The event tree
      TTree *m_pFlashTree;                                          ///< The flash tree
      TTree *m_pSliceTree;                                          ///< The slice tree
+
+     // MCS fitter
+     const trkf::TrajectoryMCSFitter m_mcsfitter;
 };
 
 DEFINE_ART_CLASS_TOOL(FlashNeutrinoId)
@@ -563,7 +581,8 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) : m_flashLabel
                                                                     m_backtrackLabel(m_hasMCNeutrino ? pset.get<std::string>("BacktrackerLabel") : ""),
                                                                     m_pEventTree(nullptr),
                                                                     m_pFlashTree(nullptr),
-                                                                    m_pSliceTree(nullptr)
+                                                                    m_pSliceTree(nullptr),
+                                                                    m_mcsfitter(fhicl::Table<trkf::TrajectoryMCSFitter::Config>(pset.get<fhicl::ParameterSet>("mcsfitter")))
 {
      m_flashMatchManager.Configure(pset.get<flashana::Config_t>("FlashMatchConfig"));
 
@@ -671,6 +690,7 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) : m_flashLabel
      m_pSliceTree->Branch("hasBestTopologicalScore", &m_outputSlice.m_hasBestTopologicalScore, "hasBestTopologicalScore/O");
      m_pSliceTree->Branch("hasBestFlashMatchScore", &m_outputSlice.m_hasBestFlashMatchScore, "hasBestFlashMatchScore/O");
      m_pSliceTree->Branch("nHits", &m_outputSliceMetadata.m_nHits, "nHits/I");
+     m_pSliceTree->Branch("minDeltaLLMCS", &m_outputSlice.m_minDeltaLLMCS, "minDeltaLLMCS/F");
 
      if (m_hasMCNeutrino)
      {
@@ -689,3 +709,5 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) : m_flashLabel
           m_pSliceTree->Branch("nuVertexZ", &m_nuVertexZ, "nuVertexZ/F");
      }
 }
+
+} // namespace lar_pandora

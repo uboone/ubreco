@@ -1,5 +1,6 @@
 #include "flashmatchalg.fcl"
 #include "external_event_building.fcl"
+#include "mcsfitproducer.fcl"
 
 BEGIN_PROLOG
 
@@ -58,6 +59,8 @@ flash_neutrino_id_tool :
     ChargeToNPhotonsTrack:    164. # 240 e-/ADC x 23.6/1e6 MeV/e- x 29,000 gamma/MeV = 164. (not including recombination)
     ChargeToNPhotonsShower:   164. # Not tuned! higher mainly beacause we need to account for missing charge contributions
     FlashMatchConfig:         @local::flashmatch_config
+
+    mcsfitter: @local::mcsfitproducer.fitter
 
     # Debug
     ShouldWriteToFile:        true

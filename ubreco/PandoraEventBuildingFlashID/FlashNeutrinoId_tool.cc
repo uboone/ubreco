@@ -6,6 +6,9 @@
 
 #include "FlashNeutrinoId_tool.h"
 
+namespace lar_pandora
+{
+
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
@@ -155,12 +158,12 @@ void FlashNeutrinoId::GetSliceCandidates(const art::Event &event, SliceVector &s
         {
             const art::FindMany<anab::T0> trk_t0_assn_v(track_h, event, "trackmatch");
             sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, particlesToTracks, particlesToMetadata,
-                                         trk_t0_assn_v, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1);
+                                         trk_t0_assn_v, m_mcsfitter, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1);
         }
         else
         {
             sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, particlesToTracks,
-                                         m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1);
+                                         m_mcsfitter, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1);
         }
     }
 }
@@ -539,7 +542,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate() : m_sliceId(-std::numeric_limi
                                                     m_hasBestFlashMatchScore(false),
                                                     m_chargeToNPhotonsTrack(-std::numeric_limits<float>::max()),
                                                     m_chargeToNPhotonsShower(-std::numeric_limits<float>::max()),
-                                                    m_xclCoef(-std::numeric_limits<float>::max())
+                                                    m_xclCoef(-std::numeric_limits<float>::max()),
+                                                    m_minDeltaLLMCS(-std::numeric_limits<float>::max())
 {
 }
 
@@ -575,7 +579,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
                                                                                                m_hasBestFlashMatchScore(false),
                                                                                                m_chargeToNPhotonsTrack(-std::numeric_limits<float>::max()),
                                                                                                m_chargeToNPhotonsShower(-std::numeric_limits<float>::max()),
-                                                                                               m_xclCoef(-std::numeric_limits<float>::max())
+                                                                                               m_xclCoef(-std::numeric_limits<float>::max()),
+                                                                                               m_minDeltaLLMCS(-std::numeric_limits<float>::max())
 {
 }
 
@@ -584,6 +589,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                                                 const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
                                                 const PFParticlesToTracks &particlesToTracks,
+						const trkf::TrajectoryMCSFitter& mcsfitter,
                                                 const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId) : m_sliceId(sliceId),
                                                                                                                                                                  m_run(event.run()),
                                                                                                                                                                  m_subRun(event.subRun()),
@@ -614,7 +620,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
                                                                                                                                                                  m_hasBestFlashMatchScore(false),
                                                                                                                                                                  m_chargeToNPhotonsTrack(chargeToNPhotonsTrack),
                                                                                                                                                                  m_chargeToNPhotonsShower(chargeToNPhotonsShower),
-                                                                                                                                                                 m_xclCoef(xclCoef)
+                                                                                                                                                                 m_xclCoef(xclCoef),
+                                                                                                                                                                 m_minDeltaLLMCS(-std::numeric_limits<float>::max())
 
 {
     const auto chargeDeposition(this->GetDepositionVector(pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, slice));
@@ -629,6 +636,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
     m_centerX = chargeCenter.GetX();
     m_centerY = chargeCenter.GetY();
     m_centerZ = chargeCenter.GetZ();
+
+    this->RejectStopMuByDirMCS(slice.GetCosmicRayHypothesis(), event, particlesToTracks, mcsfitter);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -636,9 +645,10 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                                                 const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
                                                 const PFParticlesToTracks &particlesToTracks, const PFParticlesToMetadata particlesToMetadata, const art::FindMany<anab::T0> &trk_t0_assn_v,
+						const trkf::TrajectoryMCSFitter& mcsfitter,
                                                 const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId) : FlashNeutrinoId::SliceCandidate::SliceCandidate(event, slice, pfParticleMap,
                                                                                                                                                                                                                  pfParticleToSpacePointMap, spacePointToHitMap,
-                                                                                                                                                                                                                 particlesToTracks, chargeToNPhotonsTrack, chargeToNPhotonsShower, xclCoef, sliceId)
+                                                                                                                                                                                                                 particlesToTracks, mcsfitter, chargeToNPhotonsTrack, chargeToNPhotonsShower, xclCoef, sliceId)
 
 {
     if (trk_t0_assn_v.size() != 0)
@@ -978,6 +988,69 @@ void FlashNeutrinoId::CollectDownstreamPFParticles(const PFParticleMap &pfPartic
             throw cet::exception("FlashNeutrinoId") << "Scrambled PFParticle IDs" << std::endl;
 
         this->CollectDownstreamPFParticles(pfParticleMap, iter->second, downstreamPFParticles);
+    }
+}
+
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+void FlashNeutrinoId::SliceCandidate::RejectStopMuByDirMCS(const PFParticleVector &parentPFParticles, const art::Event &event,
+							   const PFParticlesToTracks &particlesToTracks,
+							   const trkf::TrajectoryMCSFitter& mcsfitter)
+{
+
+  std::cout << "[RejectStopMuByDirMCS] Slice with N pfps = " << parentPFParticles.size() << std::endl;
+  ::art::ServiceHandle<geo::Geometry> geo;
+  float bnd = 20.;
+  for (const art::Ptr<recob::PFParticle> pfp : parentPFParticles)
+    {
+      if (LArPandoraHelper::IsTrack(pfp))
+        {
+	  if (particlesToTracks.count(pfp))
+            {
+	      const art::Ptr<recob::Track> this_track = particlesToTracks.at(pfp).front();
+
+	      auto InFV = [&geo, bnd](recob::tracking::Point_t p) -> bool { return (p.X()>bnd && p.X()<(2.*geo->DetHalfWidth()-bnd) &&
+										    p.Y()>(-geo->DetHalfHeight()+bnd) && p.Y()<(geo->DetHalfHeight()-bnd) &&
+										    p.Z()>bnd && p.Z()<(geo->DetLength()-bnd) ); };
+
+	      bool vtx_contained = InFV(this_track->Vertex());
+	      bool end_contained = InFV(this_track->End());
+
+	      // If fully contained, exit
+	      if (vtx_contained && end_contained) {
+		continue;
+	      }
+	      // If fully uncontained, exit
+	      if (!vtx_contained && !end_contained) {
+		continue;
+	      }
+
+	      auto _result = mcsfitter.fitMcs(*this_track);
+	      double fwd_ll = _result.fwdLogLikelihood();
+	      double bwd_ll = _result.bwdLogLikelihood();
+	      std::cout << "[RejectStopMuByDirMCS] FWD " << fwd_ll
+			<< ", BWD " << bwd_ll
+			<< ", length=" << this_track->Length()
+			<< ", vtx=" << this_track->Vertex()
+			<< ", end=" << this_track->End()
+			<< std::endl;
+	      if (vtx_contained && !end_contained) {
+		m_minDeltaLLMCS = std::min(float(fwd_ll - bwd_ll), m_minDeltaLLMCS);
+	      }
+	      else if (!vtx_contained && end_contained){
+		m_minDeltaLLMCS = std::min(float(bwd_ll - fwd_ll), m_minDeltaLLMCS);
+	      }
+
+	      // // std::cout <<"DELTA " << delta_ll << ", cut at " << _mcs_delta_ll_cut << std::endl;
+	      // if (delta_ll < _mcs_delta_ll_cut) {
+	      //   return true;
+	      // }
+	      // else {
+	      //   return false;
+	      // }
+            }
+        }
     }
 }
 
