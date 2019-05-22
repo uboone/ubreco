@@ -35,6 +35,11 @@ flash_neutrino_id_tool :
     # Input producers
     FlashLabel:              "simpleFlashBeam"
     PandoraAllOutcomesLabel: "pandoraPatRec:allOutcomes"
+    PandoraTrackLabel:       "pandoraAllOutcomesTrack"
+    
+    # These fields are only needed for CRT-slice tagging
+    HasCRT: false
+    CRTTrackMatchLabel:      "trackmatch"
     
     # PMT channel correction factors
     PMTChannelCorrection : [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
@@ -44,8 +49,8 @@ flash_neutrino_id_tool :
     BeamWindowEndTime:        4.8
     BeamFlashPEThreshold:     50.0
     
-    # Coefficient linking the chargelightration and the x-dependence
-    CoefXCL:                  270 #190
+    # Coefficient linking the charge-light-ratio and the x-dependence
+    CoefXCL:                  270
 
     DOWN: 20
     UP: 20
@@ -62,11 +67,11 @@ flash_neutrino_id_tool :
 
     # Pre-selection cut values
     MaxDeltaY:                95.0
-    MaxDeltaZ:                115.0 #105.0
-    MaxDeltaYSigma:           2.3 #2.1 
+    MaxDeltaZ:                115.0
+    MaxDeltaYSigma:           2.3
     MaxDeltaZSigma:           1.0
-    MinChargeToLightRatio:    100 #50.0 
-    MaxChargeToLightRatio:    400 #250.0
+    MinChargeToLightRatio:    100
+    MaxChargeToLightRatio:    400
 
     # Flash matching congifuration
     ChargeToNPhotonsTrack:    164. # 240 e-/ADC x 23.6/1e6 MeV/e- x 29,000 gamma/MeV = 164. (not including recombination)

@@ -144,16 +144,16 @@ void FlashNeutrinoId::GetSliceCandidates(const art::Event &event, SliceVector &s
     LArPandoraHelper::CollectPFParticles(event, m_pandoraLabel, pfParticles, pfParticleToSpacePointMap);
     LArPandoraHelper::CollectSpacePoints(event, m_pandoraLabel, spacePoints, spacePointToHitMap);
     LArPandoraHelper::BuildPFParticleMap(pfParticles, pfParticleMap);
-    LArPandoraHelper::CollectTracks(event, "pandoraAllOutcomesTrack", pftracks, particlesToTracks);
+    LArPandoraHelper::CollectTracks(event, m_pandoraTrackLabel, pftracks, particlesToTracks);
     art::Handle<std::vector<recob::Track>> track_h;
-    event.getByLabel("pandoraAllOutcomesTrack", track_h);
+    event.getByLabel(m_pandoraTrackLabel, track_h);
 
     for (unsigned int sliceIndex = 0; sliceIndex < slices.size(); ++sliceIndex)
     {
         const auto &slice = slices[sliceIndex];
         if (m_hasCRT)
         {
-            const art::FindMany<anab::T0> trk_t0_assn_v(track_h, event, "trackmatch");
+            const art::FindMany<anab::T0> trk_t0_assn_v(track_h, event, m_crtTrackMatchLabel);
             sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, particlesToTracks,
                                          trk_t0_assn_v, m_mcsfitter, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1,
                                          m_verbose, m_ophitLabel, m_UP, m_DOWN, m_anodeTime, m_cathodeTime, m_driftVel, m_ophitPE,
@@ -594,7 +594,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                                                 const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
                                                 const PFParticlesToTracks &particlesToTracks,
-						const trkf::TrajectoryMCSFitter& mcsfitter,
+                                                const trkf::TrajectoryMCSFitter &mcsfitter,
                                                 const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId,
                                                 bool m_verbose, std::string m_ophitLabel, float m_UP, float m_DOWN, float m_anodeTime, float m_cathodeTime,
                                                 float m_driftVel, float m_ophitPE, int m_nOphit, float m_ophit_time_res, float m_ophit_pos_res, float m_min_track_length,
@@ -671,7 +671,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                                                 const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
                                                 const PFParticlesToTracks &particlesToTracks, const art::FindMany<anab::T0> &trk_t0_assn_v,
-						const trkf::TrajectoryMCSFitter& mcsfitter,
+                                                const trkf::TrajectoryMCSFitter &mcsfitter,
                                                 const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId,
                                                 bool m_verbose, std::string m_ophitLabel, float m_UP, float m_DOWN, float m_anodeTime, float m_cathodeTime,
                                                 float m_driftVel, float m_ophitPE, int m_nOphit, float m_ophit_time_res, float m_ophit_pos_res, float m_min_track_length, float m_dt_resolution_ophit)
@@ -818,7 +818,7 @@ void FlashNeutrinoId::SliceCandidate::GetClosestCRTCosmic(const PFParticleVector
                 const std::vector<const anab::T0 *> &T0_v = trk_t0_assn_v.at(this_track.key());
                 if (T0_v.size() == 1)
                 {
-                    std::cout << "CRT-track-match found with dca: " << T0_v.front()->TriggerConfidence();
+                    std::cout << "[GetClosestCRTCosmic] CRT-track-match found with dca: " << T0_v.front()->TriggerConfidence();
                     std::cout << "\tTime: " << T0_v.front()->Time();
                     std::cout << "\tPlane: " << T0_v.front()->TriggerBits() << std::endl;
                     if (T0_v.front()->TriggerConfidence() < m_minCRTdist)
@@ -1443,64 +1443,67 @@ void FlashNeutrinoId::CollectDownstreamPFParticles(const PFParticleMap &pfPartic
     }
 }
 
-
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 void FlashNeutrinoId::SliceCandidate::RejectStopMuByDirMCS(const PFParticleVector &parentPFParticles, const art::Event &event,
-							   const PFParticlesToTracks &particlesToTracks,
-							   const trkf::TrajectoryMCSFitter& mcsfitter)
+                                                           const PFParticlesToTracks &particlesToTracks,
+                                                           const trkf::TrajectoryMCSFitter &mcsfitter)
 {
 
-  std::cout << "[RejectStopMuByDirMCS] Slice with N pfps = " << parentPFParticles.size() << std::endl;
-  ::art::ServiceHandle<geo::Geometry> geo;
-  float bnd = 20.;
-  for (const art::Ptr<recob::PFParticle> pfp : parentPFParticles)
+    std::cout << "[RejectStopMuByDirMCS] Slice with N pfps = " << parentPFParticles.size() << std::endl;
+    ::art::ServiceHandle<geo::Geometry> geo;
+    float bnd = 20.;
+    for (const art::Ptr<recob::PFParticle> pfp : parentPFParticles)
     {
-      if (LArPandoraHelper::IsTrack(pfp))
+        if (LArPandoraHelper::IsTrack(pfp))
         {
-	  if (particlesToTracks.count(pfp))
+            if (particlesToTracks.count(pfp))
             {
-	      const art::Ptr<recob::Track> this_track = particlesToTracks.at(pfp).front();
+                const art::Ptr<recob::Track> this_track = particlesToTracks.at(pfp).front();
 
-	      auto InFV = [&geo, bnd](recob::tracking::Point_t p) -> bool { return (p.X()>bnd && p.X()<(2.*geo->DetHalfWidth()-bnd) &&
-										    p.Y()>(-geo->DetHalfHeight()+bnd) && p.Y()<(geo->DetHalfHeight()-bnd) &&
-										    p.Z()>bnd && p.Z()<(geo->DetLength()-bnd) ); };
+                auto InFV = [&geo, bnd](recob::tracking::Point_t p) -> bool { return (p.X() > bnd && p.X() < (2. * geo->DetHalfWidth() - bnd) &&
+                                                                                      p.Y() > (-geo->DetHalfHeight() + bnd) && p.Y() < (geo->DetHalfHeight() - bnd) &&
+                                                                                      p.Z() > bnd && p.Z() < (geo->DetLength() - bnd)); };
 
-	      bool vtx_contained = InFV(this_track->Vertex());
-	      bool end_contained = InFV(this_track->End());
+                bool vtx_contained = InFV(this_track->Vertex());
+                bool end_contained = InFV(this_track->End());
 
-	      // If fully contained, exit
-	      if (vtx_contained && end_contained) {
-		continue;
-	      }
-	      // If fully uncontained, exit
-	      if (!vtx_contained && !end_contained) {
-		continue;
-	      }
+                // If fully contained, exit
+                if (vtx_contained && end_contained)
+                {
+                    continue;
+                }
+                // If fully uncontained, exit
+                if (!vtx_contained && !end_contained)
+                {
+                    continue;
+                }
 
-	      auto _result = mcsfitter.fitMcs(*this_track);
-	      double fwd_ll = _result.fwdLogLikelihood();
-	      double bwd_ll = _result.bwdLogLikelihood();
-	      std::cout << "[RejectStopMuByDirMCS] FWD " << fwd_ll
-			<< ", BWD " << bwd_ll
-			<< ", length=" << this_track->Length()
-			<< ", vtx=" << this_track->Vertex()
-			<< ", end=" << this_track->End()
-			<< std::endl;
-	      if (vtx_contained && !end_contained) {
-		m_maxDeltaLLMCS = std::max(float(fwd_ll - bwd_ll), m_maxDeltaLLMCS);
-	      }
-	      else if (!vtx_contained && end_contained){
-		m_maxDeltaLLMCS = std::max(float(bwd_ll - fwd_ll), m_maxDeltaLLMCS);
-	      }
+                auto _result = mcsfitter.fitMcs(*this_track);
+                double fwd_ll = _result.fwdLogLikelihood();
+                double bwd_ll = _result.bwdLogLikelihood();
+                std::cout << "[RejectStopMuByDirMCS] FWD " << fwd_ll
+                          << ", BWD " << bwd_ll
+                          << ", length=" << this_track->Length()
+                          << ", vtx=" << this_track->Vertex()
+                          << ", end=" << this_track->End()
+                          << std::endl;
+                if (vtx_contained && !end_contained)
+                {
+                    m_maxDeltaLLMCS = std::max(float(fwd_ll - bwd_ll), m_maxDeltaLLMCS);
+                }
+                else if (!vtx_contained && end_contained)
+                {
+                    m_maxDeltaLLMCS = std::max(float(bwd_ll - fwd_ll), m_maxDeltaLLMCS);
+                }
 
-	      // // std::cout <<"DELTA " << delta_ll << ", cut at " << _mcs_delta_ll_cut << std::endl;
-	      // if (delta_ll < _mcs_delta_ll_cut) {
-	      //   return true;
-	      // }
-	      // else {
-	      //   return false;
-	      // }
+                // // std::cout <<"DELTA " << delta_ll << ", cut at " << _mcs_delta_ll_cut << std::endl;
+                // if (delta_ll < _mcs_delta_ll_cut) {
+                //   return true;
+                // }
+                // else {
+                //   return false;
+                // }
             }
         }
     }

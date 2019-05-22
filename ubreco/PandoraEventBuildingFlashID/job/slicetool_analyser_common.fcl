@@ -33,6 +33,8 @@ END_PROLOG
 #include "photpropservices_microboone.fcl"
 #include "time_memory_tracker_microboone.fcl"
 
+process_name: SliceIdAnalyser
+
 services:
 {
   scheduler:               {defaultExceptions: false}
@@ -59,8 +61,6 @@ services.SpaceCharge.EnableSimEfieldSCE:  true
 services.SpaceCharge.EnableSimSpatialSCE: true
 services.DetectorClocksService.InheritClockConfig:                         false
 services.DetectorClocksService.TriggerOffsetTPC:                          -0.400e3
-
-process_name: SliceIdAnalyser
 
 source:
 {
