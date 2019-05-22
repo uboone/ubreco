@@ -5,7 +5,7 @@ pandora_event_analyser :
     module_type: "PandoraEventAnalyser"
 
     # Input producers
-    PFPproducer:              "pandoraConsolidated"
+    PFPproducer:              "pandora"
 }
 
 END_PROLOG

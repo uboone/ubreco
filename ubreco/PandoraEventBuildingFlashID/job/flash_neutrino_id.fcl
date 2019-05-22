@@ -18,18 +18,27 @@ flash_neutrino_id_tool :
     # Beam flash conditions
     BeamWindowStartTime:      3.2
     BeamWindowEndTime:        4.8
-    BeamFlashPEThreshold:     50.0
+    BeamFlashPEThreshold:     1.0
     
     # Coefficient linking the chargelightration and the x-dependence
-    CoefXCL:                  190
-        
+    #CoefXCL:                  190
+     CoefXCL:                  90
+   
     # Pre-selection cut values
-    MaxDeltaY:                95.0
-    MaxDeltaZ:                105.0
-    MaxDeltaYSigma:           2.1 
-    MaxDeltaZSigma:           1.0
-    MinChargeToLightRatio:    50.0 #2.0
-    MaxChargeToLightRatio:    250.0 #200.0
+#    MaxDeltaY:                95.0
+#    MaxDeltaZ:                105.0
+#    MaxDeltaYSigma:           2.1 
+#    MaxDeltaZSigma:           1.0
+#    MinChargeToLightRatio:    50.0 #2.0
+#    MaxChargeToLightRatio:    250.0 #200.0
+    MaxDeltaY:                125.0
+    MaxDeltaZ:                400.0
+    MaxDeltaYSigma:           3.0
+    MaxDeltaZSigma:           3.0
+    MinChargeToLightRatio:    0.0 #2.0
+    MaxChargeToLightRatio:    9999.0 #200.0
+
+    MaxNPFP:                  2
 
     # Flash matching congifuration
     ChargeToNPhotonsTrack:    164.0 #363.636

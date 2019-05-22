@@ -34,7 +34,7 @@ process_name: PandoraEventAnalyser
 source:
 {
   module_type: RootInput
-  maxEvents:  0
+  maxEvents:  -1
   saveMemoryObjectThreshold: 0
 }
 
@@ -54,12 +54,12 @@ physics:
  }
 
  prod: [ pandoraAllOutcomesTrack, pandoraAllOutcomesShower, pandoraFlashEventBuilding ]
- ana: [pandoraEventAnalyser]
+# ana: [pandoraEventAnalyser]
 
  stream1:   [ out1 ]
  trigger_paths: [ prod ]
- end_paths: [ ana ]
-
+ #end_paths: [ ana ]
+end_paths: [ stream1]
 }
 
 # Configuration

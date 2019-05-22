@@ -246,7 +246,7 @@ private:
          *  @return if the slice is compatible with the beamFlash
          */
         bool IsCompatibleWithBeamFlash(const FlashCandidate &beamFlash, const float maxDeltaY, const float maxDeltaZ,
-            const float maxDeltaYSigma, const float maxDeltaZSigma, const float minChargeToLightRatio, const float maxChargeToLightRatio);
+            const float maxDeltaYSigma, const float maxDeltaZSigma, const float minChargeToLightRatio, const float maxChargeToLightRatio, const int maxNPFP);
 
         /** 
          *  @brief  Get the flash matching score between this slice and the beam flash
@@ -261,6 +261,8 @@ private:
             const std::vector<unsigned int> &opDetVector);
 
     private:
+        int GetNPFPinSlice(const PFParticleMap &pfParticleMap, const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap, const Slice &slice) const;
+
         /**
          *  @breif  Get the 3D spacepoints (with charge) associated with the PFParticles in the slice that are produced from hits in the W view
          *
@@ -362,6 +364,7 @@ private:
         float                m_xChargeLightVariable;     ///< m_xclCoef*log10(chargeToLightRatio)- centerX
         bool                 m_passesPrecuts;            ///< If the slice passes the preselection cuts
         float                m_flashMatchScore;          ///< The flash matching score between the slice and the beam flash
+        int                  m_NPFPinSlice;              ///< number of PFPs in a slice
         float                m_flashMatchX;              ///< The etimated X coordinate of the flashmatching
         float                m_totalPEHypothesis;        ///< The total PE of the hypothesized flash for this slice
         std::vector<float>   m_peHypothesisSpectrum;     ///< The PE of the hypothesized flash of this slice 
@@ -469,7 +472,8 @@ private:
     float        m_maxDeltaZ;              ///< The maximum difference in Z between the beam flash center and the weighted charge center
     float        m_maxDeltaYSigma;         ///< As for maxDeltaY, but measured in units of the flash width in Y
     float        m_maxDeltaZSigma;         ///< As for maxDeltaZ, but measured in units of the flash width in Z
-    float        m_minChargeToLightRatio;  ///< The minimum ratio between the total charge and the total PE
+int     m_maxNPFP;    
+float        m_minChargeToLightRatio;  ///< The minimum ratio between the total charge and the total PE
     float        m_maxChargeToLightRatio;  ///< The maximum ratio between the total charge and the total PE
 
     // Variables required for flash matching
@@ -484,6 +488,7 @@ private:
     int                                     m_nuInteractionType;   ///< The interaction type code from MCTruth
     int                                     m_nuCCNC;                ///< Charged current or neutral current?
     float                                   m_nuEnergy;            ///< The true neutrino energy
+    float                                   m_Q2;
     float                                   m_leptonEnergy;        ///< The true energy of the lepton coming from the CC interaction
     float                                   m_nuVertexX;           ///< The true neutrino vertex X position
     float                                   m_nuVertexY;           ///< The true neutrino vertex Y position
@@ -524,6 +529,7 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
     m_maxDeltaZ(pset.get<float>("MaxDeltaZ")),
     m_maxDeltaYSigma(pset.get<float>("MaxDeltaYSigma")),
     m_maxDeltaZSigma(pset.get<float>("MaxDeltaZSigma")),
+    m_maxNPFP(pset.get<int>("MaxNPFP")),
     m_minChargeToLightRatio(pset.get<float>("MinChargeToLightRatio")),
     m_maxChargeToLightRatio(pset.get<float>("MaxChargeToLightRatio")),
     m_chargeToNPhotonsTrack(pset.get<float>("ChargeToNPhotonsTrack")),
@@ -555,6 +561,7 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
     pMetadataTree->Branch("maxDeltaZ"             , &m_maxDeltaZ             , "maxDeltaZ/F");
     pMetadataTree->Branch("maxDeltaYSigma"        , &m_maxDeltaYSigma        , "maxDeltaYSigma/F");
     pMetadataTree->Branch("maxDeltaZSigma"        , &m_maxDeltaZSigma        , "maxDeltaZSigma/F");
+     pMetadataTree->Branch("m_maxNPFP"        , &m_maxNPFP        , "maxNPFP/F");
     pMetadataTree->Branch("minChargeToLightRatio" , &m_minChargeToLightRatio , "minChargeToLightRatio/F");
     pMetadataTree->Branch("maxChargeToLightRatio" , &m_maxChargeToLightRatio , "maxChargeToLightRatio/F");
     pMetadataTree->Branch("chargeToNPhotonsTrack" , &m_chargeToNPhotonsTrack , "chargeToNPhotonsTrack/F");
@@ -580,6 +587,7 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
         // Truth MC information about the neutrino
         m_pEventTree->Branch("nuInteractionType", &m_nuInteractionType                   , "nuInteractionType/I");
         m_pEventTree->Branch("nuCCNC"           , &m_nuCCNC                              , "nuCCNC/I");
+        m_pEventTree->Branch("Q2"               , &m_Q2                                  , "Q2/F");
         m_pEventTree->Branch("nuEnergy"         , &m_nuEnergy                            , "nuEnergy/F");
         m_pEventTree->Branch("leptonEnergy"     , &m_leptonEnergy                        , "leptonEnergy/F");
         m_pEventTree->Branch("nuInteractionTime", &m_nuTime                              , "nuInteractionTime/F");
@@ -627,6 +635,7 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
     m_pSliceTree->Branch("xclVariable"            , &m_outputSlice.m_xChargeLightVariable    , "xclVariable/F");
     m_pSliceTree->Branch("passesPreCuts"          , &m_outputSlice.m_passesPrecuts           , "passesPrecuts/O");
     m_pSliceTree->Branch("flashMatchScore"        , &m_outputSlice.m_flashMatchScore         , "flashMatchScore/F");
+ m_pSliceTree->Branch("NPFP"                , &m_outputSlice.m_NPFPinSlice                 , "m_NPFPinSlice/I");
     m_pSliceTree->Branch("flashMatchX"            , &m_outputSlice.m_flashMatchX             , "flashMatchX/F");
     m_pSliceTree->Branch("totalPEHypothesis"      , &m_outputSlice.m_totalPEHypothesis       , "totalPEHypothesis/F");
     m_pSliceTree->Branch("peHypothesisSpectrum"   , "std::vector< float >"                   , &m_outputSlice.m_peHypothesisSpectrum);
@@ -646,6 +655,7 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) :
         m_pSliceTree->Branch("isMostComplete"   , &m_outputSliceMetadata.m_isMostComplete, "isMostComplete/O");
         m_pSliceTree->Branch("nuInteractionType", &m_nuInteractionType                   , "nuInteractionType/I");
         m_pSliceTree->Branch("nuCCNC"           , &m_nuCCNC                              , "nuCCNC/I");
+        m_pSliceTree->Branch("Q2"               , &m_Q2                                  , "Q2/F");
         m_pSliceTree->Branch("nuEnergy"         , &m_nuEnergy                            , "nuEnergy/F");
         m_pSliceTree->Branch("leptonEnergy"     , &m_leptonEnergy                        , "leptonEnergy/F");
         m_pSliceTree->Branch("nuInteractionTime", &m_nuTime                              , "nuInteractionTime/F");

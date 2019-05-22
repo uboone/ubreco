@@ -173,6 +173,7 @@ void FlashNeutrinoId::GetSliceCandidates(const art::Event &event, SliceVector &s
 
     for (unsigned int sliceIndex = 0; sliceIndex < slices.size(); ++sliceIndex)
     {
+        //std::cout<<"number of pfps: "<<pfParticles.size()<<std::endl;
         const auto &slice = slices[sliceIndex];
         sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1);
     }
@@ -194,9 +195,10 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
         auto &sliceCandidate(sliceCandidates.at(sliceIndex));
         // Apply the pre-selection cuts to ensure that the slice is compatible with the beam flash
         if (!sliceCandidate.IsCompatibleWithBeamFlash(beamFlash, m_maxDeltaY, m_maxDeltaZ, m_maxDeltaYSigma, m_maxDeltaZSigma,
-                                                      m_minChargeToLightRatio, m_maxChargeToLightRatio))
+                                                      m_minChargeToLightRatio, m_maxChargeToLightRatio, m_maxNPFP))
             continue;
-
+        // if(m_NPFPinSlice > m_maxNPFP) {std::cout<<"NPFP>1"<<std::endl; continue;}
+std::cout<<"~~slice "<<sliceIndex<<std::endl;
         foundViableSlice = true;
         m_outputEvent.m_nSlicesAfterPrecuts++;
         if (sliceCandidate.m_hasBestTopologicalScore == true)
@@ -280,7 +282,7 @@ void FlashNeutrinoId::FillSliceTree(const art::Event &evt, const SliceVector &sl
         m_nuCCNC = mcNeutrino.CCNC();
         const auto nuMCParticle(mcNeutrino.Nu());
         const auto leptonMCParticle(mcNeutrino.Lepton());
-
+        m_Q2=mcNeutrino.QSqr();
         m_nuEnergy = nuMCParticle.E();
         m_leptonEnergy = leptonMCParticle.E();
         m_nuVertexX = nuMCParticle.Vx();
@@ -496,7 +498,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate() : m_sliceId(-std::numeric_limi
                                                     m_xChargeLightVariable(-std::numeric_limits<float>::max()),
                                                     m_passesPrecuts(false),
                                                     m_flashMatchScore(-std::numeric_limits<float>::max()),
-                                                    m_totalPEHypothesis(-std::numeric_limits<float>::max()),
+                                                    m_NPFPinSlice(-std::numeric_limits<int>::max()),
+						    m_totalPEHypothesis(-std::numeric_limits<float>::max()),
                                                     m_isTaggedAsTarget(false),
                                                     m_targetMethod(-std::numeric_limits<int>::max()),
                                                     m_isConsideredByFlashId(false),
@@ -531,7 +534,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
                                                                                                m_xChargeLightVariable(-std::numeric_limits<float>::max()),
                                                                                                m_passesPrecuts(false),
                                                                                                m_flashMatchScore(-std::numeric_limits<float>::max()),
-                                                                                               m_totalPEHypothesis(-std::numeric_limits<float>::max()),
+                                                                                               m_NPFPinSlice(-std::numeric_limits<int>::max()),
+ 												m_totalPEHypothesis(-std::numeric_limits<float>::max()),
                                                                                                m_isTaggedAsTarget(false),
                                                                                                m_targetMethod(-std::numeric_limits<int>::max()),
                                                                                                m_isConsideredByFlashId(false),
@@ -568,7 +572,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
                                                                                                                                                                  m_xChargeLightVariable(-std::numeric_limits<float>::max()),
                                                                                                                                                                  m_passesPrecuts(false),
                                                                                                                                                                  m_flashMatchScore(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_totalPEHypothesis(-std::numeric_limits<float>::max()),
+                                                                                                                                                                m_NPFPinSlice(-std::numeric_limits<int>::max()), 
+																				m_totalPEHypothesis(-std::numeric_limits<float>::max()),
                                                                                                                                                                  m_isTaggedAsTarget(false),
                                                                                                                                                                  m_targetMethod(-std::numeric_limits<int>::max()),
                                                                                                                                                                  m_isConsideredByFlashId(true),
@@ -587,7 +592,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 
     if (!m_hasDeposition)
         return;
-
+    m_NPFPinSlice=this->GetNPFPinSlice(pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, slice);
     const auto chargeCenter(this->GetChargeWeightedCenter(chargeDeposition));
     m_centerX = chargeCenter.GetX();
     m_centerY = chargeCenter.GetY();
@@ -597,7 +602,21 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
+int FlashNeutrinoId::SliceCandidate::GetNPFPinSlice(const PFParticleMap &pfParticleMap, const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap, const Slice &slice) const 
+{
+int npfp=0;
 
+PFParticleVector allParticlesInSlice;
+    this->CollectDownstreamPFParticles(pfParticleMap, slice.GetTargetHypothesis(), allParticlesInSlice);
+ for (const auto &particle : allParticlesInSlice)
+    {
+if(!(particle->IsPrimary())) npfp++;
+   }
+std::cout<<"NPFP "<<npfp<<std::endl;
+return npfp;
+//std::cout<<"NPFP "<<m_NPFPinSlice<<std::endl;
+}
+//--------------------------------------------------------------------------------------------------------------------------------
 FlashNeutrinoId::SliceCandidate::DepositionVector FlashNeutrinoId::SliceCandidate::GetDepositionVector(const PFParticleMap &pfParticleMap,
                                                                                                        const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap, const Slice &slice) const
 {
@@ -605,10 +624,11 @@ FlashNeutrinoId::SliceCandidate::DepositionVector FlashNeutrinoId::SliceCandidat
     // ATTN here we only use the neutrino hypothesis, in theory this should work with either (or indeed both with some thought)
     PFParticleVector allParticlesInSlice;
     this->CollectDownstreamPFParticles(pfParticleMap, slice.GetTargetHypothesis(), allParticlesInSlice);
-
+std::cout<<"attn! "<<allParticlesInSlice.size()<<std::endl;
     DepositionVector depositionVector;
     for (const auto &particle : allParticlesInSlice)
     {
+        std::cout<<"is it primary? "<<particle->IsPrimary()<<" , PDG code "<<particle->PdgCode()<<std::endl;
         // Get the associated spacepoints
         const auto &partToSpacePointIter(pfParticleToSpacePointMap.find(particle));
         if (partToSpacePointIter == pfParticleToSpacePointMap.end())
@@ -732,7 +752,7 @@ flashana::QCluster_t FlashNeutrinoId::SliceCandidate::GetLightCluster(const Depo
 
 bool FlashNeutrinoId::SliceCandidate::IsCompatibleWithBeamFlash(const FlashCandidate &beamFlash, const float maxDeltaY,
                                                                 const float maxDeltaZ, const float maxDeltaYSigma, const float maxDeltaZSigma, const float minChargeToLightRatio,
-                                                                const float maxChargeToLightRatio)
+                                                                const float maxChargeToLightRatio, const int maxNPFP)
 {
     // Check the flash is usable
     if (beamFlash.m_totalPE <= std::numeric_limits<float>::epsilon())
@@ -769,8 +789,8 @@ bool FlashNeutrinoId::SliceCandidate::IsCompatibleWithBeamFlash(const FlashCandi
                        std::abs(m_deltaYSigma) < maxDeltaYSigma &&
                        std::abs(m_deltaZSigma) < maxDeltaZSigma &&
                        m_xChargeLightVariable > minChargeToLightRatio &&
-                       m_xChargeLightVariable < maxChargeToLightRatio);
-
+                       m_xChargeLightVariable < maxChargeToLightRatio) && m_NPFPinSlice<maxNPFP &&m_NPFPinSlice>0;
+     if(m_passesPrecuts) std::cout<<"pass precuts-----"<<m_NPFPinSlice<<std::endl;
     return m_passesPrecuts;
 }
 
