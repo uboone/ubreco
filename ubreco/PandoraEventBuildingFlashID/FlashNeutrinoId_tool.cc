@@ -273,8 +273,13 @@ void FlashNeutrinoId::FillSliceTree(const art::Event &evt, const SliceVector &sl
         LArPandoraSliceIdHelper::GetSliceMetadata(slices, evt, m_truthLabel, m_mcParticleLabel, m_hitLabel, m_backtrackLabel,
                                                   m_pandoraLabel, sliceMetadata, mcNeutrino);
 
-        m_nuInteractionType = mcNeutrino.InteractionType();
+        m_nuMode = mcNeutrino.Mode();
         m_nuCCNC = mcNeutrino.CCNC();
+        m_nuX = mcNeutrino.X();
+        m_nuW = mcNeutrino.W();
+        m_nuPt = mcNeutrino.Pt(); 
+        m_nuTheta = mcNeutrino.Theta(); 
+
         const auto nuMCParticle(mcNeutrino.Nu());
         const auto leptonMCParticle(mcNeutrino.Lepton());
 

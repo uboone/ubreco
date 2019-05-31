@@ -594,7 +594,11 @@ private:
   bool m_shouldWriteToFile;                                     ///< If we should write interesting information to a root file
   bool m_hasMCNeutrino;                                         ///< If there is an MC neutrino we can use to get truth information
   bool m_hasCRT;                                                ///< Is there CRT information in the event
-  int m_nuInteractionType;                                      ///< The interaction type code from MCTruth
+  int m_nuMode;                                                 ///< The interaction type code from MCTruth
+  float m_nuX;                                                  ///< MCNeutrino X
+  float m_nuW;                                                  ///< MCNeutrino W
+  float m_nuPt;                                                 ///< MCNeutrino Pt
+  float m_nuTheta;                                              ///< MCNeutrino Theta
   int m_nuCCNC;                                                 ///< Charged current or neutral current?
   float m_nuEnergy;                                             ///< The true neutrino energy
   float m_leptonEnergy;                                         ///< The true energy of the lepton coming from the CC interaction
@@ -722,7 +726,11 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) : m_flashLabel
   if (m_hasMCNeutrino)
   {
     // Truth MC information about the neutrino
-    m_pEventTree->Branch("nuInteractionType", &m_nuInteractionType, "nuInteractionType/I");
+    m_pEventTree->Branch("nuMode", &m_nuMode, "nuMode/I");
+    m_pEventTree->Branch("nuX", &m_nuX, "nuX/F");
+    m_pEventTree->Branch("nuW", &m_nuW, "nuW/F");
+    m_pEventTree->Branch("nuPt", &m_nuPt, "nuPt/F");
+    m_pEventTree->Branch("nuTheta", &m_nuTheta, "nuTheta/F");
     m_pEventTree->Branch("nuCCNC", &m_nuCCNC, "nuCCNC/I");
     m_pEventTree->Branch("nuEnergy", &m_nuEnergy, "nuEnergy/F");
     m_pEventTree->Branch("leptonEnergy", &m_leptonEnergy, "leptonEnergy/F");
@@ -806,11 +814,10 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) : m_flashLabel
     m_pSliceTree->Branch("purity", &m_outputSliceMetadata.m_purity, "purity/F");
     m_pSliceTree->Branch("completeness", &m_outputSliceMetadata.m_completeness, "completeness/F");
     m_pSliceTree->Branch("isMostComplete", &m_outputSliceMetadata.m_isMostComplete, "isMostComplete/O");
-    m_pSliceTree->Branch("nuInteractionType", &m_nuInteractionType, "nuInteractionType/I");
+    m_pSliceTree->Branch("nuMode", &m_nuMode, "nuMode/I");
     m_pSliceTree->Branch("nuCCNC", &m_nuCCNC, "nuCCNC/I");
     m_pSliceTree->Branch("nuEnergy", &m_nuEnergy, "nuEnergy/F");
     m_pSliceTree->Branch("leptonEnergy", &m_leptonEnergy, "leptonEnergy/F");
-    m_pSliceTree->Branch("nuInteractionTime", &m_nuTime, "nuInteractionTime/F");
     m_pSliceTree->Branch("nuPdgCode", &m_nuPdgCode, "nuPdgCode/I");
     m_pSliceTree->Branch("nuVertexX", &m_nuVertexX, "nuVertexX/F");
     m_pSliceTree->Branch("nuVertexY", &m_nuVertexY, "nuVertexY/F");
