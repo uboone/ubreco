@@ -36,11 +36,11 @@ void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
         this->IdentifySliceWithBestTopologicalScore(sliceCandidates);
         if (m_outputEvent.m_hasBeamFlash)
         {
-            //// WOUTER: If in this sequence, cosmci mtching will always run, if turned around, cosmic matching will only run if event is selected.
-            // Obvious-Cosmic Beam-Flash Matching
-            GetBestObviousCosmicMatch(evt, beamFlash);
+            //// WOUTER: Order decides if cosmci mtching always runs or only runs if event is selected.
             // Find the slice - if any that matches best with the beamFlash
             bestSliceIndex = this->GetBestSliceIndex(beamFlash, sliceCandidates);
+            // Obvious-Cosmic Beam-Flash Matching
+            GetBestObviousCosmicMatch(evt, beamFlash);
             slices.at(bestSliceIndex).TagAsTarget();
         }
         else
@@ -190,7 +190,7 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
                                                       m_minChargeToLightRatio, m_maxChargeToLightRatio))
         {
             //// WOUTER: This line guarantees that the score is availible for every slice!
-            sliceCandidate.GetFlashMatchScore(beamFlash, m_flashMatchManager);
+            //sliceCandidate.GetFlashMatchScore(beamFlash, m_flashMatchManager);
             continue;
         }
 
