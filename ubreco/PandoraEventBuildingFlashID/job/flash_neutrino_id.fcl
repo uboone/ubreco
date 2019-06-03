@@ -78,6 +78,9 @@ flash_neutrino_id_tool :
     ChargeToNPhotonsShower:   164. # Not tuned! higher mainly beacause we need to account for missing charge contributions
     FlashMatchConfig:         @local::flashmatch_config
 
+    # Obvious cosmic matchign cut
+    ObviousCosmicRatio:       5.0
+
     mcsfitter: @local::mcsfitproducer.fitter
 
     # Debug

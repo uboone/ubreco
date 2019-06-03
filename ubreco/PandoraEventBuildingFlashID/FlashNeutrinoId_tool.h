@@ -559,7 +559,7 @@ private:
   float m_beamWindowEnd;   ///< The end time of the beam window
   float m_minBeamFlashPE;  ///< The minimum number of photoelectrons required to consider a flash as the beam flash
 
-  // DAVIDC -- ACPT variables
+  // ACPT variables
   bool m_verbose;
   std::string m_ophitLabel; ///< The label of the flash producer
   float m_UP;               // top FV surface of TPC
@@ -584,16 +584,18 @@ private:
   float m_maxDeltaZSigma;        ///< As for maxDeltaZ, but measured in units of the flash width in Z
   float m_minChargeToLightRatio; ///< The minimum ratio between the total charge and the total PE
   float m_maxChargeToLightRatio; ///< The maximum ratio between the total charge and the total PE
+  float m_obviousMatchingCut;    ///< Cut out events where the obvious cosmic matches a lot better
 
   // Variables required for flash matching
   float m_chargeToNPhotonsTrack;                   ///< The conversion factor between charge and number of photons for tracks
   float m_chargeToNPhotonsShower;                  ///< The conversion factor between charge and number of photons for showers
   flashana::FlashMatchManager m_flashMatchManager; ///< The flash match manager
 
-  // Debugging / testing
+  // Event fields
   bool m_shouldWriteToFile;                                     ///< If we should write interesting information to a root file
   bool m_hasMCNeutrino;                                         ///< If there is an MC neutrino we can use to get truth information
   bool m_hasCRT;                                                ///< Is there CRT information in the event
+
   int m_nuMode;                                                 ///< The interaction type code from MCTruth
   float m_nuX;                                                  ///< MCNeutrino X
   float m_nuW;                                                  ///< MCNeutrino W
@@ -645,9 +647,10 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) : m_flashLabel
                                                                     m_maxDeltaY(pset.get<float>("MaxDeltaY")),
                                                                     m_maxDeltaZ(pset.get<float>("MaxDeltaZ")),
                                                                     m_maxDeltaYSigma(pset.get<float>("MaxDeltaYSigma")),
-                                                                    m_maxDeltaZSigma(pset.get<float>("MaxDeltaZSigma")),
+                                                                    m_maxDeltaZSigma(pset.get<float>("MaxDeltaZSigma")),                                                               
                                                                     m_minChargeToLightRatio(pset.get<float>("MinChargeToLightRatio")),
                                                                     m_maxChargeToLightRatio(pset.get<float>("MaxChargeToLightRatio")),
+                                                                    m_obviousMatchingCut(pset.get<float>("ObviousCosmicRatio")),
                                                                     m_chargeToNPhotonsTrack(pset.get<float>("ChargeToNPhotonsTrack")),
                                                                     m_chargeToNPhotonsShower(pset.get<float>("ChargeToNPhotonsShower")),
 
