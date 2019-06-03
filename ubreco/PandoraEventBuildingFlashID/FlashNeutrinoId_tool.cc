@@ -13,6 +13,7 @@ namespace lar_pandora
 
 void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
 {
+    std::cout << "[FlashNeutrinoId::ClassifySlices] Start SliceID" << std::endl;
     // Reset the output addresses in case we are writing monitoring details to an output file
     m_outputEvent.Reset(evt);
 
@@ -62,6 +63,7 @@ void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
     this->FillFlashTree(flashCandidates);
     this->FillSliceTree(evt, slices, sliceCandidates);
     this->FillEventTree();
+    std::cout << "[FlashNeutrinoId::ClassifySlices] Finished SliceID" << std::endl;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -190,7 +192,7 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
                                                       m_minChargeToLightRatio, m_maxChargeToLightRatio))
         {
             //// WOUTER: This line guarantees that the score is availible for every slice!
-            //sliceCandidate.GetFlashMatchScore(beamFlash, m_flashMatchManager);
+            sliceCandidate.GetFlashMatchScore(beamFlash, m_flashMatchManager);
             continue;
         }
 
@@ -277,8 +279,8 @@ void FlashNeutrinoId::FillSliceTree(const art::Event &evt, const SliceVector &sl
         m_nuCCNC = mcNeutrino.CCNC();
         m_nuX = mcNeutrino.X();
         m_nuW = mcNeutrino.W();
-        m_nuPt = mcNeutrino.Pt(); 
-        m_nuTheta = mcNeutrino.Theta(); 
+        m_nuPt = mcNeutrino.Pt();
+        m_nuTheta = mcNeutrino.Theta();
 
         const auto nuMCParticle(mcNeutrino.Nu());
         const auto leptonMCParticle(mcNeutrino.Lepton());
@@ -650,8 +652,6 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
     m_centerY = chargeCenter.GetY();
     m_centerZ = chargeCenter.GetZ();
 
-    this->RejectStopMuByDirMCS(slice.GetCosmicRayHypothesis(), event, particlesToTracks, mcsfitter);
-
     // copying variables from one class to another
     mm_verbose = m_verbose;
     mm_ophitLabel = m_ophitLabel;
@@ -667,6 +667,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
     mm_min_track_length = m_min_track_length;
     mm_dt_resolution_ophit = m_dt_resolution_ophit;
 
+    // Stopping muon tagger
+    this->RejectStopMuByDirMCS(slice.GetCosmicRayHypothesis(), event, particlesToTracks, mcsfitter);
     // ACPT tagger
     this->ACPTtagger(slice.GetCosmicRayHypothesis(), event, particlesToTracks);
 }
@@ -1309,8 +1311,6 @@ bool FlashNeutrinoId::SliceCandidate::IsCompatibleWithBeamFlash(const FlashCandi
                        m_xChargeLightVariable < maxChargeToLightRatio &&
                        (fabs(mm_ACPTdt) > mm_dt_resolution_ophit)); // DAVIDC
 
-    std::cout << m_passesPrecuts << std::endl;
-
     return m_passesPrecuts;
 }
 
@@ -1454,8 +1454,9 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByDirMCS(const PFParticleVecto
                                                            const PFParticlesToTracks &particlesToTracks,
                                                            const trkf::TrajectoryMCSFitter &mcsfitter)
 {
+    if (mm_verbose)
+        std::cout << "[RejectStopMuByDirMCS] Slice with N pfps = " << parentPFParticles.size() << std::endl;
 
-    std::cout << "[RejectStopMuByDirMCS] Slice with N pfps = " << parentPFParticles.size() << std::endl;
     ::art::ServiceHandle<geo::Geometry> geo;
     float bnd = 20.;
     for (const art::Ptr<recob::PFParticle> pfp : parentPFParticles)
@@ -1487,12 +1488,15 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByDirMCS(const PFParticleVecto
                 auto _result = mcsfitter.fitMcs(*this_track);
                 double fwd_ll = _result.fwdLogLikelihood();
                 double bwd_ll = _result.bwdLogLikelihood();
-                std::cout << "[RejectStopMuByDirMCS] FWD " << fwd_ll
-                          << ", BWD " << bwd_ll
-                          << ", length=" << this_track->Length()
-                          << ", vtx=" << this_track->Vertex()
-                          << ", end=" << this_track->End()
-                          << std::endl;
+                if (mm_verbose)
+                {
+                    std::cout << "[RejectStopMuByDirMCS] FWD " << fwd_ll
+                              << ", BWD " << bwd_ll
+                              << ", length=" << this_track->Length()
+                              << ", vtx=" << this_track->Vertex()
+                              << ", end=" << this_track->End()
+                              << std::endl;
+                }
                 if (vtx_contained && !end_contained)
                 {
                     m_maxDeltaLLMCS = std::max(float(fwd_ll - bwd_ll), m_maxDeltaLLMCS);
@@ -1501,14 +1505,6 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByDirMCS(const PFParticleVecto
                 {
                     m_maxDeltaLLMCS = std::max(float(bwd_ll - fwd_ll), m_maxDeltaLLMCS);
                 }
-
-                // // std::cout <<"DELTA " << delta_ll << ", cut at " << _mcs_delta_ll_cut << std::endl;
-                // if (delta_ll < _mcs_delta_ll_cut) {
-                //   return true;
-                // }
-                // else {
-                //   return false;
-                // }
             }
         }
     }
