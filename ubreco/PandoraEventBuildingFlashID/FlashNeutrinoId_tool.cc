@@ -40,8 +40,17 @@ void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
             //// WOUTER: Order decides if cosmci mtching always runs or only runs if event is selected.
             // Find the slice - if any that matches best with the beamFlash
             bestSliceIndex = this->GetBestSliceIndex(beamFlash, sliceCandidates);
+
             // Obvious-Cosmic Beam-Flash Matching
             GetBestObviousCosmicMatch(evt, beamFlash);
+            m_outputEvent.m_bestCosmicMatchRatio = sliceCandidates.at(bestSliceIndex).m_flashMatchScore / m_outputEvent.m_bestCosmicMatch;
+            std::cout << "[FlashNeutrinoId::ClassifySlices] Obvious Cosmic Rejection ratio: " <<  m_outputEvent.m_bestCosmicMatchRatio << std::endl;
+            if (m_obviousMatchingCut < m_outputEvent.m_bestCosmicMatchRatio)
+            {
+                m_outputEvent.m_foundATargetSlice = false;
+                sliceCandidates.at(bestSliceIndex).m_isTaggedAsTarget = false;
+                throw FailureMode("An obvious cosmic matches a lot better with the flash");
+            }
             slices.at(bestSliceIndex).TagAsTarget();
         }
         else
@@ -377,6 +386,9 @@ void FlashNeutrinoId::OutputEvent::Reset(const art::Event &event)
     m_nSlicesAfterPrecuts = -std::numeric_limits<int>::max();
     m_foundATargetSlice = false;
     m_targetSliceMethod = -1;
+    m_bestCosmicMatchRatio = -1;
+    m_bestCosmicMatch = -1;
+    m_cosmicMatchHypothesis.clear();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------

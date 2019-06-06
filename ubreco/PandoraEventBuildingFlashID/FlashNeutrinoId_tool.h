@@ -117,6 +117,7 @@ private:
     int m_targetSliceMethod;                    ///< 0: only one slice passed precuts, 1: has best toposcore, 2: has best flashmatchscore
     float m_bestCosmicMatch;                    ///< Score of the obvious cosmic that is matching the best with the flash
     std::vector<float> m_cosmicMatchHypothesis; ///< The flash hypothesis corresponding to the best cosmic match
+    float m_bestCosmicMatchRatio;               ///< Ratio of the selected slice and the bestcosmicmatch flash scores
   };
 
   // -------------------------------------------------------------------------------------------------------------------------------------
@@ -722,9 +723,9 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) : m_flashLabel
   m_pEventTree->Branch("nSlicesAfterPrecuts", &m_outputEvent.m_nSlicesAfterPrecuts, "nSlicesAfterPrecuts/I");
   m_pEventTree->Branch("foundATargetSlice", &m_outputEvent.m_foundATargetSlice, "foundATarget/O");
   m_pEventTree->Branch("targetSliceMethod", &m_outputEvent.m_targetSliceMethod, "targetSliceMethod/I");
-
   m_pEventTree->Branch("bestCosmicMatch", &m_outputEvent.m_bestCosmicMatch, "bestCosmicMatch/F");
   m_pEventTree->Branch("cosmicMatchHypothesis", "std::vector< float >", &m_outputEvent.m_cosmicMatchHypothesis);
+  m_pEventTree->Branch("bestCosmicMatchRatio", &m_outputEvent.m_bestCosmicMatchRatio, "bestCosmicMatchRatio/F");
 
   if (m_hasMCNeutrino)
   {
