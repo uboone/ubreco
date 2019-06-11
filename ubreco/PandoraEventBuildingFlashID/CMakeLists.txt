@@ -2,8 +2,9 @@ include_directories( $ENV{PANDORA_INC} )
 include_directories( $ENV{LARPANDORACONTENT_INC} )
 
 add_subdirectory(job)
+add_subdirectory(HitCosmicTag)
 
-set( 
+set(
           sliceid_tool_lib_list larcorealg_Geometry
                         larcore_Geometry_Geometry_service
                         larsim_Simulation lardataobj_Simulation
@@ -16,6 +17,8 @@ set(
                         larreco_RecoAlg
                         larreco_ClusterFinder
                         larreco_Calorimetry
+                        ubreco_PandoraEventBuildingFlashID_HitCosmicTag_Base
+                        ubreco_PandoraEventBuildingFlashID_HitCosmicTag_Algorithms
                         ${PANDORASDK}
                         ${PANDORAMONITORING}
                         larpandora_LArPandoraInterface
