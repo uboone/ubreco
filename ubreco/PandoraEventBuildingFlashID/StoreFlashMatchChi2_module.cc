@@ -282,16 +282,25 @@ void StoreFlashMatchChi2::produce(art::Event& e)
       
     }// for all pfp pointers
     
+    /*
+    if (pfp.PdgCode() != 13) {
+      for (size_t i=0; i < beamflashcopy.pe_v.size(); i++) 
+	std::cout << "\t DAVIDC flash index " << i << " has " << beamflashcopy.pe_v[i] << " PE" << std::endl;
+    }// if PDG == 13
+    */
+
     // Perform the match
     m_flashMatchManager.Emplace(std::move(beamflashcopy));
     m_flashMatchManager.Emplace(std::move(lightCluster));
-    
+
     const auto matches(m_flashMatchManager.Match());
     
     float FMscore = 9999.;
     
     if (matches.size() != 0)
       FMscore = matches.back().score;
+
+    //std::cout << "DAVIDC Slice with PDG " << pfp.PdgCode() << " has " << lightCluster.size() << " spacepoints and flash-match score of " << FMscore << std::endl;
     
     // create T0 object with this information!
     anab::T0 t0(beamflash.time, 0, 0, 0, FMscore);

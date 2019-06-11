@@ -44,9 +44,6 @@ flash_neutrino_id_tool :
     # PMT channel correction factors
     PMTChannelCorrection: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     
-    # PMT remapping?
-    ShouldRemapPMTs: false
-
     # Beam flash conditions
     BeamWindowStartTime:      3.2
     BeamWindowEndTime:        4.8

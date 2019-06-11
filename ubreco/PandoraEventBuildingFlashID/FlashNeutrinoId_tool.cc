@@ -6,44 +6,14 @@
 
 #include "FlashNeutrinoId_tool.h"
 
-void FlashNeutrinoId::GetOrderedOpDetVector(fhicl::ParameterSet const &pset)
+namespace lar_pandora
 {
-    art::ServiceHandle<geo::Geometry> geometry;
-    const auto nOpDets(geometry->NOpDets());
-
-    // Get the OpDets in their default order
-    std::vector<unsigned int> opDetVector;
-    for (unsigned int iChannel = 0; iChannel < nOpDets; ++iChannel)
-        opDetVector.push_back(geometry->OpDetFromOpChannel(iChannel));
-
-    // Get the remapped OpDets if required
-    if (pset.get<bool>("ShouldRemapPMTs"))
-    {
-        const auto pmtMapping(pset.get<std::vector<unsigned int>>("OrderedPMTList"));
-
-        // Ensure there are the correct number of OpDets
-        if (pmtMapping.size() != nOpDets)
-            throw cet::exception("FlashNeutrinoId") << "The input PMT remapping vector has the wrong size. Expected " << nOpDets << " elements." << std::endl;
-
-        for (const auto &opDet : pmtMapping)
-        {
-            // Each OpDet in the default list must be listed once and only once
-            if (std::count(opDetVector.begin(), opDetVector.end(), opDet) != 1)
-                throw cet::exception("FlashNeutrinoId") << "Unknown or repeated PMT ID: " << opDet << std::endl;
-
-            m_opDetVector.push_back(opDet);
-        }
-    }
-    else
-    {
-        m_opDetVector = opDetVector;
-    }
-}
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
 {
+    std::cout << "[FlashNeutrinoId::ClassifySlices] Start SliceID" << std::endl;
     // Reset the output addresses in case we are writing monitoring details to an output file
     m_outputEvent.Reset(evt);
 
@@ -67,12 +37,25 @@ void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
         this->IdentifySliceWithBestTopologicalScore(sliceCandidates);
         if (m_outputEvent.m_hasBeamFlash)
         {
+            //// WOUTER: Order decides if cosmci mtching always runs or only runs if event is selected.
             // Find the slice - if any that matches best with the beamFlash
             bestSliceIndex = this->GetBestSliceIndex(beamFlash, sliceCandidates);
+
+            // Obvious-Cosmic Beam-Flash Matching
+            GetBestObviousCosmicMatch(evt, beamFlash);
+            m_outputEvent.m_bestCosmicMatchRatio = sliceCandidates.at(bestSliceIndex).m_flashMatchScore / m_outputEvent.m_bestCosmicMatch;
+            std::cout << "[FlashNeutrinoId::ClassifySlices] Obvious Cosmic Rejection ratio: " <<  m_outputEvent.m_bestCosmicMatchRatio << std::endl;
+            if (m_obviousMatchingCut < m_outputEvent.m_bestCosmicMatchRatio)
+            {
+                m_outputEvent.m_foundATargetSlice = false;
+                sliceCandidates.at(bestSliceIndex).m_isTaggedAsTarget = false;
+                throw FailureMode("An obvious cosmic matches a lot better with the flash");
+            }
             slices.at(bestSliceIndex).TagAsTarget();
         }
         else
         {
+
             for (auto &slice : sliceCandidates)
             {
                 slice.m_isConsideredByFlashId = 0;
@@ -89,6 +72,7 @@ void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
     this->FillFlashTree(flashCandidates);
     this->FillSliceTree(evt, slices, sliceCandidates);
     this->FillEventTree();
+    std::cout << "[FlashNeutrinoId::ClassifySlices] Finished SliceID" << std::endl;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -100,7 +84,7 @@ void FlashNeutrinoId::GetFlashCandidates(const art::Event &event, FlashCandidate
     const auto flashes(*event.getValidHandle<FlashVector>(flashTag));
 
     for (const auto &flash : flashes)
-        flashCandidates.emplace_back(event, flash);
+        flashCandidates.emplace_back(event, flash, m_PMTch_correction);
 
     m_outputEvent.m_nFlashes = flashCandidates.size();
 }
@@ -156,25 +140,44 @@ FlashNeutrinoId::FlashCandidate &FlashNeutrinoId::GetBeamFlash(FlashCandidateVec
 void FlashNeutrinoId::GetSliceCandidates(const art::Event &event, SliceVector &slices, SliceCandidateVector &sliceCandidates)
 {
     m_outputEvent.m_nSlices = slices.size();
-
     if (slices.empty())
         throw FailureMode("No slices to choose from");
 
     // Collect the PFParticles and their associations to SpacePoints and Hits
     PFParticleVector pfParticles;
     SpacePointVector spacePoints;
+    TrackVector pftracks;
     SpacePointsToHits spacePointToHitMap;
     PFParticleMap pfParticleMap;
+    PFParticlesToTracks particlesToTracks;
 
     PFParticlesToSpacePoints pfParticleToSpacePointMap;
     LArPandoraHelper::CollectPFParticles(event, m_pandoraLabel, pfParticles, pfParticleToSpacePointMap);
     LArPandoraHelper::CollectSpacePoints(event, m_pandoraLabel, spacePoints, spacePointToHitMap);
     LArPandoraHelper::BuildPFParticleMap(pfParticles, pfParticleMap);
+    LArPandoraHelper::CollectTracks(event, m_pandoraTrackLabel, pftracks, particlesToTracks);
+    art::Handle<std::vector<recob::Track>> track_h;
+    event.getByLabel(m_pandoraTrackLabel, track_h);
 
     for (unsigned int sliceIndex = 0; sliceIndex < slices.size(); ++sliceIndex)
     {
         const auto &slice = slices[sliceIndex];
-        sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1);
+        if (m_hasCRT)
+        {
+            const art::FindMany<anab::T0> trk_t0_assn_v(track_h, event, m_crtTrackMatchLabel);
+            sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, particlesToTracks,
+                                         trk_t0_assn_v, m_mcsfitter, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1,
+                                         m_verbose, m_ophitLabel, m_UP, m_DOWN, m_anodeTime, m_cathodeTime, m_driftVel, m_ophitPE,
+                                         m_nOphit, m_ophit_time_res, m_ophit_pos_res, m_min_track_length, m_dt_resolution_ophit);
+        }
+        else
+        {
+
+            sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, particlesToTracks,
+                                         m_mcsfitter, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1,
+                                         m_verbose, m_ophitLabel, m_UP, m_DOWN, m_anodeTime, m_cathodeTime, m_driftVel, m_ophitPE,
+                                         m_nOphit, m_ophit_time_res, m_ophit_pos_res, m_min_track_length, m_dt_resolution_ophit);
+        }
     }
 }
 
@@ -186,16 +189,21 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
     bool foundHighestTopoligicalScore(false);
     unsigned int bestFlashMatchSliceIndex(std::numeric_limits<unsigned int>::max());
     unsigned int bestCombinedSliceIndex(std::numeric_limits<unsigned int>::max());
-    float maxScore(-std::numeric_limits<float>::max());
+    float minScore(std::numeric_limits<float>::max());
     m_outputEvent.m_nSlicesAfterPrecuts = 0;
 
     for (unsigned int sliceIndex = 0; sliceIndex < sliceCandidates.size(); ++sliceIndex)
     {
         auto &sliceCandidate(sliceCandidates.at(sliceIndex));
+
         // Apply the pre-selection cuts to ensure that the slice is compatible with the beam flash
         if (!sliceCandidate.IsCompatibleWithBeamFlash(beamFlash, m_maxDeltaY, m_maxDeltaZ, m_maxDeltaYSigma, m_maxDeltaZSigma,
                                                       m_minChargeToLightRatio, m_maxChargeToLightRatio))
+        {
+            //// WOUTER: This line guarantees that the score is availible for every slice!
+            sliceCandidate.GetFlashMatchScore(beamFlash, m_flashMatchManager);
             continue;
+        }
 
         foundViableSlice = true;
         m_outputEvent.m_nSlicesAfterPrecuts++;
@@ -205,12 +213,12 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
             bestCombinedSliceIndex = sliceIndex;
         }
         // ATTN if there is only one slice that passes the pre-selection cuts, then the score won't be used
-        const auto &score(sliceCandidate.GetFlashMatchScore(beamFlash, m_flashMatchManager, m_opDetVector));
-        if (score < maxScore)
+        const auto &score(sliceCandidate.GetFlashMatchScore(beamFlash, m_flashMatchManager));
+        if (score > minScore)
             continue;
 
         bestFlashMatchSliceIndex = sliceIndex;
-        maxScore = score;
+        minScore = score;
     }
     if (!foundViableSlice)
         throw FailureMode("None of the slices passed the pre-selection cuts");
@@ -228,7 +236,7 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
         sliceCandidates.at(bestCombinedSliceIndex).m_targetMethod = 2;
     m_outputEvent.m_foundATargetSlice = true;
     m_outputEvent.m_targetSliceMethod = sliceCandidates.at(bestCombinedSliceIndex).m_targetMethod;
-    std::cout << "[FlashNeutrinoId] Slice with index " << bestCombinedSliceIndex << " is tagged as neutrino. Method: " << m_outputEvent.m_targetSliceMethod << std::endl;
+    std::cout << "[FlashNeutrinoId] Slice with index " << bestCombinedSliceIndex << " is tagged as neutrino. Method: " << m_outputEvent.m_targetSliceMethod << ", ch2: " << sliceCandidates.at(bestCombinedSliceIndex).m_flashMatchScore << std::endl;
     return bestCombinedSliceIndex;
 }
 
@@ -276,8 +284,13 @@ void FlashNeutrinoId::FillSliceTree(const art::Event &evt, const SliceVector &sl
         LArPandoraSliceIdHelper::GetSliceMetadata(slices, evt, m_truthLabel, m_mcParticleLabel, m_hitLabel, m_backtrackLabel,
                                                   m_pandoraLabel, sliceMetadata, mcNeutrino);
 
-        m_nuInteractionType = mcNeutrino.InteractionType();
+        m_nuMode = mcNeutrino.Mode();
         m_nuCCNC = mcNeutrino.CCNC();
+        m_nuX = mcNeutrino.X();
+        m_nuW = mcNeutrino.W();
+        m_nuPt = mcNeutrino.Pt();
+        m_nuTheta = mcNeutrino.Theta();
+
         const auto nuMCParticle(mcNeutrino.Nu());
         const auto leptonMCParticle(mcNeutrino.Lepton());
 
@@ -373,6 +386,9 @@ void FlashNeutrinoId::OutputEvent::Reset(const art::Event &event)
     m_nSlicesAfterPrecuts = -std::numeric_limits<int>::max();
     m_foundATargetSlice = false;
     m_targetSliceMethod = -1;
+    m_bestCosmicMatchRatio = -1;
+    m_bestCosmicMatch = -1;
+    m_cosmicMatchHypothesis.clear();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -397,29 +413,74 @@ FlashNeutrinoId::FlashCandidate::FlashCandidate() : m_run(-std::numeric_limits<i
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-FlashNeutrinoId::FlashCandidate::FlashCandidate(const art::Event &event, const recob::OpFlash &flash) : m_run(event.run()),
-                                                                                                        m_subRun(event.subRun()),
-                                                                                                        m_event(event.event()),
-                                                                                                        m_timeHigh(event.time().timeHigh()),
-                                                                                                        m_timeLow(event.time().timeLow()),
-                                                                                                        m_time(flash.Time()),
-                                                                                                        m_totalPE(flash.TotalPE()),
-                                                                                                        m_centerY(flash.YCenter()),
-                                                                                                        m_centerZ(flash.ZCenter()),
-                                                                                                        m_widthY(flash.YWidth()),
-                                                                                                        m_widthZ(flash.ZWidth()),
-                                                                                                        m_inBeamWindow(false),
-                                                                                                        m_isBrightestInWindow(false),
-                                                                                                        m_isBeamFlash(false)
+FlashNeutrinoId::FlashCandidate::FlashCandidate(const art::Event &event, const recob::OpFlash &flash, const std::vector<float> PMTch_correction) : m_run(event.run()),
+                                                                                                                                                   m_subRun(event.subRun()),
+                                                                                                                                                   m_event(event.event()),
+                                                                                                                                                   m_timeHigh(event.time().timeHigh()),
+                                                                                                                                                   m_timeLow(event.time().timeLow()),
+                                                                                                                                                   m_time(flash.Time()),
+                                                                                                                                                   m_inBeamWindow(false),
+                                                                                                                                                   m_isBrightestInWindow(false),
+                                                                                                                                                   m_isBeamFlash(false)
 {
-    art::ServiceHandle<geo::Geometry> geometry;
+    // Correct the PE values using the gain database and save the values in the OpDet order
+    // gain service
+    const ::lariov::PmtGainProvider &gain_provider = art::ServiceHandle<lariov::PmtGainService>()->GetProvider();
+    // pmt remapping service
+    const ::util::PMTRemapProvider &pmtremap_provider = art::ServiceHandle<util::PMTRemapService>()->GetProvider();
+    const art::ServiceHandle<geo::Geometry> geometry;
     uint nOpDets(geometry->NOpDets());
     m_peSpectrum.resize(nOpDets);
 
-    for (uint i = 0; i < nOpDets; ++i) {
-      uint opdet = geometry->OpDetFromOpChannel(i);
-      m_peSpectrum[opdet] = flash.PEs().at(i);
+    for (uint OpChannel = 0; OpChannel < nOpDets; ++OpChannel)
+    {
+        auto oldch = pmtremap_provider.OriginalOpChannel(OpChannel);
+        auto gain = gain_provider.Gain(oldch);
+        uint opdet = geometry->OpDetFromOpChannel(OpChannel);
+
+        if (gain != 0)
+        {
+            m_peSpectrum[opdet] = flash.PEs().at(OpChannel) * 120 / gain * PMTch_correction.at(OpChannel);
+        }
+        else
+        {
+            m_peSpectrum[opdet] = 0;
+        }
     }
+
+    GetFlashLocation();
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+void FlashNeutrinoId::FlashCandidate::GetFlashLocation()
+{
+    // Reset variables
+    m_centerY = m_centerZ = 0.;
+    m_widthY = m_widthZ = -999.;
+    m_totalPE = 0.;
+    float sumy = 0., sumz = 0., sumy2 = 0., sumz2 = 0.;
+
+    art::ServiceHandle<geo::Geometry> geometry;
+    for (unsigned int opdet = 0; opdet < m_peSpectrum.size(); opdet++)
+    {
+        double PMTxyz[3];
+        geometry->OpDetGeoFromOpDet(opdet).GetCenter(PMTxyz);
+        // Add up the position, weighting with PEs
+        sumy += m_peSpectrum[opdet] * PMTxyz[1];
+        sumy2 += m_peSpectrum[opdet] * PMTxyz[1] * PMTxyz[1];
+        sumz += m_peSpectrum[opdet] * PMTxyz[2];
+        sumz2 += m_peSpectrum[opdet] * PMTxyz[2] * PMTxyz[2];
+        m_totalPE += m_peSpectrum[opdet];
+    }
+    m_centerY = sumy / m_totalPE;
+    m_centerZ = sumz / m_totalPE;
+    // This is just sqrt(<x^2> - <x>^2)
+    if ((sumy2 * m_totalPE - sumy * sumy) > 0.)
+        m_widthY = std::sqrt(sumy2 * m_totalPE - sumy * sumy) / m_totalPE;
+
+    if ((sumz2 * m_totalPE - sumz * sumz) > 0.)
+        m_widthZ = std::sqrt(sumz2 * m_totalPE - sumz * sumz) / m_totalPE;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -439,10 +500,11 @@ bool FlashNeutrinoId::FlashCandidate::PassesPEThreshold(const float minBeamFlash
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-flashana::Flash_t FlashNeutrinoId::FlashCandidate::ConvertFlashFormat(const std::vector<unsigned int> &opDetVector) const
+flashana::Flash_t FlashNeutrinoId::FlashCandidate::ConvertFlashFormat() const
 {
     // Ensure the input flash is valid
-    const auto nOpDets(opDetVector.size());
+    const art::ServiceHandle<geo::Geometry> geometry;
+    uint nOpDets(geometry->NOpDets());
     if (m_peSpectrum.size() != nOpDets)
         throw cet::exception("FlashNeutrinoId") << "Number of channels in beam flash doesn't match the number of OpDets!" << std::endl;
 
@@ -461,13 +523,9 @@ flashana::Flash_t FlashNeutrinoId::FlashCandidate::ConvertFlashFormat(const std:
     // Fill the flash with the PE spectrum
     for (unsigned int i = 0; i < nOpDets; ++i)
     {
-        const unsigned int opDet(opDetVector.at(i));
-        if (opDet >= nOpDets)
-            throw cet::exception("FlashNeutrinoId") << "OpDet ID, " << opDet << ", is out of range: 0 - " << (nOpDets - 1) << std::endl;
-
         const auto PE(m_peSpectrum.at(i));
-        flash.pe_v.at(opDet) = PE;
-        flash.pe_err_v.at(opDet) = std::sqrt(PE);
+        flash.pe_v.at(i) = PE;
+        flash.pe_err_v.at(i) = std::sqrt(PE);
     }
 
     return flash;
@@ -476,71 +534,77 @@ flashana::Flash_t FlashNeutrinoId::FlashCandidate::ConvertFlashFormat(const std:
 //------------------------------------------------------------------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-FlashNeutrinoId::SliceCandidate::SliceCandidate() : m_sliceId(-std::numeric_limits<int>::max()),
-                                                    m_run(-std::numeric_limits<int>::max()),
-                                                    m_subRun(-std::numeric_limits<int>::max()),
-                                                    m_event(-std::numeric_limits<int>::max()),
-                                                    m_timeHigh(0),
-                                                    m_timeLow(0),
-                                                    m_hasDeposition(false),
-                                                    m_totalCharge(-std::numeric_limits<float>::max()),
-                                                    m_centerX(-std::numeric_limits<float>::max()),
-                                                    m_centerY(-std::numeric_limits<float>::max()),
-                                                    m_centerZ(-std::numeric_limits<float>::max()),
-                                                    m_minX(-std::numeric_limits<float>::max()),
-                                                    m_deltaY(-std::numeric_limits<float>::max()),
-                                                    m_deltaZ(-std::numeric_limits<float>::max()),
-                                                    m_deltaYSigma(-std::numeric_limits<float>::max()),
-                                                    m_deltaZSigma(-std::numeric_limits<float>::max()),
-                                                    m_chargeToLightRatio(-std::numeric_limits<float>::max()),
-                                                    m_xChargeLightVariable(-std::numeric_limits<float>::max()),
-                                                    m_passesPrecuts(false),
-                                                    m_flashMatchScore(-std::numeric_limits<float>::max()),
-                                                    m_totalPEHypothesis(-std::numeric_limits<float>::max()),
-                                                    m_isTaggedAsTarget(false),
-                                                    m_targetMethod(-std::numeric_limits<int>::max()),
-                                                    m_isConsideredByFlashId(false),
-                                                    m_topologicalNeutrinoScore(-std::numeric_limits<float>::max()),
-                                                    m_hasBestTopologicalScore(false),
-                                                    m_hasBestFlashMatchScore(false),
-                                                    m_chargeToNPhotonsTrack(-std::numeric_limits<float>::max()),
-                                                    m_chargeToNPhotonsShower(-std::numeric_limits<float>::max()),
-                                                    m_xclCoef(-std::numeric_limits<float>::max())
+FlashNeutrinoId::SliceCandidate::SliceCandidate()
+    : m_sliceId(-std::numeric_limits<int>::max()),
+      m_run(-std::numeric_limits<int>::max()),
+      m_subRun(-std::numeric_limits<int>::max()),
+      m_event(-std::numeric_limits<int>::max()),
+      m_timeHigh(0),
+      m_timeLow(0),
+      m_hasDeposition(false),
+      m_totalCharge(-std::numeric_limits<float>::max()),
+      m_centerX(-std::numeric_limits<float>::max()),
+      m_centerY(-std::numeric_limits<float>::max()),
+      m_centerZ(-std::numeric_limits<float>::max()),
+      m_minCRTdist(std::numeric_limits<float>::max()),
+      m_CRTtime(-std::numeric_limits<float>::max()),
+      m_deltaY(-std::numeric_limits<float>::max()),
+      m_deltaZ(-std::numeric_limits<float>::max()),
+      m_deltaYSigma(-std::numeric_limits<float>::max()),
+      m_deltaZSigma(-std::numeric_limits<float>::max()),
+      m_chargeToLightRatio(-std::numeric_limits<float>::max()),
+      m_xChargeLightVariable(-std::numeric_limits<float>::max()),
+      m_passesPrecuts(false),
+      m_flashMatchScore(-std::numeric_limits<float>::max()),
+      m_totalPEHypothesis(-std::numeric_limits<float>::max()),
+      m_isTaggedAsTarget(false),
+      m_targetMethod(-std::numeric_limits<int>::max()),
+      m_isConsideredByFlashId(false),
+      m_topologicalNeutrinoScore(-std::numeric_limits<float>::max()),
+      m_hasBestTopologicalScore(false),
+      m_hasBestFlashMatchScore(false),
+      m_chargeToNPhotonsTrack(-std::numeric_limits<float>::max()),
+      m_chargeToNPhotonsShower(-std::numeric_limits<float>::max()),
+      m_xclCoef(-std::numeric_limits<float>::max()),
+      m_maxDeltaLLMCS(-std::numeric_limits<float>::max())
 {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice) : m_sliceId(-std::numeric_limits<int>::max()),
-                                                                                               m_run(event.run()),
-                                                                                               m_subRun(event.subRun()),
-                                                                                               m_event(event.event()),
-                                                                                               m_timeHigh(event.time().timeHigh()),
-                                                                                               m_timeLow(event.time().timeLow()),
-                                                                                               m_hasDeposition(false),
-                                                                                               m_totalCharge(-std::numeric_limits<float>::max()),
-                                                                                               m_centerX(-std::numeric_limits<float>::max()),
-                                                                                               m_centerY(-std::numeric_limits<float>::max()),
-                                                                                               m_centerZ(-std::numeric_limits<float>::max()),
-                                                                                               m_minX(-std::numeric_limits<float>::max()),
-                                                                                               m_deltaY(-std::numeric_limits<float>::max()),
-                                                                                               m_deltaZ(-std::numeric_limits<float>::max()),
-                                                                                               m_deltaYSigma(-std::numeric_limits<float>::max()),
-                                                                                               m_deltaZSigma(-std::numeric_limits<float>::max()),
-                                                                                               m_chargeToLightRatio(-std::numeric_limits<float>::max()),
-                                                                                               m_xChargeLightVariable(-std::numeric_limits<float>::max()),
-                                                                                               m_passesPrecuts(false),
-                                                                                               m_flashMatchScore(-std::numeric_limits<float>::max()),
-                                                                                               m_totalPEHypothesis(-std::numeric_limits<float>::max()),
-                                                                                               m_isTaggedAsTarget(false),
-                                                                                               m_targetMethod(-std::numeric_limits<int>::max()),
-                                                                                               m_isConsideredByFlashId(false),
-                                                                                               m_topologicalNeutrinoScore(slice.GetTopologicalScore()),
-                                                                                               m_hasBestTopologicalScore(false),
-                                                                                               m_hasBestFlashMatchScore(false),
-                                                                                               m_chargeToNPhotonsTrack(-std::numeric_limits<float>::max()),
-                                                                                               m_chargeToNPhotonsShower(-std::numeric_limits<float>::max()),
-                                                                                               m_xclCoef(-std::numeric_limits<float>::max())
+FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice)
+    : m_sliceId(-std::numeric_limits<int>::max()),
+      m_run(event.run()),
+      m_subRun(event.subRun()),
+      m_event(event.event()),
+      m_timeHigh(event.time().timeHigh()),
+      m_timeLow(event.time().timeLow()),
+      m_hasDeposition(false),
+      m_totalCharge(-std::numeric_limits<float>::max()),
+      m_centerX(-std::numeric_limits<float>::max()),
+      m_centerY(-std::numeric_limits<float>::max()),
+      m_centerZ(-std::numeric_limits<float>::max()),
+      m_minCRTdist(std::numeric_limits<float>::max()),
+      m_CRTtime(-std::numeric_limits<float>::max()),
+      m_deltaY(-std::numeric_limits<float>::max()),
+      m_deltaZ(-std::numeric_limits<float>::max()),
+      m_deltaYSigma(-std::numeric_limits<float>::max()),
+      m_deltaZSigma(-std::numeric_limits<float>::max()),
+      m_chargeToLightRatio(-std::numeric_limits<float>::max()),
+      m_xChargeLightVariable(-std::numeric_limits<float>::max()),
+      m_passesPrecuts(false),
+      m_flashMatchScore(-std::numeric_limits<float>::max()),
+      m_totalPEHypothesis(-std::numeric_limits<float>::max()),
+      m_isTaggedAsTarget(false),
+      m_targetMethod(-std::numeric_limits<int>::max()),
+      m_isConsideredByFlashId(false),
+      m_topologicalNeutrinoScore(slice.GetTopologicalScore()),
+      m_hasBestTopologicalScore(false),
+      m_hasBestFlashMatchScore(false),
+      m_chargeToNPhotonsTrack(-std::numeric_limits<float>::max()),
+      m_chargeToNPhotonsShower(-std::numeric_limits<float>::max()),
+      m_xclCoef(-std::numeric_limits<float>::max()),
+      m_maxDeltaLLMCS(-std::numeric_limits<float>::max())
 {
 }
 
@@ -548,37 +612,44 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 
 FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                                                 const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
-                                                const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId) : m_sliceId(sliceId),
-                                                                                                                                                                 m_run(event.run()),
-                                                                                                                                                                 m_subRun(event.subRun()),
-                                                                                                                                                                 m_event(event.event()),
-                                                                                                                                                                 m_timeHigh(event.time().timeHigh()),
-                                                                                                                                                                 m_timeLow(event.time().timeLow()),
-                                                                                                                                                                 m_hasDeposition(false),
-                                                                                                                                                                 m_totalCharge(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_centerX(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_centerY(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_centerZ(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_minX(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_deltaY(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_deltaZ(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_deltaYSigma(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_deltaZSigma(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_chargeToLightRatio(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_xChargeLightVariable(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_passesPrecuts(false),
-                                                                                                                                                                 m_flashMatchScore(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_totalPEHypothesis(-std::numeric_limits<float>::max()),
-                                                                                                                                                                 m_isTaggedAsTarget(false),
-                                                                                                                                                                 m_targetMethod(-std::numeric_limits<int>::max()),
-                                                                                                                                                                 m_isConsideredByFlashId(true),
-                                                                                                                                                                 m_topologicalNeutrinoScore(slice.GetTopologicalScore()),
-                                                                                                                                                                 m_hasBestTopologicalScore(false),
-                                                                                                                                                                 m_hasBestFlashMatchScore(false),
-                                                                                                                                                                 m_chargeToNPhotonsTrack(chargeToNPhotonsTrack),
-                                                                                                                                                                 m_chargeToNPhotonsShower(chargeToNPhotonsShower),
-                                                                                                                                                                 m_xclCoef(xclCoef)
-
+                                                const PFParticlesToTracks &particlesToTracks,
+                                                const trkf::TrajectoryMCSFitter &mcsfitter,
+                                                const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId,
+                                                bool m_verbose, std::string m_ophitLabel, float m_UP, float m_DOWN, float m_anodeTime, float m_cathodeTime,
+                                                float m_driftVel, float m_ophitPE, int m_nOphit, float m_ophit_time_res, float m_ophit_pos_res, float m_min_track_length,
+                                                float m_dt_resolution_ophit)
+    : m_sliceId(sliceId),
+      m_run(event.run()),
+      m_subRun(event.subRun()),
+      m_event(event.event()),
+      m_timeHigh(event.time().timeHigh()),
+      m_timeLow(event.time().timeLow()),
+      m_hasDeposition(false),
+      m_totalCharge(-std::numeric_limits<float>::max()),
+      m_centerX(-std::numeric_limits<float>::max()),
+      m_centerY(-std::numeric_limits<float>::max()),
+      m_centerZ(-std::numeric_limits<float>::max()),
+      m_minCRTdist(std::numeric_limits<float>::max()),
+      m_CRTtime(-std::numeric_limits<float>::max()),
+      m_deltaY(-std::numeric_limits<float>::max()),
+      m_deltaZ(-std::numeric_limits<float>::max()),
+      m_deltaYSigma(-std::numeric_limits<float>::max()),
+      m_deltaZSigma(-std::numeric_limits<float>::max()),
+      m_chargeToLightRatio(-std::numeric_limits<float>::max()),
+      m_xChargeLightVariable(-std::numeric_limits<float>::max()),
+      m_passesPrecuts(false),
+      m_flashMatchScore(-std::numeric_limits<float>::max()),
+      m_totalPEHypothesis(-std::numeric_limits<float>::max()),
+      m_isTaggedAsTarget(false),
+      m_targetMethod(-std::numeric_limits<int>::max()),
+      m_isConsideredByFlashId(true),
+      m_topologicalNeutrinoScore(slice.GetTopologicalScore()),
+      m_hasBestTopologicalScore(false),
+      m_hasBestFlashMatchScore(false),
+      m_chargeToNPhotonsTrack(chargeToNPhotonsTrack),
+      m_chargeToNPhotonsShower(chargeToNPhotonsShower),
+      m_xclCoef(xclCoef),
+      m_maxDeltaLLMCS(-std::numeric_limits<float>::max())
 {
     const auto chargeDeposition(this->GetDepositionVector(pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, slice));
     m_lightCluster = this->GetLightCluster(chargeDeposition);
@@ -593,7 +664,47 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
     m_centerY = chargeCenter.GetY();
     m_centerZ = chargeCenter.GetZ();
 
-    m_minX = this->GetMinimumXPosition(chargeDeposition);
+    // copying variables from one class to another
+    mm_verbose = m_verbose;
+    mm_ophitLabel = m_ophitLabel;
+    mm_UP = m_UP;
+    mm_DOWN = m_DOWN;
+    mm_anodeTime = m_anodeTime;
+    mm_cathodeTime = m_cathodeTime;
+    mm_driftVel = m_driftVel;
+    mm_ophitPE = m_ophitPE;
+    mm_nOphit = m_nOphit;
+    mm_ophit_pos_res = m_ophit_pos_res;
+    mm_ophit_time_res = m_ophit_time_res;
+    mm_min_track_length = m_min_track_length;
+    mm_dt_resolution_ophit = m_dt_resolution_ophit;
+
+    // Stopping muon tagger
+    this->RejectStopMuByDirMCS(slice.GetCosmicRayHypothesis(), event, particlesToTracks, mcsfitter);
+    // ACPT tagger
+    this->ACPTtagger(slice.GetCosmicRayHypothesis(), event, particlesToTracks);
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
+                                                const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
+                                                const PFParticlesToTracks &particlesToTracks, const art::FindMany<anab::T0> &trk_t0_assn_v,
+                                                const trkf::TrajectoryMCSFitter &mcsfitter,
+                                                const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId,
+                                                bool m_verbose, std::string m_ophitLabel, float m_UP, float m_DOWN, float m_anodeTime, float m_cathodeTime,
+                                                float m_driftVel, float m_ophitPE, int m_nOphit, float m_ophit_time_res, float m_ophit_pos_res, float m_min_track_length, float m_dt_resolution_ophit)
+    : FlashNeutrinoId::SliceCandidate::SliceCandidate(event, slice, pfParticleMap,
+                                                      pfParticleToSpacePointMap, spacePointToHitMap,
+                                                      particlesToTracks, mcsfitter, chargeToNPhotonsTrack, chargeToNPhotonsShower, xclCoef,
+                                                      sliceId, m_verbose, m_ophitLabel, m_UP, m_DOWN, m_anodeTime, m_cathodeTime,
+                                                      m_driftVel, m_ophitPE, m_nOphit, m_ophit_time_res, m_ophit_pos_res, m_min_track_length, m_dt_resolution_ophit)
+{
+
+    if (trk_t0_assn_v.size() != 0)
+    {
+        this->GetClosestCRTCosmic(slice.GetCosmicRayHypothesis(), event, particlesToTracks, trk_t0_assn_v);
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -706,14 +817,454 @@ float FlashNeutrinoId::SliceCandidate::GetTotalCharge(const DepositionVector &de
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-float FlashNeutrinoId::SliceCandidate::GetMinimumXPosition(const DepositionVector &depositionVector) const
+void FlashNeutrinoId::SliceCandidate::GetClosestCRTCosmic(const PFParticleVector &parentPFParticles, const art::Event &event, const PFParticlesToTracks &particlesToTracks,
+                                                          const art::FindMany<anab::T0> &trk_t0_assn_v)
 {
-    float minX(std::numeric_limits<float>::max());
+    m_numcosmictrack = 0;
+    m_minCRTdist = 100; //Initialise on a value higher than we would call a match
 
-    for (const auto &chargePoint : depositionVector)
-        minX = std::min(chargePoint.m_x, minX);
+    for (const art::Ptr<recob::PFParticle> pfp : parentPFParticles)
+    {
+        if (LArPandoraHelper::IsTrack(pfp))
+        {
+            if (particlesToTracks.count(pfp))
+            {
+                const art::Ptr<recob::Track> this_track = particlesToTracks.at(pfp).front();
+                if (this_track->Length() > 20)
+                {
+                    m_numcosmictrack++;
+                }
+                const std::vector<const anab::T0 *> &T0_v = trk_t0_assn_v.at(this_track.key());
+                if (T0_v.size() == 1)
+                {
+                    std::cout << "[GetClosestCRTCosmic] CRT-track-match found with dca: " << T0_v.front()->TriggerConfidence();
+                    std::cout << "\tTime: " << T0_v.front()->Time();
+                    std::cout << "\tPlane: " << T0_v.front()->TriggerBits() << std::endl;
+                    if (T0_v.front()->TriggerConfidence() < m_minCRTdist)
+                    {
+                        m_minCRTdist = T0_v.front()->TriggerConfidence();
+                        m_CRTplane = T0_v.front()->TriggerBits();
+                        m_CRTtime = T0_v.front()->Time();
+                        m_CRTtracklength = this_track->Length();
+                    }
+                }
+            }
+        }
+    }
+}
 
-    return minX;
+//------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
+
+void FlashNeutrinoId::SliceCandidate::ACPTtagger(const PFParticleVector &parentPFParticles,
+                                                 const art::Event &event,
+                                                 const PFParticlesToTracks &particlesToTracks)
+{
+
+    mm_y_up = -9999.;
+    mm_y_dn = -9999.;
+    mm_x_up = -9999.;
+    mm_x_dn = -9999.;
+    mm_z_up = -9999.;
+    mm_z_dn = -9999.;
+
+    mm_ACPTdt = -9999.;
+
+    mm_z_center = -9999.;
+
+    mm_flash_timeanode_u = -9999.;
+    mm_flash_timeanode_d = -9999.;
+    mm_flash_timecathode_u = -9999.;
+    mm_flash_timecathode_d = -9999.;
+
+    // save OpHits in the event
+    if (mm_verbose)
+    {
+        std::cout << "[ACPTTagger] \t Loading ophits from producer " << mm_ophitLabel << std::endl;
+    }
+    art::Handle<std::vector<recob::OpHit>> ophit_h;
+    event.getByLabel(mm_ophitLabel, ophit_h);
+    mm_ophit_v.clear();
+    art::fill_ptr_vector(mm_ophit_v, ophit_h);
+
+    // is the slice cosmic?
+    bool isCosmic = false;
+
+    for (const art::Ptr<recob::PFParticle> pfp : parentPFParticles)
+    {
+        if (LArPandoraHelper::IsTrack(pfp))
+        {
+            if (particlesToTracks.count(pfp))
+            {
+                const art::Ptr<recob::Track> this_track = particlesToTracks.at(pfp).front();
+
+                float y_up = -9999;
+                float y_dn = -9999;
+
+                // Will store sorted points for the object [assuming downwards going]
+                // The first vector is to consider end points estimated via different methods
+                // (spacepoints, hits, tracks). The second vector has length==2, and
+                // contains the start and end points of the track
+                std::vector<TVector3> sorted_pts;
+                sorted_pts.clear();
+
+                if (this_track->Length() < mm_min_track_length)
+                    continue;
+                this->SortTrackPoints(*this_track, sorted_pts);
+                if (sorted_pts.size() >= 2)
+                {
+                    //_trk_len.emplace_back(this_track->Length());
+                    //_trk_x_up.emplace_back(pts[0].X());
+                    //_trk_x_down.emplace_back(pts[sorted_pts.size()-1].X());
+                    mm_z_center = sorted_pts[0].Z();
+                    mm_z_center += sorted_pts[sorted_pts.size() - 1].Z();
+                    mm_z_center /= 2.;
+                    //_trk_z_center.emplace_back(z_center);
+
+                    TVector3 start = sorted_pts[0];
+                    TVector3 end = sorted_pts[sorted_pts.size() - 1];
+                    sorted_pts.clear();
+                    sorted_pts.resize(2);
+                    sorted_pts.at(0) = start;
+                    sorted_pts.at(1) = end;
+                    y_up = sorted_pts.at(0).Y();
+                    y_dn = sorted_pts.at(1).Y();
+                } // if more then two points
+
+                mm_x_up = sorted_pts.at(0).X();
+                mm_x_dn = sorted_pts.at(1).X();
+                mm_y_up = y_up;
+                mm_y_dn = y_dn;
+                mm_z_up = sorted_pts.at(0).Z();
+                mm_z_dn = sorted_pts.at(1).Z();
+
+                // can this track be a viable ACPT candidate?
+                // reconstruct the track time assuming it hits the anode/cathode
+
+                // check if track is compatible with OpHits
+                if ((y_up != -9999 && y_dn != -9999) && ((y_up - y_dn) > 1.0) && (abs(y_up) > 0.001))
+                {
+                    float flash_zcenter, flash_time;
+                    mm_ACPTdt = this->GetClosestDt_OpHits(sorted_pts, y_up, y_dn, mm_ophit_v, flash_zcenter, flash_time);
+                    mm_flashTime = flash_time;
+                    mm_flashZCenter = flash_zcenter;
+                    if (mm_verbose)
+                        std::cout << "[ACPTTagger] \t dt_ophits is " << mm_ACPTdt << std::endl;
+                    if (mm_ACPTdt != -9999 && fabs(mm_ACPTdt) < mm_dt_resolution_ophit)
+                    {
+                        isCosmic = true;
+                        if (mm_verbose)
+                            std::cout << "[ACPTTagger] \t ===> Tagged! (ophit)" << std::endl;
+                    }
+                }
+
+                float cosmicScore = 0;
+                if (isCosmic)
+                {
+                    cosmicScore = 1;
+                }
+
+                if (mm_verbose)
+                    std::cout << "Cosmic score is: " << cosmicScore << std::endl
+                              << std::endl;
+
+            } // if there is  track associated to this PFP
+        }     // if this is a track
+    }         // for all PFParticles
+
+    if ((mm_y_up - mm_y_dn) < 1.)
+        mm_ACPTdt = -9999.;
+
+    return;
+} // ACPT tagging
+
+//------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
+
+void FlashNeutrinoId::SliceCandidate::SortTrackPoints(const recob::Track &track, std::vector<TVector3> &sorted_points)
+{
+
+    // vector to store 3D coordinates of
+    // ordered track
+    sorted_points.clear();
+
+    // take the reconstructed 3D track
+    // and assuming it is downwards
+    // going, sort points so that
+    // the track starts at the top
+    // which point is further up in Y coord?
+    // start or end?
+    auto const &N = track.CountValidPoints();
+    auto const &start = track.Vertex();
+    auto const &end = track.End();
+
+    if (mm_verbose)
+    {
+        std::cout << "[ACPTTagger] \t Track start " << start.X() << " " << start.Y() << " " << start.Z() << std::endl;
+        std::cout << "[ACPTTagger] \t Track end   " << end.X() << " " << end.Y() << " " << end.Z() << std::endl;
+    }
+
+    // if points are ordered correctly
+    if (start.Y() > end.Y())
+    {
+        for (size_t i = 0; i < N; i++)
+            sorted_points.push_back(track.LocationAtPoint<TVector3>(track.NextValidPoint(i)));
+    }
+
+    // otherwise flip order
+    else
+    {
+        if (mm_verbose)
+            std::cout << "[ACPTTagger] \t\t These two points will be flipped" << std::endl;
+        for (size_t i = 0; i < N; i++)
+            sorted_points.push_back(track.LocationAtPoint<TVector3>(track.NextValidPoint(N - i - 1)));
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
+
+float FlashNeutrinoId::SliceCandidate::GetClosestDt_OpHits(std::vector<TVector3> &sorted_points, double y_up, double y_down, const std::vector<art::Ptr<recob::OpHit>> mm_ophit_v,
+                                                           float &flash_zcenter, float &flash_time)
+{
+
+    mm_flash_timeanode_u = sorted_points.at(0).X() / mm_driftVel - mm_anodeTime;
+    mm_flash_timeanode_d = sorted_points.at(sorted_points.size() - 1).X() / mm_driftVel - mm_anodeTime;
+    mm_flash_timecathode_u = sorted_points.at(0).X() / mm_driftVel - mm_cathodeTime;
+    mm_flash_timecathode_d = sorted_points.at(sorted_points.size() - 1).X() / mm_driftVel - mm_cathodeTime;
+
+    if (mm_verbose)
+    {
+        std::cout << "[ACPTTagger] >>> Using OpHits." << std::endl;
+        std::cout << "[ACPTTagger] \t Estimated times we will be looking for: "
+                  << "\t flash_time_anode_u: " << mm_flash_timeanode_u
+                  << "\t flash_time_anode_d: " << mm_flash_timeanode_d
+                  << "\t flash_time_cathode_u: " << mm_flash_timecathode_u
+                  << "\t flash_time_cathode_d: " << mm_flash_timecathode_d << std::endl;
+    }
+
+    double trk_z_start = sorted_points.at(0).Z();
+    double trk_z_end = sorted_points.at(sorted_points.size() - 1).Z();
+
+    if (trk_z_start > trk_z_end)
+        std::swap(trk_z_start, trk_z_end);
+
+    bool sign = this->GetSign(sorted_points);
+    if (mm_verbose)
+        std::cout << "[ACPTTagger] \t Sign is " << (sign ? "positive." : "negative.") << std::endl;
+
+    if (mm_verbose)
+        std::cout << "[ACPTTagger] \t y_up = " << y_up << ", y_down = " << y_down << std::endl;
+    bool upper_det = this->IsInUpperDet(y_up);
+    bool lower_det = this->IsInLowerDet(y_down);
+
+    std::vector<double> dt_v;
+    dt_v.clear();
+    std::vector<double> zpos_average_v;
+    std::vector<double> time_average_v;
+    float zpos_average, time_average;
+
+    if (sign && upper_det)
+    {
+        if (mm_verbose)
+            std::cout << "[ACPTTagger] \t Looking at cathode-down" << std::endl;
+        dt_v.emplace_back(this->RunOpHitFinder(mm_flash_timecathode_d, trk_z_start, trk_z_end, mm_ophit_v, time_average, zpos_average));
+        time_average_v.push_back(time_average);
+        zpos_average_v.push_back(zpos_average);
+    }
+    if (sign && lower_det)
+    {
+        if (mm_verbose)
+            std::cout << "[ACPTTagger] \t Looking at anode-up" << std::endl;
+        dt_v.emplace_back(this->RunOpHitFinder(mm_flash_timeanode_u, trk_z_start, trk_z_end, mm_ophit_v, time_average, zpos_average));
+        time_average_v.push_back(time_average);
+        zpos_average_v.push_back(zpos_average);
+    }
+    if (!sign && upper_det)
+    {
+        if (mm_verbose)
+            std::cout << "[ACPTTagger] \t Looking at anode-down" << std::endl;
+        dt_v.emplace_back(this->RunOpHitFinder(mm_flash_timeanode_d, trk_z_start, trk_z_end, mm_ophit_v, time_average, zpos_average));
+        time_average_v.push_back(time_average);
+        zpos_average_v.push_back(zpos_average);
+    }
+    if (!sign && lower_det)
+    {
+        if (mm_verbose)
+            std::cout << "[ACPTTagger] \t Looking at cathode-up" << std::endl;
+        dt_v.emplace_back(this->RunOpHitFinder(mm_flash_timecathode_u, trk_z_start, trk_z_end, mm_ophit_v, time_average, zpos_average));
+        time_average_v.push_back(time_average);
+        zpos_average_v.push_back(zpos_average);
+    }
+
+    double min_dt = 1e9;
+    double min_dta = 1e9; // absolute value of minimum dt
+    bool min_dt_found = false;
+    for (size_t t = 0; t < dt_v.size(); t++)
+    {
+        auto dt = dt_v[t];
+        auto dta = fabs(dt);
+        if (dta == -9999)
+            continue;
+        if (dta < min_dta)
+        {
+            min_dt = dt;
+            min_dta = dta;
+            min_dt_found = true;
+            flash_zcenter = zpos_average_v[t];
+            flash_time = time_average_v[t];
+        }
+    }
+
+    if (mm_verbose && min_dt_found)
+        std::cout << "[ACPTTagger] \t Found dt min from OpHits, dt min is " << min_dt << std::endl;
+
+    if (min_dt_found)
+        return min_dt;
+    else
+        return -9999;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
+
+bool FlashNeutrinoId::SliceCandidate::GetSign(std::vector<TVector3> sorted_points)
+{
+
+    double t_down = sorted_points[sorted_points.size() - 1].X();
+    double t_up = sorted_points[0].X();
+
+    bool is_positive = (t_down - t_up) > 0.;
+
+    return is_positive;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
+
+bool FlashNeutrinoId::SliceCandidate::IsInUpperDet(double y_up)
+{
+
+    const art::ServiceHandle<geo::Geometry> geometry;
+    if (y_up > geometry->DetHalfHeight() - mm_UP)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
+
+bool FlashNeutrinoId::SliceCandidate::IsInLowerDet(double y_down)
+{
+
+    const art::ServiceHandle<geo::Geometry> geometry;
+    if (y_down < -geometry->DetHalfHeight() + mm_DOWN)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
+
+float FlashNeutrinoId::SliceCandidate::RunOpHitFinder(double the_time, double trk_z_start, double trk_z_end, const std::vector<art::Ptr<recob::OpHit>> mm_ophit_v,
+                                                      float &time_average, float &zpos_average)
+{
+
+    ::art::ServiceHandle<geo::Geometry> geo;
+
+    zpos_average = 0.;
+    time_average = 0.;
+
+    if (mm_verbose)
+    {
+        std::cout << "[ACPTTagger] \t _ophit_time_res is " << mm_ophit_time_res << std::endl;
+        std::cout << "[ACPTTagger] \t _ophit_pos_res is " << mm_ophit_pos_res << std::endl;
+        std::cout << "[ACPTTagger] \t _n_ophit is " << mm_nOphit << std::endl;
+        std::cout << "[ACPTTagger] \t _ophit_pe is " << mm_ophitPE << std::endl;
+    }
+
+    std::vector<double> ophit_sel_time;
+    std::vector<double> ophit_sel_zpos;
+    std::vector<double> ophit_sel_pe;
+
+    ophit_sel_time.clear();
+    ophit_sel_pe.clear();
+
+    for (auto oh : mm_ophit_v)
+    {
+
+        double time_diff = std::abs(oh->PeakTime() - the_time);
+
+        if (!geo->IsValidOpChannel(oh->OpChannel()))
+            continue;
+        if (oh->OpChannel() < 200 || oh->OpChannel() > 231)
+            continue;
+
+        //size_t opdet = geo->OpDetFromOpChannel(oh->OpChannel());
+
+        double pmt_xyz[3] = {-9999, -9999, -9999};
+        geo->OpDetGeoFromOpChannel(oh->OpChannel()).GetCenter(pmt_xyz);
+        double pmt_z = pmt_xyz[2];
+
+        double dz = 1e9;
+        if (pmt_z > trk_z_start && pmt_z < trk_z_end)
+        {
+            dz = 0.;
+        }
+        else
+        {
+            if (pmt_z < trk_z_start)
+                dz = std::abs(pmt_z - trk_z_start);
+            if (pmt_z > trk_z_end)
+                dz = std::abs(pmt_z - trk_z_end);
+        }
+
+        auto ophitPE = oh->Area();
+
+        if (time_diff < mm_ophit_time_res && dz < mm_ophit_pos_res)
+        {
+            if (mm_verbose)
+                std::cout << "[ACPTTagger] \t\t Found ophit, time is " << oh->PeakTime()
+                          << ", pmt_z is " << pmt_z
+                          << ", dz is " << dz
+                          << ", opchannel is " << oh->OpChannel()
+                          << ", PE is " << ophitPE << std::endl;
+
+            ophit_sel_time.emplace_back(oh->PeakTime());
+            ophit_sel_zpos.emplace_back(pmt_z);
+            ophit_sel_pe.emplace_back(ophitPE);
+        }
+    }
+
+    if (ophit_sel_time.size() < mm_nOphit)
+    {
+        if (mm_verbose)
+            std::cout << "[ACPTTagger] \t Not enough ophits" << std::endl;
+        return -9999;
+    }
+
+    double total_pe = std::accumulate(ophit_sel_pe.begin(), ophit_sel_pe.end(), 0.);
+
+    if (total_pe < mm_ophitPE)
+    {
+        if (mm_verbose)
+            std::cout << "[ACPTTagger] \t Not enough pe" << std::endl;
+        return -9999;
+    }
+
+    // Calculate and return average time
+    for (size_t i = 0; i < ophit_sel_time.size(); i++)
+    {
+        time_average += ophit_sel_time.at(i) * ophit_sel_pe.at(i);
+        zpos_average += ophit_sel_zpos.at(i) * ophit_sel_pe.at(i);
+    }
+
+    time_average /= total_pe;
+    zpos_average /= total_pe;
+
+    if (mm_verbose)
+        std::cout << "[ACPTTagger] \t time_average: " << time_average << ", the_time: " << the_time << std::endl;
+
+    return time_average - the_time;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -769,20 +1320,26 @@ bool FlashNeutrinoId::SliceCandidate::IsCompatibleWithBeamFlash(const FlashCandi
                        std::abs(m_deltaYSigma) < maxDeltaYSigma &&
                        std::abs(m_deltaZSigma) < maxDeltaZSigma &&
                        m_xChargeLightVariable > minChargeToLightRatio &&
-                       m_xChargeLightVariable < maxChargeToLightRatio);
+                       m_xChargeLightVariable < maxChargeToLightRatio &&
+                       (fabs(mm_ACPTdt) > mm_dt_resolution_ophit)); // DAVIDC
 
     return m_passesPrecuts;
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-float FlashNeutrinoId::SliceCandidate::GetFlashMatchScore(const FlashCandidate &beamFlash, flashana::FlashMatchManager &flashMatchManager,
-                                                          const std::vector<unsigned int> &opDetVector)
+float FlashNeutrinoId::SliceCandidate::GetFlashMatchScore(const FlashCandidate &beamFlash, flashana::FlashMatchManager &flashMatchManager)
 {
     flashMatchManager.Reset();
 
     // Convert the flash and the charge cluster into the required format for flash matching
-    auto flash(beamFlash.ConvertFlashFormat(opDetVector));
+    auto flash(beamFlash.ConvertFlashFormat());
+
+
+    /*
+    for (size_t i=0; i < flash.pe_v.size(); i++) 
+      std::cout << "\t DAVIDC flash index " << i << " has " << flash.pe_v[i] << " PE" << std::endl;
+    */
 
     // Perform the match
     flashMatchManager.Emplace(std::move(flash));
@@ -800,21 +1357,177 @@ float FlashNeutrinoId::SliceCandidate::GetFlashMatchScore(const FlashCandidate &
     const auto match(matches.front());
 
     m_flashMatchScore = match.score;
-    m_flashMatchX = match.tpc_point.x;
     m_totalPEHypothesis = std::accumulate(match.hypothesis.begin(), match.hypothesis.end(), 0.f);
+
+    //std::cout << "DAVIDC Slice has " << m_lightCluster.size() << " spacepoints and flash-match score of " << m_flashMatchScore << std::endl;
 
     // Fill the slice with the hypothesized PE spectrum
     if (!m_peHypothesisSpectrum.empty())
         throw cet::exception("FlashNeutrinoId") << "Hypothesized PE spectrum already set for this flash" << std::endl;
 
-    const unsigned int nOpDets(opDetVector.size());
-    if (match.hypothesis.size() != nOpDets)
-        throw cet::exception("FlashNeutrinoId") << "Hypothesized PE spectrum has the wrong size" << std::endl;
-
-    for (unsigned int i = 0; i < nOpDets; ++i)
-        m_peHypothesisSpectrum.push_back(static_cast<float>(match.hypothesis.at(i)));
+    for (auto hypo_pe : match.hypothesis)
+        m_peHypothesisSpectrum.push_back(static_cast<float>(hypo_pe));
 
     return m_flashMatchScore;
+}
+
+void FlashNeutrinoId::GetBestObviousCosmicMatch(const art::Event &event, const FlashCandidate &beamFlash)
+{
+    float bestCosmicMatch = -1;
+    std::vector<float> cosmicMatchHypothesis = {};
+
+    PFParticleVector pfParticles;
+    PFParticlesToMetadata particlesToMetadata;
+    SpacePointVector spacePoints;
+    SpacePointsToHits spacePointToHitMap;
+    PFParticleMap pfParticleMap;
+    PFParticlesToSpacePoints pfParticleToSpacePointMap;
+    LArPandoraHelper::CollectPFParticles(event, m_pandoraLabel, pfParticles, pfParticleToSpacePointMap);
+    LArPandoraHelper::CollectSpacePoints(event, m_pandoraLabel, spacePoints, spacePointToHitMap);
+    LArPandoraHelper::BuildPFParticleMap(pfParticles, pfParticleMap);
+    LArPandoraHelper::CollectPFParticleMetadata(event, m_pandoraLabel, pfParticles, particlesToMetadata);
+
+    m_flashMatchManager.Reset();
+    // Convert the flash and the charge cluster into the required format for flash matching
+    auto flash(beamFlash.ConvertFlashFormat());
+    // Perform the match
+    m_flashMatchManager.Emplace(std::move(flash));
+
+    for (const art::Ptr<recob::PFParticle> &pfp : pfParticles)
+    {
+
+        MetadataVector pfp_metadata_vec = particlesToMetadata.at(pfp);
+        const larpandoraobj::PFParticleMetadata::PropertiesMap &pfp_properties = pfp_metadata_vec.front()->GetPropertiesMap();
+
+        if (pfp_properties.count("IsClearCosmic"))
+        {
+            if (pfp_properties.at("IsClearCosmic") && pfp->IsPrimary())
+            {
+
+                PFParticleVector downstreamPFParticles;
+                CollectDownstreamPFParticles(pfParticleMap, pfp, downstreamPFParticles);
+                flashana::QCluster_t lightCluster;
+                for (const auto &particle : downstreamPFParticles)
+                {
+
+                    // Get the associated spacepoints
+                    const auto &partToSpacePointIter(pfParticleToSpacePointMap.find(particle));
+                    if (partToSpacePointIter == pfParticleToSpacePointMap.end())
+                        continue;
+
+                    for (const auto &spacePoint : partToSpacePointIter->second)
+                    {
+
+                        // Get the associated hit
+                        const auto &spacePointToHitIter(spacePointToHitMap.find(spacePoint));
+                        if (spacePointToHitIter == spacePointToHitMap.end())
+                            continue;
+
+                        // Only use hits from the collection plane
+                        const auto &hit(spacePointToHitIter->second);
+                        if (hit->View() != geo::kZ)
+                            continue;
+
+                        // Add the charged point to the vector
+                        const auto &position(spacePoint->XYZ());
+                        const auto charge(hit->Integral());
+                        lightCluster.emplace_back(position[0], position[1], position[2], charge * (LArPandoraHelper::IsTrack(particle) ? m_chargeToNPhotonsTrack : m_chargeToNPhotonsShower));
+                    }
+                }
+                m_flashMatchManager.Emplace(std::move(lightCluster));
+            }
+        }
+    }
+
+    const auto matches(m_flashMatchManager.Match());
+    if (!matches.empty())
+    {
+        const auto match(matches.back());
+        bestCosmicMatch = match.score;
+        for (auto hypo_pe : match.hypothesis)
+            cosmicMatchHypothesis.push_back(static_cast<float>(hypo_pe));
+    }
+    std::cout << "[FlashNeutrinoId] Chi2 best cosmic (out of " << matches.size() << " matches): " << matches.back().score << "\tworst match: " << matches.front().score << std::endl;
+    m_outputEvent.m_bestCosmicMatch = bestCosmicMatch;
+    m_outputEvent.m_cosmicMatchHypothesis = cosmicMatchHypothesis;
+}
+
+void FlashNeutrinoId::CollectDownstreamPFParticles(const PFParticleMap &pfParticleMap, const art::Ptr<recob::PFParticle> &particle,
+                                                   PFParticleVector &downstreamPFParticles) const
+{
+    if (std::find(downstreamPFParticles.begin(), downstreamPFParticles.end(), particle) == downstreamPFParticles.end())
+        downstreamPFParticles.push_back(particle);
+
+    for (const auto &daughterId : particle->Daughters())
+    {
+        const auto iter(pfParticleMap.find(daughterId));
+        if (iter == pfParticleMap.end())
+            throw cet::exception("FlashNeutrinoId") << "Scrambled PFParticle IDs" << std::endl;
+
+        this->CollectDownstreamPFParticles(pfParticleMap, iter->second, downstreamPFParticles);
+    }
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+void FlashNeutrinoId::SliceCandidate::RejectStopMuByDirMCS(const PFParticleVector &parentPFParticles, const art::Event &event,
+                                                           const PFParticlesToTracks &particlesToTracks,
+                                                           const trkf::TrajectoryMCSFitter &mcsfitter)
+{
+    if (mm_verbose)
+        std::cout << "[RejectStopMuByDirMCS] Slice with N pfps = " << parentPFParticles.size() << std::endl;
+
+    ::art::ServiceHandle<geo::Geometry> geo;
+    float bnd = 20.;
+    for (const art::Ptr<recob::PFParticle> pfp : parentPFParticles)
+    {
+        if (LArPandoraHelper::IsTrack(pfp))
+        {
+            if (particlesToTracks.count(pfp))
+            {
+                const art::Ptr<recob::Track> this_track = particlesToTracks.at(pfp).front();
+
+                auto InFV = [&geo, bnd](recob::tracking::Point_t p) -> bool { return (p.X() > bnd && p.X() < (2. * geo->DetHalfWidth() - bnd) &&
+                                                                                      p.Y() > (-geo->DetHalfHeight() + bnd) && p.Y() < (geo->DetHalfHeight() - bnd) &&
+                                                                                      p.Z() > bnd && p.Z() < (geo->DetLength() - bnd)); };
+
+                bool vtx_contained = InFV(this_track->Vertex());
+                bool end_contained = InFV(this_track->End());
+
+                // If fully contained, exit
+                if (vtx_contained && end_contained)
+                {
+                    continue;
+                }
+                // If fully uncontained, exit
+                if (!vtx_contained && !end_contained)
+                {
+                    continue;
+                }
+
+                auto _result = mcsfitter.fitMcs(*this_track);
+                double fwd_ll = _result.fwdLogLikelihood();
+                double bwd_ll = _result.bwdLogLikelihood();
+                if (mm_verbose)
+                {
+                    std::cout << "[RejectStopMuByDirMCS] FWD " << fwd_ll
+                              << ", BWD " << bwd_ll
+                              << ", length=" << this_track->Length()
+                              << ", vtx=" << this_track->Vertex()
+                              << ", end=" << this_track->End()
+                              << std::endl;
+                }
+                if (vtx_contained && !end_contained)
+                {
+                    m_maxDeltaLLMCS = std::max(float(fwd_ll - bwd_ll), m_maxDeltaLLMCS);
+                }
+                else if (!vtx_contained && end_contained)
+                {
+                    m_maxDeltaLLMCS = std::max(float(bwd_ll - fwd_ll), m_maxDeltaLLMCS);
+                }
+            }
+        }
+    }
 }
 
 } // namespace lar_pandora
