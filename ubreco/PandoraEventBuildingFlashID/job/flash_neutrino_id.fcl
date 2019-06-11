@@ -1,6 +1,7 @@
 #include "flashmatchalg.fcl"
 #include "external_event_building.fcl"
 #include "mcsfitproducer.fcl"
+#include "cosmictagalgo.fcl"
 
 BEGIN_PROLOG
 
@@ -36,11 +37,11 @@ flash_neutrino_id_tool :
     FlashLabel:              "simpleFlashBeam"
     PandoraAllOutcomesLabel: "pandoraPatRec:allOutcomes"
     PandoraTrackLabel:       "pandoraAllOutcomesTrack"
-    
+
     # These fields are only needed for CRT-slice tagging
     HasCRT: false
     CRTTrackMatchLabel:      "trackmatch"
-    
+
     # PMT channel correction factors
     PMTChannelCorrection : [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 
@@ -48,7 +49,7 @@ flash_neutrino_id_tool :
     BeamWindowStartTime:      3.2
     BeamWindowEndTime:        4.8
     BeamFlashPEThreshold:     50.0
-    
+
     # Coefficient linking the charge-light-ratio and the x-dependence
     CoefXCL:                  270
 
@@ -80,15 +81,17 @@ flash_neutrino_id_tool :
 
     mcsfitter: @local::mcsfitproducer.fitter
 
+    CosmicTagManager: @local::cosmictag_config_mc
+
     # Debug
     ShouldWriteToFile:        true
     HasMCNeutrino:            true
-    MCTruthLabel:             "generator" 
+    MCTruthLabel:             "generator"
     MCParticleLabel:          "largeant"
     HitLabel:                 "gaushit"
     BacktrackerLabel:         "gaushitTruthMatch"
 }
-    
+
 flash_neutrino_id_tool.FlashMatchConfig.FlashMatchManager.AllowReuseFlash: true
 #flash_neutrino_id_tool.FlashMatchConfig.QLLMatch.NormalizeHypothesis:      false
 flash_neutrino_id_tool.FlashMatchConfig.FlashMatchManager.MatchAlgo: "Chi2Match"
