@@ -913,7 +913,6 @@ void FlashNeutrinoId::SliceCandidate::GetClosestCRTCosmic(const PFParticleVector
         }
     }
 }
-<<<<<<< HEAD
 
 //------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
 
