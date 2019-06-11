@@ -38,7 +38,7 @@ art_make( BASENAME_ONLY
 			art_Persistency_Common canvas
 			art_Persistency_Provenance canvas
 			art_Utilities canvas
-			nutools_RandomUtils_NuRandomService_service
+			nurandom_RandomUtils_NuRandomService_service
 			${MF_MESSAGELOGGER}
 			${FHICLCPP}
 			cetlib cetlib_except
