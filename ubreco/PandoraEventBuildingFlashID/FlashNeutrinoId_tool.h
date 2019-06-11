@@ -24,6 +24,8 @@
 #include "lardataobj/AnalysisBase/T0.h"
 #include "lardataobj/RecoBase/PFParticleMetadata.h"
 
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
+
 #include "ubreco/LLSelectionTool/OpT0Finder/Base/OpT0FinderTypes.h"
 #include "ubreco/LLSelectionTool/OpT0Finder/Base/FlashMatchManager.h"
 
@@ -36,10 +38,17 @@
 
 #include "Objects/CartesianVector.h"
 
+// For stopping muon tagger using calorimetry
+#include "ubreco/PandoraEventBuildingFlashID/HitCosmicTag/Base/CosmicTagManager.h"
+#include "ubreco/PandoraEventBuildingFlashID/HitCosmicTag/Base/DataTypes.h"
+#include "ubreco/PandoraEventBuildingFlashID/HitCosmicTag/Algorithms/StopMuMichel.h"
+#include "ubreco/PandoraEventBuildingFlashID/HitCosmicTag/Algorithms/StopMuBragg.h"
+
 #include "TFile.h"
 #include "TTree.h"
 
 #include <numeric>
+#include <string>
 
 namespace lar_pandora
 {
@@ -148,6 +157,7 @@ private:
     void GetFlashLocation();
 
     /**
+
          *  @brief  Check if the time of the flash is in the beam window, and save the information for later
          *
          *  @param  beamWindowStart the starting time of the beam window
@@ -219,6 +229,7 @@ private:
       float m_nPhotons; ///< The estimated numer of photons produced
     };
 
+
     typedef std::vector<Deposition> DepositionVector;
 
     // ---------------------------------------------------------------------------------------------------------------------------------
@@ -240,7 +251,7 @@ private:
     SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                    const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
                    const PFParticlesToTracks &particlesToTracks,
-                   const trkf::TrajectoryMCSFitter &mcsfitter,
+                   const trkf::TrajectoryMCSFitter &mcsfitter, std::string &pandoraLabel, fhicl::ParameterSet &cosmictagmanager,
                    const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceIndex,
                    bool m_verbose, std::string m_ophitLabel, float m_UP, float m_DOWN, float m_anodeTime, float m_cathodeTime,
                    float m_driftVel, float m_ophitPE, int m_nOphit, float m_ophit_time_res, float m_ophit_pos_res, float m_min_track_length,
@@ -249,7 +260,7 @@ private:
     SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                    const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
                    const PFParticlesToTracks &particlesToTracks, const art::FindMany<anab::T0> &trk_t0_assn_v,
-                   const trkf::TrajectoryMCSFitter &mcsfitter,
+                   const trkf::TrajectoryMCSFitter &mcsfitter, std::string &pandoraLabel, fhicl::ParameterSet &cosmictagmanager,
                    const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceIndex,
                    bool m_verbose, std::string m_ophitLabel, float m_UP, float m_DOWN, float m_anodeTime, float m_cathodeTime,
                    float m_driftVel, float m_ophitPE, int m_nOphit, float m_ophit_time_res, float m_ophit_pos_res, float m_min_track_length,
@@ -279,7 +290,7 @@ private:
     bool IsCompatibleWithBeamFlash(const FlashCandidate &beamFlash, const float maxDeltaY, const float maxDeltaZ,
                                    const float maxDeltaYSigma, const float maxDeltaZSigma, const float minChargeToLightRatio, const float maxChargeToLightRatio);
 
-    /** 
+    /**
          *  @brief  Get the flash matching score between this slice and the beam flash
          *
          *  @param  beamFlash the beam flash
@@ -406,6 +417,14 @@ private:
                               const PFParticlesToTracks &particlesToTracks,
                               const trkf::TrajectoryMCSFitter &mcsfitter);
 
+    /**
+     *  @brief  Use hit and calorimetry information to identify and reject entering cosmic muons that stop in the detector with a Bragg peak and no decay product, or those that decay to a Michel electron in the detector
+     *
+     *  @param  pfpparticles under the cosmic hypothesis, event, pfp-track associations, pfp-spacepoint associations
+     *
+     */
+    void RejectStopMuByCalo(const PFParticleVector &pfp_v, const art::Event &event, const PFParticlesToTracks &pfps_to_tracks, const PFParticlesToSpacePoints &pfps_to_spacepoints, std::string &pandoraLabel, fhicl::ParameterSet &cosmictagmanager);
+
   public:
     // Features of the slice are used when writing to file is enabled
     int m_sliceId;                             ///< The sliceId
@@ -445,6 +464,24 @@ private:
     float m_xclCoef;                           ///< m_xclCoef*log10(chargeToLightRatio)- centerX
     flashana::QCluster_t m_lightCluster;       ///< The hypothesised light produced - used by flashmatching
     float m_maxDeltaLLMCS;                     ///< deltaLL for forward and backward MCS fit (used to tag stopping muons)
+    bool m_ct_result_michel_plane0;          ///< Whether the slice is tagged as a cosmic muon decaying to a Michel electron (plane 0)
+    bool m_ct_result_michel_plane1;          ///< Whether the slice is tagged as a cosmic muon decaying to a Michel electron (plane 1)
+    bool m_ct_result_michel_plane2;          ///< Whether the slice is tagged as a cosmic muon decaying to a Michel electron (plane 2)
+    bool m_ct_result_bragg_plane0;          ///< Whether the slice is tagged as a stopping cosmic muon with a Bragg peak (plane 0)
+    bool m_ct_result_bragg_plane1;          ///< Whether the slice is tagged as a stopping cosmic muon with a Bragg peak (plane 1)
+    bool m_ct_result_bragg_plane2;          ///< Whether the slice is tagged as a stopping cosmic muon with a Bragg peak (plane 2)
+    float m_dqds_startend_percdiff_plane0;                     ///< percentage difference between smoothed dQ/ds near the start and end of the track. Used to tagg stopping cosmic muons in both the StopMuBragg and StopMuMichel taggers. (plane 0)
+    float m_dqds_startend_percdiff_plane1;                     ///< percentage difference between smoothed dQ/ds near the start and end of the track. Used to tagg stopping cosmic muons in both the StopMuBragg and StopMuMichel taggers. (plane 1)
+    float m_dqds_startend_percdiff_plane2;                     ///< percentage difference between smoothed dQ/ds near the start and end of the track. Used to tagg stopping cosmic muons in both the StopMuBragg and StopMuMichel taggers. (plane 2)
+    float m_bragg_local_lin_plane0;                     ///< Local linearity at the Bragg peak (if one is identified). Used to tagg stopping cosmic muons in the StopMuMichel tagger only. (plane 0)
+    float m_bragg_local_lin_plane1;                     ///< Local linearity at the Bragg peak (if one is identified). Used to tagg stopping cosmic muons in the StopMuMichel tagger only. (plane 1)
+    float m_bragg_local_lin_plane2;                     ///< Local linearity at the Bragg peak (if one is identified). Used to tagg stopping cosmic muons in the StopMuMichel tagger only. (plane 2)
+    int m_n_michel_hits_plane0;                     ///< Number of hits in the Michel track (if one is identified). Used to tagg stopping cosmic muons in the StopMuMichel tagger only. (plane 0)
+    int m_n_michel_hits_plane1;                     ///< Number of hits in the Michel track (if one is identified). Used to tagg stopping cosmic muons in the StopMuMichel tagger only. (plane 1)
+    int m_n_michel_hits_plane2;                     ///< Number of hits in the Michel track (if one is identified). Used to tagg stopping cosmic muons in the StopMuMichel tagger only. (plane 2)
+    float m_min_lin_braggalgonly_plane0;  ///< mainimum of local linearity vector. Used to tagg stopping cosmic muons in the StopMuBragg tagger only. (plane 0 hits)
+    float m_min_lin_braggalgonly_plane1;  ///< mainimum of local linearity vector. Used to tagg stopping cosmic muons in the StopMuBragg tagger only. (plane 1 hits)
+    float m_min_lin_braggalgonly_plane2;  ///< mainimum of local linearity vector. Used to tagg stopping cosmic muons in the StopMuBragg tagger only. (plane 2 hits)
 
     // DAVIDC
     bool mm_verbose;
@@ -596,7 +633,6 @@ private:
   bool m_shouldWriteToFile;                                     ///< If we should write interesting information to a root file
   bool m_hasMCNeutrino;                                         ///< If there is an MC neutrino we can use to get truth information
   bool m_hasCRT;                                                ///< Is there CRT information in the event
-
   int m_nuMode;                                                 ///< The interaction type code from MCTruth
   float m_nuX;                                                  ///< MCNeutrino X
   float m_nuW;                                                  ///< MCNeutrino W
@@ -624,6 +660,9 @@ private:
 
   // MCS fitter
   const trkf::TrajectoryMCSFitter m_mcsfitter;
+
+  // Cosmic tagging by calorimetry setup
+  fhicl::ParameterSet m_cosmictagmanager;
 };
 
 DEFINE_ART_CLASS_TOOL(FlashNeutrinoId)
@@ -648,7 +687,7 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) : m_flashLabel
                                                                     m_maxDeltaY(pset.get<float>("MaxDeltaY")),
                                                                     m_maxDeltaZ(pset.get<float>("MaxDeltaZ")),
                                                                     m_maxDeltaYSigma(pset.get<float>("MaxDeltaYSigma")),
-                                                                    m_maxDeltaZSigma(pset.get<float>("MaxDeltaZSigma")),                                                               
+                                                                    m_maxDeltaZSigma(pset.get<float>("MaxDeltaZSigma")),
                                                                     m_minChargeToLightRatio(pset.get<float>("MinChargeToLightRatio")),
                                                                     m_maxChargeToLightRatio(pset.get<float>("MaxChargeToLightRatio")),
                                                                     m_obviousMatchingCut(pset.get<float>("ObviousCosmicRatio")),
@@ -665,7 +704,8 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) : m_flashLabel
                                                                     m_pEventTree(nullptr),
                                                                     m_pFlashTree(nullptr),
                                                                     m_pSliceTree(nullptr),
-                                                                    m_mcsfitter(fhicl::Table<trkf::TrajectoryMCSFitter::Config>(pset.get<fhicl::ParameterSet>("mcsfitter")))
+                                                                    m_mcsfitter(fhicl::Table<trkf::TrajectoryMCSFitter::Config>(pset.get<fhicl::ParameterSet>("mcsfitter"))),
+                                                                    m_cosmictagmanager(pset.get<cosmictag::Config_t>("CosmicTagManager"))
 {
   m_flashMatchManager.Configure(pset.get<flashana::Config_t>("FlashMatchConfig"));
 
@@ -797,7 +837,25 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) : m_flashLabel
   m_pSliceTree->Branch("hasBestFlashMatchScore", &m_outputSlice.m_hasBestFlashMatchScore, "hasBestFlashMatchScore/O");
   m_pSliceTree->Branch("nHits", &m_outputSliceMetadata.m_nHits, "nHits/I");
   m_pSliceTree->Branch("maxDeltaLLMCS", &m_outputSlice.m_maxDeltaLLMCS, "maxDeltaLLMCS/F");
-  m_pSliceTree->Branch("ACPTdt", &m_outputSlice.mm_ACPTdt, "ACPTdt/F");
+  m_pSliceTree->Branch("ct_result_michel_plane0",&m_outputSlice.m_ct_result_michel_plane0,"ct_result_michel_plane0/O");
+  m_pSliceTree->Branch("ct_result_michel_plane1",&m_outputSlice.m_ct_result_michel_plane1,"ct_result_michel_plane1/O");
+  m_pSliceTree->Branch("ct_result_michel_plane2",&m_outputSlice.m_ct_result_michel_plane2,"ct_result_michel_plane2/O");
+  m_pSliceTree->Branch("ct_result_bragg_plane0",&m_outputSlice.m_ct_result_bragg_plane0,"ct_result_bragg_plane0/O");
+  m_pSliceTree->Branch("ct_result_bragg_plane1",&m_outputSlice.m_ct_result_bragg_plane1,"ct_result_bragg_plane1/O");
+  m_pSliceTree->Branch("ct_result_bragg_plane2",&m_outputSlice.m_ct_result_bragg_plane2,"ct_result_bragg_plane2/O");
+  m_pSliceTree->Branch("dqds_startend_percdiff_plane0",&m_outputSlice.m_dqds_startend_percdiff_plane0,"dqds_startend_percdiff_plane0/F");
+  m_pSliceTree->Branch("dqds_startend_percdiff_plane1",&m_outputSlice.m_dqds_startend_percdiff_plane1,"dqds_startend_percdiff_plane1/F");
+  m_pSliceTree->Branch("dqds_startend_percdiff_plane2",&m_outputSlice.m_dqds_startend_percdiff_plane2,"dqds_startend_percdiff_plane2/F");
+  m_pSliceTree->Branch("bragg_local_lin_plane0",&m_outputSlice.m_bragg_local_lin_plane0,"bragg_local_lin_plane0/F");
+  m_pSliceTree->Branch("bragg_local_lin_plane1",&m_outputSlice.m_bragg_local_lin_plane1,"bragg_local_lin_plane1/F");
+  m_pSliceTree->Branch("bragg_local_lin_plane2",&m_outputSlice.m_bragg_local_lin_plane2,"bragg_local_lin_plane2/F");
+  m_pSliceTree->Branch("n_michel_hits_plane0",&m_outputSlice.m_n_michel_hits_plane0,"n_michel_hits_plane0/I");
+  m_pSliceTree->Branch("n_michel_hits_plane1",&m_outputSlice.m_n_michel_hits_plane1,"n_michel_hits_plane1/I");
+  m_pSliceTree->Branch("n_michel_hits_plane2",&m_outputSlice.m_n_michel_hits_plane2,"n_michel_hits_plane2/I");
+  m_pSliceTree->Branch("min_lin_braggalgonly_plane0",&m_outputSlice.m_min_lin_braggalgonly_plane0,"min_lin_braggalgonly_plane0/F");
+  m_pSliceTree->Branch("min_lin_braggalgonly_plane1",&m_outputSlice.m_min_lin_braggalgonly_plane1,"min_lin_braggalgonly_plane1/F");
+  m_pSliceTree->Branch("min_lin_braggalgonly_plane2",&m_outputSlice.m_min_lin_braggalgonly_plane2,"min_lin_braggalgonly_plane2/F");
+>>>>>>> feature/kduffy_improved_cuts_and_chi_StopMu
   m_pSliceTree->Branch("flashZCenter", &m_outputSlice.mm_flashZCenter, "flashZCenter/F");
   m_pSliceTree->Branch("flashTime", &m_outputSlice.mm_flashTime, "flashTime/F");
   m_pSliceTree->Branch("z_center", &m_outputSlice.mm_z_center, "z_center/F");

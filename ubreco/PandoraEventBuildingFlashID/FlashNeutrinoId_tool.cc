@@ -166,7 +166,9 @@ void FlashNeutrinoId::GetSliceCandidates(const art::Event &event, SliceVector &s
         {
             const art::FindMany<anab::T0> trk_t0_assn_v(track_h, event, m_crtTrackMatchLabel);
             sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, particlesToTracks,
-                                         trk_t0_assn_v, m_mcsfitter, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1,
+                                         trk_t0_assn_v, m_mcsfitter,
+                                         m_pandoraLabel,
+                                         m_cosmictagmanager, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1,
                                          m_verbose, m_ophitLabel, m_UP, m_DOWN, m_anodeTime, m_cathodeTime, m_driftVel, m_ophitPE,
                                          m_nOphit, m_ophit_time_res, m_ophit_pos_res, m_min_track_length, m_dt_resolution_ophit);
         }
@@ -174,7 +176,10 @@ void FlashNeutrinoId::GetSliceCandidates(const art::Event &event, SliceVector &s
         {
 
             sliceCandidates.emplace_back(event, slice, pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, particlesToTracks,
-                                         m_mcsfitter, m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1,
+                                         m_mcsfitter,
+                                         m_pandoraLabel,
+                                         m_cosmictagmanager,
+                                         m_chargeToNPhotonsTrack, m_chargeToNPhotonsShower, m_xclCoef, sliceIndex + 1,
                                          m_verbose, m_ophitLabel, m_UP, m_DOWN, m_anodeTime, m_cathodeTime, m_driftVel, m_ophitPE,
                                          m_nOphit, m_ophit_time_res, m_ophit_pos_res, m_min_track_length, m_dt_resolution_ophit);
         }
@@ -566,7 +571,25 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate()
       m_chargeToNPhotonsTrack(-std::numeric_limits<float>::max()),
       m_chargeToNPhotonsShower(-std::numeric_limits<float>::max()),
       m_xclCoef(-std::numeric_limits<float>::max()),
-      m_maxDeltaLLMCS(-std::numeric_limits<float>::max())
+      m_maxDeltaLLMCS(-std::numeric_limits<float>::max()),
+      m_ct_result_michel_plane0(false),
+      m_ct_result_michel_plane1(false),
+      m_ct_result_michel_plane2(false),
+      m_ct_result_bragg_plane0(false),
+      m_ct_result_bragg_plane1(false),
+      m_ct_result_bragg_plane2(false),
+      m_dqds_startend_percdiff_plane0(-std::numeric_limits<float>::max()),
+      m_dqds_startend_percdiff_plane1(-std::numeric_limits<float>::max()),
+      m_dqds_startend_percdiff_plane2(-std::numeric_limits<float>::max()),
+      m_bragg_local_lin_plane0(-std::numeric_limits<float>::max()),
+      m_bragg_local_lin_plane1(-std::numeric_limits<float>::max()),
+      m_bragg_local_lin_plane2(-std::numeric_limits<float>::max()),
+      m_n_michel_hits_plane0(-std::numeric_limits<int>::max()),
+      m_n_michel_hits_plane1(-std::numeric_limits<int>::max()),
+      m_n_michel_hits_plane2(-std::numeric_limits<int>::max()),
+      m_min_lin_braggalgonly_plane0(-std::numeric_limits<int>::max()),
+      m_min_lin_braggalgonly_plane1(-std::numeric_limits<int>::max()),
+      m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max())
 {
 }
 
@@ -604,7 +627,25 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
       m_chargeToNPhotonsTrack(-std::numeric_limits<float>::max()),
       m_chargeToNPhotonsShower(-std::numeric_limits<float>::max()),
       m_xclCoef(-std::numeric_limits<float>::max()),
-      m_maxDeltaLLMCS(-std::numeric_limits<float>::max())
+      m_maxDeltaLLMCS(-std::numeric_limits<float>::max()),
+      m_ct_result_michel_plane0(false),
+      m_ct_result_michel_plane1(false),
+      m_ct_result_michel_plane2(false),
+      m_ct_result_bragg_plane0(false),
+      m_ct_result_bragg_plane1(false),
+      m_ct_result_bragg_plane2(false),
+      m_dqds_startend_percdiff_plane0(-std::numeric_limits<float>::max()),
+      m_dqds_startend_percdiff_plane1(-std::numeric_limits<float>::max()),
+      m_dqds_startend_percdiff_plane2(-std::numeric_limits<float>::max()),
+      m_bragg_local_lin_plane0(-std::numeric_limits<float>::max()),
+      m_bragg_local_lin_plane1(-std::numeric_limits<float>::max()),
+      m_bragg_local_lin_plane2(-std::numeric_limits<float>::max()),
+      m_n_michel_hits_plane0(-std::numeric_limits<int>::max()),
+      m_n_michel_hits_plane1(-std::numeric_limits<int>::max()),
+      m_n_michel_hits_plane2(-std::numeric_limits<int>::max()),
+      m_min_lin_braggalgonly_plane0(-std::numeric_limits<int>::max()),
+      m_min_lin_braggalgonly_plane1(-std::numeric_limits<int>::max()),
+      m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max())
 {
 }
 
@@ -613,7 +654,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                                                 const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
                                                 const PFParticlesToTracks &particlesToTracks,
-                                                const trkf::TrajectoryMCSFitter &mcsfitter,
+                                                const trkf::TrajectoryMCSFitter &mcsfitter, std::string &pandoraLabel, fhicl::ParameterSet &cosmictagmanager,
                                                 const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId,
                                                 bool m_verbose, std::string m_ophitLabel, float m_UP, float m_DOWN, float m_anodeTime, float m_cathodeTime,
                                                 float m_driftVel, float m_ophitPE, int m_nOphit, float m_ophit_time_res, float m_ophit_pos_res, float m_min_track_length,
@@ -649,7 +690,25 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
       m_chargeToNPhotonsTrack(chargeToNPhotonsTrack),
       m_chargeToNPhotonsShower(chargeToNPhotonsShower),
       m_xclCoef(xclCoef),
-      m_maxDeltaLLMCS(-std::numeric_limits<float>::max())
+      m_maxDeltaLLMCS(-std::numeric_limits<float>::max()),
+      m_ct_result_michel_plane0(false),
+      m_ct_result_michel_plane1(false),
+      m_ct_result_michel_plane2(false),
+      m_ct_result_bragg_plane0(false),
+      m_ct_result_bragg_plane1(false),
+      m_ct_result_bragg_plane2(false),
+      m_dqds_startend_percdiff_plane0(-std::numeric_limits<float>::max()),
+      m_dqds_startend_percdiff_plane1(-std::numeric_limits<float>::max()),
+      m_dqds_startend_percdiff_plane2(-std::numeric_limits<float>::max()),
+      m_bragg_local_lin_plane0(-std::numeric_limits<float>::max()),
+      m_bragg_local_lin_plane1(-std::numeric_limits<float>::max()),
+      m_bragg_local_lin_plane2(-std::numeric_limits<float>::max()),
+      m_n_michel_hits_plane0(-std::numeric_limits<int>::max()),
+      m_n_michel_hits_plane1(-std::numeric_limits<int>::max()),
+      m_n_michel_hits_plane2(-std::numeric_limits<int>::max()),
+      m_min_lin_braggalgonly_plane0(-std::numeric_limits<int>::max()),
+      m_min_lin_braggalgonly_plane1(-std::numeric_limits<int>::max()),
+      m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max())
 {
     const auto chargeDeposition(this->GetDepositionVector(pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, slice));
     m_lightCluster = this->GetLightCluster(chargeDeposition);
@@ -663,6 +722,10 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
     m_centerX = chargeCenter.GetX();
     m_centerY = chargeCenter.GetY();
     m_centerZ = chargeCenter.GetZ();
+
+    this->RejectStopMuByDirMCS(slice.GetCosmicRayHypothesis(), event, particlesToTracks, mcsfitter);
+
+    this->RejectStopMuByCalo(slice.GetCosmicRayHypothesis(), event, particlesToTracks, pfParticleToSpacePointMap, pandoraLabel, cosmictagmanager);
 
     // copying variables from one class to another
     mm_verbose = m_verbose;
@@ -679,8 +742,6 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
     mm_min_track_length = m_min_track_length;
     mm_dt_resolution_ophit = m_dt_resolution_ophit;
 
-    // Stopping muon tagger
-    this->RejectStopMuByDirMCS(slice.GetCosmicRayHypothesis(), event, particlesToTracks, mcsfitter);
     // ACPT tagger
     this->ACPTtagger(slice.GetCosmicRayHypothesis(), event, particlesToTracks);
 }
@@ -690,13 +751,13 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
 FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice, const PFParticleMap &pfParticleMap,
                                                 const PFParticlesToSpacePoints &pfParticleToSpacePointMap, const SpacePointsToHits &spacePointToHitMap,
                                                 const PFParticlesToTracks &particlesToTracks, const art::FindMany<anab::T0> &trk_t0_assn_v,
-                                                const trkf::TrajectoryMCSFitter &mcsfitter,
+                                                const trkf::TrajectoryMCSFitter &mcsfitter, std::string &pandoraLabel, fhicl::ParameterSet &cosmictagmanager,
                                                 const float chargeToNPhotonsTrack, const float chargeToNPhotonsShower, const float xclCoef, const int sliceId,
                                                 bool m_verbose, std::string m_ophitLabel, float m_UP, float m_DOWN, float m_anodeTime, float m_cathodeTime,
                                                 float m_driftVel, float m_ophitPE, int m_nOphit, float m_ophit_time_res, float m_ophit_pos_res, float m_min_track_length, float m_dt_resolution_ophit)
     : FlashNeutrinoId::SliceCandidate::SliceCandidate(event, slice, pfParticleMap,
                                                       pfParticleToSpacePointMap, spacePointToHitMap,
-                                                      particlesToTracks, mcsfitter, chargeToNPhotonsTrack, chargeToNPhotonsShower, xclCoef,
+                                                      particlesToTracks, mcsfitter, pandoraLabel, cosmictagmanager, chargeToNPhotonsTrack, chargeToNPhotonsShower, xclCoef,
                                                       sliceId, m_verbose, m_ophitLabel, m_UP, m_DOWN, m_anodeTime, m_cathodeTime,
                                                       m_driftVel, m_ophitPE, m_nOphit, m_ophit_time_res, m_ophit_pos_res, m_min_track_length, m_dt_resolution_ophit)
 {
@@ -852,6 +913,7 @@ void FlashNeutrinoId::SliceCandidate::GetClosestCRTCosmic(const PFParticleVector
         }
     }
 }
+<<<<<<< HEAD
 
 //------------------------------------------------------------------------------------------------------------------------------------------DAVIDC
 
@@ -1335,12 +1397,6 @@ float FlashNeutrinoId::SliceCandidate::GetFlashMatchScore(const FlashCandidate &
     // Convert the flash and the charge cluster into the required format for flash matching
     auto flash(beamFlash.ConvertFlashFormat());
 
-
-    /*
-    for (size_t i=0; i < flash.pe_v.size(); i++) 
-      std::cout << "\t DAVIDC flash index " << i << " has " << flash.pe_v[i] << " PE" << std::endl;
-    */
-
     // Perform the match
     flashMatchManager.Emplace(std::move(flash));
     flashMatchManager.Emplace(std::move(m_lightCluster));
@@ -1474,6 +1530,7 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByDirMCS(const PFParticleVecto
                                                            const PFParticlesToTracks &particlesToTracks,
                                                            const trkf::TrajectoryMCSFitter &mcsfitter)
 {
+
     if (mm_verbose)
         std::cout << "[RejectStopMuByDirMCS] Slice with N pfps = " << parentPFParticles.size() << std::endl;
 
@@ -1508,6 +1565,7 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByDirMCS(const PFParticleVecto
                 auto _result = mcsfitter.fitMcs(*this_track);
                 double fwd_ll = _result.fwdLogLikelihood();
                 double bwd_ll = _result.bwdLogLikelihood();
+
                 if (mm_verbose)
                 {
                     std::cout << "[RejectStopMuByDirMCS] FWD " << fwd_ll
@@ -1517,6 +1575,7 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByDirMCS(const PFParticleVecto
                               << ", end=" << this_track->End()
                               << std::endl;
                 }
+
                 if (vtx_contained && !end_contained)
                 {
                     m_maxDeltaLLMCS = std::max(float(fwd_ll - bwd_ll), m_maxDeltaLLMCS);
@@ -1529,5 +1588,315 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByDirMCS(const PFParticleVecto
         }
     }
 }
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector &pfp_v, const art::Event &event, const PFParticlesToTracks &pfps_to_tracks, const PFParticlesToSpacePoints &pfps_to_spacepoints, std::string &pandoraLabel, fhicl::ParameterSet &cosmictagmanager)
+{
+
+    if (mm_verbose) std::cout << "[RejectStopMuByCalo] Slice with N pfps = " << pfp_v.size() << std::endl;
+
+    ::art::ServiceHandle<geo::Geometry> geo;
+    float bnd = 20.;
+
+    // Declare fiducial volume - need this for later (copied from RejectStopMuByDirMCS above)
+    auto InFV = [&geo, bnd](double p[3]) -> bool { return
+        (p[0] > bnd && p[0] < (2. * geo->DetHalfWidth() - bnd)
+        && p[1] > (-geo->DetHalfHeight() + bnd) && p[1] < (geo->DetHalfHeight() - bnd)
+        && p[2] > bnd && p[2] < (geo->DetLength() - bnd)); };
+
+
+    // Configure cosmic tag manager
+    ::cosmictag::CosmicTagManager _ct_manager;
+    _ct_manager.Configure(cosmictagmanager);
+
+    // Detector properties
+    ::detinfo::DetectorProperties const* fDetectorProperties;
+    fDetectorProperties = lar::providerFrom<detinfo::DetectorPropertiesService>();
+
+    // These three are needed for later
+    art::Ptr<recob::PFParticle> primary_pfp;
+    std::vector<art::Ptr<recob::Track>> primary_track_v;
+    bool ignore_this = false;
+
+    // Set results to false (not tagged as stopping muon) by default
+    m_ct_result_bragg_plane0 = false;
+    m_ct_result_bragg_plane1 = false;
+    m_ct_result_bragg_plane2 = false;
+    m_ct_result_michel_plane0 = false;
+    m_ct_result_michel_plane1 = false;
+    m_ct_result_michel_plane2 = false;
+
+    // Map pfp->cluster
+    lar_pandora::PFParticleVector pfp_v_copy = pfp_v;
+    lar_pandora::PFParticlesToClusters pfps_to_clusters;
+    lar_pandora::LArPandoraHelper::CollectPFParticles(event, pandoraLabel, pfp_v_copy, pfps_to_clusters);
+
+    // Collect clusters and map cluster->hit
+    lar_pandora::ClusterVector cluster_v;
+    lar_pandora::ClustersToHits clusters_to_hits;
+    lar_pandora::LArPandoraHelper::CollectClusters(event, pandoraLabel, cluster_v, clusters_to_hits);
+
+    // Get all the SpacePoints from the PFPs (this will be used to look for
+    // the highest point in the TPCObject). Also get all the clusters for this
+    // TPCObject, and use the clusters to go to the hits. Collect all
+    // these hits in a vector.
+    std::vector<art::Ptr<recob::SpacePoint>> sp_v;
+    sp_v.clear();
+
+    std::vector<art::Ptr<recob::Hit>> hit_v;
+    hit_v.clear();
+
+    if (pfp_v.size() == 0) {
+      ignore_this = true;
+    }
+
+    for (auto p : pfp_v) {
+      auto iter = pfps_to_spacepoints.find(p);
+      if (iter == pfps_to_spacepoints.end()) {
+        continue;
+      }
+      sp_v.reserve(sp_v.size() + iter->second.size());
+      sp_v.insert(sp_v.end(), iter->second.begin(), iter->second.end());
+
+      // Find clusters first ...
+      auto iter2 = pfps_to_clusters.find(p);
+      if (iter2 == pfps_to_clusters.end()) {
+        continue;
+      }
+
+      // ... then find hits
+      for (auto c : iter2->second) {
+        auto iter3 = clusters_to_hits.find(c);
+        if (iter3 == clusters_to_hits.end()) {
+          if (mm_verbose) std::cout << "[StoppingMuonTagger] Cluster not found by pandora !?" << std::endl;
+          throw std::exception();
+        }
+
+        hit_v.reserve(hit_v.size() + iter3->second.size());
+        hit_v.insert(hit_v.end(), iter3->second.begin(), iter3->second.end());
+      }
+
+      if (p->IsPrimary() && !lar_pandora::LArPandoraHelper::IsNeutrino(p)) {
+
+        auto iter4 = pfps_to_tracks.find(p);
+        if (iter4 == pfps_to_tracks.end()) {
+          // /*if (_debug)*/ std::cout << "[StoppingMuonTagger] PFParticle not found by pandora !?" << std::endl;
+          // throw cet::exception("FlashNeutrinoId") << "[StoppingMuonTagger] PFParticle not found by pandora !?" << std::endl;
+          return;
+        }
+
+        primary_pfp = p;
+        primary_track_v = iter4->second;
+      }
+    }
+
+    if (hit_v.size() == 0) {
+      ignore_this = true;
+    }
+
+    if (ignore_this || !primary_pfp) {
+      return;
+    }
+
+    if (mm_verbose) std::cout << "[StoppingMuonTagger] Primary PFP is " << primary_pfp->Self() << std::endl;
+
+    //
+    // First exclude spacepoints outside the tpc
+    //
+    std::vector<art::Ptr<recob::SpacePoint>> temp;
+    ::geoalgo::AABox tpcvol(0., (-1.)*geo->DetHalfHeight(),
+                            0., geo->DetHalfWidth()*2,
+                            geo->DetHalfHeight(), geo->DetLength());
+
+    for (auto s : sp_v) {
+      const double *xyz = s->XYZ();
+      ::geoalgo::Vector point (xyz[0], xyz[1], xyz[2]);
+      if (tpcvol.Contain(point)) {
+        temp.push_back(s);
+      }
+    }
+    sp_v = temp;
+
+    //
+    // Now get the highest point
+    //
+    std::sort(sp_v.begin(), sp_v.end(),
+              [](art::Ptr<recob::SpacePoint> a, art::Ptr<recob::SpacePoint> b) -> bool
+              {
+                const double *xyz_a = a->XYZ();
+                const double *xyz_b = b->XYZ();
+                return xyz_a[1] > xyz_b[1];
+              });
+
+    if (sp_v.size() == 0) {
+      if (mm_verbose) std::cout << "[StoppingMuonTagger] Not enough spacepoints." << std::endl;
+      return;
+    }
+
+    const double *highest_point_c = sp_v.at(0)->XYZ();
+    double highest_point[3] = {highest_point_c[0], highest_point_c[1], highest_point_c[2]};
+
+    // Find highest point in the detector (also called "containing" the point)
+    double x = highest_point[0];
+    double y = highest_point[1];
+    double z = highest_point[2];
+    double e = std::numeric_limits<double>::epsilon();
+
+    if (x < 0. + e)
+      highest_point[0] = 0. + e;
+    if (x > 2.*geo->DetHalfWidth() - e)
+      highest_point[0] = 2.*geo->DetHalfWidth() - e;
+
+    if (y < -geo->DetHalfWidth() + e)
+      highest_point[1] = -geo->DetHalfWidth() + e;
+    if (y > geo->DetHalfWidth() - e)
+      highest_point[1] = geo->DetHalfWidth() - e;
+
+    if (z < 0. + e)
+      highest_point[2] = 0.+ e;
+    if (z > geo->DetLength() - e)
+      highest_point[2] = geo->DetLength() - e;
+
+    // Create an approximate start hit on plane 0
+    int highest_w = geo->NearestWire(highest_point, 0) ;
+    double highest_t = fDetectorProperties->ConvertXToTicks(highest_point[0], geo::PlaneID(0,0,0))/4.;
+    if (mm_verbose) std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWire(highest_point, 0)
+                       << ", time: " << fDetectorProperties->ConvertXToTicks(highest_point[0], geo::PlaneID(0,0,0))
+                       << std::endl;
+
+    cosmictag::SimpleHit start_highest_plane0;
+    start_highest_plane0.time = highest_t;
+    start_highest_plane0.wire = highest_w;
+    start_highest_plane0.plane = 0;
+
+    // Create an approximate start hit on plane 1
+    highest_w = geo->NearestWire(highest_point, 1) ;
+    highest_t = fDetectorProperties->ConvertXToTicks(highest_point[0], geo::PlaneID(0,0,1))/4.;
+    if (mm_verbose) std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWire(highest_point, 1)
+                       << ", time: " << fDetectorProperties->ConvertXToTicks(highest_point[0], geo::PlaneID(0,0,1))
+                       << std::endl;
+
+    cosmictag::SimpleHit start_highest_plane1;
+    start_highest_plane1.time = highest_t;
+    start_highest_plane1.wire = highest_w;
+    start_highest_plane1.plane = 1;
+
+    // Create an approximate start hit on plane 2
+    highest_w = geo->NearestWire(highest_point, 2) ;
+    highest_t = fDetectorProperties->ConvertXToTicks(highest_point[0], geo::PlaneID(0,0,2))/4.;
+    if (mm_verbose) std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWire(highest_point, 2)
+                       << ", time: " << fDetectorProperties->ConvertXToTicks(highest_point[0], geo::PlaneID(0,0,2))
+                       << std::endl;
+
+    cosmictag::SimpleHit start_highest_plane2;
+    start_highest_plane2.time = highest_t;
+    start_highest_plane2.wire = highest_w;
+    start_highest_plane2.plane = 2;
+
+
+    if (mm_verbose) std::cout << "[StoppingMuonTagger] Now create simple hit vector, size " << hit_v.size() << std::endl;
+
+    //
+    // Create SimpleHit vector for hits in each plane
+    //
+    std::vector<cosmictag::SimpleHit> simple_hit_v_plane0;
+    std::vector<cosmictag::SimpleHit> simple_hit_v_plane1;
+    std::vector<cosmictag::SimpleHit> simple_hit_v_plane2;
+    for (auto h : hit_v) {
+
+
+      cosmictag::SimpleHit sh;
+
+      sh.t = fDetectorProperties->ConvertTicksToX(h->PeakTime(), geo::PlaneID(0,0,h->View()));
+      sh.w = h->WireID().Wire * geo->WirePitch(geo::PlaneID(0,0,h->View()));
+
+      sh.plane = h->View();
+      sh.integral = h->Integral();
+
+      sh.time = h->PeakTime() / 4;
+      sh.wire = h->WireID().Wire;
+
+      if (h->View() == 0) {
+        simple_hit_v_plane0.emplace_back(sh);
+      }
+      else if (h->View() == 1) {
+        simple_hit_v_plane1.emplace_back(sh);
+      }
+      else if (h->View() == 2) {
+        simple_hit_v_plane2.emplace_back(sh);
+      }
+
+    }
+
+
+    if (mm_verbose) std::cout << "[StoppingMuonTagger] Simple hit vector size " << simple_hit_v_plane0.size() << ", " << simple_hit_v_plane1.size() << ", " << simple_hit_v_plane2.size() << std::endl;
+
+    //
+    // Running with highest point as start hit
+    //
+
+    // --- Plane 0 ---
+    _ct_manager.Reset();
+    // Emplacing simple hits to the manager
+    cosmictag::SimpleCluster sc_plane0(simple_hit_v_plane0);
+    _ct_manager.Emplace(std::move(sc_plane0));
+    _ct_manager.SetStartHit(std::move(start_highest_plane0));
+    // Running the cluster analyser
+    bool passed = _ct_manager.Run();
+
+    if (passed){
+      cosmictag::SimpleCluster processed_cluster = _ct_manager.GetCluster();
+
+      m_ct_result_michel_plane0 = ((cosmictag::StopMuMichel*)(_ct_manager.GetCustomAlgo("StopMuMichel")))->IsStopMuMichel(processed_cluster, m_dqds_startend_percdiff_plane0, m_bragg_local_lin_plane0, m_n_michel_hits_plane0);
+
+      bool vtx_in_fv = InFV(highest_point);
+      m_ct_result_bragg_plane0 = ((cosmictag::StopMuBragg*)(_ct_manager.GetCustomAlgo("StopMuBragg")))->IsStopMuBragg(processed_cluster, m_min_lin_braggalgonly_plane0) && !vtx_in_fv;
+    }
+
+
+    // --- Plane 1 ---
+    _ct_manager.Reset();
+    // Emplacing simple hits to the manager
+    cosmictag::SimpleCluster sc_plane1(simple_hit_v_plane1);
+    _ct_manager.Emplace(std::move(sc_plane1));
+    _ct_manager.SetStartHit(std::move(start_highest_plane1));
+    // Running the cluster analyser
+    passed = _ct_manager.Run();
+
+    if (passed){
+      cosmictag::SimpleCluster processed_cluster = _ct_manager.GetCluster();
+
+      m_ct_result_michel_plane1 = ((cosmictag::StopMuMichel*)(_ct_manager.GetCustomAlgo("StopMuMichel")))->IsStopMuMichel(processed_cluster,  m_dqds_startend_percdiff_plane1, m_bragg_local_lin_plane1, m_n_michel_hits_plane1);
+
+      bool vtx_in_fv = InFV(highest_point);
+      m_ct_result_bragg_plane1 = ((cosmictag::StopMuBragg*)(_ct_manager.GetCustomAlgo("StopMuBragg")))->IsStopMuBragg(processed_cluster, m_min_lin_braggalgonly_plane1) && !vtx_in_fv;
+    }
+
+
+    // --- Plane 2 ---
+    _ct_manager.Reset();
+    // Emplacing simple hits to the manager
+    cosmictag::SimpleCluster sc_plane2(simple_hit_v_plane2);
+    _ct_manager.Emplace(std::move(sc_plane2));
+    _ct_manager.SetStartHit(std::move(start_highest_plane2));
+    // Running the cluster analyser
+    passed = _ct_manager.Run();
+
+    if (passed){
+      cosmictag::SimpleCluster processed_cluster = _ct_manager.GetCluster();
+
+      m_ct_result_michel_plane2 = ((cosmictag::StopMuMichel*)(_ct_manager.GetCustomAlgo("StopMuMichel")))->IsStopMuMichel(processed_cluster,  m_dqds_startend_percdiff_plane2, m_bragg_local_lin_plane2, m_n_michel_hits_plane2);
+
+      bool vtx_in_fv = InFV(highest_point);
+      m_ct_result_bragg_plane2 = ((cosmictag::StopMuBragg*)(_ct_manager.GetCustomAlgo("StopMuBragg")))->IsStopMuBragg(processed_cluster, m_min_lin_braggalgonly_plane2) && !vtx_in_fv;
+    }
+
+    if (mm_verbose){
+        std::cout << "[RejectStopMuByCalo] result_michel = " << m_ct_result_michel_plane0 << ", " << m_ct_result_michel_plane1 << ", " << m_ct_result_michel_plane2 << std::endl;
+        std::cout << "[RejectStopMuByCalo] result_bragg = " << m_ct_result_bragg_plane0 << ", " << m_ct_result_bragg_plane1 << ", " << m_ct_result_bragg_plane2 << std::endl;
+    }
+
+} // void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo
 
 } // namespace lar_pandora

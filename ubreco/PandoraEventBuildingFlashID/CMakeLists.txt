@@ -2,10 +2,12 @@ include_directories( $ENV{PANDORA_INC} )
 include_directories( $ENV{LARPANDORACONTENT_INC} )
 
 add_subdirectory(job)
+add_subdirectory(HitCosmicTag)
+
 
 art_make(	  TOOL_LIBRARIES
 
-			larcorealg_Geometry
+		  	larcorealg_Geometry
                         larcore_Geometry_Geometry_service
                         larsim_Simulation lardataobj_Simulation
                         lardataobj_RawData
@@ -17,6 +19,8 @@ art_make(	  TOOL_LIBRARIES
                         larreco_RecoAlg
                         larreco_ClusterFinder
                         larreco_Calorimetry
+                        ubreco_PandoraEventBuildingFlashID_HitCosmicTag_Base
+                        ubreco_PandoraEventBuildingFlashID_HitCosmicTag_Algorithms
                         ${PANDORASDK}
                         ${PANDORAMONITORING}
                         larpandora_LArPandoraInterface
@@ -44,15 +48,15 @@ art_make(	  TOOL_LIBRARIES
                         ubreco_SelectionTool_OpT0FinderAlgorithms
                         ubevt_Utilities
 
-          MODULE_LIBRARIES 
+          	MODULE_LIBRARIES
 	  		ubreco_ShowerReco_ShowerReco3D_Base
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
 			lardataobj_RecoBase
 			lardataobj_MCBase
-			lardataobj_AnalysisBase	
-			lardataobj_Simulation	
-			lardata_RecoObjects larreco_Deprecated  
+			lardataobj_AnalysisBase
+			lardataobj_Simulation
+			lardata_RecoObjects larreco_Deprecated
 			larreco_RecoAlg
 			lardata_Utilities
                         larpandora_LArPandoraInterface
