@@ -855,7 +855,6 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) : m_flashLabel
   m_pSliceTree->Branch("min_lin_braggalgonly_plane0",&m_outputSlice.m_min_lin_braggalgonly_plane0,"min_lin_braggalgonly_plane0/F");
   m_pSliceTree->Branch("min_lin_braggalgonly_plane1",&m_outputSlice.m_min_lin_braggalgonly_plane1,"min_lin_braggalgonly_plane1/F");
   m_pSliceTree->Branch("min_lin_braggalgonly_plane2",&m_outputSlice.m_min_lin_braggalgonly_plane2,"min_lin_braggalgonly_plane2/F");
->>>>>>> feature/kduffy_improved_cuts_and_chi_StopMu
   m_pSliceTree->Branch("flashZCenter", &m_outputSlice.mm_flashZCenter, "flashZCenter/F");
   m_pSliceTree->Branch("flashTime", &m_outputSlice.mm_flashTime, "flashTime/F");
   m_pSliceTree->Branch("z_center", &m_outputSlice.mm_z_center, "z_center/F");
