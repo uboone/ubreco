@@ -26,12 +26,12 @@
 #include "art/Framework/Services/Optional/RandomNumberGenerator.h"
 
 // art extensions
-#include "nutools/RandomUtils/NuRandomService.h"
+#include "nurandom/RandomUtils/NuRandomService.h"
 
 // larsoft includes
 #include "nusimdata/SimulationBase/MCTruth.h"
 #include "nusimdata/SimulationBase/MCParticle.h"
-#include "nutools/EventGeneratorBase/evgenbase.h"
+#include "nugen/EventGeneratorBase/evgenbase.h"
 
 #include "ubobj/MuCS/MuCSRecoData.h"
 
