@@ -464,6 +464,7 @@ private:
     float m_xclCoef;                           ///< m_xclCoef*log10(chargeToLightRatio)- centerX
     flashana::QCluster_t m_lightCluster;       ///< The hypothesised light produced - used by flashmatching
     float m_maxDeltaLLMCS;                     ///< deltaLL for forward and backward MCS fit (used to tag stopping muons)
+    float m_lengthDeltaLLMCS;                  ///< length of the corresponding MCS (used to tag stopping muons)
     bool m_ct_result_michel_plane0;          ///< Whether the slice is tagged as a cosmic muon decaying to a Michel electron (plane 0)
     bool m_ct_result_michel_plane1;          ///< Whether the slice is tagged as a cosmic muon decaying to a Michel electron (plane 1)
     bool m_ct_result_michel_plane2;          ///< Whether the slice is tagged as a cosmic muon decaying to a Michel electron (plane 2)
@@ -837,6 +838,7 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) : m_flashLabel
   m_pSliceTree->Branch("hasBestFlashMatchScore", &m_outputSlice.m_hasBestFlashMatchScore, "hasBestFlashMatchScore/O");
   m_pSliceTree->Branch("nHits", &m_outputSliceMetadata.m_nHits, "nHits/I");
   m_pSliceTree->Branch("maxDeltaLLMCS", &m_outputSlice.m_maxDeltaLLMCS, "maxDeltaLLMCS/F");
+   m_pSliceTree->Branch("lengthDeltaLLMCS", &m_outputSlice.m_lengthDeltaLLMCS, "lengthDeltaLLMCS/F");
   m_pSliceTree->Branch("ct_result_michel_plane0",&m_outputSlice.m_ct_result_michel_plane0,"ct_result_michel_plane0/O");
   m_pSliceTree->Branch("ct_result_michel_plane1",&m_outputSlice.m_ct_result_michel_plane1,"ct_result_michel_plane1/O");
   m_pSliceTree->Branch("ct_result_michel_plane2",&m_outputSlice.m_ct_result_michel_plane2,"ct_result_michel_plane2/O");

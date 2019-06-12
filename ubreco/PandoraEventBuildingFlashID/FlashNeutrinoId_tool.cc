@@ -572,6 +572,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate()
       m_chargeToNPhotonsShower(-std::numeric_limits<float>::max()),
       m_xclCoef(-std::numeric_limits<float>::max()),
       m_maxDeltaLLMCS(-std::numeric_limits<float>::max()),
+      m_lengthDeltaLLMCS(-std::numeric_limits<float>::max()),
       m_ct_result_michel_plane0(false),
       m_ct_result_michel_plane1(false),
       m_ct_result_michel_plane2(false),
@@ -628,6 +629,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
       m_chargeToNPhotonsShower(-std::numeric_limits<float>::max()),
       m_xclCoef(-std::numeric_limits<float>::max()),
       m_maxDeltaLLMCS(-std::numeric_limits<float>::max()),
+      m_lengthDeltaLLMCS(-std::numeric_limits<float>::max()),
       m_ct_result_michel_plane0(false),
       m_ct_result_michel_plane1(false),
       m_ct_result_michel_plane2(false),
@@ -691,6 +693,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
       m_chargeToNPhotonsShower(chargeToNPhotonsShower),
       m_xclCoef(xclCoef),
       m_maxDeltaLLMCS(-std::numeric_limits<float>::max()),
+      m_lengthDeltaLLMCS(-std::numeric_limits<float>::max()),
       m_ct_result_michel_plane0(false),
       m_ct_result_michel_plane1(false),
       m_ct_result_michel_plane2(false),
@@ -1578,10 +1581,12 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByDirMCS(const PFParticleVecto
                 if (vtx_contained && !end_contained)
                 {
                     m_maxDeltaLLMCS = std::max(float(fwd_ll - bwd_ll), m_maxDeltaLLMCS);
+                    m_lengthDeltaLLMCS = std::max(this_track->Length(), m_lengthDeltaLLMCS);
                 }
                 else if (!vtx_contained && end_contained)
                 {
                     m_maxDeltaLLMCS = std::max(float(bwd_ll - fwd_ll), m_maxDeltaLLMCS);
+                    m_lengthDeltaLLMCS = std::max(this_track->Length(), m_lengthDeltaLLMCS);
                 }
             }
         }
