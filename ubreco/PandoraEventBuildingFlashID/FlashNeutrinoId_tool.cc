@@ -1581,12 +1581,12 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByDirMCS(const PFParticleVecto
                 if (vtx_contained && !end_contained)
                 {
                     m_maxDeltaLLMCS = std::max(float(fwd_ll - bwd_ll), m_maxDeltaLLMCS);
-                    m_lengthDeltaLLMCS = std::max(this_track->Length(), m_lengthDeltaLLMCS);
+                    m_lengthDeltaLLMCS = std::max(float(this_track->Length()), m_lengthDeltaLLMCS);
                 }
                 else if (!vtx_contained && end_contained)
                 {
                     m_maxDeltaLLMCS = std::max(float(bwd_ll - fwd_ll), m_maxDeltaLLMCS);
-                    m_lengthDeltaLLMCS = std::max(this_track->Length(), m_lengthDeltaLLMCS);
+                    m_lengthDeltaLLMCS = std::max(float(this_track->Length()), m_lengthDeltaLLMCS);
                 }
             }
         }
