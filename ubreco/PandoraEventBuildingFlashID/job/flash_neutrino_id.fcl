@@ -89,7 +89,7 @@ flash_neutrino_id_tool :
 
 
     # Debug
-    ShouldWriteToFile:        true
+    ShouldWriteToFile:        false
     HasMCNeutrino:            true
     MCTruthLabel:             "generator"
     MCParticleLabel:          "largeant"
