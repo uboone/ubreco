@@ -30,7 +30,7 @@ art_make(
 			art_Persistency_Provenance canvas
 			art_Utilities canvas
 			${MF_MESSAGELOGGER}
-			
+                        ubevt_Utilities						
 	                ${FHICLCPP}
 			cetlib cetlib_except
 			${CLHEP}
