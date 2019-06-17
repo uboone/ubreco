@@ -2,7 +2,7 @@ BEGIN_PROLOG
 
 T0RecoAnodeCathodePiercing: {
  module_type       : "T0RecoAnodeCathodePiercing"  
- TrackProducer     : "pandoraCosmic"
+ TrackProducer     : "pandora"
  FlashProducer     : "simpleFlashCosmic"
  Resolution        : 20    # centimeters
  PEmin             : 10    # PE

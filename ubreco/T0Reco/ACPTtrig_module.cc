@@ -7,7 +7,7 @@
 // from cetlib version v3_04_00.
 ////////////////////////////////////////////////////////////////////////
 
-#include "art/Framework/Core/EDFilter.h"
+#include "art/Framework/Core/EDProducer.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/Handle.h"
@@ -49,7 +49,7 @@
 class ACPTtrig;
 
 
-class ACPTtrig : public art::EDFilter {
+class ACPTtrig : public art::EDProducer {
 public:
   explicit ACPTtrig(fhicl::ParameterSet const& p);
   // The compiler-generated destructor is fine for non-base
@@ -62,7 +62,7 @@ public:
   ACPTtrig& operator=(ACPTtrig&&) = delete;
 
   // Required functions.
-  bool filter(art::Event& e) override;
+  void produce(art::Event& e) override;
 
   // Selected optional functions.
   void beginJob() override;
@@ -79,7 +79,7 @@ private:
   double fFlashMatchZ;
   double fBeamSpillStart, fBeamSpillEnd;
   std::string fTrackProducer, fFlashProducer, fOpDetWfmProducer, fCRTTagProducer, fCaloProducer;
-  bool fSaveTree, fSaveWf, fUseAsFilter;
+  bool fSaveTree, fSaveWf;
 
   TTree* _tree;
   float _len;
@@ -133,7 +133,7 @@ private:
 
 
 ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
-  : EDFilter{p}  // ,
+  : EDProducer{p}  // ,
   // More initializers here.
 {
 
@@ -158,7 +158,6 @@ ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
   fBeamSpillEnd     = p.get<double>("BeamSpillEnd");
   fSaveTree         = p.get<bool>("SaveTree",false);
   fSaveWf           = p.get<bool>("SaveWf",false);
-  fUseAsFilter      = p.get<bool>("UseAsFilter",false);
 
   _wf_v.resize(32);
 
@@ -277,7 +276,7 @@ ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
   }
 }
 
-bool ACPTtrig::filter(art::Event& e)
+void ACPTtrig::produce(art::Event& e)
 {
 
   ResetTTree();
@@ -674,18 +673,11 @@ bool ACPTtrig::filter(art::Event& e)
 
   }// for all tracks
 
-  bool selected = false;
-  if (T0_v->size() > 0)
-    selected = true;
-
   e.put(std::move(T0_v));
   e.put(std::move(trk_t0_assn_v));
   e.put(std::move(trk_flash_assn_v));
 
-  if (fUseAsFilter)
-    return selected;
-
-  return true;
+  return;
 }
 
 void ACPTtrig::ResetTTree() {
