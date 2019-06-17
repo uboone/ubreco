@@ -3,8 +3,8 @@ BEGIN_PROLOG
 StopMu: {
 
     module_type: StopMu
-    TrkProducer: "pandoraTrack"
-    CaloProducer: "pandoracaloN"
+    TrkProducer: "pandora"
+    CaloProducer: "pandoracali"
     MCProducer: "generator"
     MCParticleLabel: "largeant"
     GeoCuts: true
@@ -19,6 +19,7 @@ StopMu: {
     ZdeadEnd:   745
     AbsXspan: 150
     UseTruth: false
+    FillTree: false
 }
 
 END_PROLOG

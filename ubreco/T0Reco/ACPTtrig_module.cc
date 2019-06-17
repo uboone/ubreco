@@ -79,7 +79,7 @@ private:
   double fFlashMatchZ;
   double fBeamSpillStart, fBeamSpillEnd;
   std::string fTrackProducer, fFlashProducer, fOpDetWfmProducer, fCRTTagProducer, fCaloProducer;
-  bool fSaveTree, fSaveWf;
+  bool fSaveTree, fSaveWf, fUseAsFilter;
 
   TTree* _tree;
   float _len;
@@ -106,6 +106,8 @@ private:
   float  _opfilter_pe_beam, _opfilter_pe_beam_tot, _opfilter_pe_veto, _opfilter_pe_veto_tot;
   int _crttag;
   float _crtt0;
+
+  int _tagged;
 
   float _wfsum100ns, _wfsum3us, _wfsum5us;
   float _wfbaseline, _wfmedian, _wfrms;
@@ -156,6 +158,7 @@ ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
   fBeamSpillEnd     = p.get<double>("BeamSpillEnd");
   fSaveTree         = p.get<bool>("SaveTree",false);
   fSaveWf           = p.get<bool>("SaveWf",false);
+  fUseAsFilter      = p.get<bool>("UseAsFilter",false);
 
   _wf_v.resize(32);
 
@@ -165,6 +168,8 @@ ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
   _tree->Branch("_run",&_run, "run/I");
   _tree->Branch("_subrun",&_subrun, "subrun/I");
   _tree->Branch("_event", &_event, "event/I");
+
+  _tree->Branch("_tagged",&_tagged,"tagged/I");
 
   _tree->Branch("_timelow" ,&_timelow ,"timelow/i" );
   _tree->Branch("_timehigh",&_timehigh,"timehigh/i");
@@ -298,6 +303,7 @@ bool ACPTtrig::filter(art::Event& e)
     throw std::exception();
   }
 
+  /*
   // load commont-optical-filter output
   art::Handle<uboone::UbooneOpticalFilter> CommonOpticalFilter_h;
   art::InputTag fCommonOpFiltTag("opfiltercommonext");
@@ -307,6 +313,7 @@ bool ACPTtrig::filter(art::Event& e)
   _opfilter_pe_beam_tot = CommonOpticalFilter_h->PE_Beam_Total();
   _opfilter_pe_veto     = CommonOpticalFilter_h->PE_Veto();
   _opfilter_pe_veto_tot = CommonOpticalFilter_h->PE_Veto_Total();
+  */
 
   // SCE service
   ///auto const* sce = lar::providerFrom<spacecharge::SpaceChargeService>();
@@ -584,6 +591,7 @@ bool ACPTtrig::filter(art::Event& e)
       }// if there is an associated flash
 
       // create T0 object with this information!
+      _tagged = 1;
       anab::T0 t0(time, 0, 0);
       T0_v->emplace_back(t0);
       util::CreateAssn(*this, e, *T0_v, track, *trk_t0_assn_v);
@@ -674,11 +682,15 @@ bool ACPTtrig::filter(art::Event& e)
   e.put(std::move(trk_t0_assn_v));
   e.put(std::move(trk_flash_assn_v));
 
-  return selected;
+  if (fUseAsFilter)
+    return selected;
+
+  return true;
 }
 
 void ACPTtrig::ResetTTree() {
 
+  _tagged = 0;
   _len = 0;
   _trk_beg_x = 0;
   _trk_beg_y = 0;
