@@ -89,7 +89,7 @@ flash_neutrino_id_tool :
 
 
     # Debug
-    ShouldWriteToFile:        true
+    ShouldWriteToFile:        false
     HasMCNeutrino:            true
     MCTruthLabel:             "generator"
     MCParticleLabel:          "largeant"
@@ -129,6 +129,10 @@ flash_neutrino_id_tool_overlay.HasMCNeutrino: true
 flash_neutrino_id_tool_overlay.BeamWindowStartTime: 3.57
 flash_neutrino_id_tool_overlay.BeamWindowEndTime:   5.25
 flash_neutrino_id_tool_overlay.FlashMatchConfig.PhotonLibHypothesis.CCVCorrection: [0.318,0.296,0.342,0.312,0.311,0.341,0.330,0.329,0.319,0.320,0.307,0.323,0.327,0.324,0.341,0.312,0.317,0.322,0.322,0.327,0.353,0.321,0.302,0.321,0.285,0.599,0.289,0.290,0.197,0.287,0.268,0.194]
+
+flash_neutrino_id_tool_fullmc: @local::flash_neutrino_id_tool_overlay
+flash_neutrino_id_tool_fullmc.BeamWindowStartTime: 3.16
+flash_neutrino_id_tool_fullmc.BeamWindowEndTime:   4.84
 
 flash_neutrino_id_tool_beamOff_run3: @local::flash_neutrino_id_tool_beamOff
 flash_neutrino_id_tool_beamOff_run3.HasCRT:        false
@@ -177,6 +181,9 @@ FlashMatch_overlay.FlashMatchConfig: @local::flash_neutrino_id_tool_overlay.Flas
 FlashMatch_overlay.BeamWindowStart:  @local::flash_neutrino_id_tool_overlay.BeamWindowStartTime
 FlashMatch_overlay.BeamWindowEnd:    @local::flash_neutrino_id_tool_overlay.BeamWindowEndTime
 
+FlashMatch_fullmc: @local::FlashMatch_overlay
+FlashMatch_fullmc.BeamWindowStart:  @local::flash_neutrino_id_tool_fullmc.BeamWindowStartTime
+FlashMatch_fullmc.BeamWindowEnd:    @local::flash_neutrino_id_tool_fullmc.BeamWindowEndTime
 
 FlashMatch_beamOn_run3: @local::FlashMatch_beamOn
 FlashMatch_beamOn_run3.PMTChannelCorrection: @local::flash_neutrino_id_tool_beamOn_run3.PMTChannelCorrection
