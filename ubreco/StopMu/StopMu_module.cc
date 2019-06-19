@@ -503,6 +503,7 @@ void StopMu::produce(art::Event& e)
   if (fUseTruth) {
 
 
+    /*
     // consider only events with an interaction outside of the TPC
     auto const &generator_handle = e.getValidHandle<std::vector<simb::MCTruth>>(fMCProducer);
     auto const &generator(*generator_handle);
@@ -519,20 +520,25 @@ void StopMu::produce(art::Event& e)
 	    break; // In case of events with more than one neutrino (2% of the total) we take for the moment only the first one
 	  }
       }
-    
+    */
+    /*
     if (n_nu==0) {
       e.put( std::move(CT_v) );
       e.put( std::move(trk_CT_assn_v) );
       return;
     }
-    
+    */
+
+    /*    
     bool inTPCvolume = insideTPCvolume(_true_vx, _true_vy, _true_vz);
     if (inTPCvolume == true)
       {
 	e.put( std::move(CT_v) );
 	e.put( std::move(trk_CT_assn_v) );
 	return;
-      }
+      
+    }
+    */
     
     auto const &mcparticles_handle = e.getValidHandle<std::vector<simb::MCParticle>>(fMCParticleLabel);
     auto const &mcparticles(*mcparticles_handle);
@@ -770,12 +776,14 @@ void StopMu::produce(art::Event& e)
     _nhit_endpoint = findEndPointHits(_trk_end_x, _trk_end_y, _trk_end_z, trk_hit_assn_v.at(t-1), gaushit_h, 2);
     */
 
+
     _tagged = 1;
 
     CT_v->emplace_back(1.0);
     util::CreateAssn(*this, e, *CT_v, trk, *trk_CT_assn_v );
     
-    _reco_tree->Fill();
+    if (fFillTTree)
+      _reco_tree->Fill();
   }// for all tracks
 
   e.put( std::move(CT_v) );
@@ -791,14 +799,10 @@ int StopMu::findEndPointHits(const double& endx, const double& endy, const doubl
 
   int nearby = 0;
 
-  std::cout << "event " << _evt << " with end-point : " << endx << ", " << endy << ", " << endz << std::endl;
-
   // get end point coordinates in wire/time
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
   auto stopwirecm = geom->WireCoordinate(endy,endz,geo::PlaneID(0,0,pl)) * _wire2cm;
   auto stoptickcm = endx;
-
-  std::cout << " track end point @ [ " << stopwirecm << ", " << stoptickcm << " ]" << std::endl;
 
   /*
   for (size_t h=0; h < ass_hit_v.size(); h++) {
@@ -843,7 +847,6 @@ int StopMu::findEndPointHits(const double& endx, const double& endy, const doubl
     }// if the hit is within 5 cm
   }// for all reconstructed hits
   
-  std::cout << "nearby hits : " << nearby << std::endl;
   return nearby;
 }
 

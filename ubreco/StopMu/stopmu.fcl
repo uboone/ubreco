@@ -2,7 +2,7 @@ BEGIN_PROLOG
 
 StopMu: {
 
-    module_type: StopMu
+    module_type: "StopMu"
     TrkProducer: "pandora"
     CaloProducer: "pandoracali"
     MCProducer: "generator"
@@ -19,7 +19,7 @@ StopMu: {
     ZdeadEnd:   745
     AbsXspan: 150
     UseTruth: false
-    FillTree: false
+    FillTTree: false
 }
 
 END_PROLOG
