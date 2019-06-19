@@ -726,10 +726,6 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
     m_centerY = chargeCenter.GetY();
     m_centerZ = chargeCenter.GetZ();
 
-    this->RejectStopMuByDirMCS(slice.GetCosmicRayHypothesis(), event, particlesToTracks, mcsfitter);
-
-    this->RejectStopMuByCalo(slice.GetCosmicRayHypothesis(), event, particlesToTracks, pfParticleToSpacePointMap, pandoraLabel, cosmictagmanager);
-
     // copying variables from one class to another
     mm_verbose = m_verbose;
     mm_ophitLabel = m_ophitLabel;
@@ -744,6 +740,10 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
     mm_ophit_time_res = m_ophit_time_res;
     mm_min_track_length = m_min_track_length;
     mm_dt_resolution_ophit = m_dt_resolution_ophit;
+
+    this->RejectStopMuByDirMCS(slice.GetCosmicRayHypothesis(), event, particlesToTracks, mcsfitter);
+
+    this->RejectStopMuByCalo(slice.GetCosmicRayHypothesis(), event, particlesToTracks, pfParticleToSpacePointMap, pandoraLabel, cosmictagmanager);
 
     // ACPT tagger
     this->ACPTtagger(slice.GetCosmicRayHypothesis(), event, particlesToTracks);
