@@ -1853,7 +1853,6 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
       m_ct_result_bragg_plane0 = ((cosmictag::StopMuBragg*)(_ct_manager.GetCustomAlgo("StopMuBragg")))->IsStopMuBragg(processed_cluster, m_min_lin_braggalgonly_plane0) && !vtx_in_fv;
     }
 
-
     // --- Plane 1 ---
     _ct_manager.Reset();
     // Emplacing simple hits to the manager
@@ -1867,11 +1866,9 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
       cosmictag::SimpleCluster processed_cluster = _ct_manager.GetCluster();
 
       m_ct_result_michel_plane1 = ((cosmictag::StopMuMichel*)(_ct_manager.GetCustomAlgo("StopMuMichel")))->IsStopMuMichel(processed_cluster,  m_dqds_startend_percdiff_plane1, m_bragg_local_lin_plane1, m_n_michel_hits_plane1);
-
       bool vtx_in_fv = InFV(highest_point);
       m_ct_result_bragg_plane1 = ((cosmictag::StopMuBragg*)(_ct_manager.GetCustomAlgo("StopMuBragg")))->IsStopMuBragg(processed_cluster, m_min_lin_braggalgonly_plane1) && !vtx_in_fv;
     }
-
 
     // --- Plane 2 ---
     _ct_manager.Reset();

@@ -53,7 +53,6 @@ namespace cosmictag {
       return false;
     }
 
-
     // Vertex must not be in the FV
     //if (_fv.InFV(_vertex))
     //  return false;
@@ -139,6 +138,10 @@ namespace cosmictag {
     // Get mean of first and last hits
     //dqds_end.clear();
     dqds_end = _dqds_slider;
+    if (bragg_index < _pre_post_window+5) {
+      CT_DEBUG() << "Not enough hits." << std::endl;
+      return false;
+    }
 
     dqds_end.erase(dqds_end.begin(), dqds_end.begin() + bragg_index - (_pre_post_window + 5));
     dqds_end.erase(dqds_end.end() - _hits_to_remove, dqds_end.end());
