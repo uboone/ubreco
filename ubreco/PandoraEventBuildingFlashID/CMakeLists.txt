@@ -2,9 +2,12 @@ include_directories( $ENV{PANDORA_INC} )
 include_directories( $ENV{LARPANDORACONTENT_INC} )
 
 add_subdirectory(job)
+add_subdirectory(HitCosmicTag)
 
-set( 
-          sliceid_tool_lib_list larcorealg_Geometry
+
+art_make(	  TOOL_LIBRARIES
+
+		  	larcorealg_Geometry
                         larcore_Geometry_Geometry_service
                         larsim_Simulation lardataobj_Simulation
                         lardataobj_RawData
@@ -16,6 +19,8 @@ set(
                         larreco_RecoAlg
                         larreco_ClusterFinder
                         larreco_Calorimetry
+                        ubreco_PandoraEventBuildingFlashID_HitCosmicTag_Base
+                        ubreco_PandoraEventBuildingFlashID_HitCosmicTag_Algorithms
                         ${PANDORASDK}
                         ${PANDORAMONITORING}
                         larpandora_LArPandoraInterface
@@ -41,10 +46,47 @@ set(
                         ${ROOT_GENVECTOR}
                         ubreco_SelectionTool_OpT0FinderBase
                         ubreco_SelectionTool_OpT0FinderAlgorithms
-                        MODULE_LIBRARIES larpandora_LArPandoraEventBuilding
-          )
+                        ubevt_Utilities
 
-art_make(TOOL_LIBRARIES ${sliceid_tool_lib_list})
+          	MODULE_LIBRARIES
+	  		ubreco_ShowerReco_ShowerReco3D_Base
+			larcorealg_Geometry
+			larcore_Geometry_Geometry_service
+			lardataobj_RecoBase
+			lardataobj_MCBase
+			lardataobj_AnalysisBase
+			lardataobj_Simulation
+			lardata_RecoObjects larreco_Deprecated
+			larreco_RecoAlg
+			lardata_Utilities
+                        larpandora_LArPandoraInterface
+                        larpandora_LArPandoraEventBuilding
+			larevt_Filters
+			nusimdata_SimulationBase
+			${LARRECO_LIB}
+			${LARDATA_LIB}
+                        ${ART_FRAMEWORK_CORE}
+			${ART_FRAMEWORK_PRINCIPAL}
+			${ART_FRAMEWORK_SERVICES_REGISTRY}
+			${ART_FRAMEWORK_SERVICES_OPTIONAL}
+			${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
+			${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
+			art_Persistency_Common canvas
+			art_Persistency_Provenance canvas
+			art_Utilities canvas
+			${MF_MESSAGELOGGER}
+			${MF_UTILITIES}
+	                ${FHICLCPP}
+			cetlib cetlib_except
+			${CLHEP}
+                        ${ROOT_GEOM}
+                        ${ROOT_XMLIO}
+                        ${ROOT_GDML}
+			${ROOT_BASIC_LIB_LIST}
+                        ubreco_SelectionTool_OpT0FinderBase
+                        ubreco_SelectionTool_OpT0FinderAlgorithms
+                        ubevt_Utilities
+)
 
 install_headers()
 install_fhicl()
