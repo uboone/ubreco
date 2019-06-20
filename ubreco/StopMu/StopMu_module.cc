@@ -307,7 +307,7 @@ public:
 private:
 
   std::string fTrkProducer, fCaloProducer, fMCProducer, fMCParticleLabel, fOpticalFlashFinderLabelB, fOpticalFlashFinderLabelC;
-  bool fGeoCuts, fUseTruth;
+  bool fGeoCuts, fUseTruth, fFillTTree;
   double fdT, fMinX, fMaxX, fMinZ, fMaxZ, fMinY, fMinLen;
   double fZdeadStart, fZdeadEnd;
   double fAbsXspan; // to remove anode-to-cathode crossing tracks
@@ -338,6 +338,8 @@ private:
   double _offsetx, _offsety, _offsetz;
 
   int _nhit_endpoint;
+
+  int _tagged; // was this track tagged by the module?
 
   double _xyz_true_reco_distance, _yz_true_reco_distance;
   double _true_energy;
@@ -394,7 +396,8 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   fZdeadEnd = p.get<double>("ZdeadEnd");
   fAbsXspan = p.get<double>("AbsXspan");
   fMinLen = p.get<double>("MinLen");
-  fUseTruth = p.get<bool>("UseTruth");
+  fUseTruth = p.get<bool>("UseTruth",false);
+  fFillTTree = p.get<bool>("FillTTree",false);
   
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
   auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
@@ -424,6 +427,8 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   _reco_tree->Branch("_trk_end_x",  &_trk_end_x,  "trk_end_x/D"  );
   _reco_tree->Branch("_trk_end_y",  &_trk_end_y,  "trk_end_y/D"  );
   _reco_tree->Branch("_trk_end_z",  &_trk_end_z,  "trk_end_z/D"  );
+
+  _reco_tree->Branch("_tagged",&_tagged,"tagged/I");
 
   // truth variables
   _reco_tree->Branch("_xyz_true_reco_distance",  &_xyz_true_reco_distance,  "xyz_true_reco_distance/D"  );
@@ -498,6 +503,7 @@ void StopMu::produce(art::Event& e)
   if (fUseTruth) {
 
 
+    /*
     // consider only events with an interaction outside of the TPC
     auto const &generator_handle = e.getValidHandle<std::vector<simb::MCTruth>>(fMCProducer);
     auto const &generator(*generator_handle);
@@ -514,20 +520,25 @@ void StopMu::produce(art::Event& e)
 	    break; // In case of events with more than one neutrino (2% of the total) we take for the moment only the first one
 	  }
       }
-    
+    */
+    /*
     if (n_nu==0) {
       e.put( std::move(CT_v) );
       e.put( std::move(trk_CT_assn_v) );
       return;
     }
-    
+    */
+
+    /*    
     bool inTPCvolume = insideTPCvolume(_true_vx, _true_vy, _true_vz);
     if (inTPCvolume == true)
       {
 	e.put( std::move(CT_v) );
 	e.put( std::move(trk_CT_assn_v) );
 	return;
-      }
+      
+    }
+    */
     
     auto const &mcparticles_handle = e.getValidHandle<std::vector<simb::MCParticle>>(fMCParticleLabel);
     auto const &mcparticles(*mcparticles_handle);
@@ -568,7 +579,7 @@ void StopMu::produce(art::Event& e)
   // load input tracks
   auto const& trk_h = e.getValidHandle<std::vector<recob::Track>>(fTrkProducer);
   // load hits
-  auto const& gaushit_h = e.getValidHandle<std::vector<recob::Hit> > ("gaushit");
+  //auto const& gaushit_h = e.getValidHandle<std::vector<recob::Hit> > ("gaushit");
   // grab calorimetry objects associated to tracks
   art::FindMany<anab::Calorimetry> trk_calo_assn_v(trk_h, e, fCaloProducer);
   // grab hits associated to tracks
@@ -760,13 +771,19 @@ void StopMu::produce(art::Event& e)
       if ( fabs(_trk_start_x - _trk_end_x) > fAbsXspan ) continue;
     } 
 
+    /*
     // find hits near the track end point, if any
     _nhit_endpoint = findEndPointHits(_trk_end_x, _trk_end_y, _trk_end_z, trk_hit_assn_v.at(t-1), gaushit_h, 2);
+    */
+
+
+    _tagged = 1;
 
     CT_v->emplace_back(1.0);
     util::CreateAssn(*this, e, *CT_v, trk, *trk_CT_assn_v );
     
-    _reco_tree->Fill();
+    if (fFillTTree)
+      _reco_tree->Fill();
   }// for all tracks
 
   e.put( std::move(CT_v) );
@@ -782,14 +799,10 @@ int StopMu::findEndPointHits(const double& endx, const double& endy, const doubl
 
   int nearby = 0;
 
-  std::cout << "event " << _evt << " with end-point : " << endx << ", " << endy << ", " << endz << std::endl;
-
   // get end point coordinates in wire/time
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
   auto stopwirecm = geom->WireCoordinate(endy,endz,geo::PlaneID(0,0,pl)) * _wire2cm;
   auto stoptickcm = endx;
-
-  std::cout << " track end point @ [ " << stopwirecm << ", " << stoptickcm << " ]" << std::endl;
 
   /*
   for (size_t h=0; h < ass_hit_v.size(); h++) {
@@ -834,7 +847,6 @@ int StopMu::findEndPointHits(const double& endx, const double& endy, const doubl
     }// if the hit is within 5 cm
   }// for all reconstructed hits
   
-  std::cout << "nearby hits : " << nearby << std::endl;
   return nearby;
 }
 
@@ -850,6 +862,23 @@ double StopMu::xyzDistance(double x1, double y1, double z1, double x2, double y2
 
 void StopMu::clear()
 {
+
+  _trk_len = 0;
+
+  _trk_start_x = 0;
+  _trk_start_y = 0;
+  _trk_start_z = 0;
+
+  _trk_end_x   = 0;
+  _trk_end_y   = 0;
+  _trk_end_z   = 0;
+
+  _px = 0;
+  _py = 0;
+  _pz = 0;
+
+  _tagged = 0;
+
   _dqdx_u.clear();
   _dqdx_tm_u.clear();
   _rr_u.clear();
