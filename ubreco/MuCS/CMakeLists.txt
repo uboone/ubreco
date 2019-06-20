@@ -21,7 +21,7 @@ art_make( BASENAME_ONLY
 			larevt_Filters
 			lardataobj_RawData
 			lardataobj_RecoBase
-			lardata_RecoObjects larreco_Deprecated  
+			lardata_RecoObjects
 			larreco_RecoAlg
 			ubobj_MuCS
 			SignalShapingServiceMicroBooNE_service
