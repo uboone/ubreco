@@ -579,9 +579,12 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate()
       m_ct_result_bragg_plane0(false),
       m_ct_result_bragg_plane1(false),
       m_ct_result_bragg_plane2(false),
-      m_dqds_startend_percdiff_plane0(-std::numeric_limits<float>::max()),
-      m_dqds_startend_percdiff_plane1(-std::numeric_limits<float>::max()),
-      m_dqds_startend_percdiff_plane2(-std::numeric_limits<float>::max()),
+      m_dqds_michelalg_percdiff_plane0(-std::numeric_limits<float>::max()),
+      m_dqds_michelalg_percdiff_plane1(-std::numeric_limits<float>::max()),
+      m_dqds_michelalg_percdiff_plane2(-std::numeric_limits<float>::max()),
+      m_dqds_braggalg_percdiff_plane0(-std::numeric_limits<float>::max()),
+      m_dqds_braggalg_percdiff_plane1(-std::numeric_limits<float>::max()),
+      m_dqds_braggalg_percdiff_plane2(-std::numeric_limits<float>::max()),
       m_bragg_local_lin_plane0(-std::numeric_limits<float>::max()),
       m_bragg_local_lin_plane1(-std::numeric_limits<float>::max()),
       m_bragg_local_lin_plane2(-std::numeric_limits<float>::max()),
@@ -593,7 +596,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate()
       m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max())
 {
 }
-
+ 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice)
@@ -636,9 +639,12 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
       m_ct_result_bragg_plane0(false),
       m_ct_result_bragg_plane1(false),
       m_ct_result_bragg_plane2(false),
-      m_dqds_startend_percdiff_plane0(-std::numeric_limits<float>::max()),
-      m_dqds_startend_percdiff_plane1(-std::numeric_limits<float>::max()),
-      m_dqds_startend_percdiff_plane2(-std::numeric_limits<float>::max()),
+      m_dqds_michelalg_percdiff_plane0(-std::numeric_limits<float>::max()),
+      m_dqds_michelalg_percdiff_plane1(-std::numeric_limits<float>::max()),
+      m_dqds_michelalg_percdiff_plane2(-std::numeric_limits<float>::max()),
+      m_dqds_braggalg_percdiff_plane0(-std::numeric_limits<float>::max()),
+      m_dqds_braggalg_percdiff_plane1(-std::numeric_limits<float>::max()),
+      m_dqds_braggalg_percdiff_plane2(-std::numeric_limits<float>::max()),
       m_bragg_local_lin_plane0(-std::numeric_limits<float>::max()),
       m_bragg_local_lin_plane1(-std::numeric_limits<float>::max()),
       m_bragg_local_lin_plane2(-std::numeric_limits<float>::max()),
@@ -700,9 +706,12 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
       m_ct_result_bragg_plane0(false),
       m_ct_result_bragg_plane1(false),
       m_ct_result_bragg_plane2(false),
-      m_dqds_startend_percdiff_plane0(-std::numeric_limits<float>::max()),
-      m_dqds_startend_percdiff_plane1(-std::numeric_limits<float>::max()),
-      m_dqds_startend_percdiff_plane2(-std::numeric_limits<float>::max()),
+      m_dqds_michelalg_percdiff_plane0(-std::numeric_limits<float>::max()),
+      m_dqds_michelalg_percdiff_plane1(-std::numeric_limits<float>::max()),
+      m_dqds_michelalg_percdiff_plane2(-std::numeric_limits<float>::max()),
+      m_dqds_braggalg_percdiff_plane0(-std::numeric_limits<float>::max()),
+      m_dqds_braggalg_percdiff_plane1(-std::numeric_limits<float>::max()),
+      m_dqds_braggalg_percdiff_plane2(-std::numeric_limits<float>::max()),
       m_bragg_local_lin_plane0(-std::numeric_limits<float>::max()),
       m_bragg_local_lin_plane1(-std::numeric_limits<float>::max()),
       m_bragg_local_lin_plane2(-std::numeric_limits<float>::max()),
@@ -1886,10 +1895,10 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
     {
         cosmictag::SimpleCluster processed_cluster = _ct_manager.GetCluster();
 
-        m_ct_result_michel_plane0 = ((cosmictag::StopMuMichel *)(_ct_manager.GetCustomAlgo("StopMuMichel")))->IsStopMuMichel(processed_cluster, m_dqds_startend_percdiff_plane0, m_bragg_local_lin_plane0, m_n_michel_hits_plane0);
+        m_ct_result_michel_plane0 = ((cosmictag::StopMuMichel *)(_ct_manager.GetCustomAlgo("StopMuMichel")))->IsStopMuMichel(processed_cluster, m_dqds_michelalg_percdiff_plane0, m_bragg_local_lin_plane0, m_n_michel_hits_plane0);
 
         bool vtx_in_fv = InFV(highest_point);
-        m_ct_result_bragg_plane0 = ((cosmictag::StopMuBragg *)(_ct_manager.GetCustomAlgo("StopMuBragg")))->IsStopMuBragg(processed_cluster, m_min_lin_braggalgonly_plane0) && !vtx_in_fv;
+        m_ct_result_bragg_plane0 = ((cosmictag::StopMuBragg *)(_ct_manager.GetCustomAlgo("StopMuBragg")))->IsStopMuBragg(processed_cluster, m_min_lin_braggalgonly_plane0, m_dqds_braggalg_percdiff_plane0) && !vtx_in_fv;
     }
 
     // --- Plane 1 ---
@@ -1905,10 +1914,10 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
     {
         cosmictag::SimpleCluster processed_cluster = _ct_manager.GetCluster();
 
-        m_ct_result_michel_plane1 = ((cosmictag::StopMuMichel *)(_ct_manager.GetCustomAlgo("StopMuMichel")))->IsStopMuMichel(processed_cluster, m_dqds_startend_percdiff_plane1, m_bragg_local_lin_plane1, m_n_michel_hits_plane1);
+        m_ct_result_michel_plane1 = ((cosmictag::StopMuMichel *)(_ct_manager.GetCustomAlgo("StopMuMichel")))->IsStopMuMichel(processed_cluster, m_dqds_michelalg_percdiff_plane1, m_bragg_local_lin_plane1, m_n_michel_hits_plane1);
 
         bool vtx_in_fv = InFV(highest_point);
-        m_ct_result_bragg_plane1 = ((cosmictag::StopMuBragg *)(_ct_manager.GetCustomAlgo("StopMuBragg")))->IsStopMuBragg(processed_cluster, m_min_lin_braggalgonly_plane1) && !vtx_in_fv;
+        m_ct_result_bragg_plane1 = ((cosmictag::StopMuBragg *)(_ct_manager.GetCustomAlgo("StopMuBragg")))->IsStopMuBragg(processed_cluster, m_min_lin_braggalgonly_plane1, m_dqds_braggalg_percdiff_plane1) && !vtx_in_fv;
     }
 
     // --- Plane 2 ---
@@ -1924,10 +1933,10 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
     {
         cosmictag::SimpleCluster processed_cluster = _ct_manager.GetCluster();
 
-        m_ct_result_michel_plane2 = ((cosmictag::StopMuMichel *)(_ct_manager.GetCustomAlgo("StopMuMichel")))->IsStopMuMichel(processed_cluster, m_dqds_startend_percdiff_plane2, m_bragg_local_lin_plane2, m_n_michel_hits_plane2);
+        m_ct_result_michel_plane2 = ((cosmictag::StopMuMichel *)(_ct_manager.GetCustomAlgo("StopMuMichel")))->IsStopMuMichel(processed_cluster, m_dqds_michelalg_percdiff_plane2, m_bragg_local_lin_plane2, m_n_michel_hits_plane2);
 
         bool vtx_in_fv = InFV(highest_point);
-        m_ct_result_bragg_plane2 = ((cosmictag::StopMuBragg *)(_ct_manager.GetCustomAlgo("StopMuBragg")))->IsStopMuBragg(processed_cluster, m_min_lin_braggalgonly_plane2) && !vtx_in_fv;
+        m_ct_result_bragg_plane2 = ((cosmictag::StopMuBragg *)(_ct_manager.GetCustomAlgo("StopMuBragg")))->IsStopMuBragg(processed_cluster, m_min_lin_braggalgonly_plane2, m_dqds_braggalg_percdiff_plane2) && !vtx_in_fv;
     }
 
     if (mm_verbose)

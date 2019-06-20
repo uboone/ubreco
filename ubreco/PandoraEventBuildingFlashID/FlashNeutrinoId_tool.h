@@ -471,9 +471,12 @@ private:
     bool m_ct_result_bragg_plane0;          ///< Whether the slice is tagged as a stopping cosmic muon with a Bragg peak (plane 0)
     bool m_ct_result_bragg_plane1;          ///< Whether the slice is tagged as a stopping cosmic muon with a Bragg peak (plane 1)
     bool m_ct_result_bragg_plane2;          ///< Whether the slice is tagged as a stopping cosmic muon with a Bragg peak (plane 2)
-    float m_dqds_startend_percdiff_plane0;                     ///< percentage difference between smoothed dQ/ds near the start and end of the track. Used to tagg stopping cosmic muons in both the StopMuBragg and StopMuMichel taggers. (plane 0)
-    float m_dqds_startend_percdiff_plane1;                     ///< percentage difference between smoothed dQ/ds near the start and end of the track. Used to tagg stopping cosmic muons in both the StopMuBragg and StopMuMichel taggers. (plane 1)
-    float m_dqds_startend_percdiff_plane2;                     ///< percentage difference between smoothed dQ/ds near the start and end of the track. Used to tagg stopping cosmic muons in both the StopMuBragg and StopMuMichel taggers. (plane 2)
+    float m_dqds_michelalg_percdiff_plane0;                     ///< percentage difference between smoothed dQ/ds near the Bragg peak and end of the Michel candidate. Used to tagg stopping cosmic muons in the StopMuMichel tagger only. (plane 0)
+    float m_dqds_michelalg_percdiff_plane1;                     ///< percentage difference between smoothed dQ/ds near the Bragg peak and end of the Michel candidate. Used to tagg stopping cosmic muons in the StopMuMichel tagger only. (plane 1)
+    float m_dqds_michelalg_percdiff_plane2;                     ///< percentage difference between smoothed dQ/ds near the Bragg peak and end of the Michel candidate. Used to tagg stopping cosmic muons in the StopMuMichel tagger only. (plane 2)
+    float m_dqds_braggalg_percdiff_plane0;                     ///< percentage difference between smoothed dQ/ds near the start and end of the track. Used to tagg stopping cosmic muons in the StopMuBragg tagger only. (plane 0)
+    float m_dqds_braggalg_percdiff_plane1;                     ///< percentage difference between smoothed dQ/ds near the start and end of the track. Used to tagg stopping cosmic muons in the StopMuBragg tagger only. (plane 1)
+    float m_dqds_braggalg_percdiff_plane2;                     ///< percentage difference between smoothed dQ/ds near the start and end of the track. Used to tagg stopping cosmic muons in the StopMuBragg tagger only. (plane 2)
     float m_bragg_local_lin_plane0;                     ///< Local linearity at the Bragg peak (if one is identified). Used to tagg stopping cosmic muons in the StopMuMichel tagger only. (plane 0)
     float m_bragg_local_lin_plane1;                     ///< Local linearity at the Bragg peak (if one is identified). Used to tagg stopping cosmic muons in the StopMuMichel tagger only. (plane 1)
     float m_bragg_local_lin_plane2;                     ///< Local linearity at the Bragg peak (if one is identified). Used to tagg stopping cosmic muons in the StopMuMichel tagger only. (plane 2)
@@ -845,9 +848,12 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) : m_flashLabel
   m_pSliceTree->Branch("ct_result_bragg_plane0",&m_outputSlice.m_ct_result_bragg_plane0,"ct_result_bragg_plane0/O");
   m_pSliceTree->Branch("ct_result_bragg_plane1",&m_outputSlice.m_ct_result_bragg_plane1,"ct_result_bragg_plane1/O");
   m_pSliceTree->Branch("ct_result_bragg_plane2",&m_outputSlice.m_ct_result_bragg_plane2,"ct_result_bragg_plane2/O");
-  m_pSliceTree->Branch("dqds_startend_percdiff_plane0",&m_outputSlice.m_dqds_startend_percdiff_plane0,"dqds_startend_percdiff_plane0/F");
-  m_pSliceTree->Branch("dqds_startend_percdiff_plane1",&m_outputSlice.m_dqds_startend_percdiff_plane1,"dqds_startend_percdiff_plane1/F");
-  m_pSliceTree->Branch("dqds_startend_percdiff_plane2",&m_outputSlice.m_dqds_startend_percdiff_plane2,"dqds_startend_percdiff_plane2/F");
+  m_pSliceTree->Branch("dqds_michelalg_percdiff_plane0",&m_outputSlice.m_dqds_michelalg_percdiff_plane0,"dqds_michelalg_percdiff_plane0/F");
+  m_pSliceTree->Branch("dqds_michelalg_percdiff_plane1",&m_outputSlice.m_dqds_michelalg_percdiff_plane1,"dqds_michelalg_percdiff_plane1/F");
+  m_pSliceTree->Branch("dqds_michelalg_percdiff_plane2",&m_outputSlice.m_dqds_michelalg_percdiff_plane2,"dqds_michelalg_percdiff_plane2/F");
+  m_pSliceTree->Branch("dqds_braggalg_percdiff_plane0",&m_outputSlice.m_dqds_braggalg_percdiff_plane0,"dqds_braggalg_percdiff_plane0/F");
+  m_pSliceTree->Branch("dqds_braggalg_percdiff_plane1",&m_outputSlice.m_dqds_braggalg_percdiff_plane1,"dqds_braggalg_percdiff_plane1/F");
+  m_pSliceTree->Branch("dqds_braggalg_percdiff_plane2",&m_outputSlice.m_dqds_braggalg_percdiff_plane2,"dqds_braggalg_percdiff_plane2/F");
   m_pSliceTree->Branch("bragg_local_lin_plane0",&m_outputSlice.m_bragg_local_lin_plane0,"bragg_local_lin_plane0/F");
   m_pSliceTree->Branch("bragg_local_lin_plane1",&m_outputSlice.m_bragg_local_lin_plane1,"bragg_local_lin_plane1/F");
   m_pSliceTree->Branch("bragg_local_lin_plane2",&m_outputSlice.m_bragg_local_lin_plane2,"bragg_local_lin_plane2/F");
