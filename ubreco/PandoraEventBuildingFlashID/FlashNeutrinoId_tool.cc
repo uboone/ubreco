@@ -1515,7 +1515,7 @@ void FlashNeutrinoId::GetBestObviousCosmicMatch(const art::Event &event, const F
             for (auto hypo_pe : match.hypothesis)
                 cosmicMatchHypothesis.push_back(static_cast<float>(hypo_pe));
         }
-        std::cout << "[FlashNeutrinoId] Chi2 best cosmic (out of " << matches.size() << " matches): " << matches.back().score << "\tworst match: " << matches.front().score << std::endl;
+        //std::cout << "[FlashNeutrinoId] Chi2 best cosmic (out of " << matches.size() << " matches): " << matches.back().score << "\tworst match: " << matches.front().score << std::endl;
         m_outputEvent.m_bestCosmicMatch = bestCosmicMatch;
         m_outputEvent.m_cosmicMatchHypothesis = cosmicMatchHypothesis;
     }
