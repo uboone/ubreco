@@ -742,7 +742,7 @@ void ACPTtrig::AnalyzeWaveform(const std::vector<short>& wfsum, const float flas
   _wfrms = sqrt(_wfrms / (Nbaseline - 1) );
 
   // provided never out of range...
-  if ( ( (flashtimetick - 2) >= 0) && ( (flashtimetick - 2 + 512) < wfsum.size()) ) {
+  if ( ( flashtimetick >= 2) && ( (flashtimetick - 2 + 512) < wfsum.size()) ) {
     
     for (size_t t=0; t < 6; t++) 
       _wfsum100ns += (wfsum[flashtimetick-2+t] - _wfbaseline);

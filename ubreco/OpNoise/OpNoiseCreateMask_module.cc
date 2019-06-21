@@ -239,7 +239,7 @@ void OpNoiseCreateMask::produce(art::Event& e)
   //put mask in reco2 file                                                                                                                   
   std::unique_ptr< std::vector<bool> > opnoise_hitmask(new std::vector<bool>);
   for(int i=0; i<mask_size; i++){
-    opnoise_hitmask->emplace_back(std::move(hit_mask[i]));
+    opnoise_hitmask->push_back(hit_mask[i]);
   }
 
   e.put(std::move(opnoise_hitmask));
