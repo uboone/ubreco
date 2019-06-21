@@ -34,7 +34,7 @@ namespace cosmictag {
   }
 
 
-  bool StopMuBragg::IsStopMuBragg(const cosmictag::SimpleCluster & cluster, float &lin_min) const {
+  bool StopMuBragg::IsStopMuBragg(const cosmictag::SimpleCluster & cluster, float &lin_min, float &perc_diff) const {
 
 
     const std::vector<double>    & _dqds_slider      = cluster._dqds_slider;
@@ -100,6 +100,7 @@ namespace cosmictag {
       }
     }
     lin_min = lin_min_tmp;
+
     // Now actually implement the cut
     for (size_t l = _hits_to_remove; l < _linearity_v.size() - _hits_to_remove; l++) {
       if (_linearity_v.at(l) < _local_linearity_threshold) {
@@ -142,7 +143,7 @@ namespace cosmictag {
       end_mean /= _n_hits_remove;
     }
 
-    double perc_diff = (start_mean - end_mean) / start_mean * 100.;
+    perc_diff = (start_mean - end_mean) / start_mean * 100.;
 
     CT_DEBUG() << "Start mean: " << start_mean
                << ", end mean " << end_mean << ", Perc diff is " << perc_diff << std::endl;
