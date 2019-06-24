@@ -1,4 +1,3 @@
-gain_provider.ExtraInfo(i).GetFloatData("amplitude_gain")
 #include "art/Framework/Core/EDProducer.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
@@ -8,6 +7,7 @@ gain_provider.ExtraInfo(i).GetFloatData("amplitude_gain")
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
+#include "art/Framework/Services/Registry/ServiceHandle.h"
 
 #include "lardataobj/RecoBase/OpHit.h"
 
@@ -70,7 +70,7 @@ void OpHitCorrectionProducer::produce(art::Event & e)
     auto oldch = pmtremap_provider.OriginalOpChannel(oph.OpChannel());
     float gaincor = gain_provider.ExtraInfo(oldch%100).GetFloatData("amplitude_gain")/20.;
     float lycor = ly_provider.LYScaling(oldch%100);
-    output->emplace_back( recob::OpHit(oph.OpChannel()), 
+    output->emplace_back( recob::OpHit(oph.OpChannel(), 
 				       oph.PeakTime(), 
 				       oph.PeakTimeAbs(), 
 				       oph.Frame(), 
