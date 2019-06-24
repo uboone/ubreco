@@ -19,7 +19,7 @@ art_make(
 			larsim_Simulation nutools_ParticleNavigation lardataobj_Simulation
 			lardataobj_RecoBase
 			lardataobj_AnalysisBase	
-			lardata_RecoObjects larreco_Deprecated  
+			lardata_RecoObjects
 			larreco_RecoAlg
 			lardata_Utilities
 			larevt_Filters

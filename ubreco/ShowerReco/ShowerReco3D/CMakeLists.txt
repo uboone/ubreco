@@ -25,7 +25,7 @@ art_make(
 			lardataobj_MCBase
 			lardataobj_AnalysisBase	
 			lardataobj_Simulation	
-			lardata_RecoObjects larreco_Deprecated  
+			lardata_RecoObjects
 			larreco_RecoAlg
 			lardata_Utilities
 			larevt_Filters
