@@ -1390,6 +1390,52 @@ bool FlashNeutrinoId::SliceCandidate::IsCompatibleWithBeamFlash(const FlashCandi
     m_chargeToLightRatio = m_totalCharge / beamFlash.m_totalPE;
     m_xChargeLightVariable = m_xclCoef * log10(m_chargeToLightRatio) - m_centerX;
 
+    // Stopping muon tagging:
+    float michel_dqds_cut_plane0 = 0;
+    float michel_dqds_cut_plane1 = 0;
+    float michel_dqds_cut_plane2 = 20;
+    float michel_max_deltaLLmcs_cut = 2;
+    float bragg_dqds_cut_plane0 = -30;
+    float bragg_dqds_cut_plane1 = -30;
+    float bragg_dqds_cut_plane2 = -30;
+    float bragg_max_deltaLLmcs_cut = 5;
+
+    bool tag_stopmu_michel_plane0 = false;
+    bool tag_stopmu_michel_plane1 = false;
+    bool tag_stopmu_michel_plane2 = false;
+    bool tag_stopmu_bragg_plane0 = false;
+    bool tag_stopmu_bragg_plane1 = false;
+    bool tag_stopmu_bragg_plane2 = false;
+
+    if (m_dqds_michelalg_percdiff_plane0 >= michel_dqds_cut_plane0)
+    {
+        tag_stopmu_michel_plane0 = true;
+    }
+    if (m_dqds_michelalg_percdiff_plane1 >= michel_dqds_cut_plane1)
+    {
+        tag_stopmu_michel_plane1 = true;
+    }
+    if (m_dqds_michelalg_percdiff_plane2 >= michel_dqds_cut_plane2)
+    {
+        tag_stopmu_michel_plane2 = true;
+    }
+
+    if (m_dqds_braggalg_percdiff_plane0 > -999 && m_dqds_braggalg_percdiff_plane0 <= bragg_dqds_cut_plane0 && !m_vtx_in_FV)
+    {
+        tag_stopmu_bragg_plane0 = true;
+    }
+    if (m_dqds_braggalg_percdiff_plane1 > -999 && m_dqds_braggalg_percdiff_plane1 <= bragg_dqds_cut_plane1 && !m_vtx_in_FV)
+    {
+        tag_stopmu_bragg_plane1 = true;
+    }
+    if (m_dqds_braggalg_percdiff_plane2 > -999 && m_dqds_braggalg_percdiff_plane2 <= bragg_dqds_cut_plane2 && !m_vtx_in_FV)
+    {
+        tag_stopmu_bragg_plane2 = true;
+    }
+
+    bool tag_michel = (tag_stopmu_michel_plane0 || tag_stopmu_michel_plane1 || tag_stopmu_michel_plane2) && (m_maxDeltaLLMCS >= michel_max_deltaLLmcs_cut);
+    bool tag_bragg = (tag_stopmu_bragg_plane0 || tag_stopmu_bragg_plane1 || tag_stopmu_bragg_plane2) && (m_maxDeltaLLMCS >= bragg_max_deltaLLmcs_cut);
+
     // Check if the slice passes the pre-selection cuts
     m_passesPrecuts = (std::abs(m_deltaY) < maxDeltaY &&
                        std::abs(m_deltaZ) < maxDeltaZ &&
@@ -1397,7 +1443,8 @@ bool FlashNeutrinoId::SliceCandidate::IsCompatibleWithBeamFlash(const FlashCandi
                        std::abs(m_deltaZSigma) < maxDeltaZSigma &&
                        m_xChargeLightVariable > minChargeToLightRatio &&
                        m_xChargeLightVariable < maxChargeToLightRatio &&
-                       (fabs(mm_ACPTdt) > mm_dt_resolution_ophit)); // DAVIDC
+                       (fabs(mm_ACPTdt) > mm_dt_resolution_ophit) &&
+                       !(tag_michel || tag_bragg));
 
     return m_passesPrecuts;
 }
