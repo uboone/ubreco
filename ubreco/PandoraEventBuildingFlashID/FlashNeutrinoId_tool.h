@@ -486,6 +486,7 @@ private:
     float m_min_lin_braggalgonly_plane0;  ///< mainimum of local linearity vector. Used to tagg stopping cosmic muons in the StopMuBragg tagger only. (plane 0 hits)
     float m_min_lin_braggalgonly_plane1;  ///< mainimum of local linearity vector. Used to tagg stopping cosmic muons in the StopMuBragg tagger only. (plane 1 hits)
     float m_min_lin_braggalgonly_plane2;  ///< mainimum of local linearity vector. Used to tagg stopping cosmic muons in the StopMuBragg tagger only. (plane 2 hits)
+    bool m_vtx_in_FV; ///< was the reconstructed vertex in the fiducial volume? Used to tag stopping cosmic muons in the StopMuBragg tagger only.
 
     // DAVIDC
     bool mm_verbose;
@@ -863,6 +864,7 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) : m_flashLabel
   m_pSliceTree->Branch("min_lin_braggalgonly_plane0",&m_outputSlice.m_min_lin_braggalgonly_plane0,"min_lin_braggalgonly_plane0/F");
   m_pSliceTree->Branch("min_lin_braggalgonly_plane1",&m_outputSlice.m_min_lin_braggalgonly_plane1,"min_lin_braggalgonly_plane1/F");
   m_pSliceTree->Branch("min_lin_braggalgonly_plane2",&m_outputSlice.m_min_lin_braggalgonly_plane2,"min_lin_braggalgonly_plane2/F");
+  m_pSliceTree->Branch("vtx_in_FV",&m_outputSlice.m_vtx_in_FV,"vtx_in_FV/O");
   m_pSliceTree->Branch("flashZCenter", &m_outputSlice.mm_flashZCenter, "flashZCenter/F");
   m_pSliceTree->Branch("flashTime", &m_outputSlice.mm_flashTime, "flashTime/F");
   m_pSliceTree->Branch("z_center", &m_outputSlice.mm_z_center, "z_center/F");

@@ -593,10 +593,11 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate()
       m_n_michel_hits_plane2(-std::numeric_limits<int>::max()),
       m_min_lin_braggalgonly_plane0(-std::numeric_limits<int>::max()),
       m_min_lin_braggalgonly_plane1(-std::numeric_limits<int>::max()),
-      m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max())
+      m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max()),
+      m_vtx_in_FV(false)
 {
 }
- 
+
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const Slice &slice)
@@ -653,7 +654,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
       m_n_michel_hits_plane2(-std::numeric_limits<int>::max()),
       m_min_lin_braggalgonly_plane0(-std::numeric_limits<int>::max()),
       m_min_lin_braggalgonly_plane1(-std::numeric_limits<int>::max()),
-      m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max())
+      m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max()),
+      m_vtx_in_FV(false)
 {
 }
 
@@ -720,7 +722,8 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
       m_n_michel_hits_plane2(-std::numeric_limits<int>::max()),
       m_min_lin_braggalgonly_plane0(-std::numeric_limits<int>::max()),
       m_min_lin_braggalgonly_plane1(-std::numeric_limits<int>::max()),
-      m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max())
+      m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max()),
+      m_vtx_in_FV(false)
 {
     const auto chargeDeposition(this->GetDepositionVector(pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, slice));
     m_lightCluster = this->GetLightCluster(chargeDeposition);
@@ -1524,7 +1527,7 @@ void FlashNeutrinoId::GetBestObviousCosmicMatch(const art::Event &event, const F
             for (auto hypo_pe : match.hypothesis)
                 cosmicMatchHypothesis.push_back(static_cast<float>(hypo_pe));
         }
-        //std::cout << "[FlashNeutrinoId] Chi2 best cosmic (out of " << matches.size() << " matches): " << matches.back().score << "\tworst match: " << matches.front().score << std::endl;
+        // std::cout << "[FlashNeutrinoId] Chi2 best cosmic (out of " << matches.size() << " matches): " << matches.back().score << "\tworst match: " << matches.front().score << std::endl;
         m_outputEvent.m_bestCosmicMatch = bestCosmicMatch;
         m_outputEvent.m_cosmicMatchHypothesis = cosmicMatchHypothesis;
     }
@@ -1882,6 +1885,8 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
     // Running with highest point as start hit
     //
 
+    m_vtx_in_FV = InFV(highest_point);
+
     // --- Plane 0 ---
     _ct_manager.Reset();
     // Emplacing simple hits to the manager
@@ -1897,8 +1902,7 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
 
         m_ct_result_michel_plane0 = ((cosmictag::StopMuMichel *)(_ct_manager.GetCustomAlgo("StopMuMichel")))->IsStopMuMichel(processed_cluster, m_dqds_michelalg_percdiff_plane0, m_bragg_local_lin_plane0, m_n_michel_hits_plane0);
 
-        bool vtx_in_fv = InFV(highest_point);
-        m_ct_result_bragg_plane0 = ((cosmictag::StopMuBragg *)(_ct_manager.GetCustomAlgo("StopMuBragg")))->IsStopMuBragg(processed_cluster, m_min_lin_braggalgonly_plane0, m_dqds_braggalg_percdiff_plane0) && !vtx_in_fv;
+        m_ct_result_bragg_plane0 = ((cosmictag::StopMuBragg *)(_ct_manager.GetCustomAlgo("StopMuBragg")))->IsStopMuBragg(processed_cluster, m_min_lin_braggalgonly_plane0, m_dqds_braggalg_percdiff_plane0) && !m_vtx_in_FV;
     }
 
     // --- Plane 1 ---
@@ -1916,8 +1920,7 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
 
         m_ct_result_michel_plane1 = ((cosmictag::StopMuMichel *)(_ct_manager.GetCustomAlgo("StopMuMichel")))->IsStopMuMichel(processed_cluster, m_dqds_michelalg_percdiff_plane1, m_bragg_local_lin_plane1, m_n_michel_hits_plane1);
 
-        bool vtx_in_fv = InFV(highest_point);
-        m_ct_result_bragg_plane1 = ((cosmictag::StopMuBragg *)(_ct_manager.GetCustomAlgo("StopMuBragg")))->IsStopMuBragg(processed_cluster, m_min_lin_braggalgonly_plane1, m_dqds_braggalg_percdiff_plane1) && !vtx_in_fv;
+        m_ct_result_bragg_plane1 = ((cosmictag::StopMuBragg *)(_ct_manager.GetCustomAlgo("StopMuBragg")))->IsStopMuBragg(processed_cluster, m_min_lin_braggalgonly_plane1, m_dqds_braggalg_percdiff_plane1) && !m_vtx_in_FV;
     }
 
     // --- Plane 2 ---
@@ -1935,8 +1938,7 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
 
         m_ct_result_michel_plane2 = ((cosmictag::StopMuMichel *)(_ct_manager.GetCustomAlgo("StopMuMichel")))->IsStopMuMichel(processed_cluster, m_dqds_michelalg_percdiff_plane2, m_bragg_local_lin_plane2, m_n_michel_hits_plane2);
 
-        bool vtx_in_fv = InFV(highest_point);
-        m_ct_result_bragg_plane2 = ((cosmictag::StopMuBragg *)(_ct_manager.GetCustomAlgo("StopMuBragg")))->IsStopMuBragg(processed_cluster, m_min_lin_braggalgonly_plane2, m_dqds_braggalg_percdiff_plane2) && !vtx_in_fv;
+        m_ct_result_bragg_plane2 = ((cosmictag::StopMuBragg *)(_ct_manager.GetCustomAlgo("StopMuBragg")))->IsStopMuBragg(processed_cluster, m_min_lin_braggalgonly_plane2, m_dqds_braggalg_percdiff_plane2) && !m_vtx_in_FV;
     }
 
     if (mm_verbose)
