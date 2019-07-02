@@ -43,16 +43,16 @@ public:
 
 private:
   art::InputTag inputTag_;
-  std::string outputProducer;
+  //std::string outputProducer;
 };
 
 
 OpHitCorrectionProducer::OpHitCorrectionProducer(fhicl::ParameterSet const & p)
 {
   inputTag_ = p.get<art::InputTag>("OpHitsInputTag");
-  outputProducer = p.get<std::string>("OutputProducer","ophitcorrectionBeam");
+  //outputProducer = p.get<std::string>("OutputProducer","ophitcorrectionBeam");
   //
-  produces<std::vector<recob::OpHit> >(outputProducer);
+  produces<std::vector<recob::OpHit> >();
 
 }
 
