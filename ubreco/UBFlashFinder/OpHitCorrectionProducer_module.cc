@@ -77,7 +77,7 @@ void OpHitCorrectionProducer::produce(art::Event & e)
 				       oph.Width(), 
 				       oph.Area(), 
 				       oph.Amplitude(), 
-				       oph.PE()*gaincor*lycor, 
+				       oph.PE()*gaincor/lycor, 
 				       oph.FastToTotal() ) );
 
   }
