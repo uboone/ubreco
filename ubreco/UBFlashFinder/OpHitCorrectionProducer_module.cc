@@ -75,8 +75,8 @@ void OpHitCorrectionProducer::produce(art::Event & e)
 				       oph.PeakTimeAbs(), 
 				       oph.Frame(), 
 				       oph.Width(), 
-				       oph.Area(), 
-				       oph.Amplitude(), 
+				       oph.Area()*gaincor/lycor, 
+				       oph.Amplitude()*gaincor/lycor, 
 				       oph.PE()*gaincor/lycor, 
 				       oph.FastToTotal() ) );
 
