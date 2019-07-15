@@ -17,7 +17,10 @@
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
-
+#include "canvas/Persistency/Provenance/EventAuxiliary.h"
+#include "canvas/Persistency/Provenance/EventID.h"
+#include "canvas/Persistency/Provenance/Timestamp.h"
+#include "canvas/Persistency/Provenance/ProcessHistoryID.h"
 
 #include "lardataobj/RecoBase/Cluster.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
@@ -28,6 +31,7 @@
 #include "lardataobj/RecoBase/Vertex.h"
 #include "lardataobj/RecoBase/PFParticle.h"
 #include "larcoreobj/SummaryData/POTSummary.h"
+#include "canvas/Persistency/Provenance/BranchType.h"
 
 
 
@@ -58,6 +62,7 @@ public:
   // Required functions.
   void analyze(art::Event const& e) override;
 
+
   void beginJob() override;
   void endJob() override;
   void endSubRun(art::SubRun const& sr) override;
@@ -70,6 +75,8 @@ private:
   std::map<unsigned int, unsigned int> _pfpmap;
 
   std::string fHit_tag,fpfparticle_tag,fvertex_tag,fsps_tag,fcluster_tag,fReco_track_tag;
+
+  Int_t evttime=0;
 
   Double32_t sps_x,sps_y,sps_z,sps_hit_charge,sps_cluster_charge,sps_cluster_charge10,sps_cluster_charge20,sps_cluster_charge50;
   Double_t distance, distance_smallest,Event_cluster_charge;
@@ -85,6 +92,11 @@ private:
   Double_t pointdistance_nu=0.0;
   Double_t pointdistance_nu_smallest=0.0;
   Double_t distance_nu_smallest=0.0;
+
+  Double_t pointdistance_trk=0.0;
+  Double_t pointdistance_trk_smallest=0.0;
+  Double_t distance_trk_smallest=0.0;
+
   Int_t cosmic_trk_50=0;
 
   TTree *Event_Correlationtree;
@@ -129,11 +141,27 @@ gammacorrelation::gammacorrelation(fhicl::ParameterSet const& p)
   fReco_track_tag = p.get<std::string>("recotrack_tag"  );
 }
 
+
+
+
 void gammacorrelation::analyze(art::Event const& e)
 {
-
+  // art::EventAuxiliary const& ev_aux;
 
   std::cout << "****************Event Number: " << e.event() << " Run Number: " << e.run() << " SubRun Number: " << e.subRun() <<"**********************"<< std::endl;
+
+  art::Timestamp ts = e.time();
+  //uint64_t evttime = ts.timeHigh();
+  evttime = ts.timeHigh();
+  std::cout<<"Time: "<<evttime<<std::endl;
+
+
+  //   <art::EventAuxiliary> const& ev_aux;
+  //   std::cout<<"Time: "<<ev_aux.time()<<std::endl;
+  // art::ServiceHandle<art::TFileService> tfs;
+
+
+
 
   // create list of tracks and showers associated to neutrino candidate
   std::vector<recob::Track  > sliceTracks;
@@ -142,7 +170,7 @@ void gammacorrelation::analyze(art::Event const& e)
   N_Event=e.event();
   N_Run=e.run();
   N_SubRun=e.subRun();
-  // isData = e.isRealData();
+
   isData = fData;
 
   art::Handle<std::vector<recob::Hit> > hit_handle;
@@ -236,6 +264,7 @@ void gammacorrelation::analyze(art::Event const& e)
 
   }
   distance_smallest=1e10;
+
   distance_smallest_rand_vtx=1e10;
   N_sps=0,N_sps10=0,N_sps20=0,N_sps50=0;
   Vertex_x=-9999.0;
@@ -251,9 +280,13 @@ void gammacorrelation::analyze(art::Event const& e)
   rndvtx = TVector3(_rand_vtx_x,_rand_vtx_y,_rand_vtx_z);
   distance_nu_smallest=1e10;
   cosmic_trk_50=0;
-  for (size_t i_t = 0, size_track = recotrack_handle->size(); i_t != size_track; ++i_t) {//START RECO TRACK FOR LOOP{
+  for (size_t i_t = 0, size_track = recotrack_handle->size(); i_t != size_track; ++i_t) {//START RECO TRACK FOR LOOP
 
     auto const& track = recotrack_handle->at(i_t);
+
+
+
+
     if ( (sqrt((pow(nuvtx.position().x()-track.Start().X(),2))+(pow(nuvtx.position().y()-track.Start().Y(),2))+ (pow(nuvtx.position().z()-track.Start().Z(),2))) <5.0) ||  (sqrt((pow(nuvtx.position().x()-track.End().X(),2))+(pow(nuvtx.position().y()-track.End().Y(),2))+ (pow(nuvtx.position().z()-track.End().Z(),2)))<5.0))
     continue;
 
@@ -278,7 +311,7 @@ void gammacorrelation::analyze(art::Event const& e)
       }
 
     }
-     std::cout<<"pointdistance_nu_smallest: "<<pointdistance_nu_smallest<<std::endl;
+    // std::cout<<"pointdistance_nu_smallest: "<<pointdistance_nu_smallest<<std::endl;
 
     if (pointdistance_nu_smallest<50.0){
       cosmic_trk_50++;
@@ -290,14 +323,18 @@ void gammacorrelation::analyze(art::Event const& e)
       tracklength= track.Length();
 
     }
-    std::cout<<"distance_nu_smallest: "<<distance_nu_smallest<<std::endl;
-    std::cout<<"tracklength: "<<tracklength<<std::endl;
-    std::cout<<"cosmic_trk_50: "<<cosmic_trk_50<<std::endl;
+    // std::cout<<"distance_nu_smallest: "<<distance_nu_smallest<<std::endl;
+    // std::cout<<"tracklength: "<<tracklength<<std::endl;
+    // std::cout<<"cosmic_trk_50: "<<cosmic_trk_50<<std::endl;
   }
 
 
   for(size_t s=0;s<spacepoint_handle->size();s++){ //START SPACEPOINT LOOP
     N_sps++;
+
+
+
+    // std::cout<<"SpacePoint_Number: "<<s<<std::endl;
 
     auto sps = spacepoint_handle->at(s);
     auto cluster_v = sps_clus_assn_v.at(s);
@@ -312,6 +349,43 @@ void gammacorrelation::analyze(art::Event const& e)
       distance_smallest_rand_vtx=distance_rand_vtx;
     }
     // std::cout<<"distance_rand_vtx: "<<distance_rand_vtx<<std::endl;
+
+
+
+    distance_trk_smallest=1e10;
+
+
+    for (size_t i_t = 0, size_track = recotrack_handle->size(); i_t != size_track; ++i_t) {//START RECO TRACK FOR LOOP
+
+      auto const& track = recotrack_handle->at(i_t);
+
+
+      // std::cout<<"Track Number: "<<i_t<<std::endl;
+
+      pointdistance_trk_smallest=1e10;
+
+      for(size_t m=0;m<(track.NumberTrajectoryPoints());m++){//START RECO POINT LOOP
+
+        pointdistance_trk= sqrt((pow(track.Start().X()-sps_x,2))+(pow(track.Start().Y()-sps_y,2))+ (pow(track.Start().Z()-sps_z,2)));
+
+        if (pointdistance_trk<pointdistance_trk_smallest){
+          pointdistance_trk_smallest=pointdistance_trk;
+        }
+
+      }
+
+      // std::cout<<"Distance to track: "<<pointdistance_trk_smallest<<std::endl;
+
+      if (pointdistance_trk_smallest<distance_trk_smallest){
+        distance_trk_smallest=pointdistance_trk_smallest;
+
+      }
+
+    }
+
+
+
+    // std::cout<<"Distance to nearest track: "<<distance_trk_smallest<<std::endl;
 
 
 
@@ -385,6 +459,7 @@ void gammacorrelation::analyze(art::Event const& e)
       }
     }
 
+
     // std::cout<<"sps_cluster_charge: "<<sps_cluster_charge<<std::endl;
     Sps_Correlationtree->Fill();
   }//END SPACEPOINT LOOP
@@ -400,6 +475,7 @@ void gammacorrelation::beginJob()
   art::ServiceHandle<art::TFileService> tfs;
 
   Event_Correlationtree = tfs->make<TTree>("Event_Correlationtree",    "Event_Correlationtree");
+  Event_Correlationtree->Branch("evttime",&evttime,"evttime/I");
   Event_Correlationtree->Branch("Vertex_x",&Vertex_x,"Vertex_x/D");
   Event_Correlationtree->Branch("Vertex_y",&Vertex_y,"Vertex_y/D");
   Event_Correlationtree->Branch("Vertex_z",&Vertex_z,"Vertex_z/D");
@@ -426,8 +502,11 @@ void gammacorrelation::beginJob()
   Event_Correlationtree->Branch("tracklength" ,&tracklength ,"tracklength/D" );
   Event_Correlationtree->Branch("distance_nu_smallest" ,&distance_nu_smallest ,"distance_nu_smallest/D" );
   Event_Correlationtree->Branch("cosmic_trk_50" ,&cosmic_trk_50 ,"cosmic_trk_50/I" );
+  Event_Correlationtree->Branch("N_Run" ,&N_Run ,"N_Run/I" );
+  Event_Correlationtree->Branch("N_SubRun" ,&N_SubRun ,"N_SubRun/I" );
 
   Sps_Correlationtree = tfs->make<TTree>("Sps_Correlationtree",    "Sps_Correlationtree");
+  Sps_Correlationtree->Branch("evttime",&evttime,"evttime/I");
   Sps_Correlationtree->Branch("sps_x",&sps_x,"sps_x/D");
   Sps_Correlationtree->Branch("sps_y",&sps_y,"sps_y/D");
   Sps_Correlationtree->Branch("sps_z",&sps_z,"sps_z/D");
@@ -453,6 +532,10 @@ void gammacorrelation::beginJob()
   Sps_Correlationtree->Branch("tracklength" ,&tracklength ,"tracklength/D" );
   Sps_Correlationtree->Branch("distance_nu_smallest" ,&distance_nu_smallest ,"distance_nu_smallest/D" );
   Sps_Correlationtree->Branch("cosmic_trk_50" ,&cosmic_trk_50 ,"cosmic_trk_50/I" );
+  Sps_Correlationtree->Branch("pointdistance_trk_smallest" ,&pointdistance_trk_smallest ,"pointdistance_trk_smallest/D" );
+  Sps_Correlationtree->Branch("distance_trk_smallest" ,&distance_trk_smallest ,"distance_trk_smallest/D" );
+
+
 
   potTree = tfs->make<TTree>("potTree","potTree");
   potTree->Branch("sr_pot", &sr_pot, "sr_pot/D");

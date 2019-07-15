@@ -243,7 +243,7 @@ private:
 
   Double_t Y_clus_lifetime;
   Double_t Y_clus_hitSize;
-
+  Double_t deltaY_smallest;
 
   TTree *Clustertree;
   //    TTree *V_Clustertree;
@@ -909,7 +909,7 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
     YV_iou=IoU_V.at(0);
     V_biggest_iou=IoU_V.at(0);
     Double_t U_biggest_ious=-1.0;
-    Double_t deltaY_smallest1=1e5;
+     deltaY_smallest=1e5;
     auto hitjnew = clus_hit_assn_v.at(V_index_vector[Y_V_index[0]]);
 
 
@@ -941,10 +941,10 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
 
         deltaY=((y_V.at(Vious))-(y_U.at(Uious)));
 
-        if(abs(deltaY)<deltaY_smallest1){
-          deltaY_smallest1=abs(deltaY);
+        if(abs(deltaY)<deltaY_smallest){
+          deltaY_smallest=abs(deltaY);
 
-          if(abs(deltaY_smallest1)<Y_cut){
+          if(abs(deltaY_smallest)<Y_cut){
             cluster_y_new=0.5*(y_V.at(Vious)+y_U.at(Uious));
 
 
@@ -981,7 +981,7 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
   //********************V>1,U=1 bin Start********************//
   if (IoU_U.size()==1 && IoU_V.size()>1 ) { //V>1,U=1 bin
 
-    Double_t deltaY_smallest=10e5;
+    deltaY_smallest=10e5;
     YU_iou=IoU_U.at(0);
     U_biggest_iou=IoU_U.at(0);
     Double_t V_biggest_ious=-1.0;
@@ -1056,7 +1056,7 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
 
   if (IoU_V.size()>1 && IoU_U.size()>1 ) { //V>1,U>1 bin
 
-    Double_t deltaY_smallest=10e5;
+    deltaY_smallest=10e5;
     for (size_t Vious=0; Vious<IoU_V.size(); Vious++) {
 
       Double_t U_biggest_ious=-1.0;
@@ -1307,7 +1307,7 @@ void ClusterTrackDistance::beginJob()
   Matchingtree->Branch("YV_iou",&YV_iou,"YV_iou/D");
   Matchingtree->Branch("YU_iou",&YU_iou,"YU_iou/D");
   Matchingtree->Branch("deltaY",&deltaY,"deltaY/D");
-
+  Matchingtree->Branch("deltaY_smallest",&deltaY_smallest,"deltaY_smallest/D");
 
 }
 

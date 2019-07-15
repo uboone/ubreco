@@ -372,7 +372,14 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
       auto hits = clus_hit_assn_v.at(i_c);
       auto const& track = recotrack_handle->at(i_t);
 
+
+    //  if ( (sqrt((pow(nuvtx.position().x()-track.Start().X(),2))+(pow(nuvtx.position().y()-track.Start().Y(),2))+ (pow(nuvtx.position().z()-track.Start().Z(),2))) <5.0) ||  (sqrt((pow(nuvtx.position().x()-track.End().X(),2))+(pow(nuvtx.position().y()-track.End().Y(),2))+ (pow(nuvtx.position().z()-track.End().Z(),2)))<5.0))
+    //  continue;
+
+
+      /*
       //Neutrino Correlated Tracks See the cone+cylinder cut
+
       if ( (sqrt((pow(nuvtx.position().x()-track.Start().X(),2))+(pow(nuvtx.position().y()-track.Start().Y(),2))+ (pow(nuvtx.position().z()-track.Start().Z(),2))) <5.0) ||  (sqrt((pow(nuvtx.position().x()-track.End().X(),2))+(pow(nuvtx.position().y()-track.End().Y(),2))+ (pow(nuvtx.position().z()-track.End().Z(),2)))<5.0)){
 
         // auto tracklength=track.Length();
@@ -450,7 +457,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
       }//END neutrino correlated tracks IF Loop
 
-
+      */
 
       pointdistance_smallest=1e10;////Variable for distance between a cluster hit and a reco track point, initialized to a large number for comparison
 
@@ -524,6 +531,8 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
 
     if(cluster[i_c].View()==2 && (distance_smallest > f2DcutY || (distance_smallest_nu > 2.0 && track_point_length_smallest>4.0 ) || (distance_smallest_nu > (2.0*track_point_length_smallest/4.0) && track_point_length_smallest<4.0 )  )) {// IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+    //if(cluster[i_c].View()==2 && (distance_smallest > f2DcutY )) {// IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+
 
 
       Start_Cluster2.push_back((cluster[i_c].StartTick ())-3.0);//added +- 3.0 time tick tolerances
