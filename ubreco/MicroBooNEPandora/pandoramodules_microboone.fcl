@@ -2,7 +2,7 @@ BEGIN_PROLOG
 
 microboone_pandora:
 {
-    module_type:                                                    "StandardPandora"
+    module_type:                                                    "MicroBooNEPandora"
     GeantModuleLabel:                                               "largeant"
     HitFinderModuleLabel:                                           "gaushit"
     EnableMCParticles:                                              false
