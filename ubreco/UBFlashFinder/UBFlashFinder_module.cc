@@ -21,6 +21,16 @@
 #include "lardataobj/RecoBase/OpFlash.h"
 #include "lardata/Utilities/AssociationUtil.h"
 
+#include "larevt/CalibrationDBI/Interface/PmtGainService.h"
+#include "larevt/CalibrationDBI/Interface/PmtGainProvider.h"
+
+#include "ubevt/Utilities/PMTRemapProvider.h"
+#include "ubevt/Utilities/PMTRemapService.h"
+
+#include "ubevt/Database/LightYieldService.h"
+#include "ubevt/Database/LightYieldProvider.h"
+#include "ubevt/Database/UbooneLightYieldProvider.h"
+
 #include <memory>
 #include <string>
 #include "FlashFinderManager.h"
@@ -52,6 +62,10 @@ private:
   ::pmtana::PECalib _pecalib;
   std::string _flash_producer;
   std::string _hit_producer;
+  // gain and LY corrections
+  std::vector<float> area_gains;
+  std::vector<float> amp_gains;
+  std::vector<float> lyscales;
 
   void GetFlashLocation(std::vector<double>, double&, double&, double&, double&);
 
@@ -76,6 +90,10 @@ UBFlashFinder::UBFlashFinder(pmtana::Config_t const & p)
 
   _beam_flash = p.get<bool>("BeamFlash");
 
+  area_gains.resize(32,0.);
+  amp_gains.resize(32,0.);
+  lyscales.resize(32,0.);
+
   produces< std::vector<recob::OpFlash>   >();
   produces< art::Assns <recob::OpHit, recob::OpFlash> >();
 }
@@ -95,6 +113,23 @@ void UBFlashFinder::produce(art::Event & e)
     std::cerr<<"\033[93m[ERROR]\033[00m ... could not locate OpHit!"<<std::endl;
     throw std::exception();
   }
+
+  const lariov::PmtGainProvider& gain_provider = art::ServiceHandle<lariov::PmtGainService>()->GetProvider();
+  const lariov::LightYieldProvider& ly_provider = art::ServiceHandle<lariov::LightYieldService>()->GetProvider();
+  //const ::util::PMTRemapProvider &pmtremap_provider = art::ServiceHandle<util::PMTRemapService>()->GetProvider();
+
+  for (size_t oldch=0; oldch<32; oldch++){
+    float areagaincor = gain_provider.Gain(oldch%100);
+    float ampgaincor  = gain_provider.ExtraInfo(oldch%100).GetFloatData("amplitude_gain");
+    float lycor   = ly_provider.LYScaling(oldch%100);
+    //auto newch    = pmtremap_provider.CorrectedOpChannel(oldch);
+    auto newch = ::pmtana::OpDetFromOpChannel(oldch); // I think this is correct?
+    area_gains[newch]  = areagaincor;
+    amp_gains[newch]   = ampgaincor;
+    lyscales[newch]    = lycor; 
+  }
+
+  _pecalib.Calibrate(area_gains, amp_gains, lyscales);
 
   ::pmtana::LiteOpHitArray_t ophits;
   double trigger_time=1.1e20;
