@@ -43,6 +43,11 @@ microboone_pandoraAllHitsSliceNu:                                   @local::micr
 microboone_pandoraAllHitsSliceNu.ShouldRunSlicing:                  true
 microboone_pandoraAllHitsSliceNu.ShouldRunNeutrinoRecoOption:       true
 
+microboone_pandoraReprocessSlices:                                  @local::microboone_pandora
+microboone_pandoraReprocessSlices.ShouldRunNeutrinoRecoOption:      true
+microboone_pandoraReprocessSlices.ProcessExistingSlices:            true
+microboone_pandoraReprocessSlices.ShouldProduceSlices:              false
+
 microboone_pandoraWriter:                                           @local::microboone_pandora
 microboone_pandoraWriter.ConfigFile:                                "PandoraSettings_Write.xml"
 microboone_pandoraWriter.EnableMCParticles:                         true
