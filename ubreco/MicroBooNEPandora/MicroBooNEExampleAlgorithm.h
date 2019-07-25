@@ -18,29 +18,12 @@ namespace lar_content
  */
 class MicroBooNEExampleAlgorithm : public pandora::Algorithm
 {
-public:
-    /**
-     *  @brief  Factory class for instantiating algorithm
-     */
-    class Factory : public pandora::AlgorithmFactory
-    {
-    public:
-        pandora::Algorithm *CreateAlgorithm() const;
-    };
-
 private:
     pandora::StatusCode Run();
     pandora::StatusCode ReadSettings(const pandora::TiXmlHandle xmlHandle);
 
     // Member variables here
 };
-
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-inline pandora::Algorithm *MicroBooNEExampleAlgorithm::Factory::CreateAlgorithm() const
-{
-    return new MicroBooNEExampleAlgorithm();
-}
 
 } // namespace lar_content
 
