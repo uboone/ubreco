@@ -34,11 +34,18 @@
                 <SvmName>NeutrinoId</SvmName>
             </tool>
         </SliceIdTools>
-        <InputHitListName>Input</InputHitListName>
+        <InputHitListName>CaloHitList2D</InputHitListName>
         <RecreatedPfoListName>RecreatedPfos</RecreatedPfoListName>
         <RecreatedClusterListName>RecreatedClusters</RecreatedClusterListName>
         <RecreatedVertexListName>RecreatedVertices</RecreatedVertexListName>
         <VisualizeOverallRecoStatus>false</VisualizeOverallRecoStatus>
+    </algorithm>
+
+    <algorithm type = "LArPostProcessing">
+        <CaloHitListNames>CaloHitListU CaloHitListV CaloHitListW CaloHitList2D</CaloHitListNames>
+    </algorithm>
+    <algorithm type = "LArListChanging">
+        <PfoListName>RecreatedPfos</PfoListName>
     </algorithm>
 
     <algorithm type = "LArVisualMonitoring">
