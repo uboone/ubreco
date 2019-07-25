@@ -74,6 +74,11 @@ private:
     void ReprocessSlices(const art::Event &evt, const SliceVector &sliceVector, const SlicesToHits &slicesToHits, IdToHitMap &idToHitMap);
 
     /**
+     *  @brief  Create a hook in pandora to create a vertex
+     */
+    void CreateExternalVertex();
+
+    /**
      *  @brief  Persist a vector of pandora pfos in output event data model
      *
      *  @param  evt the art event
@@ -124,6 +129,7 @@ public:
 #include "larpandoracontent/LArContent.h"
 #include "larpandoracontent/LArControlFlow/MultiPandoraApi.h"
 #include "larpandoracontent/LArControlFlow/MasterAlgorithm.h"
+#include "larpandoracontent/LArObjects/LArCaloHit.h"
 #include "larpandoracontent/LArPlugins/LArPseudoLayerPlugin.h"
 #include "larpandoracontent/LArPlugins/LArRotationalTransformationPlugin.h"
 
@@ -214,7 +220,8 @@ void MicroBooNEPandora::ReprocessSlices(const art::Event &evt, const SliceVector
     {
         // TODO If not an interesting slice, can skip over here
         // TODO Get new vertex position in to Pandora here
-        
+        this->CreateExternalVertex();
+
         const art::Ptr<recob::Slice> pSlice(sliceVector.at(sliceIndex));
         const HitVector &artHits(slicesToHits.at(pSlice));
 
@@ -266,6 +273,40 @@ void MicroBooNEPandora::ReprocessSlices(const art::Event &evt, const SliceVector
 
         this->RunPandoraInstances();
     }
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+void MicroBooNEPandora::CreateExternalVertex()
+{
+    lar_content::LArCaloHitFactory caloHitFactory;
+    lar_content::LArCaloHitParameters caloHitParameters;
+
+    // HACK Create custom hit to represent vertex position (can only make a Pandora vertex via a Pandora algorithm, not a Pandora app).
+    caloHitParameters.m_positionVector = pandora::CartesianVector(128., 0., 500.);
+
+    // Dummy values
+    caloHitParameters.m_hitType = pandora::HIT_CUSTOM;
+    caloHitParameters.m_expectedDirection = pandora::CartesianVector(0., 0., 1.);
+    caloHitParameters.m_cellNormalVector = pandora::CartesianVector(0., 0., 1.);
+    caloHitParameters.m_cellSize0 = 0.;
+    caloHitParameters.m_cellSize1 = 0.;
+    caloHitParameters.m_cellThickness = 0.;
+    caloHitParameters.m_cellGeometry = pandora::RECTANGULAR;
+    caloHitParameters.m_time = 0.;
+    caloHitParameters.m_nCellRadiationLengths = 0.;
+    caloHitParameters.m_nCellInteractionLengths = 0.;
+    caloHitParameters.m_isDigital = false;
+    caloHitParameters.m_hitRegion = pandora::SINGLE_REGION;
+    caloHitParameters.m_layer = 0;
+    caloHitParameters.m_isInOuterSamplingLayer = false;
+    caloHitParameters.m_inputEnergy = 0.;
+    caloHitParameters.m_mipEquivalentEnergy = 0.;
+    caloHitParameters.m_electromagneticEnergy = 0.;
+    caloHitParameters.m_hadronicEnergy = 0.;
+    caloHitParameters.m_pParentAddress = (void*)((intptr_t)(++m_inputSettings.m_hitCounterOffset));
+    caloHitParameters.m_larTPCVolumeId = 0;
+    PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::CaloHit::Create(*m_pPrimaryPandora, caloHitParameters, caloHitFactory));
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
