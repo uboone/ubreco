@@ -140,7 +140,8 @@ void MicroBooNEPandora::produce(art::Event &evt)
 
     SliceVector sliceVector;
     SlicesToHits slicesToHits;
-    IdToHitMap idToHitMap; // TODO This is currently broken
+    IdToHitMap idToHitMap;
+    m_inputSettings.m_hitCounterOffset = 0;
 
     if (!theSlices.isValid())
     {
@@ -213,6 +214,7 @@ void MicroBooNEPandora::produce(art::Event &evt)
         }
 
         LArPandoraInput::CreatePandoraHits2D(m_inputSettings, m_driftVolumeMap, artHits, idToHitMap);
+        m_inputSettings.m_hitCounterOffset += artHits.size();
 
         if (m_enableMCParticles && !evt.isRealData())
         {
@@ -250,7 +252,7 @@ void MicroBooNEPandora::produce(art::Event &evt)
         LArPandoraOutput::SliceToHitCollection              outputSlicesToHits( new art::Assns<recob::Slice, recob::Hit> );
 
         // Collect immutable lists of pandora collections that we should convert to ART format
-        // TODO Fix hit ids, by adding offset. Recreate vertex. Could skip master instance and have special slice reprocessing instance instead. Put factories in another file.
+        // TODO Recreate vertex. Could skip master instance and have special slice reprocessing instance instead. Put factories in another file.
         const pandora::PfoList *pParentPfoList(nullptr);
         PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::GetCurrentPfoList(*m_pPrimaryPandora, pParentPfoList));
 
@@ -261,7 +263,7 @@ void MicroBooNEPandora::produce(art::Event &evt)
         pandora::PfoVector pfoVector;
         pfoVector.insert(pfoVector.end(), pfoList.begin(), pfoList.end());
         std::sort(pfoVector.begin(), pfoVector.end(), lar_content::LArPfoHelper::SortByNHits);
-std::cout << "pParentPfoList->size() " << pParentPfoList->size() << ", pfoVector.size() " << pfoVector.size() << std::endl;
+
         // Using the now populated pfo vector
         LArPandoraOutput::IdToIdVectorMap pfoToVerticesMap;
         const pandora::VertexVector vertexVector(LArPandoraOutput::CollectVertices(pfoVector, pfoToVerticesMap));
