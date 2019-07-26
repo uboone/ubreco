@@ -15,7 +15,7 @@
 
 #include "MicroBooNEExampleAlgorithm.h"
 #include "MicroBooNEExternalVertexCreationAlgorithm.h"
-#include "MicroBooNEMvaVertexSelectionAlgorithm.h"
+#include "MicroBooNEPreProcessingAlgorithm.h"
 
 using namespace pandora;
 
@@ -41,21 +41,12 @@ public:
 };
 
 /**
- *  @brief  MicroBooNE svm vertex selection algorithm factory
+ *  @brief  MicroBooNE preprocessing algorithm factory
  */
-class MicroBooNESvmVertexSelectionAlgorithmFactory : public pandora::AlgorithmFactory
+class MicroBooNEPreProcessingAlgorithmFactory : public pandora::AlgorithmFactory
 {
 public:
-    pandora::Algorithm *CreateAlgorithm() const {return new MicroBooNESvmVertexSelectionAlgorithm;};
-};
-
-/**
- *  @brief  MicroBooNE bdt vertex selection algorithm factory
- */
-class MicroBooNEBdtVertexSelectionAlgorithmFactory : public pandora::AlgorithmFactory
-{
-public:
-    pandora::Algorithm *CreateAlgorithm() const {return new MicroBooNEBdtVertexSelectionAlgorithm;};
+    pandora::Algorithm *CreateAlgorithm() const {return new MicroBooNEPreProcessingAlgorithm;};
 };
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -65,8 +56,7 @@ StatusCode MicroBooNEMasterAlgorithm::RegisterCustomContent(const Pandora *const
     std::cout << "Register MicroBooNE custom content here " << std::endl;
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(*pPandora, "MicroBooNEExample", new MicroBooNEExampleAlgorithmFactory));
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(*pPandora, "MicroBooNEExternalVertexCreation", new MicroBooNEExternalVertexCreationAlgorithmFactory));
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(*pPandora, "MicroBooNESvmVertexSelection", new MicroBooNESvmVertexSelectionAlgorithmFactory));
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(*pPandora, "MicroBooNEBdtVertexSelection", new MicroBooNEBdtVertexSelectionAlgorithmFactory));
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(*pPandora, "MicroBooNEPreProcessing", new MicroBooNEPreProcessingAlgorithmFactory));
 
     return STATUS_CODE_SUCCESS;
 }

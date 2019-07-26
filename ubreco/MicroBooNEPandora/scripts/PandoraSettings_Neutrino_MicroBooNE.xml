@@ -13,8 +13,6 @@
         <CurrentCaloHitListReplacement>CaloHitList2D</CurrentCaloHitListReplacement>
     </algorithm>
 
-    <algorithm type = "MicroBooNEExample"/>
-
     <!-- TwoDReconstruction -->
     <algorithm type = "LArClusteringParent">
         <algorithm type = "LArTrackClusterCreation" description = "ClusterFormation"/>
@@ -86,7 +84,7 @@
         <ReplaceCurrentVertexList>true</ReplaceCurrentVertexList>
         <EnableCrossingCandidates>true</EnableCrossingCandidates>
     </algorithm>
-    <algorithm type = "MicroBooNESvmVertexSelection">
+    <algorithm type = "LArSvmVertexSelection">
         <InputCaloHitListNames>CaloHitListU CaloHitListV CaloHitListW</InputCaloHitListNames>
         <InputClusterListNames>ClustersU ClustersV ClustersW</InputClusterListNames>
         <OutputVertexListName>NeutrinoVertices3D</OutputVertexListName>

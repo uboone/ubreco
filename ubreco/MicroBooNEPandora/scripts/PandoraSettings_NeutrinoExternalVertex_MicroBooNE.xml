@@ -5,15 +5,13 @@
     <SingleHitTypeClusteringMode>true</SingleHitTypeClusteringMode>
 
     <!-- ALGORITHM SETTINGS -->
-    <algorithm type = "LArPreProcessing">
+    <algorithm type = "MicroBooNEPreProcessing">
         <OutputCaloHitListNameU>CaloHitListU</OutputCaloHitListNameU>
         <OutputCaloHitListNameV>CaloHitListV</OutputCaloHitListNameV>
         <OutputCaloHitListNameW>CaloHitListW</OutputCaloHitListNameW>
         <FilteredCaloHitListName>FilteredCaloHitList</FilteredCaloHitListName>
         <CurrentCaloHitListReplacement>FilteredCaloHitList</CurrentCaloHitListReplacement>
     </algorithm>
-
-    <algorithm type = "MicroBooNEExample"/>
 
     <!-- TwoDReconstruction -->
     <algorithm type = "LArClusteringParent">
