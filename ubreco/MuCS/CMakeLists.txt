@@ -14,7 +14,7 @@ art_make( BASENAME_ONLY
       			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
 			larcoreobj_SummaryData
-			larsim_Simulation nutools_ParticleNavigation lardataobj_Simulation
+			larsim_Simulation nug4_ParticleNavigation lardataobj_Simulation
 			larsim_MCCheater_ParticleInventoryService_service
 			larsim_MCCheater_BackTrackerService_service
 			lardata_Utilities
