@@ -6,25 +6,10 @@
 
 #include "art/Framework/Core/ModuleMacros.h"
 
-#include "lardataobj/RecoBase/Hit.h"
-#include "lardataobj/RecoBase/PFParticle.h"
-#include "lardataobj/RecoBase/PFParticleMetadata.h"
-#include "lardataobj/RecoBase/SpacePoint.h"
-#include "lardataobj/RecoBase/Vertex.h"
-#include "lardataobj/RecoBase/Slice.h"
-#include "lardataobj/AnalysisBase/T0.h"
-
-#include "nusimdata/SimulationBase/MCParticle.h"
-
 #include "Api/PandoraApi.h"
-
-#include "larpandoracontent/LArHelpers/LArPfoHelper.h"
 
 #include "larpandora/LArPandoraInterface/LArPandora.h"
 #include "larpandora/LArPandoraInterface/LArPandoraOutput.h"
-
-#include "MicroBooNEMasterAlgorithm.h"
-#include "MicroBooNEPreProcessingAlgorithm.h"
 
 #include <string>
 
@@ -107,26 +92,6 @@ private:
 
 DEFINE_ART_MODULE(MicroBooNEPandora)
 
-//------------------------------------------------------------------------------------------------------------------------------------------
-
-/**
- *  @brief  MicroBooNE master algorithm factory
- */
-class MicroBooNEMasterAlgorithmFactory : public pandora::AlgorithmFactory
-{
-public:
-    pandora::Algorithm *CreateAlgorithm() const {return new lar_content::MicroBooNEMasterAlgorithm;};
-};
-
-/**
- *  @brief  MicroBooNE preprocessing algorithm factory
- */
-class MicroBooNEPreProcessingAlgorithmFactory : public pandora::AlgorithmFactory
-{
-public:
-    pandora::Algorithm *CreateAlgorithm() const {return new lar_content::MicroBooNEPreProcessingAlgorithm;};
-};
-
 } // namespace lar_pandora
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -134,7 +99,15 @@ public:
 
 #include "cetlib_except/exception.h"
 
-#include "Api/PandoraApi.h"
+#include "lardataobj/RecoBase/Hit.h"
+#include "lardataobj/RecoBase/PFParticle.h"
+#include "lardataobj/RecoBase/PFParticleMetadata.h"
+#include "lardataobj/RecoBase/SpacePoint.h"
+#include "lardataobj/RecoBase/Vertex.h"
+#include "lardataobj/RecoBase/Slice.h"
+#include "lardataobj/AnalysisBase/T0.h"
+
+#include "nusimdata/SimulationBase/MCParticle.h"
 
 #include "larpandoracontent/LArContent.h"
 #include "larpandoracontent/LArControlFlow/MultiPandoraApi.h"
@@ -142,6 +115,8 @@ public:
 #include "larpandoracontent/LArObjects/LArCaloHit.h"
 #include "larpandoracontent/LArPlugins/LArPseudoLayerPlugin.h"
 #include "larpandoracontent/LArPlugins/LArRotationalTransformationPlugin.h"
+
+#include "MicroBooNEContent.h"
 
 namespace lar_pandora
 {
@@ -408,8 +383,7 @@ void MicroBooNEPandora::CreatePandoraInstances()
     PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, LArContent::RegisterBasicPlugins(*m_pPrimaryPandora));
 
     // ATTN MicroBooNE-specific bit
-    PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(*m_pPrimaryPandora, "MicroBooNEMaster", new MicroBooNEMasterAlgorithmFactory));
-    PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(*m_pPrimaryPandora, "MicroBooNEPreProcessing", new MicroBooNEPreProcessingAlgorithmFactory));
+    PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, MicroBooNEContent::RegisterAlgorithms(*m_pPrimaryPandora));
 
     // ATTN Potentially ill defined, unless coordinate system set up to ensure that all drift volumes have same wire angles and pitches
     PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::SetPseudoLayerPlugin(*m_pPrimaryPandora, new lar_content::LArPseudoLayerPlugin));

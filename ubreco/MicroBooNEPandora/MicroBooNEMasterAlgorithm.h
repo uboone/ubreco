@@ -18,8 +18,26 @@ namespace lar_content
  */
 class MicroBooNEMasterAlgorithm : public MasterAlgorithm
 {
+public:
+    /**
+     *  @brief  Default constructor
+     */
+    MicroBooNEMasterAlgorithm();
+
 private:
+    pandora::StatusCode Run();
+    pandora::StatusCode Reset();
     pandora::StatusCode RegisterCustomContent(const pandora::Pandora *const pPandora) const;
+
+    /**
+     *  @brief  Perform a custom action during the algorithm run callback
+     */
+    pandora::StatusCode CustomRunAction();
+
+    pandora::StatusCode ReadSettings(const pandora::TiXmlHandle xmlHandle);
+
+    bool                    m_customRunAction;     ///< Whether to run custom action, which may not be required for all use cases
+    pandora::CaloHitSet     m_customHitSet;        ///< The set of custom hits processed
 };
 
 } // namespace lar_content

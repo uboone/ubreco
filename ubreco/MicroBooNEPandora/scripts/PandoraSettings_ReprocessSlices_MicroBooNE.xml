@@ -22,10 +22,11 @@
         <NuSettingsFile>PandoraSettings_NeutrinoExternalVertex_MicroBooNE.xml</NuSettingsFile>
         <SlicingSettingsFile>PandoraSettings_Slicing_MicroBooNE.xml</SlicingSettingsFile>
         <InputHitListName>FilteredCaloHitList</InputHitListName>
+        <CustomRunAction>true</CustomRunAction>
         <RecreatedPfoListName>RecreatedPfos</RecreatedPfoListName>
         <RecreatedClusterListName>RecreatedClusters</RecreatedClusterListName>
         <RecreatedVertexListName>RecreatedVertices</RecreatedVertexListName>
-        <VisualizeOverallRecoStatus>true</VisualizeOverallRecoStatus>
+        <VisualizeOverallRecoStatus>false</VisualizeOverallRecoStatus>
     </algorithm>
 
     <algorithm type = "LArPostProcessing">
