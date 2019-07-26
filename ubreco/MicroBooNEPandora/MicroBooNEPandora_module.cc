@@ -24,6 +24,7 @@
 #include "larpandora/LArPandoraInterface/LArPandoraOutput.h"
 
 #include "MicroBooNEMasterAlgorithm.h"
+#include "MicroBooNEPreProcessingAlgorithm.h"
 
 #include <string>
 
@@ -115,6 +116,15 @@ class MicroBooNEMasterAlgorithmFactory : public pandora::AlgorithmFactory
 {
 public:
     pandora::Algorithm *CreateAlgorithm() const {return new lar_content::MicroBooNEMasterAlgorithm;};
+};
+
+/**
+ *  @brief  MicroBooNE preprocessing algorithm factory
+ */
+class MicroBooNEPreProcessingAlgorithmFactory : public pandora::AlgorithmFactory
+{
+public:
+    pandora::Algorithm *CreateAlgorithm() const {return new lar_content::MicroBooNEPreProcessingAlgorithm;};
 };
 
 } // namespace lar_pandora
@@ -399,6 +409,7 @@ void MicroBooNEPandora::CreatePandoraInstances()
 
     // ATTN MicroBooNE-specific bit
     PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(*m_pPrimaryPandora, "MicroBooNEMaster", new MicroBooNEMasterAlgorithmFactory));
+    PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(*m_pPrimaryPandora, "MicroBooNEPreProcessing", new MicroBooNEPreProcessingAlgorithmFactory));
 
     // ATTN Potentially ill defined, unless coordinate system set up to ensure that all drift volumes have same wire angles and pitches
     PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::SetPseudoLayerPlugin(*m_pPrimaryPandora, new lar_content::LArPseudoLayerPlugin));
