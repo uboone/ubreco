@@ -28,7 +28,7 @@ MicroBooNEMasterAlgorithm::MicroBooNEMasterAlgorithm() :
 
 StatusCode MicroBooNEMasterAlgorithm::Run()
 {
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->Reset());
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, MasterAlgorithm::Reset());
 
     if (!m_workerInstancesInitialized)
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->InitializeWorkerInstances());
