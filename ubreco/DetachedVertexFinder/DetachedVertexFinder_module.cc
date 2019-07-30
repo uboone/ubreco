@@ -145,6 +145,8 @@ void DetachedVertexFinder::produce(art::Event& evt)
     //This is what we want to create
     std::unique_ptr< art::Assns <recob::Slice, recob::Vertex>        > Slice_Vertex_assn_v    ( new art::Assns<recob::Slice, recob::Vertex>);
 
+    std::string uniq_tag = std::to_string(evt.run())+"_"+std::to_string(evt.subRun())+"_"+std::to_string(evt.id().event());
+
 
 
     //Collect all the hits. We will need these. Lets grab both the handle as well as a vector of art::Ptr as I like both. 
@@ -298,7 +300,7 @@ void DetachedVertexFinder::produce(art::Event& evt)
         std::cout<<"This slice has "<<pfps.size()<<" PFParticles and "<<hits.size()<<" Hits. "<<std::endl;
 
 
-        seaview::SEAviewer sevd("test",geom, theDetector );
+        seaview::SEAviewer sevd("test_"+uniq_tag, geom, theDetector );
         sevd.setBadChannelList(bad_channel_list_fixed_mcc9);
         sevd.loadVertex(vertex_xyz[0], vertex_xyz[1], vertex_xyz[2]);
 
