@@ -1,0 +1,6 @@
+<lcgdict>
+<class name="art::Assns<recob::Slice,recob::Vertex,void>"/>
+<class name="art::Assns<recob::Vertex,recob::Slice,void>"/>
+<class name="art::Wrapper<art::Assns<recob::Slice,recob::Vertex,void> >"/>
+<class name="art::Wrapper<art::Assns<recob::Vertex,recob::Slice,void> >"/>
+</lcgdict>

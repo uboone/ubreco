@@ -69,7 +69,7 @@ art_make( BASENAME_ONLY
     ${CLHEP}
     ${ROOT_BASIC_LIB_LIST}
     ${ROOT_GEOM} )
-
+add_subdirectory(jobs)
 install_headers()
 install_fhicl()
 install_source()
