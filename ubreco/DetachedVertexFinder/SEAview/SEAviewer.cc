@@ -3,8 +3,8 @@ namespace seaview{
     //default
     SEAviewer::SEAviewer(std::string intag, geo::GeometryCore const * ingeom, detinfo::DetectorProperties const * intheDetector ): tag(intag), geom(ingeom), theDetector(intheDetector){
         std::cout<<tag<<std::endl;
-        chan_max.resize(3);
-        chan_min.resize(3);
+        chan_max = {-9999,-9999,-9999};
+        chan_min = {9999,9999,9999};
         tick_max = -99999;
         tick_min = 99999;
 
