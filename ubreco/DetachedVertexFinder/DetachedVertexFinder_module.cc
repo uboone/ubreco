@@ -96,7 +96,7 @@ DetachedVertexFinder::DetachedVertexFinder(fhicl::ParameterSet const& pset)
 
     
     
-    produces<art::Assns <recob::Slice, recob::SpacePoint>>("NewWorldVertex");
+    produces<art::Assns <recob::Slice, recob::Vertex>>("NewWorldVertex");
  
 
 }
