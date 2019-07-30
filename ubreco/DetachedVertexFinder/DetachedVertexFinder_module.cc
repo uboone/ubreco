@@ -251,7 +251,9 @@ void DetachedVertexFinder::produce(art::Event& evt)
 
 
 
-     double vertex_xyz[3] = {0.0, 0.0, 0.0} ;
+    double vertex_xyz[3] = {0.0, 0.0, 0.0} ;
+    const art::Ptr<recob::PFParticle> nu_pfp;
+
     //Lets start with a loop over all slices in the event and find the "neutrino slice" and ID
     size_t n_neutrino_slice;
     bool found_neutrino_slice = false;
@@ -270,6 +272,7 @@ void DetachedVertexFinder::produce(art::Event& evt)
             // If it is, lets get the vertex position
             if(isNeutrino){
                 found++;
+                nu_pfp = pfp;
                 auto nu_vertex = pfParticleToVerticesMap[pfp];
                 if(nu_vertex.size()==1){
                     nu_vertex[0]->XYZ(vertex_xyz);
@@ -314,9 +317,10 @@ void DetachedVertexFinder::produce(art::Event& evt)
             const bool isNeutrino(std::abs(pdg) == pandora::NU_E || std::abs(pdg) == pandora::NU_MU || std::abs(pdg) == pandora::NU_TAU);
             if(!isNeutrino){
                 sevd.addPFParticleHits(pfp_hits);
-
             }
         }
+
+
         sevd.Print();
 
     }//end of neutrino slice analysis
@@ -325,8 +329,11 @@ void DetachedVertexFinder::produce(art::Event& evt)
 
     std::cout<<"We have : "<<hitVector.size()<<" Hits and "<<pfParticleVector.size()<<" PFParticles in "<<sliceVector.size()<<" slices and "<<vertexVector.size()<<" verticies"<<std::endl;
 
-    for(auto &s:sliceVector){
-        Slice_Vertex_assn_v->addSingle( s, vertexVector[0] );
+    for(size_t s=0; s<sliceVector.size();s++){
+        if(n_neutrino_slice==s){
+            auto slice = sliceVector[s]; 
+            Slice_Vertex_assn_v->addSingle(slice, pfParticleToVerticesMap[nu_pfp]);
+        }
     }
 
 

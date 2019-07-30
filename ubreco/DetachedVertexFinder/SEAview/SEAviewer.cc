@@ -11,7 +11,7 @@ namespace seaview{
         vertex_tick.resize(3); 
         vertex_chan.resize(3); 
         vertex_graph.resize(3); 
-
+        n_pfps = 0;
     }
 
 
@@ -152,6 +152,7 @@ namespace seaview{
             for(int i=0; i<3; i++){
                 can->cd(i+1);
                 if(vec_graphs[p][i].GetN()>0){//need a check in case this track has no hits on this plane.
+                   
                     vec_graphs[p][i].Draw("p same"); 
                     vec_graphs[p][i].SetMarkerColor(tcol);
                     vec_graphs[p][i].SetFillColor(tcol);
