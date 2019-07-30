@@ -6,7 +6,6 @@ art_make( BASENAME_ONLY
     larcore_Geometry_Geometry_service
     lardata_Utilities
     larevt_Filters
-    larpandoraobj
     lardataobj_RawData
     lardataobj_RecoBase
     lardataobj_MCBase
@@ -14,7 +13,6 @@ art_make( BASENAME_ONLY
     larsim_MCCheater_BackTrackerService_service
     larsim_MCCheater_ParticleInventoryService_service
     larpandora_LArPandoraInterface
-    ubreco_DetachedVertexFinder_SEAview
     ${PANDORASDK}
     ${PANDORAMONITORING}
     LArPandoraContent 
@@ -40,7 +38,6 @@ art_make( BASENAME_ONLY
     ${ROOT_GEOM} 
     MODULE_LIBRARIES
     larcorealg_Geometry
-    ubreco_DetachedVertexFinder_SEAview
     larcore_Geometry_Geometry_service
     lardata_Utilities
     larevt_Filters
@@ -71,8 +68,7 @@ art_make( BASENAME_ONLY
     ${CLHEP}
     ${ROOT_BASIC_LIB_LIST}
     ${ROOT_GEOM} )
-add_subdirectory(jobs)
-add_subdirectory(SEAview)
+
 install_headers()
 install_fhicl()
 install_source()
