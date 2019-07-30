@@ -39,10 +39,6 @@
 #include "ubreco/LLSelectionTool/OpT0Finder/Base/FlashMatchManager.h"
 
 #include "larcore/Geometry/Geometry.h"
-#include "larevt/CalibrationDBI/Interface/PmtGainService.h"
-#include "larevt/CalibrationDBI/Interface/PmtGainProvider.h"
-#include "ubevt/Utilities/PMTRemapService.h"
-#include "ubevt/Utilities/PMTRemapProvider.h"
 
 #include "TTree.h"
 
@@ -312,114 +308,6 @@ void StoreFlashMatchChi2::produce(art::Event& e)
 
   }//  for all PFParticles
 
-  /* OLD
-
-  lar_pandora::PFParticleVector pfParticles;
-  lar_pandora::PFParticlesToMetadata particlesToMetadata;
-  lar_pandora::SpacePointVector spacePoints;
-  lar_pandora::SpacePointsToHits spacePointToHitMap;
-  lar_pandora::PFParticleMap pfParticleMap;
-  lar_pandora::PFParticlesToSpacePoints pfParticleToSpacePointMap;
-  lar_pandora::LArPandoraHelper::CollectPFParticles(e, fPandoraProducer, pfParticles, pfParticleToSpacePointMap);
-  lar_pandora::LArPandoraHelper::CollectSpacePoints(e, fPandoraProducer, spacePoints, spacePointToHitMap);
-  lar_pandora::LArPandoraHelper::BuildPFParticleMap(pfParticles, pfParticleMap);
-  lar_pandora::LArPandoraHelper::CollectPFParticleMetadata(e, fPandoraProducer, pfParticles, particlesToMetadata);
-
-  m_flashMatchManager.Reset();
-
-  std::cout << "There are a total of " << pfParticles.size() << " pfparticles" << std::endl;
-  
-  int nprimary = 0;
-
-
-  
-  for (const art::Ptr<recob::PFParticle> &pfp : pfParticles) {
-    
-    std::cout << "\t New PFP" << std::endl; 
-    
-    lar_pandora::MetadataVector pfp_metadata_vec = particlesToMetadata.at(pfp);
-    const larpandoraobj::PFParticleMetadata::PropertiesMap &pfp_properties = pfp_metadata_vec.front()->GetPropertiesMap();
-    
-    //if (pfp_properties.count("IsClearCosmic")) {
-    //if (pfp_properties.at("IsClearCosmic") && pfp->IsPrimary()) {
-    
-    if (pfp->IsPrimary() == false) 
-      continue;
-      
-    if (pfp_properties.count("NuScore"))
-      _nuscore_v.push_back( pfp_properties.at("NuScore") );
-    else
-      _nuscore_v.push_back( -1.0 );
-    
-    _slpdg_v.push_back( pfp->PdgCode() );
-    
-    int nsps = 0.;
-    
-    nprimary += 1;
-    
-    ::flashana::Flash_t beamflashcopy = beamflash;
-    
-    m_flashMatchManager.Reset();
-    
-    lar_pandora::PFParticleVector downstreamPFParticles;
-    CollectDownstreamPFParticles(pfParticleMap, pfp, downstreamPFParticles);
-    
-    flashana::QCluster_t lightCluster;
-    for (const auto &particle : downstreamPFParticles) {
-      
-      // Get the associated spacepoints
-      const auto &partToSpacePointIter(pfParticleToSpacePointMap.find(particle));
-      if (partToSpacePointIter == pfParticleToSpacePointMap.end())
-	continue;
-      
-      for (const auto &spacePoint : partToSpacePointIter->second) {
-	
-	nsps += 1;
-	
-	// Get the associated hit
-	const auto &spacePointToHitIter(spacePointToHitMap.find(spacePoint));
-	if (spacePointToHitIter == spacePointToHitMap.end())
-	  continue;
-	
-	// Only use hits from the collection plane
-	const auto &hit(spacePointToHitIter->second);
-	if (hit->View() != geo::kZ)
-	  continue;
-	
-	// Add the charged point to the vector
-	const auto &position(spacePoint->XYZ());
-	const auto charge(hit->Integral());
-	lightCluster.emplace_back(position[0], position[1], position[2], charge * (lar_pandora::LArPandoraHelper::IsTrack(particle) ? fChargeToNPhotonsTrack : fChargeToNPhotonsShower));
-	
-      }// for all space-points
-    }// for all PFParticles in the slice
-    
-    
-    // Perform the match
-    m_flashMatchManager.Emplace(std::move(beamflashcopy));
-    m_flashMatchManager.Emplace(std::move(lightCluster));
-
-    const auto matches(m_flashMatchManager.Match());
-    
-    float FMscore = 9999.;
-    
-    if (matches.size() != 0)
-      FMscore = matches.back().score;
-    
-    // create T0 object with this information!
-    anab::T0 t0(beamflash.time, 0, 0, 0, FMscore);
-    T0_v->emplace_back(t0);
-    util::CreateAssn(*this, e, *T0_v, pfp, *pfp_t0_assn_v);
-    
-    _chisq_v.push_back( FMscore );
-    _nsps_v.push_back( nsps );
-    
-    std::cout << "\t added association...w/ score " << FMscore << std::endl; 
-    
-  }// for all pfparticles
-
-  OLD */ 
-
   _tree->Fill();
   
   e.put(std::move(T0_v));
@@ -440,29 +328,13 @@ void StoreFlashMatchChi2::produce(art::Event& e)
   std::vector<float> PEspectrum;
   PEspectrum.resize(nOpDets);
   
-  // Correct the PE values using the gain database and save the values in the OpDet order
-  // gain service
-  const ::lariov::PmtGainProvider &gain_provider = art::ServiceHandle<lariov::PmtGainService>()->GetProvider();
-  // pmt remapping service
-  const ::util::PMTRemapProvider &pmtremap_provider = art::ServiceHandle<util::PMTRemapService>()->GetProvider();
-  
   // apply gain to OpDets
   for (uint OpChannel = 0; OpChannel < nOpDets; ++OpChannel)
     {
-      auto oldch = pmtremap_provider.OriginalOpChannel(OpChannel);
-      auto gain = gain_provider.Gain(oldch);
       uint opdet = geometry->OpDetFromOpChannel(OpChannel);
-      
-      if (gain != 0)
-        {
-	  PEspectrum[opdet] = opflash.PEs().at(OpChannel) * 120 / gain * fPMTChannelCorrection.at(OpChannel);
-        }
-      else
-        {
-	  PEspectrum[opdet] = 0;
-        }
+      PEspectrum[opdet] = opflash.PEs().at(OpChannel);
     }
-
+  
   // Reset variables
   flash.x = flash.y = flash.z = 0;
   flash.x_err = flash.y_err = flash.z_err = 0;
