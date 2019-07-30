@@ -52,14 +52,13 @@ physics:
 
   ### random number saver
   rns:                 { module_type: RandomNumberSaver }
-
-  testvertex : @local::detachedvertexcore
+  protonfinder : @local::detachedvertexcore
  }
  analyzers:
  { 
 }
 
- reco: [ rns, testvertex ]
+ reco: [ rns, protonfinder ]
 
  #define the output stream, there could be more than one if using filters 
  stream1:  [ out1 ]
@@ -86,7 +85,7 @@ outputs:
  out1:
  {
    module_type: RootOutput
-   fileName:    "DetachedVertexFinder.root"
+   fileName:    "DetachedVertexFinder_%tc.root"
    dataTier:    "reco"
    compressionLevel: 1
    }
