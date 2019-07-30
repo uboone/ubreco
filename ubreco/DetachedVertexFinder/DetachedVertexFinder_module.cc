@@ -268,7 +268,7 @@ void DetachedVertexFinder::produce(art::Event& evt)
             // If it is, lets get the vertex position
             if(isNeutrino){
                 found++;
-                auto nu_vertex = pfParticleToVerticesmap[pfp];
+                auto nu_vertex = pfParticleToVerticesMap[pfp];
                 nu_vertex->XYZ(vertex_xyz);
             }
         }
