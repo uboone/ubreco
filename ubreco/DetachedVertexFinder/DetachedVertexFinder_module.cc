@@ -237,10 +237,10 @@ void DetachedVertexFinder::produce(art::Event& evt)
 
 
     //And some verticies.        
-    std::map< art::Ptr<recob::PFParticle>, std::vector<art::Ptr<recob::Vertex>> > pfParticlesToVerticesMap;
+    std::map< art::Ptr<recob::PFParticle>, std::vector<art::Ptr<recob::Vertex>> > pfParticleToVerticesMap;
     for(size_t i=0; i< pfParticleVector.size(); ++i){
          auto pfp = pfParticleVector[i];
-         pfParticlesToVerticesMap[pfp] =vertices_per_pfparticle.at(pfp.key());
+         pfParticleToVerticesMap[pfp] =vertices_per_pfparticle.at(pfp.key());
     }
 
 
@@ -269,7 +269,11 @@ void DetachedVertexFinder::produce(art::Event& evt)
             if(isNeutrino){
                 found++;
                 auto nu_vertex = pfParticleToVerticesMap[pfp];
-                nu_vertex->XYZ(vertex_xyz);
+                if(nu_vertex.size()==1){
+                    nu_vertex[0]->XYZ(vertex_xyz);
+                }else{
+                    throw cet::exception("DetachedVertexFinder") << "  This event contains multiple verticeis in neutrino pfp Size: "<<nu_vertex.size()<<std::endl;
+                }
             }
         }
         if(found==1){
