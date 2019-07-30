@@ -95,8 +95,7 @@ DetachedVertexFinder::DetachedVertexFinder(fhicl::ParameterSet const& pset)
     m_vertexLabel = pset.get<std::string>("Vertexlabel","pandora");
 
     
-    
-    produces<art::Assns <recob::Slice, recob::Vertex>>("NewWorldVertex");
+    produces<art::Assns <recob::Slice, recob::Vertex>>();
  
 
 }
