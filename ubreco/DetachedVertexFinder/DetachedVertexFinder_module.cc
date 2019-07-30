@@ -146,6 +146,7 @@ void DetachedVertexFinder::produce(art::Event& evt)
     std::unique_ptr< art::Assns <recob::Slice, recob::Vertex>        > Slice_Vertex_assn_v    ( new art::Assns<recob::Slice, recob::Vertex>);
 
     std::string uniq_tag = std::to_string(evt.run())+"_"+std::to_string(evt.subRun())+"_"+std::to_string(evt.id().event());
+    std::cout<<"-----------"<<uniq_tag<<"----------"<<std::endl;
 
 
 
@@ -189,8 +190,8 @@ void DetachedVertexFinder::produce(art::Event& evt)
     std::map< art::Ptr<recob::PFParticle>, art::Ptr<recob::Shower> > pfParticleToShowerMap;
     for(size_t i=0; i< pfParticleVector.size(); ++i){
         auto pfp = pfParticleVector[i];
-        pfParticleToTrackMap[pfp] =tracks_per_pfparticle.at(pfp.key());
-        pfParticleToShowerMap[pfp] =showers_per_pfparticle.at(pfp.key());
+        pfParticleToTrackMap[pfp]=tracks_per_pfparticle.at(pfp.key());
+        pfParticleToShowerMap[pfp]=showers_per_pfparticle.at(pfp.key());
     }
 
 
@@ -226,7 +227,7 @@ void DetachedVertexFinder::produce(art::Event& evt)
         clusterToHitsMap[pfp] = hits_per_cluster.at(pfp.key());
     }
 
-
+    std::map<size_t,art::Ptr<recob::PFParticle>> pfParticleIDMap;
 
     //Building the PFParticle to hits is a bit more involved, lets go through cluster associations
     std::map< art::Ptr<recob::PFParticle>, std::vector<art::Ptr<recob::Hit>> > pfParticleToHitsMap;
@@ -246,6 +247,7 @@ void DetachedVertexFinder::produce(art::Event& evt)
 
         //fill the map
         pfParticleToHitsMap[pfp] = hits_for_pfp;
+        pfParticleIDMap[pfp->Self()] = pfp;
 
     }//for each pfp
 
@@ -274,15 +276,22 @@ void DetachedVertexFinder::produce(art::Event& evt)
     art::Ptr<recob::Vertex> nu_vertex;
 
     //Lets start with a loop over all slices in the event and find the "neutrino slice" and ID
+    //Lets also make a map, is pfp a daughter of Neutrino!
+    std::map<art::Ptr<recob::PFParticle>,bool> pfParticleNeutrinoSliceMap;
     size_t n_neutrino_slice=0;
     bool found_neutrino_slice = false;
+
     for(size_t s=0; s< sliceVector.size(); s++){
         auto slice = sliceVector[s];
         std::vector<art::Ptr<recob::PFParticle>> pfps = sliceToPFParticlesMap[slice]; 
 
         int primaries=0;
+        int n_dau=0;
         int found = 0;
+        std::cout<<"Starting a loop over "<<pfps.size()<<" pfparticles"<<std::endl;
         for(auto &pfp: pfps){
+            std::cout<<pfp->Self()<<" Primary: "<<pfp->IsPrimary()<<" PDG "<<pfp->PdgCode()<<" NDau: "<<pfp->NumDaughters()<<" Parent: "<<pfp->Parent()<<std::endl;
+            
             if (!pfp->IsPrimary()) continue;
             // Check if this particle is identified as the neutrino
             const int pdg(pfp->PdgCode());
@@ -291,6 +300,14 @@ void DetachedVertexFinder::produce(art::Event& evt)
             // If it is, lets get the vertex position
             if(isNeutrino){
                 found++;
+                //Ok this is neutrino candidate. 
+                for (const size_t daughterId : pfp->Daughters()){
+                    n_dau++;
+                    //   std::cout<<daughterId<<" "<<pfParticleIDMap[daughterId]->Self()<<" "<<std::endl;
+                    pfParticleNeutrinoSliceMap[pfParticleIDMap[daughterId]] = true;
+                }
+
+
                 auto nu_vertexs = pfParticleToVerticesMap[pfp];
                 if(nu_vertexs.size()==1){
                     nu_vertexs[0]->XYZ(vertex_xyz);
@@ -300,10 +317,13 @@ void DetachedVertexFinder::produce(art::Event& evt)
                 }
             }
         }
+
+
         if(found==1){
             n_neutrino_slice = s;
             found_neutrino_slice = true;
             std::cout<<"Found a neutrino slice @ slice "<<s<<" ID "<<slice->ID()<<" key "<<slice.key()<<std::endl;
+            std::cout<<"And there is "<<pfps.size()<<" PFParticles of which "<<primaries<<" are primary and "<<n_dau<<" are daughters of the Neutrino."<<std::endl;
         }else if(found >1){
             throw cet::exception("DetachedVertexFinder") << "  This event contains multiple reconstructed neutrinos! Size: "<<found<<std::endl;
         }else if(found ==0){
@@ -317,7 +337,6 @@ void DetachedVertexFinder::produce(art::Event& evt)
         auto slice = sliceVector[n_neutrino_slice];
         auto pfps = sliceToPFParticlesMap[slice]; 
         auto hits = sliceToHitsMap[slice];
-        //        auto clusters = sliceToClustersMap[slice];
 
         std::cout<<"This slice has "<<pfps.size()<<" PFParticles and "<<hits.size()<<" Hits. "<<std::endl;
 
@@ -328,28 +347,28 @@ void DetachedVertexFinder::produce(art::Event& evt)
         sevd.addSliceHits(hits);
 
         //Loop over all pfp's
-        for(auto &pfp: pfps){
-            auto pfp_hits = pfParticleToHitsMap[pfp];
-            auto pfp_clusters = pfParticleToClustersMap[pfp];
-//            auto metadata = pfParticleToMetadataMap[pfp];
-            
-            const int pdg(pfp->PdgCode());
+        for(auto &pfp: pfParticleVector){
 
-            std::cout<<"PFParticle "<<pfp.key()<<" PDG: "<<pdg<<" accounts for "<<pfp_hits.size()<<" hits "<<pfp_clusters.size()<<" clusters: Is Primary?: "<<pfp->IsPrimary()<<std::endl;
-            
-            std::cout<<"Associated to "<<pfParticleToTrackMap.count(pfp)<<" tracks and "<<pfParticleToShowerMap.count(pfp)<<std::endl;
+            //This next line will make it so you ONLY run over direct daughters of the Neutrino interaction. 
+            if(pfParticleNeutrinoSliceMap.count(pfp)==1 && pfParticleNeutrinoSliceMap[pfp]){
 
-            const bool isNeutrino(std::abs(pdg) == pandora::NU_E || std::abs(pdg) == pandora::NU_MU || std::abs(pdg) == pandora::NU_TAU);
-            if(!isNeutrino){
-                std::cout<<"Adding to SEAview"<<std::endl;
-                sevd.addPFParticleHits(pfp_hits);
+                auto pfp_hits = pfParticleToHitsMap[pfp];
+                auto pfp_clusters = pfParticleToClustersMap[pfp];
+                const int pdg(pfp->PdgCode());
+
+                std::cout<<"PFParticle "<<pfp.key()<<" PDG: "<<pdg<<" accounts for "<<pfp_hits.size()<<" hits "<<pfp_clusters.size()<<" clusters: Is Primary?: "<<pfp->IsPrimary()<<std::endl;
+                std::cout<<"Associated to "<<pfParticleToTrackMap.count(pfp)<<" tracks and "<<pfParticleToShowerMap.count(pfp)<<" Shower "<<std::endl;
+
+                const bool isNeutrino(std::abs(pdg) == pandora::NU_E || std::abs(pdg) == pandora::NU_MU || std::abs(pdg) == pandora::NU_TAU);
+                if(!isNeutrino){
+                    std::cout<<"Adding to SEAview"<<std::endl;
+                    sevd.addPFParticleHits(pfp_hits);
+                }
             }
         }
 
         sevd.calcUnassociatedHits();
-
         sevd.Print();
-
 
         Slice_Vertex_assn_v->addSingle(slice, nu_vertex);
 

@@ -8,9 +8,16 @@ namespace seaview{
         tick_max = -99999;
         tick_min = 99999;
 
+        plot_true_vertex = false;
         vertex_tick.resize(3); 
         vertex_chan.resize(3); 
         vertex_graph.resize(3); 
+        
+        true_vertex_tick.resize(3); 
+        true_vertex_chan.resize(3); 
+        true_vertex_graph.resize(3); 
+
+        
         n_pfps = 0;
     }
 
@@ -27,6 +34,7 @@ namespace seaview{
         }
         return 0;
     }
+
 
     int SEAviewer::calcUnassociatedHits(){
         int n_assoc=0;
@@ -92,7 +100,6 @@ namespace seaview{
 
     int SEAviewer::loadVertex(double m_vertex_pos_x, double m_vertex_pos_y, double m_vertex_pos_z){
 
-
         auto const TPC = (*geom).begin_TPC();
         auto ID = TPC.ID();
         int fCryostat = ID.Cryostat;
@@ -113,9 +120,40 @@ namespace seaview{
             vertex_graph[i] = gtmp;
         }
 
+        return 0;
+    }
+
+
+    int SEAviewer::addTrueVertex(double m_vertex_pos_x, double m_vertex_pos_y, double m_vertex_pos_z){
+
+        plot_true_vertex = true;
+
+        auto const TPC = (*geom).begin_TPC();
+        auto ID = TPC.ID();
+        int fCryostat = ID.Cryostat;
+        int fTPC = ID.TPC;
+
+        for(int i=0; i<3; i++){
+
+            std::vector<double> wire = {(double)calcWire(m_vertex_pos_y, m_vertex_pos_z, i, fTPC, fCryostat, *geom)};
+            std::vector<double> time = {calcTime(m_vertex_pos_x, i, fTPC,fCryostat, *theDetector)};
+
+            true_vertex_tick[i] = time[0];
+            true_vertex_chan[i] = wire[0];
+
+            chan_max[i] = std::max( chan_max[i],wire[0]);
+            chan_min[i] = std::min( chan_min[i],wire[0]);
+
+            TGraph gtmp(1, &wire[0], &time[0]); 
+            true_vertex_graph[i] = gtmp;
+        }
 
         return 0;
     }
+
+
+
+
 
 
     int SEAviewer::Print(){

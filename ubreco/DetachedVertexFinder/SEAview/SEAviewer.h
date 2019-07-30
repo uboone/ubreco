@@ -73,6 +73,7 @@ public:
   void configure(const fhicl::ParameterSet& pset){};
 
   int loadVertex(double m_vertex_pos_x, double m_vertex_pos_y, double m_vertex_pos_z);
+  int addTrueVertex(double x, double y,double z);
   int addSliceHits(std::vector<art::Ptr<recob::Hit>>& hits);
   int addPFParticleHits(std::vector<art::Ptr<recob::Hit>>& hits);
   int setBadChannelList(std::vector<std::pair<int,int>> &in);
@@ -115,6 +116,12 @@ public:
   std::vector<double> vertex_tick; 
   std::vector<double> vertex_chan; 
   std::vector<TGraph> vertex_graph;
+
+  bool plot_true_vertex;
+  std::vector<double> true_vertex_tick; 
+  std::vector<double> true_vertex_chan; 
+  std::vector<TGraph> true_vertex_graph;
+
 
   std::vector<art::Ptr<recob::Hit>> slice_hits;
   std::map<art::Ptr<recob::Hit>,bool> map_unassociated_hits;
