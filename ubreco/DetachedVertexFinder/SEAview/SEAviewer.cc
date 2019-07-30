@@ -20,6 +20,47 @@ namespace seaview{
         return 0;
     }
 
+    int SEAviewer::addSliceHits(std::vector<art::Ptr<recob::Hit>>& hits){
+        slice_hits = hits;   
+        for(auto &h: slice_hits){
+            map_unassociated_hits[h] = true;
+        }
+        return 0;
+    }
+
+    int SEAviewer::calcUnassociatedHits(){
+        int n_assoc=0;
+
+        std::vector<std::vector<double>>  vec_tick(3);
+        std::vector<std::vector<double>>  vec_chan(3);
+
+
+        for(auto&h:slice_hits){
+            if(map_unassociated_hits[h]){
+                n_assoc++;
+                
+                double wire = (double)h->WireID().Wire;
+                vec_chan[(int)h->View()].push_back(wire);
+                vec_tick[(int)h->View()].push_back((double)h->PeakTime());
+                tick_max = std::max(tick_max, (double)h->PeakTime());
+                tick_min = std::min(tick_min, (double)h->PeakTime());
+                chan_max[(int)h->View()] = std::max( chan_max[(int)h->View()],wire);
+                chan_min[(int)h->View()] = std::min( chan_min[(int)h->View()],wire);
+     
+                }
+
+        }
+        
+        for(int i=0; i<3; i++){
+            vec_unass_graphs.emplace_back(vec_tick[i].size(),&vec_chan[i][0],&vec_tick[i][0]); 
+        }
+
+        vec_unass_ticks = vec_tick;
+        vec_unass_chans = vec_chan;
+
+        return n_assoc;
+    }
+
     int SEAviewer::addPFParticleHits(std::vector<art::Ptr<recob::Hit>>& hits){
         n_pfps++;
 
@@ -34,6 +75,9 @@ namespace seaview{
             tick_min = std::min(tick_min, (double)h->PeakTime());
             chan_max[(int)h->View()] = std::max( chan_max[(int)h->View()],wire);
             chan_min[(int)h->View()] = std::min( chan_min[(int)h->View()],wire);
+
+            //remove from unassociated hits
+            map_unassociated_hits[h] = false;
         }
 
         std::vector<TGraph> t_graphs;
@@ -161,6 +205,22 @@ namespace seaview{
                 }
             }
         }
+
+        
+        /********************************* Unassociated Hits ****************************/
+
+
+            for(int i=0; i<3; i++){
+                can->cd(i+1);
+                if(vec_unass_graphs[i].GetN()>0){//need a check in case this track has no hits on this plane.
+                   
+                    vec_unass_graphs[i].Draw("p same"); 
+                    vec_unass_graphs[i].SetMarkerColor(kBlack);
+                    vec_unass_graphs[i].SetFillColor(kBlack);
+                    vec_unass_graphs[i].SetMarkerStyle(20);
+                    vec_unass_graphs[i].SetMarkerSize(plot_point_size);
+                }
+            }
 
 
 

@@ -114,27 +114,27 @@ DetachedVertexFinder::DetachedVertexFinder(fhicl::ParameterSet const& pset)
     struct stat buffer;   
 
 
-        if(stat(bad_channel_file.c_str(), &buffer) != 0){
-            bad_channel_file = bad_channel_file;
-        }
+    if(stat(bad_channel_file.c_str(), &buffer) != 0){
+        bad_channel_file = bad_channel_file;
+    }
 
-        std::ifstream bc_file(bad_channel_file);
+    std::ifstream bc_file(bad_channel_file);
 
-        if (bc_file.is_open())
+    if (bc_file.is_open())
+    {
+        std::string line;
+        while ( getline (bc_file,line) )
         {
-            std::string line;
-            while ( getline (bc_file,line) )
-            {
-                std::vector<int> res;
-                std::istringstream iss(line);
-                for(std::string s; iss >> s; )
-                    res.push_back( std::stof(s));
+            std::vector<int> res;
+            std::istringstream iss(line);
+            for(std::string s; iss >> s; )
+                res.push_back( std::stof(s));
 
-                std::pair<int,int> t(res[0],res[1]);
-                bad_channel_list_fixed_mcc9.push_back(t);
-            }
-            bc_file.close();
+            std::pair<int,int> t(res[0],res[1]);
+            bad_channel_list_fixed_mcc9.push_back(t);
         }
+        bc_file.close();
+    }
 
 
 
@@ -241,8 +241,8 @@ void DetachedVertexFinder::produce(art::Event& evt)
     //And some verticies.        
     std::map< art::Ptr<recob::PFParticle>, std::vector<art::Ptr<recob::Vertex>> > pfParticleToVerticesMap;
     for(size_t i=0; i< pfParticleVector.size(); ++i){
-         auto pfp = pfParticleVector[i];
-         pfParticleToVerticesMap[pfp] =vertices_per_pfparticle.at(pfp.key());
+        auto pfp = pfParticleVector[i];
+        pfParticleToVerticesMap[pfp] =vertices_per_pfparticle.at(pfp.key());
     }
 
 
@@ -252,10 +252,10 @@ void DetachedVertexFinder::produce(art::Event& evt)
 
 
     double vertex_xyz[3] = {0.0, 0.0, 0.0} ;
-    const art::Ptr<recob::PFParticle> nu_pfp;
+    art::Ptr<recob::Vertex> nu_vertex;
 
     //Lets start with a loop over all slices in the event and find the "neutrino slice" and ID
-    size_t n_neutrino_slice;
+    size_t n_neutrino_slice=0;
     bool found_neutrino_slice = false;
     for(size_t s=0; s< sliceVector.size(); s++){
         auto slice = sliceVector[s];
@@ -272,12 +272,12 @@ void DetachedVertexFinder::produce(art::Event& evt)
             // If it is, lets get the vertex position
             if(isNeutrino){
                 found++;
-                nu_pfp = pfp;
-                auto nu_vertex = pfParticleToVerticesMap[pfp];
-                if(nu_vertex.size()==1){
-                    nu_vertex[0]->XYZ(vertex_xyz);
+                auto nu_vertexs = pfParticleToVerticesMap[pfp];
+                if(nu_vertexs.size()==1){
+                    nu_vertexs[0]->XYZ(vertex_xyz);
+                    nu_vertex = nu_vertexs[0];
                 }else{
-                    throw cet::exception("DetachedVertexFinder") << "  This event contains multiple verticeis in neutrino pfp Size: "<<nu_vertex.size()<<std::endl;
+                    throw cet::exception("DetachedVertexFinder") << "  This event contains multiple verticeis in neutrino pfp Size: "<<nu_vertexs.size()<<std::endl;
                 }
             }
         }
@@ -298,7 +298,7 @@ void DetachedVertexFinder::produce(art::Event& evt)
         auto slice = sliceVector[n_neutrino_slice];
         auto pfps = sliceToPFParticlesMap[slice]; 
         auto hits = sliceToHitsMap[slice];
-//        auto clusters = sliceToClustersMap[slice];
+        //        auto clusters = sliceToClustersMap[slice];
 
         std::cout<<"This slice has "<<pfps.size()<<" PFParticles and "<<hits.size()<<" Hits. "<<std::endl;
 
@@ -306,6 +306,7 @@ void DetachedVertexFinder::produce(art::Event& evt)
         seaview::SEAviewer sevd("test_"+uniq_tag, geom, theDetector );
         sevd.setBadChannelList(bad_channel_list_fixed_mcc9);
         sevd.loadVertex(vertex_xyz[0], vertex_xyz[1], vertex_xyz[2]);
+        sevd.addSliceHits(hits);
 
         //Loop over all pfp's
         for(auto &pfp: pfps){
@@ -320,21 +321,16 @@ void DetachedVertexFinder::produce(art::Event& evt)
             }
         }
 
+        sevd.calcUnassociatedHits();
 
         sevd.Print();
+
+
+        Slice_Vertex_assn_v->addSingle(slice, nu_vertex);
 
     }//end of neutrino slice analysis
 
 
-
-    std::cout<<"We have : "<<hitVector.size()<<" Hits and "<<pfParticleVector.size()<<" PFParticles in "<<sliceVector.size()<<" slices and "<<vertexVector.size()<<" verticies"<<std::endl;
-
-    for(size_t s=0; s<sliceVector.size();s++){
-        if(n_neutrino_slice==s){
-            auto slice = sliceVector[s]; 
-            Slice_Vertex_assn_v->addSingle(slice, pfParticleToVerticesMap[nu_pfp]);
-        }
-    }
 
 
     evt.put(std::move(Slice_Vertex_assn_v));

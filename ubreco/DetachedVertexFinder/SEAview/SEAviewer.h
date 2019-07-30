@@ -73,10 +73,13 @@ public:
   void configure(const fhicl::ParameterSet& pset){};
 
   int loadVertex(double m_vertex_pos_x, double m_vertex_pos_y, double m_vertex_pos_z);
+  int addSliceHits(std::vector<art::Ptr<recob::Hit>>& hits);
   int addPFParticleHits(std::vector<art::Ptr<recob::Hit>>& hits);
   int setBadChannelList(std::vector<std::pair<int,int>> &in);
+  int calcUnassociatedHits();
   int Print();
-   
+  
+
   double calcWire(double Y, double Z, int plane, int fTPC, int fCryostat, geo::GeometryCore const& geo ){
         double wire = geo.WireCoordinate(Y, Z, plane, fTPC, fCryostat);
         return wire;
@@ -113,8 +116,13 @@ public:
   std::vector<double> vertex_chan; 
   std::vector<TGraph> vertex_graph;
 
+  std::vector<art::Ptr<recob::Hit>> slice_hits;
+  std::map<art::Ptr<recob::Hit>,bool> map_unassociated_hits;
+  std::vector<TGraph> vec_unass_graphs;
+  std::vector<std::vector<double>> vec_unass_ticks;
+  std::vector<std::vector<double>> vec_unass_chans;
 
- 
+
 };
 
 }// namespace
