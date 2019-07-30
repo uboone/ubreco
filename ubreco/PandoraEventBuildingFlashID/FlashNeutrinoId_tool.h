@@ -10,10 +10,6 @@
 #include "canvas/Persistency/Common/FindMany.h"
 
 #include "larcore/Geometry/Geometry.h"
-#include "larevt/CalibrationDBI/Interface/PmtGainService.h"
-#include "larevt/CalibrationDBI/Interface/PmtGainProvider.h"
-#include "ubevt/Utilities/PMTRemapService.h"
-#include "ubevt/Utilities/PMTRemapProvider.h"
 
 #include "lardataobj/RecoBase/OpHit.h"
 #include "lardataobj/RecoBase/OpFlash.h"

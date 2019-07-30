@@ -428,31 +428,17 @@ FlashNeutrinoId::FlashCandidate::FlashCandidate(const art::Event &event, const r
                                                                                                                                                    m_isBrightestInWindow(false),
                                                                                                                                                    m_isBeamFlash(false)
 {
-    // Correct the PE values using the gain database and save the values in the OpDet order
-    // gain service
-    const ::lariov::PmtGainProvider &gain_provider = art::ServiceHandle<lariov::PmtGainService>()->GetProvider();
-    // pmt remapping service
-    const ::util::PMTRemapProvider &pmtremap_provider = art::ServiceHandle<util::PMTRemapService>()->GetProvider();
+
     const art::ServiceHandle<geo::Geometry> geometry;
     uint nOpDets(geometry->NOpDets());
     m_peSpectrum.resize(nOpDets);
 
     for (uint OpChannel = 0; OpChannel < nOpDets; ++OpChannel)
     {
-        auto oldch = pmtremap_provider.OriginalOpChannel(OpChannel);
-        auto gain = gain_provider.Gain(oldch);
         uint opdet = geometry->OpDetFromOpChannel(OpChannel);
-
-        if (gain != 0)
-        {
-            m_peSpectrum[opdet] = flash.PEs().at(OpChannel) * 120 / gain * PMTch_correction.at(OpChannel);
-        }
-        else
-        {
-            m_peSpectrum[opdet] = 0;
-        }
+	m_peSpectrum[opdet] = flash.PEs().at(OpChannel);
     }
-
+    
     GetFlashLocation();
 }
 

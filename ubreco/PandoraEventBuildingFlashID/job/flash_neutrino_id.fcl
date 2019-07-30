@@ -134,17 +134,6 @@ flash_neutrino_id_tool_fullmc: @local::flash_neutrino_id_tool_overlay
 flash_neutrino_id_tool_fullmc.BeamWindowStartTime: 3.16
 flash_neutrino_id_tool_fullmc.BeamWindowEndTime:   4.84
 
-flash_neutrino_id_tool_beamOff_run3: @local::flash_neutrino_id_tool_beamOff
-flash_neutrino_id_tool_beamOff_run3.HasCRT:        false
-flash_neutrino_id_tool_beamOff_run3.PMTChannelCorrection: [1.57,1.55,1.49,1.65,1.61,1.58,1.7,1.72,1.52,1.64,1.49,1.6 ,1.57,1.64,1.6,1.58,1.49,1.63,1.6 ,1.63,1.48,1.68,1.6,1.58,1.62,1.54,1.63,1.49,1.5 ,1.56,1.61,1.25]
-
-flash_neutrino_id_tool_beamOn_run3:  @local::flash_neutrino_id_tool_beamOn
-flash_neutrino_id_tool_beamOn_run3.HasCRT:        false
-flash_neutrino_id_tool_beamOn_run3.PMTChannelCorrection: [1.57,1.55,1.49,1.65,1.61,1.58,1.7,1.72,1.52,1.64,1.49,1.6 ,1.57,1.64,1.6,1.58,1.49,1.63,1.6 ,1.63,1.48,1.68,1.6,1.58,1.62,1.54,1.63,1.49,1.5 ,1.56,1.61,1.25]
-
-flash_neutrino_id_tool_overlay_run3:  @local::flash_neutrino_id_tool_overlay
-flash_neutrino_id_tool_overlay_run3.HasCRT:        false
-
 
 # flash-matching storing
 
@@ -184,15 +173,5 @@ FlashMatch_overlay.BeamWindowEnd:    @local::flash_neutrino_id_tool_overlay.Beam
 FlashMatch_fullmc: @local::FlashMatch_overlay
 FlashMatch_fullmc.BeamWindowStart:  @local::flash_neutrino_id_tool_fullmc.BeamWindowStartTime
 FlashMatch_fullmc.BeamWindowEnd:    @local::flash_neutrino_id_tool_fullmc.BeamWindowEndTime
-
-FlashMatch_beamOn_run3: @local::FlashMatch_beamOn
-FlashMatch_beamOn_run3.PMTChannelCorrection: @local::flash_neutrino_id_tool_beamOn_run3.PMTChannelCorrection
-
-FlashMatch_beamOff_run3: @local::FlashMatch_beamOff
-FlashMatch_beamOff_run3.PMTChannelCorrection: @local::flash_neutrino_id_tool_beamOff_run3.PMTChannelCorrection
-
-FlashMatch_overlay_run3: @local::FlashMatch_overlay
-FlashMatch_overlay_run3.PMTChannelCorrection: @local::flash_neutrino_id_tool_overlay_run3.PMTChannelCorrection
-
 
 END_PROLOG
