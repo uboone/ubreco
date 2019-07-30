@@ -181,6 +181,18 @@ void DetachedVertexFinder::produce(art::Event& evt)
     art::FindManyP<recob::Hit> hits_per_pfparticle(pfParticleHandle, evt, m_pfpLabel);
     art::FindManyP<recob::Hit> hits_per_cluster(clusterHandle, evt, m_clusterLabel);
     art::FindManyP<recob::Vertex> vertices_per_pfparticle(pfParticleHandle, evt, m_pfpLabel);
+    art::FindOneP<recob::Track> tracks_per_pfparticle(pfParticleHandle,evt,m_pfpLabel);
+    art::FindOneP<recob::Shower> showers_per_pfparticle(pfParticleHandle,evt,m_pfpLabel);
+
+
+    std::map< art::Ptr<recob::PFParticle>, art::Ptr<recob::Track> > pfParticleToTrackMap;
+    std::map< art::Ptr<recob::PFParticle>, art::Ptr<recob::Shower> > pfParticleToShowerMap;
+    for(size_t i=0; i< pfParticleVector.size(); ++i){
+        auto pfp = pfParticleVector[i];
+        pfParticleToTrackMap[pfp] =tracks_per_pfparticle.at(pfp.key());
+        pfParticleToShowerMap[pfp] =showers_per_pfparticle.at(pfp.key());
+    }
+
 
     // SLICE <-> PFParticle Map
     std::map< art::Ptr<recob::Slice>, std::vector<art::Ptr<recob::PFParticle>> > sliceToPFParticlesMap;
@@ -246,6 +258,13 @@ void DetachedVertexFinder::produce(art::Event& evt)
     }
 
 
+    //add the associaton between PFP and metadata, this is important to look at the slices and scores
+    art::FindManyP< larpandoraobj::PFParticleMetadata > pfPartToMetadataAssoc(pfParticleHandle, evt,  m_pfpLabel);
+    std::map<art::Ptr<recob::PFParticle>, std::vector<art::Ptr<larpandoraobj::PFParticleMetadata>> > pfParticleToMetadataMap;
+    for(size_t i=0; i< pfParticleVector.size(); ++i){
+        const art::Ptr<recob::PFParticle> pfp = pfParticleVector[i];
+        pfParticleToMetadataMap[pfp] =  pfPartToMetadataAssoc.at(pfp.key());
+    }
 
 
 
@@ -312,11 +331,17 @@ void DetachedVertexFinder::produce(art::Event& evt)
         for(auto &pfp: pfps){
             auto pfp_hits = pfParticleToHitsMap[pfp];
             auto pfp_clusters = pfParticleToClustersMap[pfp];
+//            auto metadata = pfParticleToMetadataMap[pfp];
+            
             const int pdg(pfp->PdgCode());
 
-            std::cout<<"PFParticle "<<pfp.key()<<" PDG: "<<pdg<<" accounts for "<<pfp_hits.size()<<" hits "<<pfp_clusters.size()<<" clusters "<<std::endl;
+            std::cout<<"PFParticle "<<pfp.key()<<" PDG: "<<pdg<<" accounts for "<<pfp_hits.size()<<" hits "<<pfp_clusters.size()<<" clusters: Is Primary?: "<<pfp->IsPrimary()<<std::endl;
+            
+            std::cout<<"Associated to "<<pfParticleToTrackMap.count(pfp)<<" tracks and "<<pfParticleToShowerMap.count(pfp)<<std::endl;
+
             const bool isNeutrino(std::abs(pdg) == pandora::NU_E || std::abs(pdg) == pandora::NU_MU || std::abs(pdg) == pandora::NU_TAU);
             if(!isNeutrino){
+                std::cout<<"Adding to SEAview"<<std::endl;
                 sevd.addPFParticleHits(pfp_hits);
             }
         }
