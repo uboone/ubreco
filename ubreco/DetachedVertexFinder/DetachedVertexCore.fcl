@@ -1,0 +1,7 @@
+BEGIN_PROLOG
+
+detachedvertexcore: {
+ module_type  : "DetachedVertexFinder"  
+}
+
+END_PROLOG
