@@ -228,7 +228,7 @@ void MicroBooNEPandora::ReprocessSlices(const art::Event &evt, const SliceVector
 
             LArPandoraHelper::CollectMCParticles(evt, m_geantModuleLabel, artMCTruthToMCParticles, artMCParticlesToMCTruth);
 
-            LArPandoraHelper::CollectSimChannels(evt, m_simChannelModuleLabel, artSimChannels, areSimChannelsValid);
+            LArPandoraHelper::CollectSimChannels(evt, m_simChannelModuleLabel, artSimChannels);
             if (!artSimChannels.empty())
             {
                 LArPandoraHelper::BuildMCParticleHitMaps(artHits, artSimChannels, artHitsToTrackIDEs);
