@@ -143,6 +143,7 @@ FlashMatch: {
     FlashProducer: @local::flash_neutrino_id_tool.FlashLabel
     PandoraProducer: "pandora"
     SpacePointProducer: "pandora"
+    T0Producer: "acpttrigtagger"
     BeamWindowStart: @local::flash_neutrino_id_tool.BeamWindowStartTime
     BeamWindowEnd: @local::flash_neutrino_id_tool.BeamWindowEndTime
     MaxTotalPE: @local::flash_neutrino_id_tool.BeamFlashPEThreshold

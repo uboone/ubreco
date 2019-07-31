@@ -27,6 +27,7 @@
 #include "larpandora/LArPandoraEventBuilding/Slice.h"
 
 #include "lardataobj/RecoBase/PFParticle.h"
+#include "lardataobj/RecoBase/Track.h"
 #include "lardataobj/RecoBase/PFParticleMetadata.h"
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
@@ -72,6 +73,7 @@ private:
 
   ::flashana::FlashMatchManager m_flashMatchManager; ///< The flash match manager
   art::InputTag fFlashProducer;
+  art::InputTag fT0Producer; // producer for ACPT in-time anab::T0 <-> recob::Track assocaition
   std::string fPandoraProducer, fSpacePointProducer;
   float fBeamWindowEnd, fBeamWindowStart;
   float fMaxTotalPE;
@@ -99,8 +101,12 @@ private:
   std::vector<float> _chisq_v, _nuscore_v;
   std::vector<int> _slpdg_v, _nsps_v;
 
-    // PFP map
-    std::map<unsigned int, unsigned int> _pfpmap;
+  TTree* _flashmatch_acpt_tree;
+  std::vector<float> _pe_reco_v, _pe_hypo_v;
+  float _trk_vtx_x, _trk_vtx_y, _trk_vtx_z, _trk_end_x, _trk_end_y, _trk_end_z;
+
+  // PFP map
+  std::map<unsigned int, unsigned int> _pfpmap;
 
 };
 
@@ -115,6 +121,7 @@ StoreFlashMatchChi2::StoreFlashMatchChi2(fhicl::ParameterSet const& p)
 
   fFlashProducer      = p.get<art::InputTag>("FlashProducer"   );
   fPandoraProducer    = p.get<std::string>("PandoraProducer"   );
+  fT0Producer         = p.get<std::string>("T0Producer"        );
   fSpacePointProducer = p.get<std::string>("SpacePointProducer");
   fBeamWindowStart = p.get<float>("BeamWindowStart");
   fBeamWindowEnd   = p.get<float>("BeamWindowEnd");
@@ -136,6 +143,23 @@ StoreFlashMatchChi2::StoreFlashMatchChi2(fhicl::ParameterSet const& p)
   _tree->Branch("nuscore_v","std::vector<float>",&_nuscore_v);
   _tree->Branch("slpdg_v","std::vector<int>",&_slpdg_v);
   _tree->Branch("nsps_v","std::vector<int>",&_nsps_v);
+
+  // Tree to store ACPT track flash-matching information
+  _flashmatch_acpt_tree = tfs->make<TTree>("ACPTFMtree","ACPT FlashMatch tree");
+  _flashmatch_acpt_tree->Branch("evt",&_evt,"evt/I");
+  _flashmatch_acpt_tree->Branch("run",&_run,"run/I");
+  _flashmatch_acpt_tree->Branch("sub",&_sub,"sub/I");
+  _flashmatch_acpt_tree->Branch("flashtime",&_flashtime,"flashtime/F");
+  _flashmatch_acpt_tree->Branch("flashpe"  ,&_flashpe  ,"flashpe/F"  );
+  _flashmatch_acpt_tree->Branch("pe_reco_v","std::vector<float>",&_pe_reco_v);
+  _flashmatch_acpt_tree->Branch("pe_hypo_v","std::vector<float>",&_pe_hypo_v);
+  _flashmatch_acpt_tree->Branch("trk_beg_x",&_trk_vtx_x,"trk_beg_x/F");
+  _flashmatch_acpt_tree->Branch("trk_beg_y",&_trk_vtx_y,"trk_beg_y/F");
+  _flashmatch_acpt_tree->Branch("trk_beg_z",&_trk_vtx_z,"trk_beg_z/F");
+  _flashmatch_acpt_tree->Branch("trk_end_x",&_trk_end_x,"trk_end_x/F");
+  _flashmatch_acpt_tree->Branch("trk_end_y",&_trk_end_y,"trk_end_y/F");
+  _flashmatch_acpt_tree->Branch("trk_end_z",&_trk_end_z,"trk_end_z/F");
+  
 
   // Call appropriate produces<>() functions here.
   // Call appropriate consumes<>() for any products to be retrieved by this module.
@@ -207,6 +231,11 @@ void StoreFlashMatchChi2::produce(art::Event& e)
   art::FindManyP<recob::SpacePoint> pfp_spacepoint_assn_v(pfp_h, e, fPandoraProducer);
   // grab tracks associated with PFParticles
   art::FindManyP<recob::Track> pfp_track_assn_v(pfp_h, e, fPandoraProducer);
+
+  // grab tracks in the event
+  auto const& trk_h = e.getValidHandle<std::vector<recob::Track> >(fPandoraProducer);
+  // grab anab::T0 for ACPT in-time associated to Tracks
+  art::FindManyP<anab::T0> trk_t0_assn_v(trk_h, e, fT0Producer);
   
   // grab associated metadata
   art::FindManyP< larpandoraobj::PFParticleMetadata > pfPartToMetadataAssoc(pfp_h, e, fPandoraProducer);    
@@ -278,25 +307,41 @@ void StoreFlashMatchChi2::produce(art::Event& e)
       
     }// for all pfp pointers
     
-    /*
-    if (pfp.PdgCode() != 13) {
-      for (size_t i=0; i < beamflashcopy.pe_v.size(); i++) 
-	std::cout << "\t DAVIDC flash index " << i << " has " << beamflashcopy.pe_v[i] << " PE" << std::endl;
-    }// if PDG == 13
-    */
-
     // Perform the match
     m_flashMatchManager.Emplace(std::move(beamflashcopy));
     m_flashMatchManager.Emplace(std::move(lightCluster));
+
+
 
     const auto matches(m_flashMatchManager.Match());
     
     float FMscore = 9999.;
     
-    if (matches.size() != 0)
+    _pe_hypo_v.clear();
+    if (matches.size() != 0) {
       FMscore = matches.back().score;
+      for (auto hypo_pe : matches.back().hypothesis)
+        _pe_hypo_v.push_back(static_cast<float>(hypo_pe));
+    }
 
-    //std::cout << "DAVIDC Slice with PDG " << pfp.PdgCode() << " has " << lightCluster.size() << " spacepoints and flash-match score of " << FMscore << std::endl;
+    // load associated tracks
+    auto const& pfp_track_assn = pfp_track_assn_v.at(p);
+    art::Ptr<recob::Track> trk = pfp_track_assn.at(0);
+    if (pfp_track_assn.size() == 1) {
+      // grab track key to find anab::T0 association, if present
+      auto const T0_v = trk_t0_assn_v.at( trk.key() );
+      std::cout << "There are " << T0_v.size() << " associated anab::T0 objects to this track" << std::endl;
+      if (T0_v.size() == 1) {
+	std::cout << "associated T0" << std::endl;
+	_trk_vtx_x = trk->Vertex().X();
+	_trk_vtx_y = trk->Vertex().Y();
+	_trk_vtx_z = trk->Vertex().Z();
+	_trk_end_x = trk->End().X();
+	_trk_end_y = trk->End().Y();
+	_trk_end_z = trk->End().Z();
+	_flashmatch_acpt_tree->Fill();
+      }// if this track is ACPT tagged
+    }// if there is a track associated to this primary pfparticle
     
     // create T0 object with this information!
     anab::T0 t0(beamflash.time, 0, 0, 0, FMscore);
@@ -334,6 +379,8 @@ void StoreFlashMatchChi2::produce(art::Event& e)
       uint opdet = geometry->OpDetFromOpChannel(OpChannel);
       PEspectrum[opdet] = opflash.PEs().at(OpChannel);
     }
+
+  _pe_reco_v = PEspectrum;
   
   // Reset variables
   flash.x = flash.y = flash.z = 0;
