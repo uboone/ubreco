@@ -2,7 +2,6 @@
 namespace seaview{
     //default
     SEAviewer::SEAviewer(std::string intag, geo::GeometryCore const * ingeom, detinfo::DetectorProperties const * intheDetector ): tag(intag), geom(ingeom), theDetector(intheDetector){
-        std::cout<<tag<<std::endl;
         chan_max = {-9999,-9999,-9999};
         chan_min = {9999,9999,9999};
         tick_max = -99999;
@@ -12,13 +11,19 @@ namespace seaview{
         vertex_tick.resize(3); 
         vertex_chan.resize(3); 
         vertex_graph.resize(3); 
-        
+
         true_vertex_tick.resize(3); 
         true_vertex_chan.resize(3); 
         true_vertex_graph.resize(3); 
 
-        
+        tick_shift = 350;
+        chan_shift = 100;
+
         n_pfps = 0;
+        has_been_clustered = false;
+        hit_threshold = -10;
+
+        rangen = new TRandom3(0);
     }
 
 
@@ -31,46 +36,89 @@ namespace seaview{
         slice_hits = hits;   
         for(auto &h: slice_hits){
             map_unassociated_hits[h] = true;
+            map_slice_hits[h] = true;
         }
         return 0;
     }
 
+    int SEAviewer::setHitThreshold(double h){
+        hit_threshold = h;
+        return 0;    
+    }
+    int SEAviewer::addAllHits(std::vector<art::Ptr<recob::Hit>>& hits){
+        all_hits = hits;
+
+        std::vector<std::vector<double>>  vec_tick(3);
+        std::vector<std::vector<double>>  vec_chan(3);
+
+        for(auto&h:all_hits){
+            if(map_slice_hits.count(h)==0){
+                double wire = (double)h->WireID().Wire;
+                vec_chan[(int)h->View()].push_back(wire);
+                vec_tick[(int)h->View()].push_back((double)h->PeakTime());
+                //tick_max = std::max(tick_max, (double)h->PeakTime());
+                //tick_min = std::min(tick_min, (double)h->PeakTime());
+                //chan_max[(int)h->View()] = std::max( chan_max[(int)h->View()],wire);
+                //chan_min[(int)h->View()] = std::min( chan_min[(int)h->View()],wire);
+            }
+        }
+
+        for(int i=0; i<3; i++){
+            vec_all_graphs.emplace_back(vec_tick[i].size(),&vec_chan[i][0],&vec_tick[i][0]); 
+        }
+
+        vec_all_ticks = vec_tick;
+        vec_all_chans = vec_chan;
+
+        return 0;
+    }
 
     int SEAviewer::calcUnassociatedHits(){
         int n_assoc=0;
 
         std::vector<std::vector<double>>  vec_tick(3);
         std::vector<std::vector<double>>  vec_chan(3);
-
+        std::vector<std::vector<std::vector<double>>> vec_pts(3);
+        std::vector<std::vector<art::Ptr<recob::Hit>>> vec_hits(3);
 
         for(auto&h:slice_hits){
             if(map_unassociated_hits[h]){
+
+
+                if(h->SummedADC() < hit_threshold) continue;
+
                 n_assoc++;
-                
                 double wire = (double)h->WireID().Wire;
                 vec_chan[(int)h->View()].push_back(wire);
                 vec_tick[(int)h->View()].push_back((double)h->PeakTime());
-                tick_max = std::max(tick_max, (double)h->PeakTime());
-                tick_min = std::min(tick_min, (double)h->PeakTime());
-                chan_max[(int)h->View()] = std::max( chan_max[(int)h->View()],wire);
-                chan_min[(int)h->View()] = std::min( chan_min[(int)h->View()],wire);
-     
-                }
+
+                vec_pts[(int)h->View()].push_back({wire,(double)h->PeakTime()});
+                vec_hits[(int)h->View()].push_back(h);
+                //   tick_max = std::max(tick_max, (double)h->PeakTime());
+                //   tick_min = std::min(tick_min, (double)h->PeakTime());
+                //   chan_max[(int)h->View()] = std::max( chan_max[(int)h->View()],wire);
+                //   chan_min[(int)h->View()] = std::min( chan_min[(int)h->View()],wire);
+
+            }
 
         }
-        
+
         for(int i=0; i<3; i++){
             vec_unass_graphs.emplace_back(vec_tick[i].size(),&vec_chan[i][0],&vec_tick[i][0]); 
         }
 
         vec_unass_ticks = vec_tick;
         vec_unass_chans = vec_chan;
+        vec_unass_pts = vec_pts;
+        vec_unass_hits = vec_hits;
 
         return n_assoc;
     }
 
-    int SEAviewer::addPFParticleHits(std::vector<art::Ptr<recob::Hit>>& hits){
+    int SEAviewer::addPFParticleHits(std::vector<art::Ptr<recob::Hit>>& hits, std::string legend){
         n_pfps++;
+
+        vec_pfp_legend.push_back(legend);
 
         std::vector<std::vector<double>>  vec_tick(3);
         std::vector<std::vector<double>>  vec_chan(3);
@@ -152,10 +200,6 @@ namespace seaview{
     }
 
 
-
-
-
-
     int SEAviewer::Print(){
 
 
@@ -163,6 +207,7 @@ namespace seaview{
         TCanvas *can=new TCanvas(print_name.c_str(),print_name.c_str(),3000,800);
         can->Divide(4,1,0,0.1);
 
+        double plot_point_size=0.4;        
 
         //******************************* First plot "Vertex" ***************************************
 
@@ -173,10 +218,10 @@ namespace seaview{
 
 
             vertex_graph[i].SetMarkerStyle(29);
-            vertex_graph[i].SetMarkerSize(4);
+            vertex_graph[i].SetMarkerSize(2);
             vertex_graph[i].SetMarkerColor(kMagenta-3);
-            vertex_graph[i].GetYaxis()->SetRangeUser(tick_min*0.98,tick_max*1.02);
-            vertex_graph[i].GetXaxis()->SetLimits(chan_min[i]*0.98,chan_max[i]*1.02);
+            vertex_graph[i].GetYaxis()->SetRangeUser(tick_min-tick_shift,tick_max+tick_shift);
+            vertex_graph[i].GetXaxis()->SetLimits(chan_min[i]-chan_shift,chan_max[i]+chan_shift);
             vertex_graph[i].SetTitle(("Plane " +std::to_string(i)).c_str());
             vertex_graph[i].GetYaxis()->SetTitle("Peak Hit Time Tick");
             vertex_graph[i].GetXaxis()->SetTitle( ("Wire Number Plane " +std::to_string(i)).c_str());
@@ -185,6 +230,20 @@ namespace seaview{
             if(i>0){
                 vertex_graph[i].GetYaxis()->SetLabelOffset(999);
                 vertex_graph[i].GetYaxis()->SetLabelSize(0);
+            }
+        }
+
+        /********************************* Non Slice  Hits ****************************/
+
+
+        for(int i=0; i<3; i++){
+            can->cd(i+1);
+            if(vec_all_graphs[i].GetN()>0){//need a check in case this track has no hits on this plane.
+                vec_all_graphs[i].Draw("p same"); 
+                vec_all_graphs[i].SetMarkerColor(kGray);
+                vec_all_graphs[i].SetFillColor(kWhite);
+                vec_all_graphs[i].SetMarkerStyle(20);
+                vec_all_graphs[i].SetMarkerSize(plot_point_size*0.75);
             }
         }
 
@@ -199,9 +258,9 @@ namespace seaview{
             int thisp = (int)hs[0].Plane;
             double bc = hs[0].Wire;
 
-            if(chan_min[thisp]*0.98 < bc && bc < chan_max[thisp]*1.02 ){
+            if(chan_min[thisp]-chan_shift < bc && bc < chan_max[thisp]+chan_shift ){
                 can->cd(thisp+1);
-                TLine *l = new TLine(bc,tick_min*0.98,bc,tick_max*1.02);
+                TLine *l = new TLine(bc,tick_min-tick_shift,bc,tick_max+tick_shift);
                 l->SetLineColor(kGray+1);
                 l->Draw("same");
                 can->cd(thisp+5);
@@ -213,7 +272,6 @@ namespace seaview{
 
 
         ///******************************** Plotting all PFP's *********************************8
-        double plot_point_size=0.6;        
 
         std::vector<int> tcols = {kRed-7, kBlue-7, kGreen-3, kOrange-3, kCyan-3, kMagenta-3, kGreen+1 , kRed+1};
         int used_col=0;
@@ -234,7 +292,7 @@ namespace seaview{
             for(int i=0; i<3; i++){
                 can->cd(i+1);
                 if(vec_graphs[p][i].GetN()>0){//need a check in case this track has no hits on this plane.
-                   
+
                     vec_graphs[p][i].Draw("p same"); 
                     vec_graphs[p][i].SetMarkerColor(tcol);
                     vec_graphs[p][i].SetFillColor(tcol);
@@ -244,23 +302,51 @@ namespace seaview{
             }
         }
 
-        
-        /********************************* Unassociated Hits ****************************/
 
+        //If its be clusterized, plot clusters here. Lets try a color surrounding the black.
 
-            for(int i=0; i<3; i++){
-                can->cd(i+1);
-                if(vec_unass_graphs[i].GetN()>0){//need a check in case this track has no hits on this plane.
-                   
-                    vec_unass_graphs[i].Draw("p same"); 
-                    vec_unass_graphs[i].SetMarkerColor(kBlack);
-                    vec_unass_graphs[i].SetFillColor(kBlack);
-                    vec_unass_graphs[i].SetMarkerStyle(20);
-                    vec_unass_graphs[i].SetMarkerSize(plot_point_size);
-                }
+        if(has_been_clustered){ 
+            std::cout<<"PRINT 0"<<std::endl;
+
+            std::vector<int> cluster_colors(vec_clusters.size()+1,0);
+            std::vector<int> base_col = {632,416, 600, 400, 616,  432,  800, 820,  840, 860,  880, 900};
+
+            for(int j=0; j< vec_clusters.size()+1; j++){
+                int b = (int)rangen->Uniform(0,11);
+                int mod = (int)rangen->Uniform(-10,+3);
+
+                cluster_colors[j] = base_col[b]+mod;
             }
+            int c_offset = 0;
 
 
+            for(auto &c: vec_clusters){
+                int pl = c.getPlane();
+                can->cd(pl+1);    
+                    if (c.getGraph()->GetN()>0){
+                        c.getGraph()->Draw("p same");
+                        c.getGraph()->SetMarkerColor(cluster_colors[c_offset]);
+                        c.getGraph()->SetFillColor(cluster_colors[c_offset]);
+                        c.getGraph()->SetMarkerStyle(20);
+                        c.getGraph()->SetMarkerSize(plot_point_size*1.5);
+                    }
+                    c_offset++;
+            }
+        }//end clusters
+
+
+        /********************************* Unassociated Hits ****************************/
+        for(int i=0; i<3; i++){
+            can->cd(i+1);
+            if(vec_unass_graphs[i].GetN()>0){//need a check in case this track has no hits on this plane.
+
+                vec_unass_graphs[i].Draw("p same"); 
+                vec_unass_graphs[i].SetMarkerColor(kBlack);
+                vec_unass_graphs[i].SetFillColor(kBlack);
+                vec_unass_graphs[i].SetMarkerStyle(20);
+                vec_unass_graphs[i].SetMarkerSize(plot_point_size);
+            }
+        }
 
         //****** just plto vertex again with elipse;
         for(int i=0; i<3; i++){
@@ -277,14 +363,98 @@ namespace seaview{
 
 
 
+        //**************************** INFO ***************************/
+        TPad *p_top_info = (TPad*)can->cd(4);
+        p_top_info->cd();
 
-         can->Update();
-         can->SaveAs((print_name+".pdf").c_str(),"pdf");
+        /*TLatex pottex;
+          pottex.SetTextSize(0.045);
+          pottex.SetTextAlign(13);  //align at top
+          pottex.SetNDC();
+          std::string pot_draw = "Run: "+std::to_string(m_run_number)+" SubRun: "+std::to_string(m_subrun_number)+" Event: "+std::to_string(m_event_number);
+          pottex.DrawLatex(.1,.94, pot_draw.c_str());
+          */
+        TLegend l_top(0.1,0.1,0.9,0.9);
+
+        for(int p=0; p<n_pfps; p++){
+
+
+            if(vec_graphs[p][0].GetN()>0){
+                l_top.AddEntry(&vec_graphs[p][0],vec_pfp_legend[p].c_str(),"f");
+            }else if(vec_graphs[p][1].GetN()>0){
+                l_top.AddEntry(&vec_graphs[p][1],vec_pfp_legend[p].c_str(),"f");
+            }else if(vec_graphs[p][2].GetN()>0){
+                l_top.AddEntry(&vec_graphs[p][2],vec_pfp_legend[p].c_str(),"f");
+            }
+
+        }
+        l_top.SetHeader(print_name.c_str(),"C");
+        l_top.SetLineWidth(0);
+        l_top.SetLineColor(kWhite);
+        l_top.Draw("same");
+
+
+
+
+
+        can->Update();
+        can->SaveAs((print_name+".pdf").c_str(),"pdf");
 
 
 
 
         return 0;
     }
+
+    int SEAviewer::runDBSCAN(double min_pts, double eps){
+
+        has_been_clustered = true;
+        num_clusters = {0,0,0};
+        cluster_labels.resize(3);
+
+        for(int i=0; i<3; i++){
+
+            //      std::cout<<"SinglePhoton::SSS\t||\tStarting to run DBSCAN for plane: "<<i<<" has "<<pts_to_recluster[i].size()<<" pts to do using eps: "<<eps<<" and min_pts: "<<min_pts<<std::endl; 
+            DBSCAN ReCluster(eps,min_pts);
+            cluster_labels[i] =  ReCluster.Scan2D(vec_unass_pts[i]);
+
+            for(auto &c: cluster_labels[i]){
+                num_clusters[i] = std::max(c,num_clusters[i]);
+
+            }
+
+
+
+
+            std::cout << "DBSCAN\t||\tOn this plane "<<i<<" DBSCAN found: "<<num_clusters[i]<<" clusters"<<std::endl;
+        }
+
+        //Now fill the clusters
+
+        for(int i=0; i<3; i++){
+           
+            for(int c=0; c<num_clusters[i]; c++){
+   
+                std::vector<std::vector<double>> pts;
+                std::vector<art::Ptr<recob::Hit>> hitz;
+                for(size_t p=0; p< vec_unass_pts[i].size(); p++){
+                    if(cluster_labels[i][p] == 0) continue;//noise 
+                    if(cluster_labels[i][p] == c){
+                        
+                        pts.push_back(vec_unass_pts[i][p]);
+                        hitz.push_back(vec_unass_hits[i][p]);
+                    }
+                
+                }
+                vec_clusters.emplace_back(c,i,pts,hitz);
+            }
+        }
+
+        return 0;
+
+    }
+
+
+
 
 }
