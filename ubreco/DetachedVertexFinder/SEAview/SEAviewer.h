@@ -51,6 +51,7 @@
 #include "TMatrixD.h"
 #include "TF1.h"
 #include "TEllipse.h"
+#include "TRandom3.h"
 
 #include <iostream>
 #include <fstream>
@@ -61,7 +62,45 @@
 #include <sys/stat.h>
 
 
+#include "DBSCAN.h"
 namespace seaview {
+
+class cluster {
+
+    public:
+    
+    cluster(int ID, int plane, std::vector<std::vector<double>> &pts, std::vector<art::Ptr<recob::Hit>> &hits) :f_ID(ID), f_plane(plane), f_pts(pts), f_hits(hits) {
+
+        f_npts = f_pts.size();
+        if(pts.size() != hits.size()){
+            std::cerr<<"seaviewer::cluster, input hits and pts not alligned"<<std::endl;
+        }
+        std::vector<double> wires(f_npts);
+        std::vector<double> ticks(f_npts);
+        for(int p =0; p< f_npts; ++p){
+            wires[p]=f_pts[p][0];
+            ticks[p]=f_pts[p][1];
+        }
+        TGraph af_graph(f_npts,&wires[0],&ticks[0]);
+        f_graph = af_graph;
+
+    };
+
+    int getID() {return f_ID;}
+    int getN() {return f_npts;}
+    int getPlane(){ return f_plane;}
+    TGraph * getGraph(){ return &f_graph;}
+
+    private:
+    int f_ID;
+    int f_npts;
+    int f_plane;
+    std::vector<std::vector<double>> f_pts;
+    std::vector<art::Ptr<recob::Hit>> f_hits;
+    TGraph f_graph;
+};
+
+
 
 class SEAviewer {
 
@@ -75,11 +114,13 @@ public:
   int loadVertex(double m_vertex_pos_x, double m_vertex_pos_y, double m_vertex_pos_z);
   int addTrueVertex(double x, double y,double z);
   int addSliceHits(std::vector<art::Ptr<recob::Hit>>& hits);
-  int addPFParticleHits(std::vector<art::Ptr<recob::Hit>>& hits);
+  int addAllHits(std::vector<art::Ptr<recob::Hit>>& hits);
+  int addPFParticleHits(std::vector<art::Ptr<recob::Hit>>& hits, std::string leg );
   int setBadChannelList(std::vector<std::pair<int,int>> &in);
   int calcUnassociatedHits();
+  int setHitThreshold(double);
   int Print();
-  
+  int runDBSCAN(double min_pts, double eps);
 
   double calcWire(double Y, double Z, int plane, int fTPC, int fCryostat, geo::GeometryCore const& geo ){
         double wire = geo.WireCoordinate(Y, Z, plane, fTPC, fCryostat);
@@ -96,14 +137,20 @@ public:
   protected:
   int n_pfps;
   std::string tag;
+  double hit_threshold;
+  bool has_been_clustered;  
   std::vector<std::vector<TGraph>> vec_graphs;
 
+  std::vector<std::string> vec_pfp_legend;
   // PFP, Plane: index
   std::vector<std::vector<std::vector<double>>> vec_ticks;
   std::vector<std::vector<std::vector<double>>> vec_chans;
 
   geo::GeometryCore const * geom;
   detinfo::DetectorProperties const * theDetector ;
+
+    double tick_shift;
+    double chan_shift;
 
   double tick_max;
   double tick_min;
@@ -122,13 +169,26 @@ public:
   std::vector<double> true_vertex_chan; 
   std::vector<TGraph> true_vertex_graph;
 
-
   std::vector<art::Ptr<recob::Hit>> slice_hits;
+  std::vector<art::Ptr<recob::Hit>> all_hits;
   std::map<art::Ptr<recob::Hit>,bool> map_unassociated_hits;
+  std::map<art::Ptr<recob::Hit>, bool> map_slice_hits;
+  
   std::vector<TGraph> vec_unass_graphs;
   std::vector<std::vector<double>> vec_unass_ticks;
   std::vector<std::vector<double>> vec_unass_chans;
+  std::vector<std::vector<std::vector<double>>> vec_unass_pts;
+  std::vector<std::vector<art::Ptr<recob::Hit>>> vec_unass_hits;
 
+  std::vector<TGraph> vec_all_graphs;
+  std::vector<std::vector<double>> vec_all_ticks;
+  std::vector<std::vector<double>> vec_all_chans;
+
+  std::vector<int> num_clusters;
+  std::vector<std::vector<int>> cluster_labels;
+  TRandom3 *rangen;
+
+  std::vector<seaview::cluster> vec_clusters;  
 
 };
 

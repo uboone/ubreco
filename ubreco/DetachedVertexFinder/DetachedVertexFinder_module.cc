@@ -45,6 +45,12 @@
 #include "Pandora/PdgTable.h"
 #include "SEAview/SEAviewer.h"
 
+#include "nusimdata/SimulationBase/MCParticle.h"
+#include "nusimdata/SimulationBase/MCTruth.h"
+#include "nusimdata/SimulationBase/simb.h"
+#include "nusimdata/SimulationBase/MCFlux.h"
+#include  "nusimdata/SimulationBase/GTruth.h"
+
 class DetachedVertexFinder;
 
 
@@ -82,7 +88,11 @@ class DetachedVertexFinder : public art::EDProducer {
         std::string m_sliceLabel;
         std::string m_vertexLabel;
         std::string m_clusterLabel;
+        std::string m_generatorLabel;
 
+        double m_hitThreshold;
+        double    m_dbscanMinPts;
+        double m_dbscanEps;
         //databased http://dbdata0vm.fnal.gov:8186/uboonecon_prod/app/data?f=channelstatus_data&t=357812824
         std::vector<std::pair<int,int>> bad_channel_list_fixed_mcc9;
 
@@ -105,7 +115,11 @@ DetachedVertexFinder::DetachedVertexFinder(fhicl::ParameterSet const& pset)
     m_sliceLabel = pset.get<std::string>("Slicelabel","pandora");
     m_vertexLabel = pset.get<std::string>("Vertexlabel","pandora");
     m_clusterLabel = pset.get<std::string>("Clusterlabel","pandora");
+    m_generatorLabel = pset.get<std::string>("Generatorlabel","generator");
 
+    m_hitThreshold = pset.get<double>("HitThreshold",150);
+    m_dbscanMinPts = pset.get<double>("DBSCANMinPts",3);
+    m_dbscanEps = pset.get<double>("DBSCANEps",3);
 
     produces<art::Assns <recob::Slice, recob::Vertex>>();
 
@@ -227,6 +241,20 @@ void DetachedVertexFinder::produce(art::Event& evt)
         clusterToHitsMap[pfp] = hits_per_cluster.at(pfp.key());
     }
 
+    // Hit <-> Spacepoint
+    art::FindOneP<recob::SpacePoint> spacepoints_per_hit(hitHandle,evt,m_pfpLabel);
+    std::map<art::Ptr<recob::Hit>,art::Ptr<recob::SpacePoint>> hitToSpacePointMap;
+    for(size_t i=0; i< hitVector.size(); ++i){
+        auto hit = hitVector[i];
+        if(!spacepoints_per_hit.at(hit.key()).isNull()){ 
+            hitToSpacePointMap[hit] = spacepoints_per_hit.at(hit.key());
+        }
+        //std::cout<<i<<" "<<hit->SummedADC()<<" "<<hit->PeakAmplitude()<<std::endl;
+    }
+
+
+
+
     std::map<size_t,art::Ptr<recob::PFParticle>> pfParticleIDMap;
 
     //Building the PFParticle to hits is a bit more involved, lets go through cluster associations
@@ -263,10 +291,129 @@ void DetachedVertexFinder::produce(art::Event& evt)
     //add the associaton between PFP and metadata, this is important to look at the slices and scores
     art::FindManyP< larpandoraobj::PFParticleMetadata > pfPartToMetadataAssoc(pfParticleHandle, evt,  m_pfpLabel);
     std::map<art::Ptr<recob::PFParticle>, std::vector<art::Ptr<larpandoraobj::PFParticleMetadata>> > pfParticleToMetadataMap;
+    std::map<art::Ptr<recob::PFParticle>,double> pfPToTrackScoreMap;
     for(size_t i=0; i< pfParticleVector.size(); ++i){
         const art::Ptr<recob::PFParticle> pfp = pfParticleVector[i];
         pfParticleToMetadataMap[pfp] =  pfPartToMetadataAssoc.at(pfp.key());
+        auto metadatalist = pfParticleToMetadataMap[pfp];
+        if (!metadatalist.empty()){
+            for(art::Ptr<larpandoraobj::PFParticleMetadata> data:metadatalist){
+                //get the metadata properties
+                std::map<std::string, float> propertiesmap  = data->GetPropertiesMap();
+                //int temp_ind = -1;
+                //double temp_score = -1.0;
+                //int clear_cosmic = -1;
+                //bool is_nuslice = false;
+                for (auto it:propertiesmap ){
+//                    std::cout << "  - " << it.first << " = " << it.second << std::endl;
+                    if (it.first == "SliceIndex"){
+                        //temp_ind = it.second;
+                    }
+                    //store the neutrino score for each slice
+                    if (it.first == "NuScore"){
+                        //temp_score = it.second;
+                    }
+                    if (it.first == "IsClearCosmic"){
+                        //clear_cosmic = 1;
+                    }
+                    if(it.first == "IsNeutrino"){
+                        //is_nuslice = true;
+                    }
+                    if(it.first == "TrackScore"){
+                        pfPToTrackScoreMap[pfp] = it.second;
+                    }
+                }//for each item in properties map
+            }//for each PFP/metadata
+        }//if the list isn't empty
     }
+
+
+    /**************************** MCTruth *************************/
+    std::vector<art::Ptr<simb::MCTruth>> mcTruthVector;
+    art::ValidHandle<std::vector<simb::MCTruth>> const & mcTruthHandle= evt.getValidHandle<std::vector<simb::MCTruth>>(m_generatorLabel);
+    art::fill_ptr_vector(mcTruthVector,mcTruthHandle);
+
+    std::map<int,std::string> is_delta_map;
+    std::vector<std::string> delta_names = {"Delta++","Delta+","Delta-","Delta0"};
+    std::vector<int> delta_pdg_list = {2224,2214,1114,2114};
+    for(size_t i=0; i< delta_pdg_list.size(); ++i){
+        is_delta_map[delta_pdg_list[i]] = delta_names[i];
+        is_delta_map[-delta_pdg_list[i]] ="Anti-"+delta_names[i];
+    }
+
+    double mctruth_delta_photon_energy = -99;
+    double mctruth_delta_proton_energy = -99;
+    double mctruth_num_exiting_pi0 = 0;
+    double mctruth_num_exiting_pipm = 0;
+    //double mctruth_nu_vertex_x, mctruth_nu_vertex_y, mctruth_nu_vertex_z;(par.StatusCode()==1
+    std::vector<double> mctruth_exiting_proton_energy;
+
+    for(int i=0; i<std::min(1,(int)mcTruthVector.size()); i++){
+        const art::Ptr<simb::MCTruth> truth = mcTruthVector[i];
+
+          //std::vector<double> corrected(3);
+          //this->spacecharge_correction(truth->GetNeutrino().Lepton(),corrected);
+          //mctruth_nu_vertex_x = corrected[0];
+          //mctruth_nu_vertex_y = corrected[1];
+          //mctruth_nu_vertex_z = corrected[2];
+
+        int num_part = truth->NParticles();
+        for(int j=0; j< num_part; j++){
+
+            const simb::MCParticle par = truth->GetParticle(j);
+            switch(par.PdgCode()){
+
+                case(22):
+                    {
+                        const  simb::MCParticle mother = truth->GetParticle(par.Mother());
+                        if((par.StatusCode()==1 || par.StatusCode()==14 ) && is_delta_map.count(mother.PdgCode())>0 && mother.StatusCode()==3){
+                            mctruth_delta_photon_energy = par.E();
+                        }
+                    }
+                    break;
+                case(111):
+                    {
+                        if (par.StatusCode() == 1) {
+                            mctruth_num_exiting_pi0++;
+                        }
+                        break;
+                    }
+                case(211):
+                case(-211):
+                    if (par.StatusCode() == 1) {
+                        mctruth_num_exiting_pipm++;
+                    }
+                    break;
+                case(2212):
+                    {
+                    
+                        if(par.StatusCode()==1){
+                            mctruth_exiting_proton_energy.push_back(par.E());
+                        }
+                        //if its mother is a delta with statuscode 3, and it has status code 14, then its the internal product of the delta decay.
+                        const  simb::MCParticle mother = truth->GetParticle(par.Mother());
+                        if(par.StatusCode()==14 && is_delta_map.count(mother.PdgCode())>0 && mother.StatusCode()==3){
+                            mctruth_delta_proton_energy = par.E();
+                        }
+
+
+                        break;
+                    }
+                default:
+                    break;
+            }//end switch
+        }
+    
+    }
+    
+    //For a simple on the fly check, lets put a 40 MeV Threshold on photon and Proton
+    bool is_reconstructable_signal = false;
+    if(mctruth_delta_proton_energy-0.938272 > 0.02 && mctruth_delta_photon_energy > 0.02 && mctruth_num_exiting_pi0==0 && mctruth_num_exiting_pipm==0){
+        for(auto &en: mctruth_exiting_proton_energy){
+            if(en-0.938272 >  0.02)is_reconstructable_signal = true;
+        }
+    }
+
 
 
 
@@ -280,6 +427,7 @@ void DetachedVertexFinder::produce(art::Event& evt)
     std::map<art::Ptr<recob::PFParticle>,bool> pfParticleNeutrinoSliceMap;
     size_t n_neutrino_slice=0;
     bool found_neutrino_slice = false;
+    size_t n_neutrino_candidate_pfp_id=0;
 
     for(size_t s=0; s< sliceVector.size(); s++){
         auto slice = sliceVector[s];
@@ -288,10 +436,10 @@ void DetachedVertexFinder::produce(art::Event& evt)
         int primaries=0;
         int n_dau=0;
         int found = 0;
-        std::cout<<"Starting a loop over "<<pfps.size()<<" pfparticles"<<std::endl;
+        //std::cout<<"Starting a loop over "<<pfps.size()<<" pfparticles"<<std::endl;
         for(auto &pfp: pfps){
-            std::cout<<pfp->Self()<<" Primary: "<<pfp->IsPrimary()<<" PDG "<<pfp->PdgCode()<<" NDau: "<<pfp->NumDaughters()<<" Parent: "<<pfp->Parent()<<std::endl;
-            
+            //std::cout<<pfp->Self()<<" Primary: "<<pfp->IsPrimary()<<" PDG "<<pfp->PdgCode()<<" NDau: "<<pfp->NumDaughters()<<" Parent: "<<pfp->Parent()<<std::endl;
+
             if (!pfp->IsPrimary()) continue;
             // Check if this particle is identified as the neutrino
             const int pdg(pfp->PdgCode());
@@ -301,6 +449,7 @@ void DetachedVertexFinder::produce(art::Event& evt)
             if(isNeutrino){
                 found++;
                 //Ok this is neutrino candidate. 
+                n_neutrino_candidate_pfp_id = pfp->Self();
                 for (const size_t daughterId : pfp->Daughters()){
                     n_dau++;
                     //   std::cout<<daughterId<<" "<<pfParticleIDMap[daughterId]->Self()<<" "<<std::endl;
@@ -340,55 +489,76 @@ void DetachedVertexFinder::produce(art::Event& evt)
 
         std::cout<<"This slice has "<<pfps.size()<<" PFParticles and "<<hits.size()<<" Hits. "<<std::endl;
 
-
         seaview::SEAviewer sevd("test_"+uniq_tag, geom, theDetector );
         sevd.setBadChannelList(bad_channel_list_fixed_mcc9);
         sevd.loadVertex(vertex_xyz[0], vertex_xyz[1], vertex_xyz[2]);
         sevd.addSliceHits(hits);
+        sevd.addAllHits(hitVector);
+        sevd.setHitThreshold(m_hitThreshold);
+
+        //For plotting, will also only plot events in which there is only shower like PFP's (for now)
+        bool is_shower_like = true;
+
+
 
         //Loop over all pfp's
-        for(auto &pfp: pfParticleVector){
+        for(auto &pfp: pfps){
 
             //This next line will make it so you ONLY run over direct daughters of the Neutrino interaction. 
-            if(pfParticleNeutrinoSliceMap.count(pfp)==1 && pfParticleNeutrinoSliceMap[pfp]){
-
+            //if(pfParticleNeutrinoSliceMap.count(pfp)==1 && pfParticleNeutrinoSliceMap[pfp]){
+            {
                 auto pfp_hits = pfParticleToHitsMap[pfp];
                 auto pfp_clusters = pfParticleToClustersMap[pfp];
                 const int pdg(pfp->PdgCode());
 
                 std::cout<<"PFParticle "<<pfp.key()<<" PDG: "<<pdg<<" accounts for "<<pfp_hits.size()<<" hits "<<pfp_clusters.size()<<" clusters: Is Primary?: "<<pfp->IsPrimary()<<std::endl;
                 std::cout<<"Associated to "<<pfParticleToTrackMap.count(pfp)<<" tracks and "<<pfParticleToShowerMap.count(pfp)<<" Shower "<<std::endl;
+         //       std::cout<<"Shower Dir x "<<pfParticleToShowerMap[pfp]->Direction().X()<<" "<<pfParticleToShowerMap[pfp]->Direction().Y()<<" "<<pfParticleToShowerMap[pfp]->Direction().Z()<<std::endl;
 
                 const bool isNeutrino(std::abs(pdg) == pandora::NU_E || std::abs(pdg) == pandora::NU_MU || std::abs(pdg) == pandora::NU_TAU);
                 if(!isNeutrino){
-                    std::cout<<"Adding to SEAview"<<std::endl;
-                    sevd.addPFParticleHits(pfp_hits);
+                    std::string pfp_legend = std::to_string(pfp->Self());
+                    std::string pfp_trk = ",trk: "+std::to_string(pfPToTrackScoreMap[pfp]);
+                    if(pfp->IsPrimary()){
+                        pfp_legend += " Primary pdg: "+std::to_string(pdg)+pfp_trk;
+
+                    }else if(pfp->Parent()==n_neutrino_candidate_pfp_id){
+                        pfp_legend += " Parent: Neutrino"+pfp_trk;
+                    }else{
+                        pfp_legend += " Parent: "+std::to_string(pfp->Parent())+pfp_trk;
+                    }
+                    sevd.addPFParticleHits(pfp_hits,pfp_legend);
+
+                    if(pfPToTrackScoreMap[pfp] >0.5) is_shower_like = false;
                 }
             }
         }
 
         sevd.calcUnassociatedHits();
-        sevd.Print();
+        sevd.runDBSCAN(m_dbscanMinPts, m_dbscanEps);
+        //
+        if(is_reconstructable_signal && is_shower_like) sevd.Print();
+
 
         Slice_Vertex_assn_v->addSingle(slice, nu_vertex);
 
-    }//end of neutrino slice analysis
+        }//end of neutrino slice analysis
 
 
 
 
-    evt.put(std::move(Slice_Vertex_assn_v));
+        evt.put(std::move(Slice_Vertex_assn_v));
 
-}
+    }
 
-void DetachedVertexFinder::beginJob()
-{
-    // Implementation of optional member function here.
-}
+    void DetachedVertexFinder::beginJob()
+    {
+        // Implementation of optional member function here.
+    }
 
-void DetachedVertexFinder::endJob()
-{
-    // Implementation of optional member function here.
-}
+    void DetachedVertexFinder::endJob()
+    {
+        // Implementation of optional member function here.
+    }
 
-DEFINE_ART_MODULE(DetachedVertexFinder)
+    DEFINE_ART_MODULE(DetachedVertexFinder)
