@@ -16,6 +16,8 @@
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
+#include "art/Persistency/Common/PtrMaker.h"
+
 
 #include "lardataobj/RecoBase/PFParticleMetadata.h"
 #include "lardataobj/RecoBase/PFParticle.h"
@@ -122,6 +124,7 @@ DetachedVertexFinder::DetachedVertexFinder(fhicl::ParameterSet const& pset)
     m_dbscanEps = pset.get<double>("DBSCANEps",3);
 
     produces<art::Assns <recob::Slice, recob::Vertex>>();
+    produces<std::vector<recob::Vertex> >();
 
 
     std::string bad_channel_file = "/pnfs/uboone/resilient/users/markross/tars/MCC9_channel_list.txt";
@@ -157,7 +160,11 @@ DetachedVertexFinder::DetachedVertexFinder(fhicl::ParameterSet const& pset)
 void DetachedVertexFinder::produce(art::Event& evt)
 {
     //This is what we want to create
-    std::unique_ptr< art::Assns <recob::Slice, recob::Vertex>        > Slice_Vertex_assn_v    ( new art::Assns<recob::Slice, recob::Vertex>);
+    std::unique_ptr< std::vector<recob::Vertex> > Vertex_v(new std::vector<recob::Vertex> );
+    std::unique_ptr< art::Assns <recob::Slice, recob::Vertex>> Slice_Vertex_assn_v    ( new art::Assns<recob::Slice, recob::Vertex>);
+    art::PtrMaker<recob::Vertex> makeVertexPtr(evt);
+
+
 
     std::string uniq_tag = std::to_string(evt.run())+"_"+std::to_string(evt.subRun())+"_"+std::to_string(evt.id().event());
     std::cout<<"-----------"<<uniq_tag<<"----------"<<std::endl;
@@ -548,16 +555,24 @@ void DetachedVertexFinder::produce(art::Event& evt)
         sevd.calcUnassociatedHits();
         sevd.runDBSCAN(m_dbscanMinPts, m_dbscanEps);
         //
-        if(is_reconstructable_signal && is_shower_like ) sevd.Print();
+        if(is_reconstructable_signal && is_shower_like ){
+            sevd.Print();
+            sevd.analyzeClusters();
+        }
+        double ee[3] = {100,0,500};
+        recob::Vertex v(ee);
+        Vertex_v->emplace_back(v);
 
+        art::Ptr<recob::Vertex> const VertexPtr = makeVertexPtr(Vertex_v->size()-1);
 
-        Slice_Vertex_assn_v->addSingle(slice, nu_vertex);
+        Slice_Vertex_assn_v->addSingle(slice, VertexPtr);
 
         }//end of neutrino slice analysis
 
 
 
 
+        evt.put(std::move(Vertex_v));
         evt.put(std::move(Slice_Vertex_assn_v));
 
     }

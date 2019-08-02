@@ -90,6 +90,7 @@ class cluster {
     int getN() {return f_npts;}
     int getPlane(){ return f_plane;}
     TGraph * getGraph(){ return &f_graph;}
+    std::vector<art::Ptr<recob::Hit>>  getHits(){return f_hits;}
 
     private:
     int f_ID;
@@ -135,6 +136,11 @@ public:
 
 
     std::vector<std::vector<double>> to2D(std::vector<double> & threeD);
+
+   double dist_line_point( std::vector<double>&X1, std::vector<double>& X2, std::vector<double>& point);
+
+   int analyzeClusters();
+
 
 
 

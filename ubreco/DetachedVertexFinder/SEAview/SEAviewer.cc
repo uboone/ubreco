@@ -116,7 +116,7 @@ namespace seaview{
         return n_assoc;
     }
 
-        
+
     int SEAviewer::addPFParticleHits(std::vector<art::Ptr<recob::Hit>>& hits, std::string legend){
         n_pfps++;
 
@@ -152,7 +152,7 @@ namespace seaview{
         n_showers++;
 
         vec_showers.push_back(shr); 
-    
+
         return 0;
     }
 
@@ -163,7 +163,7 @@ namespace seaview{
         auto ID = TPC.ID();
         int fCryostat = ID.Cryostat;
         int fTPC = ID.TPC;
-        
+
         std::vector<std::vector<double>> ans(3);
 
         for(int i=0; i<3; i++){
@@ -347,7 +347,7 @@ namespace seaview{
 
             std::vector<std::vector<double>> start_pt =   this->to2D(shr_start_3D);
             std::vector<std::vector<double>> other_pt =   this->to2D(shr_other_3D);
-          
+
             for(int i=0; i<3; i++){
                 //std::cout<<start_pt[i][0]<<" "<<start_pt[i][1]<<" "<<other_pt[i][0]<<" "<<other_pt[i][1]<<std::endl;
                 can->cd(i+1);
@@ -364,7 +364,7 @@ namespace seaview{
                     x2_plot = chan_min[i]-chan_shift;    
                 }
                 double y2_plot = slope*x2_plot+inter;
-            
+
                 can->cd(i+1);
                 TLine *l = new TLine(x1_plot, y1_plot, x2_plot, y2_plot);
                 lines.push_back(l);
@@ -372,7 +372,7 @@ namespace seaview{
                 l->SetLineWidth(1);
                 l->SetLineStyle(2);
                 l->Draw();
-            
+
             }
 
         }
@@ -399,14 +399,14 @@ namespace seaview{
             for(auto &c: vec_clusters){
                 int pl = c.getPlane();
                 can->cd(pl+1);    
-                    if (c.getGraph()->GetN()>0){
-                        c.getGraph()->Draw("p same");
-                        c.getGraph()->SetMarkerColor(cluster_colors[c_offset]);
-                        c.getGraph()->SetFillColor(cluster_colors[c_offset]);
-                        c.getGraph()->SetMarkerStyle(20);
-                        c.getGraph()->SetMarkerSize(plot_point_size*2.0);
-                        c_offset++;
-                    }
+                if (c.getGraph()->GetN()>0){
+                    c.getGraph()->Draw("p same");
+                    c.getGraph()->SetMarkerColor(cluster_colors[c_offset]);
+                    c.getGraph()->SetFillColor(cluster_colors[c_offset]);
+                    c.getGraph()->SetMarkerStyle(20);
+                    c.getGraph()->SetMarkerSize(plot_point_size*2.0);
+                    c_offset++;
+                }
             }
         }//end clusters
 
@@ -508,19 +508,19 @@ namespace seaview{
         //Now fill the clusters
 
         for(int i=0; i<3; i++){
-           
+
             for(int c=0; c<num_clusters[i]; c++){
-   
+
                 std::vector<std::vector<double>> pts;
                 std::vector<art::Ptr<recob::Hit>> hitz;
                 for(size_t p=0; p< vec_unass_pts[i].size(); p++){
                     if(cluster_labels[i][p] == 0) continue;//noise 
                     if(cluster_labels[i][p] == c){
-                        
+
                         pts.push_back(vec_unass_pts[i][p]);
                         hitz.push_back(vec_unass_hits[i][p]);
                     }
-                
+
                 }
                 vec_clusters.emplace_back(c,i,pts,hitz);
             }
@@ -530,7 +530,132 @@ namespace seaview{
 
     }
 
+    int SEAviewer::analyzeClusters(){
 
+
+        std::vector<std::vector<double>> percent_matched(vec_clusters.size(),  std::vector<double>(vec_clusters.size(),0.0));
+
+        for(size_t c=0; c< vec_clusters.size(); c++){
+
+
+                        //Loop over all hits in this clusters
+            //
+            for(size_t c2 = 0; c2 < vec_clusters.size(); c2++){
+               int n2_hits  = vec_clusters[c2].getHits().size(); 
+               int n2_matched = 0; 
+
+
+                if(vec_clusters[c2].getPlane() == vec_clusters[c].getPlane()) continue; //ignore clusters on same plane
+
+                for(auto &h : vec_clusters[c].getHits()){
+                    //get time spread of this hit.
+                    double pp = h->PeakTimePlusRMS(1.0);
+                    double pm = h->PeakTimeMinusRMS(1.0);
+
+                    for(auto &h2 : vec_clusters[c2].getHits()){
+                        if(h2->PeakTime() < pp && h2->PeakTime() > pm) n2_matched++; 
+                    }
+                }
+
+
+                percent_matched[c][c2] = ((double)n2_matched)/((double)n2_hits)*100.0;
+
+                std::cout<<" Cluster "<<c<<" on plane "<<vec_clusters[c].getPlane()<<" matches with "<<percent_matched[c][c2]<<" percent of hits of cluster "<<c2<<" on plane "<<vec_clusters[c2].getPlane()<<std::endl;
+
+            }
+
+
+
+        }
+
+
+
+
+
+        /*
+        //Relative to showers!
+        for(size_t s=0; s<vec_showers.size(); ++s){
+        std::vector<double> shr_start_3D= {vec_showers[s]->ShowerStart().X(), vec_showers[s]->ShowerStart().Y(),vec_showers[s]->ShowerStart().Z()};
+        std::vector<double> shr_other_3D=  {vec_showers[s]->ShowerStart().X()+vec_showers[s]->Direction().X(),vec_showers[s]->ShowerStart().Y()+vec_showers[s]->Direction().Y(), vec_showers[s]->ShowerStart().Z()+vec_showers[s]->Direction().Z()};
+
+        std::vector<std::vector<double>> start_pt =   this->to2D(shr_start_3D);
+        std::vector<std::vector<double>> other_pt =   this->to2D(shr_other_3D);
+
+        for(int i=0; i<3; i++){
+        double slope = (start_pt[i][1]-other_pt[i][1])/(start_pt[i][0]-other_pt[i][0]);
+        double inter = start_pt[i][1]-slope*start_pt[i][0];
+
+        double x1_plot = other_pt[i][0];//chan_min[i]-chan_shift;
+        double y1_plot = slope*x1_plot+inter;
+
+        double x2_plot;
+        if(other_pt[i][0]<start_pt[i][0]){
+        x2_plot = chan_max[i]+chan_shift;
+        }else{
+        x2_plot = chan_min[i]-chan_shift;    
+        }
+        double y2_plot = slope*x2_plot+inter;
+
+        TLine *l = new TLine(x1_plot, y1_plot, x2_plot, y2_plot);
+
+
+        //Ok now find the min distance from this line to all clusters on this plane
+
+        for(size_t c=0; c< vec_clusters.size(); c++){
+        int pl = vec_clusters[c].getPlane();
+        if(pl != i ) continue;
+
+        double min_d = 1e10;
+        int min_p = -9;
+
+        for(size_t p = 0; p< vec_clusters[c].getPts().size(); p++){
+        std::vector<double> pt = (vec_clusters[c].getPts())[p];
+        double dist = this->dist_line_point({x1_plot*0.3,y1_plot/25.0}, {x2_plot*0.3,y2_plot/25.0}, {pt[0]*0.3, pt[1]/25});
+
+        if(dist< min_d){
+        min_p = (int)p;
+        min_d = dist;
+        }
+        }
+
+        }
+
+
+
+        }
+
+        }
+        */
+
+        return 0;
+
+
+    }
+
+    double SEAviewer::dist_line_point( std::vector<double>&X1, std::vector<double>& X2, std::vector<double>& point){
+        double x1 =X1.at(0);
+        double y1 =X1.at(1);
+
+        double x2 =X2.at(0);
+        double y2 =X2.at(1);
+
+        double x0 =point.at(0);
+        double y0 =point.at(1);
+
+        double x10 = x1-x0;
+        double y10 = y1-y0;
+
+        double x21 = x2-x1;
+        double y21 = y2-y1;
+
+        double t = -(x10*x21+y10*y21)/fabs(x21*x21+y21*y21);
+
+        double d2 = pow(x1-x0,2)+pow(y1-y0,2)+2*t*((x2-x1)*(x1-x0)+(y2-y1)*(y1-y0))+t*t*( pow(x2-x1,2)+pow(y2-y1,2));
+
+
+        return sqrt(d2);
+
+    }
 
 
 }
