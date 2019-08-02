@@ -62,7 +62,7 @@ private:
     /**
      *  @brief  Create a hook in pandora to create a vertex
      */
-    void CreateExternalVertex();
+    void CreateExternalVertex(art::Ptr<recob::Vertex> const&);
 
     /**
      *  @brief  Persist a vector of pandora pfos in output event data model
@@ -86,8 +86,11 @@ private:
      */
     void ProvideExternalSteeringParameters(const pandora::Pandora *const pPandora) const;
 
-    bool            m_processExistingSlices;    ///< Whether to run in slice mode, running a Pandora reconstruction pass for each slice
-    std::string     m_sliceModuleLabel;         ///< The slice module label, only used when running in slice mode
+    bool            m_processExistingSlices;     ///< Whether to run in slice mode, running a Pandora reconstruction pass for each slice
+    std::string     m_sliceModuleLabel;          ///< The slice module label, only used when running in slice mode
+
+    bool            m_reprocessForExternalVertex;  ///< whether to run reprocessing of slices where there's an external vertex
+    art::InputTag   m_externalVertexModuleLabel; ///< vertex module label for using an external vertex input
 };
 
 DEFINE_ART_MODULE(MicroBooNEPandora)
@@ -124,7 +127,9 @@ namespace lar_pandora
 MicroBooNEPandora::MicroBooNEPandora(fhicl::ParameterSet const &pset) :
     LArPandora(pset),
     m_processExistingSlices(pset.get<bool>("ProcessExistingSlices", false)),
-    m_sliceModuleLabel(pset.get<std::string>("SliceModuleLabel",""))
+    m_sliceModuleLabel(pset.get<std::string>("SliceModuleLabel","")),
+    m_reprocessForExternalVertex(pset.get<bool>("ReprocessForExternalVertex",false)),
+    m_externalVertexModuleLabel(pset.get<art::InputTag>("ExternalVertexModuleLabel",""))
 {
 }
 
@@ -139,8 +144,10 @@ MicroBooNEPandora::~MicroBooNEPandora()
 
 void MicroBooNEPandora::produce(art::Event &evt)
 {
-    if (!m_processExistingSlices)
+
+    if (!m_processExistingSlices && !m_reprocessForExternalVertex)
         return LArPandora::produce(evt);
+
 
     // ATTN Should complete gap creation in begin job callback, but channel status service functionality unavailable at that point
     if (!m_lineGapsCreated && m_enableDetectorGaps)
@@ -153,8 +160,10 @@ void MicroBooNEPandora::produce(art::Event &evt)
     SlicesToHits slicesToHits;
     this->CollectHitsBySlice(evt, sliceVector, slicesToHits);
 
+
     IdToHitMap idToHitMap;
     this->ReprocessSlices(evt, sliceVector, slicesToHits, idToHitMap);
+
 
     if (m_enableProduction)
         this->ProduceOutput(evt, LArPandoraOutput::CollectPfos(m_pPrimaryPandora), idToHitMap);
@@ -166,6 +175,7 @@ void MicroBooNEPandora::produce(art::Event &evt)
 
 void MicroBooNEPandora::CollectHitsBySlice(const art::Event &evt, SliceVector &sliceVector, SlicesToHits &slicesToHits) const
 {
+
     // Collect hits by slice
     art::Handle< std::vector<recob::Slice> > theSlices;
     evt.getByLabel(m_sliceModuleLabel, theSlices);
@@ -201,11 +211,26 @@ void MicroBooNEPandora::ReprocessSlices(const art::Event &evt, const SliceVector
 {
     m_inputSettings.m_hitCounterOffset = 0;
 
+
     for (unsigned int sliceIndex = 0; sliceIndex < sliceVector.size(); ++sliceIndex)
     {
-        // TODO If not an interesting slice, can skip over here
-        // TODO Get new vertex position in to Pandora here
-        this->CreateExternalVertex();
+      
+      if(m_reprocessForExternalVertex){
+
+        art::FindManyP<recob::Vertex> theVertexAssns({sliceVector[sliceIndex]},evt,m_externalVertexModuleLabel);
+	
+	if(theVertexAssns.size()!=1)
+	  mf::LogError("MicroBooNEPandora") 
+	    << " Error: vertex association in ReprocessSlices giving unexpected result: FindMany size is " 
+	    << theVertexAssns.size()
+	    << std::endl;
+
+	if(theVertexAssns.at(0).size()<1) continue;
+	if(theVertexAssns.at(0).size()>1)
+	  mf::LogWarning("MicroBooNEPandora") << " More than one vertex associated to slice ... only using the first." << std::endl;
+
+        this->CreateExternalVertex(theVertexAssns.at(0)[0]);
+      }
 
         const art::Ptr<recob::Slice> pSlice(sliceVector.at(sliceIndex));
         const HitVector &artHits(slicesToHits.at(pSlice));
@@ -228,7 +253,7 @@ void MicroBooNEPandora::ReprocessSlices(const art::Event &evt, const SliceVector
 
             LArPandoraHelper::CollectMCParticles(evt, m_geantModuleLabel, artMCTruthToMCParticles, artMCParticlesToMCTruth);
 
-            LArPandoraHelper::CollectSimChannels(evt, m_simChannelModuleLabel, artSimChannels);
+            LArPandoraHelper::CollectSimChannels(evt, m_simChannelModuleLabel, artSimChannels, areSimChannelsValid);
             if (!artSimChannels.empty())
             {
                 LArPandoraHelper::BuildMCParticleHitMaps(artHits, artSimChannels, artHitsToTrackIDEs);
@@ -262,13 +287,14 @@ void MicroBooNEPandora::ReprocessSlices(const art::Event &evt, const SliceVector
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void MicroBooNEPandora::CreateExternalVertex()
+void MicroBooNEPandora::CreateExternalVertex(art::Ptr<recob::Vertex> const& vtx_ptr)
 {
     lar_content::LArCaloHitFactory caloHitFactory;
     lar_content::LArCaloHitParameters caloHitParameters;
 
-    // HACK Create custom hit to represent vertex position (can only make a Pandora vertex via a Pandora algorithm, not a Pandora app).
-    caloHitParameters.m_positionVector = pandora::CartesianVector(128., 0., 500.);
+    caloHitParameters.m_positionVector = pandora::CartesianVector(vtx_ptr->position().X(),
+								  vtx_ptr->position().Y(),
+								  vtx_ptr->position().Z());
 
     // Dummy values
     caloHitParameters.m_hitType = pandora::HIT_CUSTOM;

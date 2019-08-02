@@ -61,8 +61,8 @@ pandora::StatusCode MicroBooNEContent::RegisterAlgorithms(const pandora::Pandora
 {
     PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(pandora, "MicroBooNEExample", new MicroBooNEExampleAlgorithmFactory));
     PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(pandora, "MicroBooNEExternalVertexCreation", new MicroBooNEExternalVertexCreationAlgorithmFactory));
-    PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(pandora, "MicroBooNEMaster", new MicroBooNEMasterAlgorithmFactory));
     PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(pandora, "MicroBooNEPreProcessing", new MicroBooNEPreProcessingAlgorithmFactory));
+    PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(pandora, "MicroBooNEMaster", new MicroBooNEMasterAlgorithmFactory));
 
     return pandora::STATUS_CODE_SUCCESS;
 }

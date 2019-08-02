@@ -86,7 +86,6 @@ StatusCode MicroBooNEMasterAlgorithm::Reset()
 
 StatusCode MicroBooNEMasterAlgorithm::RegisterCustomContent(const Pandora *const pPandora) const
 {
-    std::cout << "Register MicroBooNE custom content here " << std::endl;
     PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, MicroBooNEContent::RegisterAlgorithms(*pPandora));
 
     return STATUS_CODE_SUCCESS;
