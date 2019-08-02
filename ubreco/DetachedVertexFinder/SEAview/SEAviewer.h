@@ -117,6 +117,7 @@ public:
   int addAllHits(std::vector<art::Ptr<recob::Hit>>& hits);
   int addPFParticleHits(std::vector<art::Ptr<recob::Hit>>& hits, std::string leg );
   int setBadChannelList(std::vector<std::pair<int,int>> &in);
+  int addShower(art::Ptr<recob::Shower>&shr);
   int calcUnassociatedHits();
   int setHitThreshold(double);
   int Print();
@@ -133,9 +134,14 @@ public:
     }
 
 
+    std::vector<std::vector<double>> to2D(std::vector<double> & threeD);
+
+
+
 
   protected:
   int n_pfps;
+  int n_showers;
   std::string tag;
   double hit_threshold;
   bool has_been_clustered;  
@@ -189,6 +195,7 @@ public:
   TRandom3 *rangen;
 
   std::vector<seaview::cluster> vec_clusters;  
+  std::vector<art::Ptr<recob::Shower>> vec_showers;
 
 };
 

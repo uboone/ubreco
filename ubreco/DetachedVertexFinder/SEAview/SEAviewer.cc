@@ -19,6 +19,7 @@ namespace seaview{
         tick_shift = 350;
         chan_shift = 100;
 
+        n_showers=0;
         n_pfps = 0;
         has_been_clustered = false;
         hit_threshold = -10;
@@ -115,6 +116,7 @@ namespace seaview{
         return n_assoc;
     }
 
+        
     int SEAviewer::addPFParticleHits(std::vector<art::Ptr<recob::Hit>>& hits, std::string legend){
         n_pfps++;
 
@@ -145,6 +147,36 @@ namespace seaview{
         vec_chans.push_back(vec_chan);
         return 0;
     }
+
+    int SEAviewer::addShower(art::Ptr<recob::Shower>&shr){
+        n_showers++;
+
+        vec_showers.push_back(shr); 
+    
+        return 0;
+    }
+
+
+    std::vector<std::vector<double>> SEAviewer::to2D(std::vector<double> & threeD){
+
+        auto const TPC = (*geom).begin_TPC();
+        auto ID = TPC.ID();
+        int fCryostat = ID.Cryostat;
+        int fTPC = ID.TPC;
+        
+        std::vector<std::vector<double>> ans(3);
+
+        for(int i=0; i<3; i++){
+            double wire = (double)calcWire(threeD[1], threeD[2], i, fTPC, fCryostat, *geom);
+            double time = calcTime(threeD[0], i, fTPC,fCryostat, *theDetector);
+
+            ans[i] = {wire,time};
+        }
+
+        return ans;
+    }
+
+
 
     int SEAviewer::loadVertex(double m_vertex_pos_x, double m_vertex_pos_y, double m_vertex_pos_z){
 
@@ -303,15 +335,59 @@ namespace seaview{
         }
 
 
+        //Plot all Shower lines. Might need a bit of work here..
+        std::vector<TLine*> lines;  
+
+        for(size_t s=0; s<vec_showers.size(); ++s){
+            std::vector<double> shr_start_3D= {vec_showers[s]->ShowerStart().X(), vec_showers[s]->ShowerStart().Y(),vec_showers[s]->ShowerStart().Z()};
+            std::vector<double> shr_other_3D=  {vec_showers[s]->ShowerStart().X()+vec_showers[s]->Direction().X(),vec_showers[s]->ShowerStart().Y()+vec_showers[s]->Direction().Y(), vec_showers[s]->ShowerStart().Z()+vec_showers[s]->Direction().Z()};
+
+            //std::cout<<" "<<shr_start_3D[0]<<" "<<shr_start_3D[1]<<" "<<shr_start_3D[2]<<std::endl;
+            //std::cout<<" "<<shr_other_3D[0]<<" "<<shr_other_3D[1]<<" "<<shr_other_3D[2]<<std::endl;
+
+            std::vector<std::vector<double>> start_pt =   this->to2D(shr_start_3D);
+            std::vector<std::vector<double>> other_pt =   this->to2D(shr_other_3D);
+          
+            for(int i=0; i<3; i++){
+                //std::cout<<start_pt[i][0]<<" "<<start_pt[i][1]<<" "<<other_pt[i][0]<<" "<<other_pt[i][1]<<std::endl;
+                can->cd(i+1);
+                double slope = (start_pt[i][1]-other_pt[i][1])/(start_pt[i][0]-other_pt[i][0]);
+                double inter = start_pt[i][1]-slope*start_pt[i][0];
+
+                double x1_plot = other_pt[i][0];//chan_min[i]-chan_shift;
+                double y1_plot = slope*x1_plot+inter;
+
+                double x2_plot;
+                if(other_pt[i][0]<start_pt[i][0]){
+                    x2_plot = chan_max[i]+chan_shift;
+                }else{
+                    x2_plot = chan_min[i]-chan_shift;    
+                }
+                double y2_plot = slope*x2_plot+inter;
+            
+                can->cd(i+1);
+                TLine *l = new TLine(x1_plot, y1_plot, x2_plot, y2_plot);
+                lines.push_back(l);
+                l->SetLineColorAlpha(tcols[s],0.5);
+                l->SetLineWidth(1);
+                l->SetLineStyle(2);
+                l->Draw();
+            
+            }
+
+        }
+
+
+
+
         //If its be clusterized, plot clusters here. Lets try a color surrounding the black.
 
         if(has_been_clustered){ 
-            std::cout<<"PRINT 0"<<std::endl;
 
             std::vector<int> cluster_colors(vec_clusters.size()+1,0);
             std::vector<int> base_col = {632,416, 600, 400, 616,  432,  800, 820,  840, 860,  880, 900};
 
-            for(int j=0; j< vec_clusters.size()+1; j++){
+            for(size_t j=0; j< vec_clusters.size()+1; j++){
                 int b = (int)rangen->Uniform(0,11);
                 int mod = (int)rangen->Uniform(-10,+3);
 
@@ -328,9 +404,9 @@ namespace seaview{
                         c.getGraph()->SetMarkerColor(cluster_colors[c_offset]);
                         c.getGraph()->SetFillColor(cluster_colors[c_offset]);
                         c.getGraph()->SetMarkerStyle(20);
-                        c.getGraph()->SetMarkerSize(plot_point_size*1.5);
+                        c.getGraph()->SetMarkerSize(plot_point_size*2.0);
+                        c_offset++;
                     }
-                    c_offset++;
             }
         }//end clusters
 

@@ -117,8 +117,8 @@ DetachedVertexFinder::DetachedVertexFinder(fhicl::ParameterSet const& pset)
     m_clusterLabel = pset.get<std::string>("Clusterlabel","pandora");
     m_generatorLabel = pset.get<std::string>("Generatorlabel","generator");
 
-    m_hitThreshold = pset.get<double>("HitThreshold",150);
-    m_dbscanMinPts = pset.get<double>("DBSCANMinPts",3);
+    m_hitThreshold = pset.get<double>("HitThreshold",50);
+    m_dbscanMinPts = pset.get<double>("DBSCANMinPts",2);
     m_dbscanEps = pset.get<double>("DBSCANEps",3);
 
     produces<art::Assns <recob::Slice, recob::Vertex>>();
@@ -204,8 +204,15 @@ void DetachedVertexFinder::produce(art::Event& evt)
     std::map< art::Ptr<recob::PFParticle>, art::Ptr<recob::Shower> > pfParticleToShowerMap;
     for(size_t i=0; i< pfParticleVector.size(); ++i){
         auto pfp = pfParticleVector[i];
-        pfParticleToTrackMap[pfp]=tracks_per_pfparticle.at(pfp.key());
-        pfParticleToShowerMap[pfp]=showers_per_pfparticle.at(pfp.key());
+
+        if(!tracks_per_pfparticle.at(pfp.key()).isNull()){ 
+            pfParticleToTrackMap[pfp]=tracks_per_pfparticle.at(pfp.key());
+        }
+
+        if(!showers_per_pfparticle.at(pfp.key()).isNull()){ 
+            pfParticleToShowerMap[pfp]=showers_per_pfparticle.at(pfp.key());
+        }
+
     }
 
 
@@ -513,7 +520,7 @@ void DetachedVertexFinder::produce(art::Event& evt)
 
                 std::cout<<"PFParticle "<<pfp.key()<<" PDG: "<<pdg<<" accounts for "<<pfp_hits.size()<<" hits "<<pfp_clusters.size()<<" clusters: Is Primary?: "<<pfp->IsPrimary()<<std::endl;
                 std::cout<<"Associated to "<<pfParticleToTrackMap.count(pfp)<<" tracks and "<<pfParticleToShowerMap.count(pfp)<<" Shower "<<std::endl;
-         //       std::cout<<"Shower Dir x "<<pfParticleToShowerMap[pfp]->Direction().X()<<" "<<pfParticleToShowerMap[pfp]->Direction().Y()<<" "<<pfParticleToShowerMap[pfp]->Direction().Z()<<std::endl;
+         //     std::cout<<"Shower Dir x "<<pfParticleToShowerMap[pfp]->Direction().X()<<" "<<pfParticleToShowerMap[pfp]->Direction().Y()<<" "<<pfParticleToShowerMap[pfp]->Direction().Z()<<std::endl;
 
                 const bool isNeutrino(std::abs(pdg) == pandora::NU_E || std::abs(pdg) == pandora::NU_MU || std::abs(pdg) == pandora::NU_TAU);
                 if(!isNeutrino){
@@ -527,7 +534,11 @@ void DetachedVertexFinder::produce(art::Event& evt)
                     }else{
                         pfp_legend += " Parent: "+std::to_string(pfp->Parent())+pfp_trk;
                     }
-                    sevd.addPFParticleHits(pfp_hits,pfp_legend);
+                        
+                    sevd.addPFParticleHits(pfp_hits, pfp_legend);
+                    if(pfParticleToShowerMap.count(pfp)==1){
+                        sevd.addShower(pfParticleToShowerMap[pfp]);
+                    }
 
                     if(pfPToTrackScoreMap[pfp] >0.5) is_shower_like = false;
                 }
@@ -537,7 +548,7 @@ void DetachedVertexFinder::produce(art::Event& evt)
         sevd.calcUnassociatedHits();
         sevd.runDBSCAN(m_dbscanMinPts, m_dbscanEps);
         //
-        if(is_reconstructable_signal && is_shower_like) sevd.Print();
+        if(is_reconstructable_signal && is_shower_like ) sevd.Print();
 
 
         Slice_Vertex_assn_v->addSingle(slice, nu_vertex);
