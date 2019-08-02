@@ -52,7 +52,6 @@ services:
   LArProperties:            @local::microboone_properties
   DetectorClocksService:    @local::microboone_detectorclocks
   PhotonVisibilityService:  @local::microboone_photonvisibilityservice
-  PmtGainService:           @local::PMTService
 }
 
 # Configuration
