@@ -283,22 +283,45 @@ void FlashNeutrinoId::FillSliceTree(const art::Event &evt, const SliceVector &sl
 
     // If available, get the information from the MC neutrino
     LArPandoraSliceIdHelper::SliceMetadataVector sliceMetadata;
+    // start by assuming neutrino is not available
+    bool eventhasneutrino = false;
+    
     if (m_hasMCNeutrino)
     {
+
+      // first check if neutrino is actually there, otherwise GetSliceMetadata will throw
+      // an exception on the neutrino Origin
+      
+      art::Handle< std::vector<simb::MCTruth> > mcTruthHandle;
+      evt.getByLabel(m_truthLabel, mcTruthHandle);
+      if (mcTruthHandle.isValid()) {
+	art::Ptr<simb::MCTruth> beamNuMCTruth;   
+	for (unsigned int i = 0; i < mcTruthHandle->size(); ++i)
+	  {
+	    const art::Ptr<simb::MCTruth> mcTruth(mcTruthHandle, i);
+	    if (mcTruth->Origin() != simb::kBeamNeutrino)
+	      continue;
+	    eventhasneutrino = true;
+	  }
+      }
+
+      if (eventhasneutrino == true) {
+	
         simb::MCNeutrino mcNeutrino;
+
         LArPandoraSliceIdHelper::GetSliceMetadata(slices, evt, m_truthLabel, m_mcParticleLabel, m_hitLabel, m_backtrackLabel,
                                                   m_pandoraLabel, sliceMetadata, mcNeutrino);
-
+	
         m_nuMode = mcNeutrino.Mode();
         m_nuCCNC = mcNeutrino.CCNC();
         m_nuX = mcNeutrino.X();
         m_nuW = mcNeutrino.W();
         m_nuPt = mcNeutrino.Pt();
         m_nuTheta = mcNeutrino.Theta();
-
+	
         const auto nuMCParticle(mcNeutrino.Nu());
         const auto leptonMCParticle(mcNeutrino.Lepton());
-
+	
         m_nuEnergy = nuMCParticle.E();
         m_leptonEnergy = leptonMCParticle.E();
         m_nuVertexX = nuMCParticle.Vx();
@@ -309,16 +332,17 @@ void FlashNeutrinoId::FillSliceTree(const art::Event &evt, const SliceVector &sl
 
         if (slices.size() != sliceMetadata.size())
             throw cet::exception("FlashNeutrinoId") << "The number of slice metadata doesn't match the number of slices" << std::endl;
-    }
 
+      }// if event actually has a neutrino
+
+    }// if has neutrino flag is on
+    
     // Output the info for each slice
-    for (unsigned int sliceIndex = 0; sliceIndex < slices.size(); ++sliceIndex)
-    {
-        m_outputSlice = allSliceCandidates.at(sliceIndex);
-        if (m_hasMCNeutrino)
-            m_outputSliceMetadata = sliceMetadata.at(sliceIndex);
-
-        m_pSliceTree->Fill();
+    for (unsigned int sliceIndex = 0; sliceIndex < slices.size(); ++sliceIndex) {
+      m_outputSlice = allSliceCandidates.at(sliceIndex);
+      if ( (m_hasMCNeutrino == true) && (eventhasneutrino == true) )
+	m_outputSliceMetadata = sliceMetadata.at(sliceIndex);
+      m_pSliceTree->Fill();
     }
 }
 

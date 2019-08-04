@@ -109,7 +109,7 @@ flash_neutrino_id_tool_overlay.FlashMatchConfig.PhotonLibHypothesis.CCVCorrectio
 flash_neutrino_id_tool_fullmc: @local::flash_neutrino_id_tool_overlay
 flash_neutrino_id_tool_fullmc.BeamWindowStartTime: 3.16
 flash_neutrino_id_tool_fullmc.BeamWindowEndTime:   4.84
-
+#flash_neutrino_id_tool_fullmc.ShouldWriteToFile:   false
 
 # flash-matching storing
 
