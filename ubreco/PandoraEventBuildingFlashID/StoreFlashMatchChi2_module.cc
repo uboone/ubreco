@@ -154,8 +154,6 @@ StoreFlashMatchChi2::StoreFlashMatchChi2(fhicl::ParameterSet const& p)
 void StoreFlashMatchChi2::produce(art::Event& e)
 {
 
-  std::cout << "DAVIDC 1 " << std::endl;
-
   std::unique_ptr< std::vector<anab::T0> > T0_v(new std::vector<anab::T0>);
   std::unique_ptr< art::Assns <recob::PFParticle, anab::T0> > pfp_t0_assn_v( new art::Assns<recob::PFParticle, anab::T0>  );
 
@@ -166,8 +164,6 @@ void StoreFlashMatchChi2::produce(art::Event& e)
   _flashtime = -9999.;
   _flashpe   = -9999.;
 
-  std::cout << "DAVIDC 2 " << std::endl;
-
   //  prepare flash object
   ::flashana::Flash_t beamflash;
   beamflash.time = 0.;
@@ -177,8 +173,6 @@ void StoreFlashMatchChi2::produce(art::Event& e)
   const auto flashes(*e.getValidHandle< std::vector<recob::OpFlash> >(fFlashProducer));
 
 
-  std::cout << "DAVIDC 3 " << std::endl;
-  
   for (const auto &flash : flashes) {
 
     // get claibrated PE spectrum
@@ -201,9 +195,6 @@ void StoreFlashMatchChi2::produce(art::Event& e)
   }// for all flashes
 
 
-  std::cout << "DAVIDC 4 " << std::endl;
-
-
   if (beamflash.time == 0) {
     // quit here!
     e.put(std::move(T0_v));
@@ -213,8 +204,6 @@ void StoreFlashMatchChi2::produce(art::Event& e)
 
   _flashtime = beamflash.time;
   _flashpe   = std::accumulate( beamflash.pe_v.begin(), beamflash.pe_v.end(), 0);
-
-  std::cout << "DAVIDC 5 " << std::endl;
 
   // grab PFParticles in event
   auto const& pfp_h = e.getValidHandle<std::vector<recob::PFParticle> >(fPandoraProducer);
@@ -235,8 +224,6 @@ void StoreFlashMatchChi2::produce(art::Event& e)
   
   art::FindManyP<recob::Hit> spacepoint_hit_assn_v(spacepoint_h, e, fSpacePointProducer);
 
-  std::cout << "DAVIDC 6 " << std::endl;
-  
   _pfpmap.clear();
 
   for (unsigned int p=0; p < pfp_h->size(); p++)
@@ -263,8 +250,6 @@ void StoreFlashMatchChi2::produce(art::Event& e)
     
     AddDaughters(pfp_ptr, pfp_h, pfp_ptr_v);
 
-    std::cout << "DAVIDC 7 " << std::endl;
-    
     // go through these pfparticles and fill info needed for matching
     for (size_t i=0; i < pfp_ptr_v.size(); i++) {
       
@@ -307,8 +292,6 @@ void StoreFlashMatchChi2::produce(art::Event& e)
     m_flashMatchManager.Emplace(std::move(lightCluster));
 
 
-    std::cout << "DAVIDC 8 " << std::endl;
-
     const auto matches(m_flashMatchManager.Match());
     
     float FMscore = 9999.;
@@ -319,8 +302,6 @@ void StoreFlashMatchChi2::produce(art::Event& e)
       for (auto hypo_pe : matches.back().hypothesis)
         _pe_hypo_v.push_back(static_cast<float>(hypo_pe));
     }
-
-    std::cout << "DAVIDC 9 " << std::endl;
 
     // load associated tracks
     std::cout << "Accessing pfp ass " << p << " for vector of length " << pfp_track_assn_v.size() << std::endl;
@@ -342,8 +323,6 @@ void StoreFlashMatchChi2::produce(art::Event& e)
       }// if this track is ACPT tagged
     }// if there is a track associated to this primary pfparticle
 
-    std::cout << "DAVIDC 10 " << std::endl;
-
     // create T0 object with this information!
     anab::T0 t0(beamflash.time, 0, 0, 0, FMscore);
     T0_v->emplace_back(t0);
@@ -351,12 +330,8 @@ void StoreFlashMatchChi2::produce(art::Event& e)
     
   }//  for all PFParticles
 
-  std::cout << "DAVIDC 11 " << std::endl;
-
   e.put(std::move(T0_v));
   e.put(std::move(pfp_t0_assn_v));
-
-  std::cout << "DAVIDC 12 " << std::endl;
 
 }
 
