@@ -2,6 +2,8 @@
 #define YPLANESTARTPOINT3D_CXX
 
 #include <iostream>
+
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "ubreco/ShowerReco/ShowerReco3D/Base/ShowerRecoModuleBase.h"
 /**
    \class ShowerRecoModuleBase
