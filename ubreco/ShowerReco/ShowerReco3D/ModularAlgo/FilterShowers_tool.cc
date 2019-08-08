@@ -2,6 +2,8 @@
 #define FILTERSHOWERS_CXX
 
 #include <iostream>
+
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "ubreco/ShowerReco/ShowerReco3D/Base/ShowerRecoModuleBase.h"
 
 #include <sstream>
