@@ -28,6 +28,7 @@
 
 #include "lardataobj/RecoBase/PFParticle.h"
 #include "lardataobj/RecoBase/Track.h"
+#include "lardataobj/RecoBase/Vertex.h"
 #include "lardataobj/RecoBase/PFParticleMetadata.h"
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
@@ -95,8 +96,10 @@ private:
 		    std::vector<art::Ptr<recob::PFParticle> > &pfp_v);
 
   TTree* _flashmatch_acpt_tree;
+  TTree* _flashmatch_nuslice_tree;
   std::vector<float> _pe_reco_v, _pe_hypo_v;
   float _trk_vtx_x, _trk_vtx_y, _trk_vtx_z, _trk_end_x, _trk_end_y, _trk_end_z;
+  float _nuvtx_x, _nuvtx_y, _nuvtx_z;
   int _evt, _run, _sub;
   float _flashtime;
   float _flashpe;
@@ -145,6 +148,20 @@ StoreFlashMatchChi2::StoreFlashMatchChi2(fhicl::ParameterSet const& p)
   _flashmatch_acpt_tree->Branch("trk_end_x",&_trk_end_x,"trk_end_x/F");
   _flashmatch_acpt_tree->Branch("trk_end_y",&_trk_end_y,"trk_end_y/F");
   _flashmatch_acpt_tree->Branch("trk_end_z",&_trk_end_z,"trk_end_z/F");
+
+
+  // Tree to store neutrino flash-matching information
+  _flashmatch_nuslice_tree = tfs->make<TTree>("nuslicetree","ACPT FlashMatch tree");
+  _flashmatch_nuslice_tree->Branch("evt",&_evt,"evt/I");
+  _flashmatch_nuslice_tree->Branch("run",&_run,"run/I");
+  _flashmatch_nuslice_tree->Branch("sub",&_sub,"sub/I");
+  _flashmatch_nuslice_tree->Branch("flashtime",&_flashtime,"flashtime/F");
+  _flashmatch_nuslice_tree->Branch("flashpe"  ,&_flashpe  ,"flashpe/F"  );
+  _flashmatch_nuslice_tree->Branch("pe_reco_v","std::vector<float>",&_pe_reco_v);
+  _flashmatch_nuslice_tree->Branch("pe_hypo_v","std::vector<float>",&_pe_hypo_v);
+  _flashmatch_nuslice_tree->Branch("nuvtx_x",&_nuvtx_x,"nuvtx_x/F");
+  _flashmatch_nuslice_tree->Branch("nuvtx_y",&_nuvtx_y,"nuvtx_y/F");
+  _flashmatch_nuslice_tree->Branch("nuvtx_z",&_nuvtx_z,"nuvtx_z/F");
   
 
   // Call appropriate produces<>() functions here.
@@ -212,6 +229,8 @@ void StoreFlashMatchChi2::produce(art::Event& e)
   art::FindManyP<recob::SpacePoint> pfp_spacepoint_assn_v(pfp_h, e, fPandoraProducer);
   // grab tracks associated with PFParticles
   art::FindManyP<recob::Track> pfp_track_assn_v(pfp_h, e, fPandoraProducer);
+  // grab vertices associated with PFParticles
+  art::FindManyP<recob::Vertex> pfp_vertex_assn_v(pfp_h, e, fPandoraProducer);
 
   // grab tracks in the event
   auto const& trk_h = e.getValidHandle<std::vector<recob::Track> >(fPandoraProducer);
@@ -303,16 +322,28 @@ void StoreFlashMatchChi2::produce(art::Event& e)
         _pe_hypo_v.push_back(static_cast<float>(hypo_pe));
     }
 
+    // is this the neutrino slice?
+    if ( (pfp.PdgCode() == 12) || (pfp.PdgCode() == 14) ) {
+      // grab vertex
+      auto const& vtx_assn_v = pfp_vertex_assn_v.at(p);
+      if (vtx_assn_v.size() == 1) {
+	art::Ptr<recob::Vertex> vtx = vtx_assn_v.at(0);
+	Double_t xyz[3] = {};
+	vtx->XYZ(xyz);
+	_nuvtx_x = xyz[0];
+	_nuvtx_y = xyz[1];
+	_nuvtx_z = xyz[2];
+	_flashmatch_nuslice_tree->Fill();
+      }// if vertex is found
+    }// if neutrino reco slice
+    
     // load associated tracks
-    std::cout << "Accessing pfp ass " << p << " for vector of length " << pfp_track_assn_v.size() << std::endl;
     auto const& pfp_track_assn = pfp_track_assn_v.at(p);
     if ( pfp_track_assn.size() == 1 ) {
       art::Ptr<recob::Track> trk = pfp_track_assn.at(0);
       // grab track key to find anab::T0 association, if present
       auto const T0_v = trk_t0_assn_v.at( trk.key() );
-      std::cout << "There are " << T0_v.size() << " associated anab::T0 objects to this track" << std::endl;
       if (T0_v.size() == 1) {
-	std::cout << "associated T0" << std::endl;
 	_trk_vtx_x = trk->Vertex().X();
 	_trk_vtx_y = trk->Vertex().Y();
 	_trk_vtx_z = trk->Vertex().Z();
