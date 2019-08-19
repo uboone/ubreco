@@ -47,9 +47,12 @@ private:
 
   // Declare member data here.
   art::InputTag fMCPproducer;
-  float fTrkLen;
+  //float fTrkLen;
 
   float _xmin, _xmax, _ymin, _ymax, _zmin, _zmax;
+
+  bool fCheckAnode;
+  bool fCheckCathode;
 
   bool Contained(const float& x, const float& y, const float& z);
 
@@ -61,7 +64,10 @@ ACPTtrigMCFilter::ACPTtrigMCFilter(fhicl::ParameterSet const& p)
   // More initializers here.
 {
   fMCPproducer = p.get< art::InputTag > ("MCPproducer");
-  fTrkLen      = p.get< float         > ("TrkLen");
+  //  fTrkLen      = p.get< float         > ("TrkLen");
+
+  fCheckAnode   = p.get< bool         > ("CheckAnode");
+  fCheckCathode = p.get< bool         > ("CheckCathode");
 
   _xmin = 0.;
   _xmax = 256.;
@@ -112,17 +118,27 @@ bool ACPTtrigMCFilter::filter(art::Event& e)
       // if track has entered into the TPC
       if ( ( Contained(x1,y1,z1) == false ) && ( Contained(x2,y2,z2) == true ) ) {
 
-	// does the point cross the x boundary?
-	if ( (x1 > _xmax) && (x2 < _xmax)  )
+	// does the point cross the cathode boundary?
+	if ( (x1 > _xmax) && (x2 < _xmax) && fCheckCathode )
 	  nACPT += 1;
+	
+	// does the point cross the anode boundary?
+	if ( (x1 < _xmin) && (x2 > _xmin) && fCheckAnode)
+	  nACPT += 1;
+	
       }// if track has entered into the TPC
 
       // if track has exited the TPC
       if ( ( Contained(x1,y1,z1) == true ) && ( Contained(x2,y2,z2) == false ) ) {
 
 	// does the point cross the x boundary?
-	if ( (x1 < _xmax) && (x2 > _xmax)  )
+	if ( (x1 < _xmax) && (x2 > _xmax) && fCheckCathode)
 	  nACPT += 1;
+
+	// does the point cross the anode boundary?
+	if ( (x1 > _xmin) && (x2 < _xmin) && fCheckAnode)
+	  nACPT += 1;
+	
       }// if track has exited the TPC
       
     }// for all trajectory points
