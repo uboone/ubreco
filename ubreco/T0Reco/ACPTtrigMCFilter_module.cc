@@ -119,26 +119,30 @@ bool ACPTtrigMCFilter::filter(art::Event& e)
       if ( ( Contained(x1,y1,z1) == false ) && ( Contained(x2,y2,z2) == true ) ) {
 
 	// does the point cross the cathode boundary?
-	if ( (x1 > _xmax) && (x2 < _xmax) && fCheckCathode )
+	if ( (x1 > _xmax) && (x2 < _xmax) && fCheckCathode ){
 	  nACPT += 1;
-	
+	  std::cout << "Crossed the Cathode!" << std::endl;
+	}
 	// does the point cross the anode boundary?
-	if ( (x1 < _xmin) && (x2 > _xmin) && fCheckAnode)
+	if ( (x1 < _xmin) && (x2 > _xmin) && fCheckAnode){
 	  nACPT += 1;
-	
+	  std::cout << "Crossed the Anode!" << std::endl;
+	}
       }// if track has entered into the TPC
 
       // if track has exited the TPC
       if ( ( Contained(x1,y1,z1) == true ) && ( Contained(x2,y2,z2) == false ) ) {
 
 	// does the point cross the x boundary?
-	if ( (x1 < _xmax) && (x2 > _xmax) && fCheckCathode)
+	if ( (x1 < _xmax) && (x2 > _xmax) && fCheckCathode){
+	  std::cout << "Crossed the Cathode!" << std::endl;
 	  nACPT += 1;
-
+	}
 	// does the point cross the anode boundary?
-	if ( (x1 > _xmin) && (x2 < _xmin) && fCheckAnode)
+	if ( (x1 > _xmin) && (x2 < _xmin) && fCheckAnode){
 	  nACPT += 1;
-	
+	  std::cout << "Crossed the Anode!" << std::endl;
+	}
       }// if track has exited the TPC
       
     }// for all trajectory points
