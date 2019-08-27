@@ -10,7 +10,7 @@ microboone_ACPTtrigMCGen:
  TimeLow: 3.57e-6 # in seconds
  TimeHigh: 5.25e-6 # in seconds
  #subboxLength should be full width of top box (in m)
- CRYConfigStr: "date 1-1-2016 returnGammas 0 returnElectrons 0 returnMuons 1 returnPions 0 returnNeutrons 0 returnProtons 0 latitude 41.8 subboxLength 0.48 altitude 0"
+ CRYConfigStr: "date 1-1-2016 returnGammas 0 returnElectrons 0 returnMuons 1 returnPions 0 returnNeutrons 0 returnProtons 0 latitude 41.8 subboxLength 40.8 altitude 0"
  ParticlesPerEvent: 1
 }
 
