@@ -6,7 +6,7 @@ ACPTtrig: {
     CathodeMin: 254
     CathodeMax: 256.5
     AnodeMin: 0
-    AnodeMax: 1
+    AnodeMax: 1.6
     YMin: -80
     YMax: 80
     BeamSpillStart: 3.0
