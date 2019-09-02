@@ -39,6 +39,7 @@
         <RecreatedClusterListName>RecreatedClusters</RecreatedClusterListName>
         <RecreatedVertexListName>RecreatedVertices</RecreatedVertexListName>
         <VisualizeOverallRecoStatus>false</VisualizeOverallRecoStatus>
+        <ShouldRemoveOutOfTimeHits>false</ShouldRemoveOutOfTimeHits>
     </algorithm>
 
     <algorithm type = "LArVisualMonitoring">
