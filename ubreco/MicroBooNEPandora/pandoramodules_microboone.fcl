@@ -2,7 +2,7 @@ BEGIN_PROLOG
 
 microboone_pandora:
 {
-    module_type:                                                    "StandardPandora"
+    module_type:                                                    "MicroBooNEPandora"
     GeantModuleLabel:                                               "largeant"
     HitFinderModuleLabel:                                           "gaushit"
     EnableMCParticles:                                              false
@@ -42,6 +42,12 @@ microboone_pandoraAllHitsSliceCR.ShouldRunCosmicRecoOption:         true
 microboone_pandoraAllHitsSliceNu:                                   @local::microboone_pandora
 microboone_pandoraAllHitsSliceNu.ShouldRunSlicing:                  true
 microboone_pandoraAllHitsSliceNu.ShouldRunNeutrinoRecoOption:       true
+
+microboone_pandoraReprocessSlices:                                  @local::microboone_pandora
+microboone_pandoraReprocessSlices.ConfigFile:                       "PandoraSettings_ReprocessSlices_MicroBooNE.xml"
+microboone_pandoraReprocessSlices.ShouldRunNeutrinoRecoOption:      true
+microboone_pandoraReprocessSlices.ProcessExistingSlices:            true
+microboone_pandoraReprocessSlices.ShouldProduceSlices:              false
 
 microboone_pandoraWriter:                                           @local::microboone_pandora
 microboone_pandoraWriter.ConfigFile:                                "PandoraSettings_Write.xml"
