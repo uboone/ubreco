@@ -47,7 +47,7 @@ microboone_pandoraReprocessSlices:                                  @local::micr
 microboone_pandoraReprocessSlices.ConfigFile:                       "PandoraSettings_ReprocessSlices_MicroBooNE.xml"
 microboone_pandoraReprocessSlices.ShouldRunNeutrinoRecoOption:      true
 microboone_pandoraReprocessSlices.ProcessExistingSlices:            true
-microboone_pandoraReprocessSlices.ShouldProduceSlices:              false
+microboone_pandoraReprocessSlices.ShouldProduceSlices:              true
 
 microboone_pandoraWriter:                                           @local::microboone_pandora
 microboone_pandoraWriter.ConfigFile:                                "PandoraSettings_Write.xml"
