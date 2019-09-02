@@ -39,6 +39,7 @@ public:
 private:
     typedef std::vector< art::Ptr<recob::Slice> > SliceVector;
     typedef std::map< art::Ptr<recob::Slice>, HitVector > SlicesToHits;
+    typedef std::unordered_map< const pandora::ParticleFlowObject *, unsigned int > PfoToSliceIdMap;
 
     /**
      *  @brief  Use the named producer of slices to collect a vector of slices and mapping from slices to hits
@@ -56,8 +57,10 @@ private:
      *  @param  sliceVector the slice vector
      *  @param  slicesToHits the mapping from slices to hits
      *  @param  idToHitMap to receive the mapping from identifier to hits
+     *  @param  pfoToSliceIdMap to receive the mapping from pandora particle flow objects to slice ids
      */
-    void ReprocessSlices(const art::Event &evt, const SliceVector &sliceVector, const SlicesToHits &slicesToHits, IdToHitMap &idToHitMap);
+    void ReprocessSlices(const art::Event &evt, const SliceVector &sliceVector, const SlicesToHits &slicesToHits, IdToHitMap &idToHitMap,
+        PfoToSliceIdMap &pfoToSliceIdMap);
 
     /**
      *  @brief  Create a hook in pandora to create a vertex
@@ -69,9 +72,13 @@ private:
      *
      *  @param  evt the art event
      *  @param  pfoVector the pfo vector
+     *  @param  sliceVector the slice vector
+     *  @param  slicesToHits the mapping from slices to hits
      *  @param  idToHitMap the mapping from identifier to hits
+     *  @param  pfoToSliceIdMap the mapping from pandora particle flow objects to slice ids
      */
-    void ProduceOutput(art::Event &evt, const pandora::PfoVector &pfoVector, const IdToHitMap &idToHitMap) const;
+    void ProduceOutput(art::Event &evt, const pandora::PfoVector &pfoVector, const SliceVector &sliceVector, const SlicesToHits &slicesToHits,
+        const IdToHitMap &idToHitMap, const PfoToSliceIdMap &pfoToSliceIdMap) const;
 
     void CreatePandoraInstances();
     void ConfigurePandoraInstances();
@@ -162,11 +169,12 @@ void MicroBooNEPandora::produce(art::Event &evt)
 
 
     IdToHitMap idToHitMap;
-    this->ReprocessSlices(evt, sliceVector, slicesToHits, idToHitMap);
+    PfoToSliceIdMap pfoToSliceIdMap;
+    this->ReprocessSlices(evt, sliceVector, slicesToHits, idToHitMap, pfoToSliceIdMap);
 
 
     if (m_enableProduction)
-        this->ProduceOutput(evt, LArPandoraOutput::CollectPfos(m_pPrimaryPandora), idToHitMap);
+        this->ProduceOutput(evt, LArPandoraOutput::CollectPfos(m_pPrimaryPandora), sliceVector, slicesToHits, idToHitMap, pfoToSliceIdMap);
 
     this->ResetPandoraInstances();
 }
@@ -207,7 +215,8 @@ void MicroBooNEPandora::CollectHitsBySlice(const art::Event &evt, SliceVector &s
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void MicroBooNEPandora::ReprocessSlices(const art::Event &evt, const SliceVector &sliceVector, const SlicesToHits &slicesToHits, IdToHitMap &idToHitMap)
+void MicroBooNEPandora::ReprocessSlices(const art::Event &evt, const SliceVector &sliceVector, const SlicesToHits &slicesToHits, IdToHitMap &idToHitMap,
+    PfoToSliceIdMap &pfoToSliceIdMap)
 {
     m_inputSettings.m_hitCounterOffset = 0;
 
@@ -282,6 +291,13 @@ void MicroBooNEPandora::ReprocessSlices(const art::Event &evt, const SliceVector
         }
 
         this->RunPandoraInstances();
+        const pandora::PfoVector currentPfoVector(LArPandoraOutput::CollectPfos(m_pPrimaryPandora));
+
+        for (const pandora::ParticleFlowObject *const pPfo : currentPfoVector)
+        {
+            if (!pfoToSliceIdMap.count(pPfo))
+                (void) pfoToSliceIdMap.insert(PfoToSliceIdMap::value_type(pPfo, sliceIndex));
+        }
     }
 }
 
@@ -322,11 +338,9 @@ void MicroBooNEPandora::CreateExternalVertex(art::Ptr<recob::Vertex> const& vtx_
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void MicroBooNEPandora::ProduceOutput(art::Event &evt, const pandora::PfoVector &pfoVector, const IdToHitMap &idToHitMap) const
+void MicroBooNEPandora::ProduceOutput(art::Event &evt, const pandora::PfoVector &pfoVector, const SliceVector &sliceVector, const SlicesToHits &slicesToHits,
+    const IdToHitMap &idToHitMap, const PfoToSliceIdMap &pfoToSliceIdMap) const
 {
-    if (m_outputSettings.m_shouldProduceSlices)
-        throw cet::exception("MicroBooNEPandora") << "MicroBooNEPandora::ProduceOutput - Currently unable to reprocess existing slices _and_ produce new slice output." << std::endl;
-
     m_outputSettings.Validate();
     const std::string instanceLabel("");
 
@@ -375,9 +389,6 @@ void MicroBooNEPandora::ProduceOutput(art::Event &evt, const pandora::PfoVector 
 
     LArPandoraOutput::BuildParticleMetadata(evt, m_outputSettings.m_pProducer, instanceLabel, pfoVector, outputParticleMetadata, outputParticlesToMetadata);
 
-    if (m_outputSettings.m_shouldProduceSlices)
-        LArPandoraOutput::BuildSlices(m_outputSettings, m_outputSettings.m_pPrimaryPandora, evt, m_outputSettings.m_pProducer, instanceLabel, pfoVector, idToHitMap, outputSlices, outputParticlesToSlices, outputSlicesToHits);
-
     // Add the outputs to the event
     evt.put(std::move(outputParticles), instanceLabel);
     evt.put(std::move(outputSpacePoints), instanceLabel);
@@ -394,6 +405,21 @@ void MicroBooNEPandora::ProduceOutput(art::Event &evt, const pandora::PfoVector 
 
     if (m_outputSettings.m_shouldProduceSlices)
     {
+        for (unsigned int sliceIndex = 0; sliceIndex < sliceVector.size(); ++sliceIndex)
+        {
+            const art::Ptr<recob::Slice> pSlice(sliceVector.at(sliceIndex));
+            outputSlices->emplace_back(pSlice->ID(), pSlice->Center(), pSlice->Direction(), pSlice->End0Pos(), pSlice->End1Pos(), pSlice->AspectRatio(), pSlice->Charge());
+
+            LArPandoraOutput::AddAssociation(evt, this, instanceLabel, sliceIndex, slicesToHits.at(pSlice), outputSlicesToHits);
+
+            // ATTN Here rely on knowing the index system in use in LArPandoraOutput::BuildPFParticles...
+            for (unsigned int particleIndex = 0; particleIndex < pfoVector.size(); ++particleIndex)
+            {
+                if (sliceIndex == pfoToSliceIdMap.at(pfoVector.at(particleIndex)))
+                    LArPandoraOutput::AddAssociation(evt, this, instanceLabel, particleIndex, sliceIndex, outputParticlesToSlices);
+            }
+        }
+
         evt.put(std::move(outputSlices), instanceLabel);
         evt.put(std::move(outputSlicesToHits), instanceLabel);
         evt.put(std::move(outputParticlesToSlices), instanceLabel);
