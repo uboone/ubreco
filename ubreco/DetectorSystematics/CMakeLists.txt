@@ -8,6 +8,7 @@ art_make(
 			cetlib cetlib_except
                         ${Boost_SYSTEM_LIBRARY}
 			${ROOT_BASIC_LIB_LIST}
+			${ROOT_HIST}
           MODULE_LIBRARIES 
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
@@ -38,6 +39,7 @@ art_make(
                         ${ROOT_XMLIO}
                         ${ROOT_GDML}
 			${ROOT_BASIC_LIB_LIST}
+			${ROOT_HIST}
         )
 
 install_headers()

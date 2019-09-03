@@ -27,6 +27,9 @@
 
 #include "lardata/Utilities/AssociationUtil.h"
 
+#include "TFile.h"
+#include "TSpline.h"
+
 namespace sys {
   class WireModifier;
 }
@@ -55,6 +58,13 @@ private:
   bool          fMakeRawDigitAssn;
   bool          fCopyRawDigitAssn;
 
+  std::string   fSplinesFileName;
+  std::vector<std::string> fSplineNames_Charge_X;
+  std::vector<std::string> fSplineNames_Sigma_X;
+
+  std::vector<TSpline3*> fTSplines_Charge_X;
+  std::vector<TSpline3*> fTSplines_Sigma_X;
+
   //useful math things
   static constexpr double ONE_OVER_SQRT_2PI = 1./std::sqrt(2*util::pi());
   double GAUSSIAN(double t, double mean,double sigma,double a=1.0){
@@ -75,6 +85,7 @@ private:
   std::map< ROI_Key_t,std::vector<size_t> > fROIMatchedEdepMap;
 
   typedef struct ROIProperties{
+    unsigned int plane;
     float begin;
     float end;
 
@@ -104,7 +115,7 @@ private:
 
   TruthProperties_t CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDeposit*> const&);
 
-  ScaleValues_t GetScaleValues(TruthProperties_t const&);
+  ScaleValues_t GetScaleValues(TruthProperties_t const&,ROIProperties_t const&);
 
   void ModifyROI(//recob::Wire::RegionsOfInterest_t::datarange_t::vector_t &,
 		 std::vector<float> &,
@@ -224,13 +235,26 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
   return edep_col_properties;
 }
 
-sys::WireModifier::ScaleValues_t sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& truth_props)
+sys::WireModifier::ScaleValues_t sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& truth_props, sys::WireModifier::ROIProperties_t const& roi_vals)
 {
   ScaleValues_t scales;
 
   //get scales here
-  scales.r_Q = 1.0 + (10.0*truth_props.x/256.);
-  scales.r_sigma = 1.0;
+  if(roi_vals.plane==0){
+    scales.r_Q = fTSplines_Charge_X[0]->Eval(truth_props.x);
+    scales.r_sigma = fTSplines_Sigma_X[0]->Eval(truth_props.x);
+  }
+  else if(roi_vals.plane==1){
+    scales.r_Q = fTSplines_Charge_X[1]->Eval(truth_props.x);
+    scales.r_sigma = fTSplines_Sigma_X[1]->Eval(truth_props.x);
+  }
+  else if(roi_vals.plane==2){
+    scales.r_Q = fTSplines_Charge_X[2]->Eval(truth_props.x);
+    scales.r_sigma = fTSplines_Sigma_X[2]->Eval(truth_props.x);
+  }
+
+  //std::cout << "For plane=" << roi_vals.plane << " and x=" << truth_props.x
+  //	    << " scales are " << scales.r_Q << " and " << scales.r_sigma << std::endl;
 
   return scales;
 }
@@ -264,13 +288,30 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fSimEdepShiftedInputTag(p.get<art::InputTag>("SimEdepShiftedInputTag")),
   fSimEdepOrigInputTag(p.get<art::InputTag>("SimEdepOrigInputTag")),
   fMakeRawDigitAssn(p.get<bool>("MakeRawDigitAssn",true)),
-  fCopyRawDigitAssn(p.get<bool>("CopyRawDigitAssn",false))
+  fCopyRawDigitAssn(p.get<bool>("CopyRawDigitAssn",false)),
+  fSplinesFileName(p.get<std::string>("SplinesFileName")),
+  fSplineNames_Charge_X(p.get< std::vector<std::string> >("SplineNames_Charge_X")),
+  fSplineNames_Sigma_X(p.get< std::vector<std::string> >("SplineNames_Sigma_X"))
   //  ONE_OVER_SQRT_2PI(1./std::sqrt(2*util::pi()))
 {
   produces< std::vector< recob::Wire > >();
 
   if(fMakeRawDigitAssn)
     produces< art::Assns<raw::RawDigit,recob::Wire> >();
+
+
+  fSplinesFileName = std::string(std::getenv("UBOONEDATA_DIR"))+"/systematics/det_sys/"+fSplinesFileName;
+  std::cout << "Spline file is " << fSplinesFileName;
+
+  TFile f_splines(fSplinesFileName.c_str(),"r");
+
+  fTSplines_Charge_X.resize(fSplineNames_Charge_X.size());
+  for(size_t i_s=0; i_s<fSplineNames_Charge_X.size(); ++i_s)
+    f_splines.GetObject(fSplineNames_Charge_X[i_s].c_str(),fTSplines_Charge_X[i_s]);
+  
+  fTSplines_Sigma_X.resize(fSplineNames_Sigma_X.size());
+  for(size_t i_s=0; i_s<fSplineNames_Sigma_X.size(); ++i_s)
+    f_splines.GetObject(fSplineNames_Sigma_X[i_s].c_str(),fTSplines_Sigma_X[i_s]);
 }
 
 void sys::WireModifier::produce(art::Event& e)
@@ -309,6 +350,8 @@ void sys::WireModifier::produce(art::Event& e)
     recob::Wire::RegionsOfInterest_t new_rois;
     new_rois.resize(wire.SignalROI().size());
 
+    unsigned int my_plane=wire.View();
+
     //for(auto const& range: wire.SignalROI().get_ranges()){
     for(size_t i_r=0; i_r<wire.SignalROI().get_ranges().size(); ++i_r){
 
@@ -330,6 +373,7 @@ void sys::WireModifier::produce(art::Event& e)
       
       //calc roi properties
       auto roi_properties = CalcROIProperties(range);
+      roi_properties.plane = my_plane;
 
       //calc the inputs to properties
       std::vector<const sim::SimEnergyDeposit*> matchedEdepPtrVec;
@@ -338,7 +382,7 @@ void sys::WireModifier::produce(art::Event& e)
       auto edep_col_properties = CalcPropertiesFromEdeps(matchedEdepPtrVec);
 
       //get the scaling values
-      auto scales = GetScaleValues(edep_col_properties);
+      auto scales = GetScaleValues(edep_col_properties,roi_properties);
 
       //get modified ROI given scales
 
