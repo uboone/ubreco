@@ -28,6 +28,7 @@ microboone_pandoraFull.ShouldRunNeutrinoRecoOption:                 true
 microboone_pandoraFull.ShouldRunCosmicRecoOption:                   true
 microboone_pandoraFull.ShouldPerformSliceId:                        true
 microboone_pandoraFull.ProduceAllOutcomes:                          true
+microboone_pandoraFull.PersistAllCandidateVertices:                 true
 
 microboone_pandoraAllHitsCR:                                        @local::microboone_pandora
 microboone_pandoraAllHitsCR.ShouldRunAllHitsCosmicReco:             true

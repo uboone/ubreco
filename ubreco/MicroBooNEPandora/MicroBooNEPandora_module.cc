@@ -42,6 +42,13 @@ private:
     typedef std::unordered_map< const pandora::ParticleFlowObject *, unsigned int > PfoToSliceIdMap;
 
     /**
+     *  @brief  Access and persist all candidate vertices produced by the Pandora neutrino pass for each slice
+     *
+     *  @param  evt the art event
+     */
+    void AccessAndPersistAllCandidateVertices(art::Event &evt) const;
+
+    /**
      *  @brief  Use the named producer of slices to collect a vector of slices and mapping from slices to hits
      *
      *  @param  evt the art event
@@ -77,8 +84,8 @@ private:
      *  @param  idToHitMap the mapping from identifier to hits
      *  @param  pfoToSliceIdMap the mapping from pandora particle flow objects to slice ids
      */
-    void ProduceOutput(art::Event &evt, const pandora::PfoVector &pfoVector, const SliceVector &sliceVector, const SlicesToHits &slicesToHits,
-        const IdToHitMap &idToHitMap, const PfoToSliceIdMap &pfoToSliceIdMap) const;
+    void ProduceReprocessedSlicesOutput(art::Event &evt, const pandora::PfoVector &pfoVector, const SliceVector &sliceVector,
+        const SlicesToHits &slicesToHits, const IdToHitMap &idToHitMap, const PfoToSliceIdMap &pfoToSliceIdMap) const;
 
     void CreatePandoraInstances();
     void ConfigurePandoraInstances();
@@ -93,8 +100,15 @@ private:
      */
     void ProvideExternalSteeringParameters(const pandora::Pandora *const pPandora) const;
 
-    bool            m_processExistingSlices;     ///< Whether to run in slice mode, running a Pandora reconstruction pass for each slice
-    std::string     m_sliceModuleLabel;          ///< The slice module label, only used when running in slice mode
+    typedef std::unique_ptr< std::vector<recob::Vertex> > VertexCollection;
+    typedef std::unique_ptr< art::Assns<recob::Slice, recob::Vertex> > SliceToVertexCollection;
+
+    bool            m_persistAllCandidateVertices;      ///< Whether to persist all candidate vertices
+    std::string     m_candidateVerticesInstanceLabel;   ///< The instance name under which to persist all candidate vertices and associations
+    std::string     m_candidateVertexParticlesListName; ///< The name of the Pandora list via which all candidate vertices can be accessed
+
+    bool            m_processExistingSlices;            ///< Whether to run in slice mode, running a Pandora reconstruction pass for each slice
+    std::string     m_sliceModuleLabel;                 ///< The slice module label, only used when running in slice mode
 
     bool            m_reprocessForExternalVertex;  ///< whether to run reprocessing of slices where there's an external vertex
     art::InputTag   m_externalVertexModuleLabel; ///< vertex module label for using an external vertex input
@@ -126,6 +140,8 @@ DEFINE_ART_MODULE(MicroBooNEPandora)
 #include "larpandoracontent/LArPlugins/LArPseudoLayerPlugin.h"
 #include "larpandoracontent/LArPlugins/LArRotationalTransformationPlugin.h"
 
+#include "Objects/ParticleFlowObject.h"
+
 #include "MicroBooNEContent.h"
 
 namespace lar_pandora
@@ -133,11 +149,21 @@ namespace lar_pandora
 
 MicroBooNEPandora::MicroBooNEPandora(fhicl::ParameterSet const &pset) :
     LArPandora(pset),
+    m_persistAllCandidateVertices(pset.get<bool>("PersistAllCandidateVertices", false)),
+    m_candidateVerticesInstanceLabel(pset.get<std::string>("SliceModuleLabel","allcandidatevertices")),
+    m_candidateVertexParticlesListName(pset.get<std::string>("CandidateVertexParticlesListName","CandidateVertexParticles3D")),
     m_processExistingSlices(pset.get<bool>("ProcessExistingSlices", false)),
     m_sliceModuleLabel(pset.get<std::string>("SliceModuleLabel","")),
     m_reprocessForExternalVertex(pset.get<bool>("ReprocessForExternalVertex",false)),
     m_externalVertexModuleLabel(pset.get<art::InputTag>("ExternalVertexModuleLabel",""))
 {
+    if (m_enableProduction && m_persistAllCandidateVertices)
+    {
+        produces< std::vector<recob::Vertex> >(m_candidateVerticesInstanceLabel);
+
+	if (m_outputSettings.m_shouldProduceSlices)
+	  produces< art::Assns<recob::Slice, recob::Vertex> >(m_candidateVerticesInstanceLabel);
+    }
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -158,25 +184,87 @@ void MicroBooNEPandora::produce(art::Event &evt)
 
     // ATTN Should complete gap creation in begin job callback, but channel status service functionality unavailable at that point
     if (!m_lineGapsCreated && m_enableDetectorGaps)
+
     {
-        LArPandoraInput::CreatePandoraReadoutGaps(m_inputSettings, m_driftVolumeMap);
-        m_lineGapsCreated = true;
+        IdToHitMap idToHitMap;
+        this->CreatePandoraInput(evt, idToHitMap);
+        this->RunPandoraInstances();
+        this->ProcessPandoraOutput(evt, idToHitMap);
+
+        if (m_enableProduction && m_persistAllCandidateVertices)
+            this->AccessAndPersistAllCandidateVertices(evt);
     }
+    else
+    {
+        // ATTN Should complete gap creation in begin job callback, but channel status service functionality unavailable at that point
+        if (!m_lineGapsCreated && m_enableDetectorGaps)
+        {
+            LArPandoraInput::CreatePandoraReadoutGaps(m_inputSettings, m_driftVolumeMap);
+            m_lineGapsCreated = true;
+        }
 
-    SliceVector sliceVector;
-    SlicesToHits slicesToHits;
-    this->CollectHitsBySlice(evt, sliceVector, slicesToHits);
-
+        SliceVector sliceVector;
+        SlicesToHits slicesToHits;
+        this->CollectHitsBySlice(evt, sliceVector, slicesToHits);
 
     IdToHitMap idToHitMap;
     PfoToSliceIdMap pfoToSliceIdMap;
     this->ReprocessSlices(evt, sliceVector, slicesToHits, idToHitMap, pfoToSliceIdMap);
 
 
+    //if (m_enableProduction)
+    //  this->ProduceOutput(evt, LArPandoraOutput::CollectPfos(m_pPrimaryPandora), sliceVector, slicesToHits, idToHitMap, pfoToSliceIdMap);
+
     if (m_enableProduction)
-        this->ProduceOutput(evt, LArPandoraOutput::CollectPfos(m_pPrimaryPandora), sliceVector, slicesToHits, idToHitMap, pfoToSliceIdMap);
+      this->ProduceReprocessedSlicesOutput(evt, LArPandoraOutput::CollectPfos(m_pPrimaryPandora), sliceVector, slicesToHits, idToHitMap, pfoToSliceIdMap);
+    }
 
     this->ResetPandoraInstances();
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------
+
+void MicroBooNEPandora::AccessAndPersistAllCandidateVertices(art::Event &evt) const
+{
+    // TODO Need to know number of vertices produced so far at this point - this placeholder is not good enough!
+    unsigned int vertexIndex(100000);
+
+    VertexCollection outputVertices( new std::vector<recob::Vertex> );
+    SliceToVertexCollection outputSlicesToVertices( new art::Assns<recob::Slice, recob::Vertex> );
+
+    // Get the list of slice pfos - one per slice
+    pandora::PfoVector slicePfos;
+    LArPandoraOutput::GetPandoraSlices(m_pPrimaryPandora, slicePfos);
+
+    const pandora::Pandora *pSliceNuWorker(nullptr);
+    if (LArPandoraOutput::GetPandoraInstance(m_pPrimaryPandora, "SliceNuWorker", pSliceNuWorker))
+    {
+        for (unsigned int sliceIndex = 0; sliceIndex < slicePfos.size(); ++sliceIndex)
+        {
+            const pandora::PfoList *pVertexPfoList(nullptr);
+            if (pandora::STATUS_CODE_SUCCESS != PandoraApi::GetPfoList(*pSliceNuWorker, m_candidateVertexParticlesListName + std::to_string(sliceIndex), pVertexPfoList))
+                continue;
+
+            pandora::VertexList vertexList;
+            for (const pandora::ParticleFlowObject *const pPfo : *pVertexPfoList)
+                vertexList.insert(vertexList.end(), pPfo->GetVertexList().begin(), pPfo->GetVertexList().end());
+
+            for (const pandora::Vertex *const pVertex : vertexList)
+            {
+                outputVertices->push_back(LArPandoraOutput::BuildVertex(pVertex, vertexIndex));
+
+		if (m_outputSettings.m_shouldProduceSlices)
+		  LArPandoraOutput::AddAssociation(evt, this, m_candidateVerticesInstanceLabel, sliceIndex, vertexIndex, outputSlicesToVertices);
+
+                ++vertexIndex;
+            }
+        }
+    }
+
+    evt.put(std::move(outputVertices), m_candidateVerticesInstanceLabel);
+
+    if (m_outputSettings.m_shouldProduceSlices)
+      evt.put(std::move(outputSlicesToVertices), m_candidateVerticesInstanceLabel);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
@@ -338,8 +426,8 @@ void MicroBooNEPandora::CreateExternalVertex(art::Ptr<recob::Vertex> const& vtx_
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-void MicroBooNEPandora::ProduceOutput(art::Event &evt, const pandora::PfoVector &pfoVector, const SliceVector &sliceVector, const SlicesToHits &slicesToHits,
-    const IdToHitMap &idToHitMap, const PfoToSliceIdMap &pfoToSliceIdMap) const
+void MicroBooNEPandora::ProduceReprocessedSlicesOutput(art::Event &evt, const pandora::PfoVector &pfoVector, const SliceVector &sliceVector,
+    const SlicesToHits &slicesToHits, const IdToHitMap &idToHitMap, const PfoToSliceIdMap &pfoToSliceIdMap) const
 {
     m_outputSettings.Validate();
     const std::string instanceLabel("");
