@@ -178,12 +178,7 @@ MicroBooNEPandora::~MicroBooNEPandora()
 void MicroBooNEPandora::produce(art::Event &evt)
 {
 
-    if (!m_processExistingSlices && !m_reprocessForExternalVertex)
-        return LArPandora::produce(evt);
-
-
-    // ATTN Should complete gap creation in begin job callback, but channel status service functionality unavailable at that point
-    if (!m_lineGapsCreated && m_enableDetectorGaps)
+    if (!m_processExistingSlices)
 
     {
         IdToHitMap idToHitMap;
@@ -207,16 +202,12 @@ void MicroBooNEPandora::produce(art::Event &evt)
         SlicesToHits slicesToHits;
         this->CollectHitsBySlice(evt, sliceVector, slicesToHits);
 
-    IdToHitMap idToHitMap;
-    PfoToSliceIdMap pfoToSliceIdMap;
-    this->ReprocessSlices(evt, sliceVector, slicesToHits, idToHitMap, pfoToSliceIdMap);
+        IdToHitMap idToHitMap;
+        PfoToSliceIdMap pfoToSliceIdMap;
+        this->ReprocessSlices(evt, sliceVector, slicesToHits, idToHitMap, pfoToSliceIdMap);
 
-
-    //if (m_enableProduction)
-    //  this->ProduceOutput(evt, LArPandoraOutput::CollectPfos(m_pPrimaryPandora), sliceVector, slicesToHits, idToHitMap, pfoToSliceIdMap);
-
-    if (m_enableProduction)
-      this->ProduceReprocessedSlicesOutput(evt, LArPandoraOutput::CollectPfos(m_pPrimaryPandora), sliceVector, slicesToHits, idToHitMap, pfoToSliceIdMap);
+        if (m_enableProduction)
+            this->ProduceReprocessedSlicesOutput(evt, LArPandoraOutput::CollectPfos(m_pPrimaryPandora), sliceVector, slicesToHits, idToHitMap, pfoToSliceIdMap);
     }
 
     this->ResetPandoraInstances();
