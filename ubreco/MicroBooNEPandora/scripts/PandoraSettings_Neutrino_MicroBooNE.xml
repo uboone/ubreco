@@ -358,6 +358,9 @@
         <InputVertexListNames>NeutrinoVertices3D CandidateVertices3D</InputVertexListNames>
         <OutputVertexListName>CandidateVerticesCopy3D</OutputVertexListName>
         <OutputPfoListName>CandidateVertexParticles3D</OutputPfoListName>
+        <!-- Parameters below required for vertex filtering only; can override default values for additional parameters here too -->
+        <ShouldFilterVertexList>true</ShouldFilterVertexList>
+        <InputCaloHitListNames>CaloHitListU CaloHitListV CaloHitListW</InputCaloHitListNames>
     </algorithm>
 
     <!-- Output list management -->
