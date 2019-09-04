@@ -244,8 +244,16 @@ void MicroBooNEPandora::AccessAndPersistAllCandidateVertices(art::Event &evt) co
             {
                 outputVertices->push_back(LArPandoraOutput::BuildVertex(pVertex, vertexIndex));
 
-		if (m_outputSettings.m_shouldProduceSlices)
-		  LArPandoraOutput::AddAssociation(evt, this, m_candidateVerticesInstanceLabel, sliceIndex, vertexIndex, outputSlicesToVertices);
+                if (m_outputSettings.m_shouldProduceSlices)
+                {
+                    const art::PtrMaker<recob::Slice> makePtrA(evt);
+                    art::Ptr<recob::Slice> pA(makePtrA(sliceIndex));
+
+                    const art::PtrMaker<recob::Vertex> makePtrB(evt, m_candidateVerticesInstanceLabel);
+                    art::Ptr<recob::Vertex> pB(makePtrB(vertexIndex));
+
+                    outputSlicesToVertices->addSingle(pA, pB);
+                }
 
                 ++vertexIndex;
             }
