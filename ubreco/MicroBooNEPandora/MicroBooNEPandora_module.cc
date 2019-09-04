@@ -217,8 +217,7 @@ void MicroBooNEPandora::produce(art::Event &evt)
 
 void MicroBooNEPandora::AccessAndPersistAllCandidateVertices(art::Event &evt) const
 {
-    // TODO Need to know number of vertices produced so far at this point - this placeholder is not good enough!
-    unsigned int vertexIndex(100000);
+    unsigned int vertexIndex = 0;
 
     VertexCollection outputVertices( new std::vector<recob::Vertex> );
     SliceToVertexCollection outputSlicesToVertices( new art::Assns<recob::Slice, recob::Vertex> );
