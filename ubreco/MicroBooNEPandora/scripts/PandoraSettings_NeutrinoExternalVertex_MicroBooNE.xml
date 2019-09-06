@@ -1,16 +1,16 @@
 <pandora>
     <!-- GLOBAL SETTINGS -->
-    <IsMonitoringEnabled>true</IsMonitoringEnabled>
+    <IsMonitoringEnabled>false</IsMonitoringEnabled>
     <ShouldDisplayAlgorithmInfo>false</ShouldDisplayAlgorithmInfo>
     <SingleHitTypeClusteringMode>true</SingleHitTypeClusteringMode>
 
     <!-- ALGORITHM SETTINGS -->
-    <algorithm type = "LArPreProcessing">
+    <algorithm type = "MicroBooNEPreProcessing">
         <OutputCaloHitListNameU>CaloHitListU</OutputCaloHitListNameU>
         <OutputCaloHitListNameV>CaloHitListV</OutputCaloHitListNameV>
         <OutputCaloHitListNameW>CaloHitListW</OutputCaloHitListNameW>
-        <FilteredCaloHitListName>CaloHitList2D</FilteredCaloHitListName>
-        <CurrentCaloHitListReplacement>CaloHitList2D</CurrentCaloHitListReplacement>
+        <FilteredCaloHitListName>FilteredCaloHitList</FilteredCaloHitListName>
+        <CurrentCaloHitListReplacement>FilteredCaloHitList</CurrentCaloHitListReplacement>
     </algorithm>
 
     <!-- TwoDReconstruction -->
@@ -78,34 +78,10 @@
     </algorithm>
 
     <!-- VertexAlgorithms -->
-    <algorithm type = "LArCutClusterCharacterisation">
-        <InputClusterListNames>ClustersU ClustersV ClustersW</InputClusterListNames>
-    </algorithm>
-    <algorithm type = "LArCandidateVertexCreation">
-        <InputClusterListNames>ClustersU ClustersV ClustersW</InputClusterListNames>
-        <OutputVertexListName>CandidateVertices3D</OutputVertexListName>
-        <ReplaceCurrentVertexList>true</ReplaceCurrentVertexList>
-        <EnableCrossingCandidates>true</EnableCrossingCandidates>
-    </algorithm>
-    <algorithm type = "LArSvmVertexSelection">
-        <InputCaloHitListNames>CaloHitListU CaloHitListV CaloHitListW</InputCaloHitListNames>
-        <InputClusterListNames>ClustersU ClustersV ClustersW</InputClusterListNames>
+    <algorithm type = "MicroBooNEExternalVertexCreation">
+        <InputCaloHitListName>FilteredCaloHitList</InputCaloHitListName>
         <OutputVertexListName>NeutrinoVertices3D</OutputVertexListName>
         <ReplaceCurrentVertexList>true</ReplaceCurrentVertexList>
-        <MvaFileName>PandoraSvm_v03_11_00.xml</MvaFileName>
-        <RegionMvaName>VertexSelectionRegion</RegionMvaName>
-        <VertexMvaName>VertexSelectionVertex</VertexMvaName>
-        <FeatureTools>
-            <tool type = "LArEnergyKickFeature"/>
-            <tool type = "LArLocalAsymmetryFeature"/>
-            <tool type = "LArGlobalAsymmetryFeature"/>
-            <tool type = "LArShowerAsymmetryFeature"/>
-            <tool type = "LArRPhiFeature"/>
-        </FeatureTools>
-    </algorithm>
-    <algorithm type = "LArCutClusterCharacterisation">
-        <InputClusterListNames>ClustersU ClustersV ClustersW</InputClusterListNames>
-        <ZeroMode>true</ZeroMode>
     </algorithm>
     <algorithm type = "LArVertexSplitting">
         <InputClusterListNames>ClustersU ClustersV ClustersW</InputClusterListNames>
@@ -353,22 +329,12 @@
         <VertexListName>DaughterVertices3D</VertexListName>
     </algorithm>
 
-    <!-- Persist all vertex candidates -->
-    <algorithm type = "DummyVertexParticleCreation">
-        <InputVertexListNames>NeutrinoVertices3D CandidateVertices3D</InputVertexListNames>
-        <OutputVertexListName>CandidateVerticesCopy3D</OutputVertexListName>
-        <OutputPfoListName>CandidateVertexParticles3D</OutputPfoListName>
-        <!-- Parameters below required for vertex filtering only; can override default values for additional parameters here too -->
-        <ShouldFilterVertexList>true</ShouldFilterVertexList>
-        <InputCaloHitListNames>CaloHitListU CaloHitListV CaloHitListW</InputCaloHitListNames>
-    </algorithm>
-
     <!-- Output list management -->
     <algorithm type = "LArPostProcessing">
-        <PfoListNames>NeutrinoParticles3D TrackParticles3D ShowerParticles3D CandidateVertexParticles3D</PfoListNames>
-        <VertexListNames>NeutrinoVertices3D DaughterVertices3D CandidateVertices3D CandidateVerticesCopy3D</VertexListNames>
+        <PfoListNames>NeutrinoParticles3D TrackParticles3D ShowerParticles3D</PfoListNames>
+        <VertexListNames>NeutrinoVertices3D DaughterVertices3D CandidateVertices3D</VertexListNames>
         <ClusterListNames>ClustersU ClustersV ClustersW TrackClusters3D ShowerClusters3D</ClusterListNames>
-        <CaloHitListNames>CaloHitListU CaloHitListV CaloHitListW CaloHitList2D</CaloHitListNames>
+        <CaloHitListNames>CaloHitListU CaloHitListV CaloHitListW FilteredCaloHitList</CaloHitListNames>
         <CurrentPfoListReplacement>NeutrinoParticles3D</CurrentPfoListReplacement>
     </algorithm>
 </pandora>
