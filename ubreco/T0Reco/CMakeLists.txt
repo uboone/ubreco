@@ -1,3 +1,5 @@
+cet_find_library( CRY NAMES CRY PATHS ENV CRY_LIB NO_DEFAULT_PATH ) 
+include_directories ( $ENV{CRYHOME}/src )
 
 art_make(	
 	  LIB_LIBRARIES
@@ -16,8 +18,11 @@ art_make(
 			lardata_RecoObjects larreco_Deprecated  
 			larreco_RecoAlg
 			lardata_Utilities
+			larsim_Simulation nutools_ParticleNavigation lardataobj_Simulation
+			larcoreobj_SummaryData
 			larevt_Filters
 			nusimdata_SimulationBase
+			nutools_RandomUtils_NuRandomService_service
 			${LARRECO_LIB}
 			${LARDATA_LIB}
                         ${ART_FRAMEWORK_CORE}
@@ -34,10 +39,14 @@ art_make(
 	                ${FHICLCPP}
 			cetlib cetlib_except
 			${CLHEP}
+			${ROOT_PHYSICS}
                         ${ROOT_GEOM}
                         ${ROOT_XMLIO}
                         ${ROOT_GDML}
 			${ROOT_BASIC_LIB_LIST}
+			${ROOT_CORE}
+			${ROOT_EG}
+			${CRY}
         )
 
 install_headers()
