@@ -1,0 +1,65 @@
+BEGIN_PROLOG
+standard_portedhits:
+{
+ module_type:   "PortedHits"
+ PortInput:     "./merge.root"
+ TreeName:      "T_port_2d"
+ MainCluster:      false
+ TickOffset:    2400
+ ChargeScaling: 0.005
+ Rebin:         4.0
+}
+
+standard_portedhits_mainOnly:          @local::standard_portedhits
+standard_portedhits_mainOnly.MainCluster: true 
+
+standard_portedflash:
+{
+ module_type: "PortedFlash"
+ PortInput:   "./merge.root"
+ TreeName:    "T_port_flash"
+}
+
+standard_portedspacepoints:
+{
+ module_type:     "PortedSpacePoints"
+ PortInput:       "./merge.root"
+ MainCluster:     false
+ TreeName:        "T_port_3d"
+ SpacePointLabel: "portedSpacePoints"
+ TickOffset:      2400
+}
+
+standard_portedspacepoints_mainOnly: @local::standard_portedspacepoints
+standard_portedspacepoints_mainOnly.MainCluster: true 
+
+standard_nuselectionmetrics:
+{
+ module_type:    "NuSelectionMetrics"
+ PortInput:      "./merge.root"
+ TreeEvalName:   "T_eval"
+ TreeChargeName: "T_port_2d"
+ MainCluster:    false
+ MC:             true
+}
+
+standard_nuselectionmetrics_data: @local::standard_nuselectionmetrics
+standard_nuselectionmetrics_data.MC: false
+
+standard_nuselectionmetrics_mainOnly: @local::standard_nuselectionmetrics
+standard_nuselectionmetrics_mainOnly.MainCluster: true 
+
+standard_nuselectionmetrics_mainOnly_data: @local::standard_nuselectionmetrics
+standard_nuselectionmetrics_mainOnly_data.MainCluster: true 
+standard_nuselectionmetrics_mainOnly_data.MC: false
+
+standard_selectWires:
+{
+ module_type:  "SelectWires"
+ HitProducer:  "portedThresholdhitMain"
+ WireProducer: "butcher"
+}
+
+END_PROLOG
+
+

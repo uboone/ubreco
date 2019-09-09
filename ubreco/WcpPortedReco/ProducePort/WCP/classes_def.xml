@@ -1,0 +1,23 @@
+<lcgdict>
+
+  <class name="nsm::NuSelectionCharge"/>
+  <class name="art::Wrapper<nsm::NuSelectionCharge>"/>
+  <class name="std::vector<nsm::NuSelectionCharge>"/>
+  <class name="art::Wrapper<std::vector<nsm::NuSelectionCharge>>"/>
+
+  <class name="nsm::NuSelectionContainment"/>
+  <class name="art::Wrapper<nsm::NuSelectionContainment>"/>
+  <class name="std::vector<nsm::NuSelectionContainment>"/>
+  <class name="art::Wrapper<std::vector<nsm::NuSelectionContainment>>"/>
+
+  <class name="nsm::NuSelectionMatch"/>
+  <class name="art::Wrapper<nsm::NuSelectionMatch>"/>
+  <class name="std::vector<nsm::NuSelectionMatch>"/>
+  <class name="art::Wrapper<std::vector<nsm::NuSelectionMatch>>"/>
+
+  <class name="nsm::NuSelectionTruth"/>
+  <class name="art::Wrapper<nsm::NuSelectionTruth>"/>
+  <class name="std::vector<nsm::NuSelectionTruth>"/>
+  <class name="art::Wrapper<std::vector<nsm::NuSelectionTruth>>"/>
+
+</lcgdict>
