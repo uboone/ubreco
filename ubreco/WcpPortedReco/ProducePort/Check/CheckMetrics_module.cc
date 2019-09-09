@@ -11,10 +11,10 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
-#include "ubreco/WcpPortedReco/ProducePort/WCP/NuSelectionContainment.h"
-#include "ubreco/WcpPortedReco/ProducePort/WCP/NuSelectionMatch.h"
-#include "ubreco/WcpPortedReco/ProducePort/WCP/NuSelectionTruth.h"
-#include "ubreco/WcpPortedReco/ProducePort/WCP/NuSelectionCharge.h"
+#include "ubobj/WcpPort/NuSelectionContainment.h"
+#include "ubobj/WcpPort/NuSelectionMatch.h"
+#include "ubobj/WcpPort/NuSelectionTruth.h"
+#include "ubobj/WcpPort/NuSelectionCharge.h"
 
 #include "TTree.h"
 #include "TFile.h"

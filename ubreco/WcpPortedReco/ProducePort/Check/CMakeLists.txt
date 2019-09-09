@@ -1,7 +1,7 @@
 art_make( 
 
 MODULE_LIBRARIES 
-	ubreco_WcpPortedReco_ProducePort_WCP	
+	ubobj_WcpPort
 	larcorealg_Geometry
 	larcore_Geometry_Geometry_service
 	lardataobj_RawData
