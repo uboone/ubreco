@@ -1,0 +1,23 @@
+BEGIN_PROLOG
+
+ACPTtrigLightStudies: {
+    module_type: "ACPTtrigLightStudies"
+    TrackLenMin: 10
+    CathodeMin: 254
+    CathodeMax: 261
+    AnodeMin: -3
+    AnodeMax: +4
+    YMin: -80
+    YMax: 80
+    BeamSpillStart: 3.0
+    BeamSpillEnd:   6.0
+    #TrackProducer: "pandoraTrack"
+    #TrackProducer: "pandoraCosmic"
+    TrackProducer: "pandora"
+    FlashProducer: "simpleFlashBeam"
+    CRTTagProducer: "crttrackt0"
+    OpDetWfmProducer: "pmtreadout:OpdetBeamHighGain"
+    SaveTree: true
+}
+
+END_PROLOG
