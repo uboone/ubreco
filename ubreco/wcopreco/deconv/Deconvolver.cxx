@@ -117,16 +117,19 @@ namespace wcopreco {
 
         double arg = _cfg._xq;
         double par[3];
-        h4->GetQuantiles(1,&par[1],&arg);
-        arg = _cfg._xq - _cfg._xq_diff;
 
-        h4->GetQuantiles(1,&par[0],&arg);
-        arg = _cfg._xq + _cfg._xq_diff;
-
-        h4->GetQuantiles(1,&par[2],&arg);
-
-        rms = sqrt((pow(par[0]-par[1],2)+pow(par[2]-par[1],2))/2.);
-
+	if(h4->Integral() !=0.){
+	  h4->GetQuantiles(1,&par[1],&arg);
+	  arg = _cfg._xq - _cfg._xq_diff;
+	  
+	  h4->GetQuantiles(1,&par[0],&arg);
+	  arg = _cfg._xq + _cfg._xq_diff;
+	  
+	  h4->GetQuantiles(1,&par[2],&arg);
+	  
+	  rms = sqrt((pow(par[0]-par[1],2)+pow(par[2]-par[1],2))/2.);
+	}
+	else{mean = rms = 0;}
         delete h4;
         return std::make_pair(mean,rms);
      }
