@@ -50,7 +50,7 @@ private:
   TH2F *wire_u, *wire_v, *wire_y;
   TH2F *sim_u, *sim_v, *sim_y;
 
-  double G4RefTime = -4050.0;
+  //double G4RefTime = -4050.0;
   double TriggerOffsetTPC = -1600.0;
   double DefaultTrigTime = 4050.0;
   double TickPeriod = 0.5;
