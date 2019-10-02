@@ -338,17 +338,16 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
 
     //if((int)i_t>=tick_window_begin && (int)i_t<tick_window_end){
     
-    //scale_ratio = scales.r_Q * 
-	/*
+    scale_ratio = scales.r_Q *       
+      GAUSSIAN(i_t+roi_vals.begin,
+	       roi_vals.center,
+	       roi_vals.sigma*scales.r_sigma) /
+      GAUSSIAN(i_t+roi_vals.begin,
+	       roi_vals.center,
+	       roi_vals.sigma);
+    /*
 	GAUSSIAN(i_t+roi_vals.begin,
-		 roi_vals.center,
-		 roi_vals.sigma*scales.r_sigma) /
-	GAUSSIAN(i_t+roi_vals.begin,
-		 roi_vals.center,
-		 roi_vals.sigma);
-	*//*
-	GAUSSIAN(i_t+roi_vals.begin,
-		 center,
+	center,
 		 sigma*scales.r_sigma) /
 	GAUSSIAN(i_t+roi_vals.begin,
 		 center,
@@ -356,6 +355,8 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
 		 }
 	  */
 
+    /*
+    //smoothing not ready for primetime
     scale_ratio = 
       (scales.r_Q*total_q_sim*GAUSSIAN(i_t+roi_vals.begin,                                                                                      
 				       center_sim,
@@ -369,7 +370,7 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
        + total_q_else*GAUSSIAN(i_t+roi_vals.begin,
                                center_else,
                                sigma_else));
-
+    */
     if(isnan(scale_ratio) || isinf(scale_ratio))
       scale_ratio = 1.0;
     
