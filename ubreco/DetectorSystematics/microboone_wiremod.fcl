@@ -1,0 +1,23 @@
+BEGIN_PROLOG
+
+microboone_wiremod:{
+
+  module_type: "WireModifier"
+
+  WireInputTag: "butcher"
+  SimEdepShiftedInputTag: "ionization"
+  SimEdepOrigInputTag: "largeant:TPCActive"
+             
+  MakeRawDigitAssn: true
+
+  SplinesFileName: "splines_CrossingMuons_v0.root"
+  SplineNames_Charge_X: ["trk_x_hit_Q_spline_Plane0_CV",
+                         "trk_x_hit_Q_spline_Plane1_CV",
+                         "trk_x_hit_Q_spline_Plane2_CV"]
+  SplineNames_Sigma_X:  ["trk_x_hit_sigma_spline_Plane0_CV",
+                         "trk_x_hit_sigma_spline_Plane1_CV",
+                         "trk_x_hit_sigma_spline_Plane2_CV"]
+
+}
+
+END_PROLOG
