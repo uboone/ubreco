@@ -285,7 +285,7 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
   std::cout << "\t\troi:[" << roi_vals.begin << "," << roi_vals.end << "]"
   	    << "\n\t\tedep: " << truth_props.tick << " +/- " << truth_props.tick_rms << std::endl;
   */
-  float tick_rms = std::sqrt(2*2+truth_props.tick_rms*truth_props.tick_rms);
+  double tick_rms = std::sqrt(2*2+truth_props.tick_rms*truth_props.tick_rms);
   int tick_window_begin = std::round(truth_props.tick-tick_rms)-roi_vals.begin;
   int tick_window_end = std::round(truth_props.tick+tick_rms+1)-roi_vals.begin;
   /*
@@ -294,9 +294,9 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
   if(tick_window_begin<0) tick_window_begin=0;
   if(tick_window_end>(int)(roi_data.size())) tick_window_end=roi_data.size();
 
-  float center_sim=0,center_else=0;
-  float total_q_sim=0,total_q_else=0;
-  float sigma_sim=0,sigma_else=0;
+  double center_sim=0,center_else=0;
+  double total_q_sim=0,total_q_else=0;
+  double sigma_sim=0,sigma_else=0;
 
   for(size_t i_t = 0; i_t<roi_data.size(); ++i_t){
 
@@ -331,50 +331,59 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
   /*
   std::cout << "\t\tsub_center = " << center+roi_vals.begin << " +/- " << sigma << std::endl;
   */
+
   double scale_ratio=1;
+  double q_else=0.0;
+  double q_sim_orig=0.0;
+  double q_sim_mod=0.0;
+
+  bool verbose=false;
+  //if(roi_data.size()>100) verbose=true;
+
   for(size_t i_t = 0; i_t<roi_data.size(); ++i_t){
 
-    //scale_ratio = 1;
+    q_else = total_q_else*GAUSSIAN(i_t+roi_vals.begin,
+				   center_else,
+				   sigma_else);
+  
+    q_sim_orig = total_q_sim*GAUSSIAN(i_t+roi_vals.begin,
+				      center_sim,
+				      sigma_sim);
 
-    //if((int)i_t>=tick_window_begin && (int)i_t<tick_window_end){
-    
-    scale_ratio = scales.r_Q *       
-      GAUSSIAN(i_t+roi_vals.begin,
-	       roi_vals.center,
-	       roi_vals.sigma*scales.r_sigma) /
-      GAUSSIAN(i_t+roi_vals.begin,
-	       roi_vals.center,
-	       roi_vals.sigma);
-    /*
-	GAUSSIAN(i_t+roi_vals.begin,
-	center,
-		 sigma*scales.r_sigma) /
-	GAUSSIAN(i_t+roi_vals.begin,
-		 center,
-		 sigma);
-		 }
-	  */
+    q_sim_mod = scales.r_Q*total_q_sim*GAUSSIAN(i_t+roi_vals.begin,
+						center_sim,
+						sigma_sim*scales.r_sigma);
 
-    /*
-    //smoothing not ready for primetime
-    scale_ratio = 
-      (scales.r_Q*total_q_sim*GAUSSIAN(i_t+roi_vals.begin,                                                                                      
-				       center_sim,
-				       sigma_sim*scales.r_sigma)
-       + total_q_else*GAUSSIAN(i_t+roi_vals.begin,
-			       center_else,
-			       sigma_else)) / 
-      (total_q_sim*GAUSSIAN(i_t+roi_vals.begin,
-			    center_sim,
-			    sigma_sim) 
-       + total_q_else*GAUSSIAN(i_t+roi_vals.begin,
-                               center_else,
-                               sigma_else));
-    */
+    if(isnan(q_else)) q_else=0.0;
+    if(isnan(q_sim_orig)) q_sim_orig=0.0;
+    if(isnan(q_sim_mod)) q_sim_mod=0.0;
+
+    scale_ratio = (q_sim_mod+q_else)/(q_sim_orig+q_else);
+
     if(isnan(scale_ratio) || isinf(scale_ratio))
       scale_ratio = 1.0;
     
     roi_data[i_t] = roi_data[i_t] * scale_ratio;
+
+    if(verbose)
+      std::cout << "\t\t\t tick " << i_t << ":"
+		<< " data=" << roi_data[i_t]
+		<< ", den. = "
+		<< "( " << total_q_sim*GAUSSIAN(i_t+roi_vals.begin,
+						center_sim,
+						sigma_sim)
+		<< " + " << total_q_else*GAUSSIAN(i_t+roi_vals.begin,
+						  center_else,
+						  sigma_else) << ")"
+		<< ", num. = "
+		<< "( " << scales.r_Q*total_q_sim*GAUSSIAN(i_t+roi_vals.begin,
+							   center_sim,
+							   sigma_sim*scales.r_sigma)
+		<< " + " << total_q_else*GAUSSIAN(i_t+roi_vals.begin,
+						  center_else,
+						  sigma_else) << ")"
+		<< ", ratio=" << scale_ratio
+		<< std::endl;
   }
   return;
 }
