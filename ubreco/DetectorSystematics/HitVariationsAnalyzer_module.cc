@@ -77,7 +77,7 @@
 
 //get the space charge...
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
-//#include "ubevt/SpaceCharge/SpaceChargeMicroBooNE.h"
+//#include "ubevt/SpaceChargeServices/SpaceChargeServiceMicroBooNE.h"
 
 namespace sys {
   class HitVariationsAnalyzer;
@@ -303,7 +303,7 @@ void sys::HitVariationsAnalyzer::analyze(art::Event const& ev)
   //tester for the SCE...
   geo::Point_t pt;
   geo::Vector_t diff_vec;
-  pt = {20.0,10.0,10.0};
+  pt = {200.0,100.0,10.0};
   diff_vec = SCE->GetPosOffsets(pt);
   std::cout << diff_vec.X() << " " << diff_vec.Y() << " " << diff_vec.Z() << std::endl;
 
