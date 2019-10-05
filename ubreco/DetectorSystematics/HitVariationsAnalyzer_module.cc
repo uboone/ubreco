@@ -9,7 +9,7 @@
 //
 // This module is a rewrite of a gallery macro from J. Zennamo.
 // 
-// Two quote the legend himself:
+// To quote the legend himself:
 // 
 //  "Find all the T0 from acpttrigtagger
 //   then grab the tracks that have an association through acpttrigtagger
