@@ -20,4 +20,13 @@ microboone_wiremod:{
 
 }
 
+microboone_hitvaranalyzer:{
+  module_type: "HitVariationsAnalyzer"
+
+  ACPTTriggerTag:   "acpttrigtagger"
+  TrackTag:         "pandora"
+  HitTruthMatchTag: "gaushitTruthMatch"
+  CalorimetryTag:   "pandoracaliSCE"
+}
+
 END_PROLOG

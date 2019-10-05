@@ -76,7 +76,8 @@
 #include "lardataobj/RawData/OpDetWaveform.h"
 
 //get the space charge...
-#include "ubevt/SpaceCharge/SpaceChargeMicroBooNE.h"
+#include "larevt/SpaceChargeServices/SpaceChargeService.h"
+//#include "ubevt/SpaceCharge/SpaceChargeMicroBooNE.h"
 
 namespace sys {
   class HitVariationsAnalyzer;
@@ -294,7 +295,19 @@ void sys::HitVariationsAnalyzer::analyze(art::Event const& ev)
   Run = ev.run();
   Subrun = ev.subRun();
   Event = ev.event();
-  
+
+  //get the spacecharge service
+  // space charge
+  auto const* SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
+
+  //tester for the SCE...
+  geo::Point_t pt;
+  geo::Vector_t diff_vec;
+  pt = {20.0,10.0,10.0};
+  diff_vec = SCE->GetPosOffsets(pt);
+  std::cout << diff_vec.X() << " " << diff_vec.Y() << " " << diff_vec.Z() << std::endl;
+
+
 
   //We will now found the events that have a ACPT in-time track
   auto const& t0s = *ev.getValidHandle< std::vector<anab::T0> >(fACPTTriggerTag);
