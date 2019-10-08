@@ -97,15 +97,16 @@ private:
   } ROIProperties_t;
 
   typedef struct TruthProperties{
-    float x;
-    float x_rms;
-    float tick;
-    float tick_rms;
+    double x;
+    double x_rms;
+    double tick;
+    double tick_rms;
+    double charge;
   } TruthProperties_t;
 
   typedef struct ScaleValues{
-    float r_Q;
-    float r_sigma;
+    double r_Q;
+    double r_sigma;
   } ScaleValues_t;
 
   ROIProperties_t CalcROIProperties(recob::Wire::RegionsOfInterest_t::datarange_t const&);
@@ -116,15 +117,15 @@ private:
   void FillROIMatchedEdepMap(std::vector<sim::SimEnergyDeposit> const&,
 			     std::vector<recob::Wire> const&);
 
-  TruthProperties_t CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDeposit*> const&);
+  std::vector<TruthProperties_t> CalcPropertiesFromEdeps(std::vector< std::pair<const sim::SimEnergyDeposit*,const sim::SimEnergyDeposit* > > const&);
 
-  ScaleValues_t GetScaleValues(TruthProperties_t const&,ROIProperties_t const&);
+  std::vector<ScaleValues_t> GetScaleValues(std::vector<TruthProperties_t> const&,ROIProperties_t const&);
 
   void ModifyROI(//recob::Wire::RegionsOfInterest_t::datarange_t::vector_t &,
 		 std::vector<float> &,
 		 ROIProperties_t const&,
-		 TruthProperties_t const&,
-		 ScaleValues_t const&);
+		 std::vector<TruthProperties_t> const&,
+		 std::vector<ScaleValues_t> const&);
 
 };
 
@@ -196,16 +197,7 @@ void sys::WireModifier::FillROIMatchedEdepMap(std::vector<sim::SimEnergyDeposit>
 
     for( auto const& target_roi : target_rois){
 
-      //std::cout << "Matched edeps to channel " << target_roi.first << " time tick " << target_roi.second << std::endl;
-
       auto const& target_wire = wireVec.at(wireChannelMap[target_roi.first]);
-
-      //if(target_roi.first!=target_wire.Channel())
-      //throw std::runtime_error("ERROR! Channel ordering doesn't match wire ordering.");
-
-      //std::cout << "\tGot wire " << target_wire.Channel() << std::endl;
-
-      //std::cout << "\tWire has " << target_wire.SignalROI().n_ranges() << std::endl;
 
       if(target_wire.SignalROI().n_ranges()==0) continue;
       if(target_wire.SignalROI().is_void(target_roi.second)) continue;
@@ -220,124 +212,143 @@ void sys::WireModifier::FillROIMatchedEdepMap(std::vector<sim::SimEnergyDeposit>
 
 }
 
-sys::WireModifier::TruthProperties_t 
-sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec){
+std::vector< sys::WireModifier::TruthProperties_t >
+sys::WireModifier::CalcPropertiesFromEdeps(std::vector< std::pair<const sim::SimEnergyDeposit*,const sim::SimEnergyDeposit*> > const& edepPtrVec){
+  
+  std::vector<TruthProperties_t> edep_col_prop_vec;
+
   TruthProperties_t edep_col_properties;
   
   //do calculations here
   edep_col_properties.x = 0.;
   edep_col_properties.x_rms = 0.;
 
-  double total_energy = 0.0;
-  for(auto edep_ptr : edepPtrVec){
-    edep_col_properties.x += edep_ptr->X()*edep_ptr->E();
-    total_energy += edep_ptr->E();
+  double total_charge = 0.0;
+  for(auto const& edep_ptrs : edepPtrVec){
+    edep_col_properties.x += edep_ptrs.first->X()*edep_ptrs.second->NumElectrons();
+    total_charge += edep_ptrs.second->NumElectrons();
   }
 
-  if(total_energy>0.0)
-    edep_col_properties.x = edep_col_properties.x/total_energy;
+  if(total_charge>0.0)
+    edep_col_properties.x = edep_col_properties.x/total_charge;
 
-  for(auto edep_ptr : edepPtrVec)
-    edep_col_properties.x_rms += (edep_ptr->X()-edep_col_properties.x)*(edep_ptr->X()-edep_col_properties.x)*edep_ptr->E();
+  for(auto const& edep_ptrs : edepPtrVec)
+    edep_col_properties.x_rms += (edep_ptrs.first->X()-edep_col_properties.x)*(edep_ptrs.first->X()-edep_col_properties.x)*edep_ptrs.second->NumElectrons();
 
-  if(total_energy>0.0)
-    edep_col_properties.x_rms = std::sqrt(edep_col_properties.x_rms/total_energy);
+  if(total_charge>0.0)
+    edep_col_properties.x_rms = std::sqrt(edep_col_properties.x_rms/total_charge);
 
 
   edep_col_properties.tick = A_t*edep_col_properties.x + C_t;
   edep_col_properties.tick_rms = A_t*edep_col_properties.x_rms;
-  
 
-  return edep_col_properties;
+  edep_col_properties.charge = total_charge;
+  
+  edep_col_prop_vec.emplace_back(edep_col_properties);
+  
+  return edep_col_prop_vec;
 }
 
-sys::WireModifier::ScaleValues_t sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& truth_props, sys::WireModifier::ROIProperties_t const& roi_vals)
+std::vector<sys::WireModifier::ScaleValues_t> 
+sys::WireModifier::GetScaleValues(std::vector<TruthProperties_t> const& truth_props_vec, sys::WireModifier::ROIProperties_t const& roi_vals)
 {
-  ScaleValues_t scales;
+  std::vector<ScaleValues_t> scales_vec;
 
-  //get scales here
-  if(roi_vals.plane==0){
-    scales.r_Q = fTSplines_Charge_X[0]->Eval(truth_props.x);
-    scales.r_sigma = fTSplines_Sigma_X[0]->Eval(truth_props.x);
-  }
-  else if(roi_vals.plane==1){
-    scales.r_Q = fTSplines_Charge_X[1]->Eval(truth_props.x);
-    scales.r_sigma = fTSplines_Sigma_X[1]->Eval(truth_props.x);
-  }
-  else if(roi_vals.plane==2){
-    scales.r_Q = fTSplines_Charge_X[2]->Eval(truth_props.x);
-    scales.r_sigma = fTSplines_Sigma_X[2]->Eval(truth_props.x);
+  for(auto const& truth_props : truth_props_vec){
+
+    ScaleValues_t scales;
+
+    //get scales here
+    if(roi_vals.plane==0){
+      scales.r_Q = fTSplines_Charge_X[0]->Eval(truth_props.x);
+      scales.r_sigma = fTSplines_Sigma_X[0]->Eval(truth_props.x);
+    }
+    else if(roi_vals.plane==1){
+      scales.r_Q = fTSplines_Charge_X[1]->Eval(truth_props.x);
+      scales.r_sigma = fTSplines_Sigma_X[1]->Eval(truth_props.x);
+    }
+    else if(roi_vals.plane==2){
+      scales.r_Q = fTSplines_Charge_X[2]->Eval(truth_props.x);
+      scales.r_sigma = fTSplines_Sigma_X[2]->Eval(truth_props.x);
+    }
+    
+    scales_vec.emplace_back(scales);
   }
 
-  //std::cout << "For plane=" << roi_vals.plane << " and x=" << truth_props.x
-  //	    << " scales are " << scales.r_Q << " and " << scales.r_sigma << std::endl;
-
-  return scales;
+  return scales_vec;
 }
 
 void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
-				  sys::WireModifier::ROIProperties_t const& roi_vals,
-				  sys::WireModifier::TruthProperties_t const& truth_props,
-				  sys::WireModifier::ScaleValues_t const& scales)
+				  ROIProperties_t const& roi_vals,
+				  std::vector<TruthProperties_t> const& truth_props_vec,
+				  std::vector<ScaleValues_t> const& scales_vec)
 {
 
-  /*
-  std::cout << "\t\troi:[" << roi_vals.begin << "," << roi_vals.end << "]"
-  	    << "\n\t\tedep: " << truth_props.tick << " +/- " << truth_props.tick_rms << std::endl;
-  */
-  double tick_rms = std::sqrt(2*2+truth_props.tick_rms*truth_props.tick_rms);
-  int tick_window_begin = std::round(truth_props.tick-tick_rms)-roi_vals.begin;
-  int tick_window_end = std::round(truth_props.tick+tick_rms+1)-roi_vals.begin;
-  /*
-  std::cout << "\t\troi_sub:[" << tick_window_begin+roi_vals.begin << "," << tick_window_end+roi_vals.begin << "]" << std::endl;
-  */
-  if(tick_window_begin<0) tick_window_begin=0;
-  if(tick_window_end>(int)(roi_data.size())) tick_window_end=roi_data.size();
+  std::vector<double> tick_rms,center_sim,total_q_sim,sigma_sim;
+  std::vector<int> tick_window_begin,tick_window_end;
+  
+  //double total_
+  for(size_t i_tp=0; i_tp<truth_props_vec.size(); ++i_tp){
+    tick_rms.push_back(std::sqrt(2*2+truth_props_vec[i_tp].tick_rms*truth_props_vec[i_tp].tick_rms));
+    tick_window_begin.push_back(std::round(truth_props_vec[i_tp].tick-tick_rms.back())-roi_vals.begin);
+    tick_window_end.push_back(std::round(truth_props_vec[i_tp].tick+tick_rms.back()+1)-roi_vals.begin);
 
-  double center_sim=0,center_else=0;
-  double total_q_sim=0,total_q_else=0;
-  double sigma_sim=0,sigma_else=0;
+    if(tick_window_begin.back()<0) tick_window_begin.back()=0;
+    if(tick_window_end.back()>(int)(roi_data.size())) tick_window_end.back()=roi_data.size();
+  }
+
+
+
+  double center_else=0;
+  double total_q_else=0;
+  double sigma_else=0;
 
   for(size_t i_t = 0; i_t<roi_data.size(); ++i_t){
 
-    if((int)i_t >=tick_window_begin && (int)i_t<tick_window_end)
-      //for(int i_t=tick_window_begin; i_t<tick_window_end; ++i_t)
-    {
-      center_sim += roi_data[i_t]*(i_t+roi_vals.begin);
-      total_q_sim += roi_data[i_t];
+    bool tick_in_sim=false;
+    for(size_t i_tp=0; i_tp<truth_props_vec.size(); ++i_tp){
+
+      if((int)i_t >=tick_window_begin[i_tp] && (int)i_t<tick_window_end[i_tp])
+	{
+	  center_sim[i_tp] += roi_data[i_t]*(i_t+roi_vals.begin);
+	  total_q_sim[i_tp] += roi_data[i_t];
+	  tick_in_sim=true;
+	}
     }
-    else{
+    if(!tick_in_sim){
       center_else += roi_data[i_t]*(i_t+roi_vals.begin);
       total_q_else += roi_data[i_t];
     }
   }
-  center_sim = center_sim/total_q_sim;
+
+  for(size_t i_tp=0; i_tp<truth_props_vec.size(); ++i_tp)
+    center_sim[i_tp] = center_sim[i_tp]/total_q_sim[i_tp];
   center_else = center_else/total_q_else;
-
-
 
 
   for(size_t i_t = 0; i_t<roi_data.size(); ++i_t){
 
-    if((int)i_t >=tick_window_begin && (int)i_t<tick_window_end)
-      //for(int i_t=tick_window_begin; i_t<tick_window_end; ++i_t)
-      sigma_sim += roi_data[i_t]*(i_t+roi_vals.begin-center_sim)*(i_t+roi_vals.begin-center_sim);
-    else
+    bool tick_in_sim=false;
+    for(size_t i_tp=0; i_tp<truth_props_vec.size(); ++i_tp){
+      if((int)i_t >=tick_window_begin[i_tp] && (int)i_t<tick_window_end[i_tp]){
+	sigma_sim[i_tp] += roi_data[i_t]*(i_t+roi_vals.begin-center_sim[i_tp])*(i_t+roi_vals.begin-center_sim[i_tp]);
+	tick_in_sim=true;
+      }
+    }
+    if(!tick_in_sim)
       sigma_else += roi_data[i_t]*(i_t+roi_vals.begin-center_else)*(i_t+roi_vals.begin-center_else);
   }
   
-  sigma_sim = std::sqrt(sigma_sim/total_q_sim);
+  for(size_t i_tp=0; i_tp<truth_props_vec.size(); ++i_tp)
+    sigma_sim[i_tp] = std::sqrt(sigma_sim[i_tp]/total_q_sim[i_tp]);
   sigma_else = std::sqrt(sigma_else/total_q_else);
-  /*
-  std::cout << "\t\tsub_center = " << center+roi_vals.begin << " +/- " << sigma << std::endl;
-  */
 
   double scale_ratio=1;
   double q_else=0.0;
   double q_sim_orig=0.0;
   double q_sim_mod=0.0;
 
-  bool verbose=false;
+  //bool verbose=false;
   //if(roi_data.size()>100) verbose=true;
 
   for(size_t i_t = 0; i_t<roi_data.size(); ++i_t){
@@ -345,26 +356,29 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
     q_else = total_q_else*GAUSSIAN(i_t+roi_vals.begin,
 				   center_else,
 				   sigma_else);
-  
-    q_sim_orig = total_q_sim*GAUSSIAN(i_t+roi_vals.begin,
-				      center_sim,
-				      sigma_sim);
-
-    q_sim_mod = scales.r_Q*total_q_sim*GAUSSIAN(i_t+roi_vals.begin,
-						center_sim,
-						sigma_sim*scales.r_sigma);
+    q_sim_orig=0.;
+    q_sim_mod=0.;
+    for(size_t i_tp=0; i_tp<truth_props_vec.size(); ++i_tp){
+      q_sim_orig += total_q_sim[i_tp]*GAUSSIAN(i_t+roi_vals.begin,
+					       center_sim[i_tp],
+					       sigma_sim[i_tp]);
+      
+      q_sim_mod += scales_vec[i_tp].r_Q*total_q_sim[i_tp]*GAUSSIAN(i_t+roi_vals.begin,
+								   center_sim[i_tp],
+								   sigma_sim[i_tp]*scales_vec[i_tp].r_sigma);
+    }
 
     if(isnan(q_else)) q_else=0.0;
     if(isnan(q_sim_orig)) q_sim_orig=0.0;
     if(isnan(q_sim_mod)) q_sim_mod=0.0;
-
+    
     scale_ratio = (q_sim_mod+q_else)/(q_sim_orig+q_else);
-
+    
     if(isnan(scale_ratio) || isinf(scale_ratio))
       scale_ratio = 1.0;
     
     roi_data[i_t] = roi_data[i_t] * scale_ratio;
-
+    /*    
     if(verbose)
       std::cout << "\t\t\t tick " << i_t << ":"
 		<< " data=" << roi_data[i_t]
@@ -384,7 +398,9 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
 						  sigma_else) << ")"
 		<< ", ratio=" << scale_ratio
 		<< std::endl;
+    */
   }
+
   return;
 }
 
@@ -482,9 +498,10 @@ void sys::WireModifier::produce(art::Event& e)
       roi_properties.plane = my_plane;
 
       //calc the inputs to properties
-      std::vector<const sim::SimEnergyDeposit*> matchedEdepPtrVec;
+      //pair is orig,shifted
+      std::vector< std::pair<const sim::SimEnergyDeposit*,const sim::SimEnergyDeposit*> > matchedEdepPtrVec;
       for(auto i_e : matchedEdepIdxVec)
-	matchedEdepPtrVec.push_back(&edepOrigVec[i_e]);
+	matchedEdepPtrVec.emplace_back(&edepOrigVec[i_e],&edepShiftedVec[i_e]);
       auto edep_col_properties = CalcPropertiesFromEdeps(matchedEdepPtrVec);
 
       //get the scaling values
