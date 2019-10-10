@@ -302,7 +302,6 @@ void ACPTtrig::produce(art::Event& e)
     throw std::exception();
   }
 
-  /*
   // load commont-optical-filter output
   art::Handle<uboone::UbooneOpticalFilter> CommonOpticalFilter_h;
   art::InputTag fCommonOpFiltTag("opfiltercommonext");
@@ -312,7 +311,6 @@ void ACPTtrig::produce(art::Event& e)
   _opfilter_pe_beam_tot = CommonOpticalFilter_h->PE_Beam_Total();
   _opfilter_pe_veto     = CommonOpticalFilter_h->PE_Veto();
   _opfilter_pe_veto_tot = CommonOpticalFilter_h->PE_Veto_Total();
-  */
 
   // SCE service
   ///auto const* sce = lar::providerFrom<spacecharge::SpaceChargeService>();
@@ -321,6 +319,8 @@ void ACPTtrig::produce(art::Event& e)
   _event  = e.id().event();
   _run    = e.run();
   _subrun = e.subRun();
+
+  std::cout << "[ACPTTrig] run : " << _run << " event : " << _event << std::endl;
 
   _timehigh = e.time().timeHigh();
   _timelow  = e.time().timeLow();
@@ -429,6 +429,8 @@ void ACPTtrig::produce(art::Event& e)
     auto const& beg = track->Vertex();
     auto const& end = track->End();
 
+    std::cout << "[ACPTTrig] New track : " << trkctr << std::endl;
+
     // if we are to use a flash-matching cut in delta Z
     if (fFlashMatchZ > 0) {
       if (flash_ctr == 0) continue; // no flashes -> skip
@@ -444,6 +446,12 @@ void ACPTtrig::produce(art::Event& e)
       _crtt0 = CRThitMap[ trkctr - 1 ];
     }// found CRT hit
     else { _crttag = 0; }
+
+    std::cout << "[ACPTTrig] CRTtag : " << _crttag << std::endl;
+    std::cout << "[ACPTTrig] CRTt0  : " << _crtt0 << std::endl;
+
+    std::cout << "[ACPTtrig] track beg XYZ : " << beg.X() << ", " << beg.Y() << ", " << beg.Z() << std::endl;
+    std::cout << "[ACPTtrig] track end XYZ : " << end.X() << ", " << end.Y() << ", " << end.Z() << std::endl;
 
     // filter out events that do not have a CRT tag if a CRT producer was specified  
     if ( (fCRTTagProducer != "") && (_crttag == 0) )
@@ -481,7 +489,12 @@ void ACPTtrig::produce(art::Event& e)
 	tagged = true;
       }// if within anode X constraint
     }// for tracks that exit from the side
-    
+
+    if (tagged == true)
+      std::cout << "[ACPTtrig] tagged! " << std::endl;
+    if (tagged == false)
+      std::cout << "[ACPTtrig] NOT tagged! " << std::endl;
+
     // has the track been tagged?
     if (tagged == true) {
 

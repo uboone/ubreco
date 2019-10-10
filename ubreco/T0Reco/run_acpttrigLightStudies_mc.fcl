@@ -106,13 +106,14 @@ physics:
     filters:
   {
      opfiltercommonext: @local::microboone_common_op_precut_ext
-     acpttrig: @local::ACPTtrig
+
   }
     producers:
  {
 
   ### random number saver
   rns:                 { module_type: RandomNumberSaver }
+  acpttrig: @local::ACPTtrig
   
   pandoracaloN: @local::microboone_calodata
 #  fCaloProducer: @local::microboone_calodata
@@ -127,7 +128,7 @@ physics:
  }
  analyzers:{}
 
- reco: [ opfiltercommonext, pandoracaloN, crtt0, crttrack, crttrackt0, acpttrig ]
+ reco: [ opfiltercommonext, acpttrig ]
  ana: [ ]
 
  #define the output stream, there could be more than one if using filters 
@@ -160,14 +161,19 @@ outputs:
 
 ### Here we include the file giving us run/data dependent overrides
 
-physics.producers.pandoracaloN.TrackModuleLabel: "pandoraCosmic"
+#physics.producers.pandoracaloN.TrackModuleLabel: "pandoraCosmic"
+physics.producers.pandoracaloN.TrackModuleLabel: "pandora"
 physics.producers.pandoracaloN.SpacePointModuleLabel: "pandora"
 physics.producers.pandoracaloN.CaloAlg.CalAreaConstants: [4.31e-3,4.02e-3,4.26e-3]
 physics.filters.opfiltercommonext.OpHitProducer: "ophitBeam"
 #physics.filters.opfiltercommonext.PEThreshold: 0.01
 #physics.filters.opfiltercommonext.PMTMaxFrac: 1.1
-#physics.filters.opfiltercommonext.VetoStartTick: -15
-#physics.filters.opfiltercommonext.VetoEndTick: -14
+#physics.producers.opfiltercommonext.VetoStartTick: -15
+#physics.producers.opfiltercommonext.VetoEndTick: -14
 
-physics.filters.acpttrig.CaloProducer: "pandoracaloN"
-physics.filters.acpttrig.SaveWf: true
+#physics.producers.acpttrig.CaloProducer: "pandoracaloN"
+physics.producers.acpttrig.FlashMatchZ: 0
+physics.producers.acpttrig.CaloProducer: "pandoracaliSCE"
+physics.producers.acpttrig.SaveWf: true
+physics.producers.acpttrig.SaveTree: true
+physics.producers.acpttrig.CRTTagProducer: "crttrackmatch"
