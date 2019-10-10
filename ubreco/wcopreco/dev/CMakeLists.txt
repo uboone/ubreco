@@ -3,8 +3,8 @@ include_directories(../deconv)
 include_directories(../algo)
 include_directories(../app)
 
-art_make(
-	  LIB_LIBRARIES
+cet_make_exec(
+	  main SOURCE main.cxx LIBRARIES
 			${ROOT_BASIC_LIB_LIST}
 			ubreco_wcopreco_data
 			ubreco_wcopreco_deconv
@@ -13,7 +13,7 @@ art_make(
         )
 
 
-install_headers()
+#install_headers()
 #install_fhicl()
-install_source()
+#install_source()
 
