@@ -106,7 +106,6 @@ physics:
     filters:
   {
      opfiltercommonext: @local::microboone_common_op_precut_ext
-
   }
     producers:
  {
