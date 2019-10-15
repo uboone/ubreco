@@ -29,4 +29,7 @@ microboone_hitvaranalyzer:{
   CalorimetryTag:   "pandoracaliSCE"
 }
 
+microboone_wiremod_dL_Down50: @local::microboone_wiremod
+microboone_wiremod_dL_Down50.SplinesFileName: "splines_CrossingMuons_dL_Down50_v0.root"
+
 END_PROLOG
