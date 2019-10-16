@@ -341,11 +341,11 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
   //if(roi_data.size()>100) verbose=true;
 
   for(size_t i_t = 0; i_t<roi_data.size(); ++i_t){
-
+    /*    
     q_else = total_q_else*GAUSSIAN(i_t+roi_vals.begin,
 				   center_else,
 				   sigma_else);
-  
+     
     q_sim_orig = total_q_sim*GAUSSIAN(i_t+roi_vals.begin,
 				      center_sim,
 				      sigma_sim);
@@ -353,13 +353,41 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
     q_sim_mod = scales.r_Q*total_q_sim*GAUSSIAN(i_t+roi_vals.begin,
 						center_sim,
 						sigma_sim*scales.r_sigma);
-
+    
+    
     if(isnan(q_else)) q_else=0.0;
     if(isnan(q_sim_orig)) q_sim_orig=0.0;
     if(isnan(q_sim_mod)) q_sim_mod=0.0;
 
     scale_ratio = (q_sim_mod+q_else)/(q_sim_orig+q_else);
 
+    if(std::abs(scale_ratio-1.0)>0.001)
+      std::cout << "\tNew scale ratio is " << scale_ratio << " = " 
+		<< "( " << q_sim_mod << " + " << q_else << ") / ( "
+		<< "( " << q_sim_orig << " + " << q_else << ")"
+		<< std::endl;
+    */
+    q_else = 0.0;
+    q_sim_orig = GAUSSIAN(i_t+roi_vals.begin,
+			  roi_vals.center,
+			  roi_vals.sigma);
+    q_sim_mod = scales.r_Q *GAUSSIAN(i_t+roi_vals.begin,
+				     roi_vals.center,
+				     roi_vals.sigma*scales.r_sigma);
+
+
+    if(isnan(q_else)) q_else=0.0;
+    if(isnan(q_sim_orig)) q_sim_orig=0.0;
+    if(isnan(q_sim_mod)) q_sim_mod=0.0;
+
+    scale_ratio = (q_sim_mod+q_else)/(q_sim_orig+q_else);
+    /*
+    if(std::abs(scale_ratio-1.0)>0.001)
+      std::cout << "\tOld scale ratio is " << scale_ratio << " = " 
+		<< "( " << q_sim_mod << " + " << q_else << ") / ( "
+		<< "( " << q_sim_orig << " + " << q_else << ")"
+		<< std::endl;
+    */
     if(isnan(scale_ratio) || isinf(scale_ratio))
       scale_ratio = 1.0;
     
