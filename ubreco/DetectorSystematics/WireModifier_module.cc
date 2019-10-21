@@ -66,9 +66,9 @@ private:
   std::vector<TSpline3*> fTSplines_Sigma_X;
 
   //useful math things
-  static constexpr double ONE_OVER_SQRT_2PI = 1./std::sqrt(2*util::pi());
+  //static constexpr double ONE_OVER_SQRT_2PI = 1./std::sqrt(2*util::pi());
   double GAUSSIAN(double t, double mean,double sigma,double a=1.0){
-    return ( (a/sigma * ONE_OVER_SQRT_2PI * std::exp( -1.*(t-mean)*(t-mean)*0.5/sigma/sigma) ));
+    return ( (a/sigma /std::sqrt(2*util::pi()) * std::exp( -1.*(t-mean)*(t-mean)*0.5/sigma/sigma) ));
   }
 
   static constexpr double A_w = 3.33328;
@@ -77,7 +77,7 @@ private:
   static constexpr double C_Y = 4799.19;
   static constexpr double A_t = 18.2148;
   static constexpr double C_t = 818.351;
-  static constexpr double SIN_SIXTY = std::sqrt(3)/2;
+  //static constexpr double SIN_SIXTY = std::sqrt(3)/2;
   static constexpr double COS_SIXTY = 0.5;
 
 
@@ -160,8 +160,8 @@ sys::WireModifier::GetTargetROIs(sim::SimEnergyDeposit const& shifted_edep)
   //channel number, time tick
   std::vector< std::pair<unsigned int,unsigned int> > target_roi_vec;
 
-  int edep_U_wire = std::round( A_w*(-SIN_SIXTY*shifted_edep.Y() + COS_SIXTY*shifted_edep.Z()) + C_U );
-  int edep_V_wire = std::round( A_w*( SIN_SIXTY*shifted_edep.Y() + COS_SIXTY*shifted_edep.Z()) + C_V );
+  int edep_U_wire = std::round( A_w*(-std::sqrt(3)/2*shifted_edep.Y() + COS_SIXTY*shifted_edep.Z()) + C_U );
+  int edep_V_wire = std::round( A_w*( std::sqrt(3)/2*shifted_edep.Y() + COS_SIXTY*shifted_edep.Z()) + C_V );
   int edep_Y_wire = std::round( A_w*shifted_edep.Z() + C_Y );
   int edep_tick   = std::round( A_t*shifted_edep.X() + C_t );
 
