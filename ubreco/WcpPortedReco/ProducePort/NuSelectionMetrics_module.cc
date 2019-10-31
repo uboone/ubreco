@@ -102,6 +102,8 @@ void nsm::NuSelectionMetrics::produce(art::Event &e){
   tin->SetBranchAddress("match_notFC_FV",&match_notFC_FV);
   tin->SetBranchAddress("match_notFC_SP",&match_notFC_SP);
   tin->SetBranchAddress("match_notFC_DC",&match_notFC_DC);
+  tin->SetBranchAddress("match_charge",&match_charge);
+  tin->SetBranchAddress("match_energy",&match_energy);
 
   if(fMC==true){
     tin->SetBranchAddress("truth_nuEnergy",&truth_nuEnergy);
@@ -122,8 +124,6 @@ void nsm::NuSelectionMetrics::produce(art::Event &e){
     tin->SetBranchAddress("match_purity",&match_purity);
     tin->SetBranchAddress("match_purity_xy",&match_purity_xy);
     tin->SetBranchAddress("match_purity_xz",&match_purity_xz);
-    tin->SetBranchAddress("match_charge",&match_charge);
-    tin->SetBranchAddress("match_energy",&match_energy);
   }
 
   
@@ -145,6 +145,8 @@ void nsm::NuSelectionMetrics::produce(art::Event &e){
     nsc.SetNotFCFV( match_notFC_FV );
     nsc.SetNotFCSP( match_notFC_SP );
     nsc.SetNotFCDC( match_notFC_DC );
+    nsc.SetCharge( match_charge );
+    nsc.SetEnergy( match_energy );
     outputNscontainmentVec->push_back( nsc );
 
     if(fMC==true){
@@ -154,8 +156,6 @@ void nsm::NuSelectionMetrics::produce(art::Event &e){
       nsm.SetPurity( match_purity );
       nsm.SetPurityXY( match_purity_xy );
       nsm.SetPurityXZ( match_purity_xz );
-      nsm.SetCharge( match_charge );
-      nsm.SetEnergy( match_energy );
       outputNsmatchVec->push_back( nsm );
 
       nsm::NuSelectionTruth nst;

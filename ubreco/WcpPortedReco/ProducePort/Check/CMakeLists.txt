@@ -1,4 +1,4 @@
-art_make( 
+art_make(
 
 MODULE_LIBRARIES 
 	ubobj_WcpPort

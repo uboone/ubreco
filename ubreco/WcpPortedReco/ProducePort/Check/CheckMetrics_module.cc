@@ -84,6 +84,8 @@ void CheckMetrics::analyze(art::Event const& e)
 	     <<"\n Is NOT fully contained due to fiducial volume flag? "<<c->GetNotFCFV()
 	     <<"\n Is NOT fully contained due to signal processing flag? "<<c->GetNotFCSP()
 	     <<"\n Is NOT fully contained due to dead channel flag? "<<c->GetNotFCDC()
+	     <<"\n Match charge: "<<c->GetCharge()
+	     <<"\n Match energy: "<<c->GetEnergy()
 	     <<std::endl;
   }
 
@@ -130,8 +132,6 @@ void CheckMetrics::analyze(art::Event const& e)
 	       <<"\n Match purity: "<<m->GetPurity()
 	       <<"\n Match purity XY: "<<m->GetPurityXY()
 	       <<"\n Match purity XZ: "<<m->GetPurityXZ()
-	       <<"\n Match charge: "<<m->GetCharge()
-	       <<"\n Match energy: "<<m->GetEnergy()
 	       <<std::endl;
     }
 
