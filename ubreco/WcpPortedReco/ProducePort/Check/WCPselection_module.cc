@@ -121,8 +121,8 @@ private:
  // EXT?
  // MC [label: geneartor] : [instance: ]
 
-  int frun;
-  int fsubRun;  
+  //int frun;
+  //int fsubRun;  
   double fpot_tor875;
   double fpot_tor875good;
   double fspill_tor875;
