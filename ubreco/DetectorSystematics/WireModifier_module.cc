@@ -87,6 +87,7 @@ private:
   std::map< ROI_Key_t,std::vector<size_t> > fROIMatchedHitMap;
   
   typedef struct ROIProperties{
+    ROI_Key_t key;
     unsigned int plane;
     float begin;
     float end;
@@ -124,7 +125,7 @@ private:
 
   TruthProperties_t CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDeposit*> const&);
 
-  void DummyFunction(std::vector<const sim::SimEnergyDeposit*> const&, std::vector<const recob::Hit*> const&);
+  void DummyFunction(std::vector<const sim::SimEnergyDeposit*> const&, std::vector<const recob::Hit*> const&, ROIProperties_t const&);
 
   ScaleValues_t GetScaleValues(TruthProperties_t const&,ROIProperties_t const&);
 
@@ -320,142 +321,212 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
 
 
 void
-sys::WireModifier::DummyFunction(std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec, std::vector<const recob::Hit*> const& hitPtrVec){
+sys::WireModifier::DummyFunction(std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec, std::vector<const recob::Hit*> const& hitPtrVec, 
+				 sys::WireModifier::ROIProperties_t const& roi_properties) {
 
-  int trk_ctr;
-
-  // TODO  handle case where hitPtrVec.size() == 0
-
-
-  /*
-  // just do ROIs with two hits for now
-  if (hitPtrVec.size() != 2) {
-    std::cout << "  Not exactly 2 matched hits, skipping..." << std::endl;
-    return;
-  }
-  */
-
-  // group EDeps by TrackID
-  std::map<int, std::vector<const sim::SimEnergyDeposit*>> TrackIDMatchedEdepMap;
-  double total_energy = 0.;
+  // group EDeps by TrackID, calculate total_energy
+  std::map<int, std::vector<const sim::SimEnergyDeposit*>> TrackIDMatchedEDepMap;
+  double total_energy = 0.;  // for the 
   for ( auto edep_ptr : edepPtrVec ) {
-    TrackIDMatchedEdepMap[edep_ptr->TrackID()].push_back(edep_ptr);
+    TrackIDMatchedEDepMap[edep_ptr->TrackID()].push_back(edep_ptr);
     total_energy += edep_ptr->E();
   }
-
-  /*
-  // just do ROIs with a single trackID for now
-  if (TrackIDMatchedEdepMap.size() != 1) {
-    std::cout << "  More than one matched TrackID, skipping..." << std::endl;
-    return;
-  }
-  */
-
   // calculate EDep properties by TrackID
   std::map<int, sys::WireModifier::TruthProperties_t> TrackIDMatchedPropertyMap;
-  for ( auto const& track_edeps : TrackIDMatchedEdepMap ) {
+  for ( auto const& track_edeps : TrackIDMatchedEDepMap ) {
     TrackIDMatchedPropertyMap[track_edeps.first] = CalcPropertiesFromEdeps(track_edeps.second);
   }
 
-  // match EDeps to hits
-  /*
-  std::vector<int> EDepMatchedHitVec;
-  unsigned int good_ctr = 0;
-  for ( auto edep_ptr : edepPtrVec )  {
-    EDepMatchedHitVec.clear();
-    auto edep_x = A_t * edep_ptr->X() + C_t;
-    for ( unsigned int i_h=0; i_h < hitPtrVec.size(); i_h++ ) {
-      auto hit_ptr = hitPtrVec[i_h];
-      if ( edep_x > hit_ptr->PeakTime()-hit_ptr->RMS() && edep_x < hit_ptr->PeakTime()+hit_ptr->RMS() ) EDepMatchedHitVec.push_back(i_h);
-    } // end loop over hits
-    if ( EDepMatchedHitVec.size() == 0 ) std::cout << "  EDep from TrackID " << edep_ptr->TrackID() << " not matched to any hits, "
-						   << " at tick " << edep_x << " and has energy " << edep_ptr->E() << " MeV"<< std::endl;
-    else if ( EDepMatchedHitVec.size() == 1 ) good_ctr++; //std::cout << "  EDep from TrackID " << edep_ptr->TrackID() << " matched to hit #" << EDepMatchedHitVec[0] << std::endl; 
-    else if ( EDepMatchedHitVec.size() > 1 ) {
-      std::cout << "  EDep from TrackID " << edep_ptr->TrackID() << " matched to multiple hits: ";
-      for ( auto hit_idx : EDepMatchedHitVec ) std::cout << hit_idx << " ";
-      std::cout << std::endl;
-      std::cout << "      at tick " << edep_x << " and has energy " << edep_ptr->E() << "  MeV" << std::endl;
-    }
-  }
-  std::cout << "Had " << good_ctr << " well-matched EDeps out of " << edepPtrVec.size() << "  total" << std::endl;
-  */
+  // TODO --  handle case where hitPtrVec.size() == 0
+  if ( hitPtrVec.size() == 0 ) return;
   
-  // match EDeps to hits (more complicated)
-  /*
-  std::map<unsigned int, std::vector<unsigned int>> EdepMatchedHitMap;  // keys are indexes of edepPtrVec, values are vectors of indexes of hitPtrVec
+  // for each EDep, which hit(s) (if any) is it plausibly matched to? based on whether the EDep's projected tick is within +/-1 RMS of the hit peak
+  std::map<unsigned int, std::vector<unsigned int>> EDepMatchedHitMap;   // keys are indexes of edepPtrVec, values are vectors of indexes of hitPtrVec
+  // for each TrackID, which hit(s) (if any) are its EDeps matched to? based on EDeps matched to exactly one hit
+  std::map<int, std::unordered_set<unsigned int>> TrackIDMatchedHitMap;  // keys are TrackIDs, values are sets of indexes of hitPtrVec
+  // for each hit, which EDep(s) (if any) are matched to it? based on multi-pass matching
+  std::map<unsigned int, std::vector<unsigned int>> HitMatchedEDepMap;   // keys are indexes of hitPtrVec, values are vectors of indexes of edepPtrVec
+  // for each hit, which TrackID(s) (if any) are matched? for each TrackID, how much energy is matched? based on multi-pass matching
+  std::map<unsigned int, std::map<int, double>> HitMatchedTrackEnergyMap; // keys are indexes of hitPtrVec, values are maps of TrackIDs to matched energy (in MeV)
+
+  // which EDeps have not yet been assigned?
+  std::unordered_set<unsigned int> UnassignedEDeps;
+  
+  // first pass: fill EDepMatchedHitMap, assign EDeps matched to exactly one hit
+  //   also fill TrackIDMatchedHitMap based on EDeps matched to exactly one hit
+  // loop over EDeps
   for ( unsigned int i_e=0; i_e < edepPtrVec.size(); i_e++ ) {
+    
+    // get EDep properties
     auto edep_ptr  = edepPtrVec[i_e];
     auto edep_tick = A_t * edep_ptr->X() + C_t;
+
+    // loop over hits
     for ( unsigned int i_h=0; i_h < hitPtrVec.size(); i_h++ ) {
       auto hit_ptr = hitPtrVec[i_h];
-      if ( edep_tick > hit_ptr->PeakTime()-hit_ptr->RMS() && edep_tick < hit_ptr->PeakTime()+hit_ptr->RMS() ) {
-	EdepMatchedHitMap[i_e].push_back(i_h);
-      }
-    }
-  }
+      if ( edep_tick > hit_ptr->PeakTime()-hit_ptr->RMS() && edep_tick < hit_ptr->PeakTime()+hit_ptr->RMS() )
+	EDepMatchedHitMap[i_e].push_back(i_h);
+    } // end loop over hits
 
-  int flag = 0;
-  std::map<unsigned int, std::vector<unsigned int>> HitMatchedEdepMap;   // keys are indexes of hitPtrVec, values are vectors of indexes of edepPtrVec
-  std::map<int, std::unordered_set<unsigned int>> TrackIDMatchedHitMap;  // keys are trackIDs, values are vectors of indexes of hitPtrVec
-  std::map<unsigned int, std::map<int, double>> HitMatchedTrackIDEnergyMap; // keys are indexes of hitPtrVec, values are maps of TrackID to energy (from that trackID matched to that hit in the first pass)
-  // other quantities of interest...
-  for ( unsigned int i_e=0; i_e < edepPtrVec.size(); i_e++ ) {
+    // if EDep is matched to exactly one hit, assign it to that hit => update HitMatchedEDepMap, HitMatchedTrackEnergyMap
+    //   also fill TrackIDMatchedHitMap
+    if ( EDepMatchedHitMap[i_e].size() == 1 ) {
+      auto i_h = EDepMatchedHitMap[i_e][0];
+      TrackIDMatchedHitMap[edep_ptr->TrackID()].emplace(i_h);
+      HitMatchedEDepMap[i_h].push_back(i_e);
+      HitMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()] += edep_ptr->E();
+    }
+    // else, add this EDep to the set of unassigned EDeps
+    else UnassignedEDeps.emplace(i_e);
+
+  } // end loop over EDeps
+  // end first pass
+  
+  // if first pass assigned every EDep, return here
+  if ( UnassignedEDeps.size() == 0 ) return;
+
+  
+  // for subsequent passes, which EDeps were assigned in this pass?
+  std::unordered_set<unsigned int> PassAssignedEDeps;
+
+  // second pass: for EDeps that are matched to no hits...
+  //                if EDep's TrackID is not matched to any hits, do not match it
+  //                if EDep's TrackID is matched to exactly one hit, match it to that hit
+  //std::cout << "EDeps not assigned: ";
+  //for ( auto i_e : UnassignedEDeps ) std::cout << i_e << " ";
+  //std::cout << std::endl;
+  // loop over unassigned EDeps
+  for ( auto i_e :  UnassignedEDeps ) {
+    //std::cout << "Doing second pass for EDep #" << i_e << "..." << std::endl;
+    
+    // if EDep is matched to multiple hits, skip it for this pass
+    if ( EDepMatchedHitMap[i_e].size() != 0 ) continue;
+
+    // get EDep pointer
     auto edep_ptr = edepPtrVec[i_e];
 
-    // if this edep is matched to exactly one hit, assign it to that hit
-    if ( EdepMatchedHitMap[i_e].size() == 1 ) {
-      auto i_h = EdepMatchedHitMap[i_e][0];
-      HitMatchedEdepMap[i_h].push_back(i_e);
-      TrackIDMatchedHitMap[edep_ptr->TrackID()].emplace(i_h);
-      HitMatchedTrackIDEnergyMap[i_h][edep_ptr->TrackID()] += edep_ptr->E();
-      // remove this edep from EdepMatchedHitMap
-      EdepMatchedHitMap.erase(i_e);
-    }
-
-  }
-
-  // implement as a "while"?
-  for ( auto itr_e = EdepMatchedHitMap.begin(); itr_e != EdepMatchedHitMap.end(); itr_e++ ) {
-    auto i_e = itr_e->first;
-    auto edep_ptr  = edepPtrVec[i_e];
-    auto edep_tick = A_t * edep_ptr->X() + C_t;
-
-    // if no edeps from this trackID were assigned to any hit, don't try
+    // if EDep's TrackID is not matched to any hits, do not match it
     if ( TrackIDMatchedHitMap[edep_ptr->TrackID()].size() == 0 ) {
-      EdepMatchedHitMap.erase(itr_e);
-      std::cout << "EDep #" << i_e << " is part of TrackID " << edep_ptr->TrackID() << ", which was not matched to any hit" << std::endl;
+      //std::cout << "  Resloved by case 0-0" << std::endl;
+      PassAssignedEDeps.emplace(i_e);
       continue;
     }
 
-    flag = 1;
-
-    // if this edep wasn't assigned but all assigned edeps from this trackID were assigned to a single hit, and they constitute >75% of the trackID's energy
-    //    then associate this edep to that hit
-    if ( itr_e->second.size() == 0 && TrackIDMatchedHitMap[edep_ptr->TrackID()].size() == 1
-	 && HitMatchedTrackIDEnergyMap[*TrackIDMatchedHitMap[edep_ptr->TrackID()].begin()][edep_ptr->TrackID()] > 0.75*TrackIDMatchedPropertyMap[edep_ptr->TrackID()].total_energy ) {
+    // if EDep's TrackID is matched to exactly one hit, match it to that hit too
+    //   TODO -- fractional energy check
+    if ( TrackIDMatchedHitMap[edep_ptr->TrackID()].size() == 1 ) { 
+      //std::cout << "  Resolved by case 0-1" << std::endl;
       auto i_h = *TrackIDMatchedHitMap[edep_ptr->TrackID()].begin();
-      std::cout << "EDep #" << i_e << " is part of TrackID " << edep_ptr->TrackID() << ", which was matched exclusively to hit #" << i_h << std::endl;
-      std::cout << "  That hit contains " << HitMatchedTrackIDEnergyMap[i_h][edep_ptr->TrackID()] << "/"  << TrackIDMatchedPropertyMap[edep_ptr->TrackID()].total_energy
-		<< " > 75% of the TrackID's energy, so matching this edep to that hit" << std::endl;
-      HitMatchedEdepMap[i_h].push_back(i_e);
-      HitMatchedTrackIDEnergyMap[i_h][edep_ptr->TrackID()] += edep_ptr->E();
-      EdepMatchedHitMap.erase(itr_e);
-      continue;
+      HitMatchedEDepMap[i_h].push_back(i_e);
+      HitMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()] += edep_ptr->E();
+      PassAssignedEDeps.emplace(i_e);
     }
     
-    std::cout << "EDep #" << i_e << " matched to " << EdepMatchedHitMap[i_e].size() << " hits"
-              << " (tick " << edep_tick << ", energy " << edep_ptr->E() << " MeV, trackID " << edep_ptr->TrackID() << ")" << std::endl;
-    std::cout << "  This trackID gets matched to " << TrackIDMatchedHitMap[edep_ptr->TrackID()].size() << " hits" << std::endl;
-    for ( auto i_h : TrackIDMatchedHitMap[edep_ptr->TrackID()] ) {
-      //auto hit_ptr = hitPtrVec[i_h];
-      std::cout << "    Hit #" << i_h << " gets " << HitMatchedTrackIDEnergyMap[i_h][edep_ptr->TrackID()] << " MeV of that trackID's energy" << std::endl;
+  } // end loop over EDeps
+  // update UnassignedEDeps
+  for ( auto i_e : PassAssignedEDeps ) UnassignedEDeps.erase(i_e);
+  // end second pass
+
+  // if second pass assigned every EDep, return here
+  //if ( UnassignedEDeps.size() == 0 ) return;
+  
+
+  
+  // ** INITIAL INFORMATIONAL COUTS **
+  // print out ROI properties
+  std::cout << "Channel " << roi_properties.key.first << ", signal ROI " << roi_properties.key.second << " (plane " << roi_properties.plane << ")" << std::endl;
+  std::cout << "  ROI bounds: (" << roi_properties.begin << ", " << roi_properties.end << ")" << std::endl;
+  std::cout << "  ROI center: " << roi_properties.center<< std::endl;
+  std::cout << "  ROI sigma:  " << roi_properties.sigma << std::endl;
+  std::cout << "  ROI charge: " << roi_properties.total_q << std::endl;
+  
+  // print out hit properties
+  std::cout << "  Number of hits: " << hitPtrVec.size() << std::endl;
+  float total_hit_charge = 0.;
+  for ( auto hit_ptr : hitPtrVec ) total_hit_charge += hit_ptr->Integral();
+  std::cout << "  Total hit charge: " << total_hit_charge << std::endl;
+  for ( unsigned int i_h=0; i_h < hitPtrVec.size(); i_h++ ) { 
+    auto hit_ptr = hitPtrVec[i_h];
+    std::cout << "    For hit #" << i_h << ":" << std::endl;
+    std::cout << "      Hit center: " << hit_ptr->PeakTime() << std::endl;
+    std::cout << "      Hit width:  " << hit_ptr->RMS() << std::endl;
+    std::cout << "      Hit charge: " << hit_ptr->Integral() << std::endl;
+  }
+
+  // print out global edep properties
+  auto edep_col_properties = CalcPropertiesFromEdeps(edepPtrVec);
+  //std::cout << "  Global EDep center: " << edep_col_properties.tick << std::endl;
+  //std::cout << "  Global EDep width:  " << edep_col_properties.tick_rms << " (with charge-weighted RMS)" << std::endl;
+  //std::cout << "  Global EDep width:  " << edep_col_properties.tick_rms_noWeight << " (with non-charge-weighted RMS)" << std::endl;
+  std::cout << "  Number of contributing EDeps: " << edepPtrVec.size() << std::endl;
+  std::cout << "  Number of contributing TrackIDs: " << TrackIDMatchedEDepMap.size() << std::endl;
+  std::cout << "  Total energy: " << total_energy << "  MeV" << std::endl;
+
+  // print out EDep properties by TrackID...
+  // for each TrackID, print center, width, and total energy
+  int trk_ctr = 0;
+  for ( auto trk_edep_iter : TrackIDMatchedEDepMap ) {
+    std::cout << "    For track #" << trk_ctr << ":" << std::endl;
+    std::cout << "      TrackID:   " << trk_edep_iter.first << std::endl;
+    std::cout << "      Num EDeps: " << trk_edep_iter.second.size() << std::endl;
+    std::cout << "      PDG code:  " << trk_edep_iter.second[0]->PdgCode() << std::endl;
+    edep_col_properties = CalcPropertiesFromEdeps(trk_edep_iter.second);
+    std::cout << "      TrackID EDep center:    " << edep_col_properties.tick << std::endl;
+    //std::cout << "      TrackID EDep width:     " << edep_col_properties.tick_rms << " (with charge-weighted RMS)" << std::endl;
+    //std::cout << "      TrackID EDep width:     " << edep_col_properties.tick_rms_noWeight << " (with non-charge-weighted RMS)" << std::endl; 
+    std::cout << "      TrackID EDep min tick:  " << edep_col_properties.tick_min << std::endl;
+    std::cout << "      TrackID EDep max tick:  " << edep_col_properties.tick_max << std::endl;
+    std::cout << "      TrackID total energy:   " << TrackIDMatchedPropertyMap[trk_edep_iter.first].total_energy << " MeV" << std::endl;
+    trk_ctr++;
+  }
+  
+  
+  // third pass: assign remaining EDeps to the closest hit, based on the hit RMS
+  // reset PassAssignedEDeps
+  PassAssignedEDeps.clear();
+  // loop over unassigned EDeps
+  for ( auto i_e :  UnassignedEDeps ) {
+    //std::cout << "Doing third pass for EDep #" << i_e << "..." << std::endl;
+    
+    // if EDep is matched to multiple hits, skip it for this pass
+    //if ( EDepMatchedHitMap[i_e].size() != 0 ) continue;
+
+    // get EDep properties
+    auto edep_ptr = edepPtrVec[i_e];
+    auto edep_tick = A_t * edep_ptr->X() + C_t;
+
+    // get list of hits to consider assigning the EDep to
+    std::vector<unsigned int> hit_list;
+    if ( EDepMatchedHitMap[i_e].size() != 0 ) hit_list = EDepMatchedHitMap[i_e];
+    else  {
+      for ( auto i_h : TrackIDMatchedHitMap[edep_ptr->TrackID()] ) hit_list.push_back(i_h);
     }
 
-  }
-  */
+    // for each hit, calculate the distance to the EDep and note whether it's closest
+    unsigned int closest_hit;
+    float min_dist = 6400.;
+    for ( auto i_h : hit_list ) {
+      auto hit_ptr = hitPtrVec[i_h];
+      float hit_dist = std::abs( edep_tick - hit_ptr->PeakTime() ) / hit_ptr->RMS();
+      if ( hit_dist < min_dist ) {
+	closest_hit = i_h;
+	min_dist    = hit_dist;
+      }
+    }
+
+    HitMatchedEDepMap[closest_hit].push_back(i_e);
+    HitMatchedTrackEnergyMap[closest_hit][edep_ptr->TrackID()] += edep_ptr->E();
+    PassAssignedEDeps.emplace(i_e);
+    
+  } // end loop over EDeps
+  // update UnassignedEDeps
+  for ( auto i_e : PassAssignedEDeps ) UnassignedEDeps.erase(i_e);
+  // end third pass
+
+  //if ( UnassignedEDeps.size() == 0 ) return;
 
   // try out different distance metrics; if they disagree for any edep, print some info about that edep and all the ROI info
+  /*
   int flag = 0;
   for ( unsigned int i_e=0; i_e < edepPtrVec.size(); i_e++ ) {
 
@@ -522,51 +593,35 @@ sys::WireModifier::DummyFunction(std::vector<const sim::SimEnergyDeposit*> const
     std::cout << "\t -> hit #" << hit3 << std::endl;
 
   } // end loop over edeps
+  */
 
-  if ( flag == 0 ) return;
+  // print out information about unassigned EDeps
+  std::cout << "  Number of unassigned EDeps: " << UnassignedEDeps.size() << std::endl;
+  for ( auto i_e : UnassignedEDeps ) {
 
-  // TODO -- merge elements of showers such that their energy depositions get counted together, recalculate these maps
+    // get EDep properties
+    auto edep_ptr  = edepPtrVec[i_e];
+    auto edep_tick = A_t * edep_ptr->X() + C_t;
 
-  // ** INITIAL INFORMATIONAL COUTS **
-  // print out hit properties
-  std::cout << "  Number of hits: " << hitPtrVec.size() << std::endl;
-  float total_hit_charge = 0.;
-  for ( auto hit_ptr : hitPtrVec ) total_hit_charge += hit_ptr->Integral();
-  std::cout << "  Total hit charge: " << total_hit_charge << std::endl;
-  for ( unsigned int i_h=0; i_h < hitPtrVec.size(); i_h++ ) { 
-    auto hit_ptr = hitPtrVec[i_h];
-    std::cout << "  For hit #" << i_h << ":" << std::endl;
-    std::cout << "    Hit center: " << hit_ptr->PeakTime() << std::endl;
-    std::cout << "    Hit width:  " << hit_ptr->RMS() << std::endl;
-    std::cout << "    Hit charge: " << hit_ptr->Integral() << std::endl;
+    std::cout << "    For EDep #" << i_e << ":" << std::endl;
+    std::cout << "      TrackID:         " << edep_ptr->TrackID() << std::endl;
+    std::cout << "      EDep tick:       " << edep_tick << std::endl;
+    std::cout << "      EDep energy:     " << edep_ptr->E() << " MeV" << std::endl;
+    std::cout << "      Matched to hits: ";
+    if ( EDepMatchedHitMap[i_e].size() == 0 ) std::cout << "none" << std::endl;
+    else { 
+      for ( auto i_h : EDepMatchedHitMap[i_e] ) std::cout << i_h << " ";
+      std::cout << std::endl;
+    }
+    std::cout << "      TrackID matched to " << TrackIDMatchedHitMap[edep_ptr->TrackID()].size() << " hits..." << std::endl;
+    for ( auto i_h : TrackIDMatchedHitMap[edep_ptr->TrackID()] ) {
+      std::cout << "        Hit #" << i_h << " has " << HitMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()] << " MeV of the TrackID's energy" << std::endl;
+    }
   }
 
-  // print out global edep properties
-  auto edep_col_properties = CalcPropertiesFromEdeps(edepPtrVec);
-  //std::cout << "  Global EDep center: " << edep_col_properties.tick << std::endl;
-  //std::cout << "  Global EDep width:  " << edep_col_properties.tick_rms << " (with charge-weighted RMS)" << std::endl;
-  //std::cout << "  Global EDep width:  " << edep_col_properties.tick_rms_noWeight << " (with non-charge-weighted RMS)" << std::endl;
-  std::cout << "  Number of contributing EDeps: " << edepPtrVec.size() << std::endl;
-  std::cout << "  Number of contributing TrackIDs: " << TrackIDMatchedEdepMap.size() << std::endl;
-  std::cout << "  Total energy: " << total_energy << "  MeV" << std::endl;
+  // TODO print out information on assigned EDeps
 
-  // print out EDep properties by TrackID...
-  // for each TrackID, print center, width, and total energy
-  trk_ctr = 0;
-  for ( auto trk_edep_iter : TrackIDMatchedEdepMap ) {
-    std::cout << "  For track #" << trk_ctr << ":" << std::endl;
-    std::cout << "    TrackID:   " << trk_edep_iter.first << std::endl;
-    std::cout << "    Num EDeps: " << trk_edep_iter.second.size() << std::endl;
-    std::cout << "    PDG code:  " << trk_edep_iter.second[0]->PdgCode() << std::endl;
-    edep_col_properties = CalcPropertiesFromEdeps(trk_edep_iter.second);
-    std::cout << "    TrackID EDep center:    " << edep_col_properties.tick << std::endl;
-    std::cout << "    TrackID EDep width:     " << edep_col_properties.tick_rms << " (with charge-weighted RMS)" << std::endl;
-    std::cout << "    TrackID EDep width:     " << edep_col_properties.tick_rms_noWeight << " (with non-charge-weighted RMS)" << std::endl; 
-    std::cout << "    TrackID EDep min tick:  " << edep_col_properties.tick_min << std::endl;
-    std::cout << "    TrackID EDep max tick:  " << edep_col_properties.tick_max << std::endl;
-    std::cout << "    TrackID total energy:   " << TrackIDMatchedPropertyMap[trk_edep_iter.first].total_energy << " MeV" << std::endl;
-    trk_ctr++;
-  }
+  // TODO -- merge elements of showers such that their energy depositions get counted together, recalculate these maps? not in this function...
 
 
 }
@@ -813,6 +868,7 @@ void sys::WireModifier::produce(art::Event& e)
 
       //calc roi properties
       auto roi_properties = CalcROIProperties(range);
+      roi_properties.key   = roi_key;
       roi_properties.plane = my_plane;
 
       //calc the inputs to properties
@@ -824,13 +880,9 @@ void sys::WireModifier::produce(art::Event& e)
       }
       // matchedHitPtrVec defined above
       auto edep_col_properties = CalcPropertiesFromEdeps(matchedEdepPtrVec);
+
       // run dummy function that spits out all the couts
-      std::cout << "Channel " << roi_key.first << ", signal ROI " << roi_key.second << " (plane " << roi_properties.plane << ")" << std::endl;
-      std::cout << "  ROI bounds: (" << roi_properties.begin << ", " << roi_properties.end << ")" << std::endl;
-      std::cout << "  ROI center: " << roi_properties.center<< std::endl;
-      std::cout << "  ROI sigma:  " << roi_properties.sigma << std::endl;
-      std::cout << "  ROI charge: " << roi_properties.total_q << std::endl;
-      DummyFunction(matchedShiftedEdepPtrVec, matchedHitPtrVec);  // N.B., using shifted EDeps because trying to compare projections onto wires
+      DummyFunction(matchedShiftedEdepPtrVec, matchedHitPtrVec, roi_properties);  // N.B., using shifted EDeps because trying to compare projections onto wires
       
       //get the scaling values
       auto scales = GetScaleValues(edep_col_properties,roi_properties);
