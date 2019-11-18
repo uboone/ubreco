@@ -96,6 +96,16 @@ private:
     float sigma;    //charge weighted RMS of ROI
   } ROIProperties_t;
 
+  typedef std::pair<ROI_Key_t, unsigned int> SubROI_Key_t;
+  
+  typedef struct SubROIProperties{
+    SubROI_Key_t key;
+    unsigned int plane;
+    float total_q;
+    float center;
+    float sigma;
+  } SubROIProperties_t;
+
   typedef struct TruthProperties{
     float x;
     float x_rms;
@@ -123,9 +133,12 @@ private:
   void FillROIMatchedEdepMap(std::vector<sim::SimEnergyDeposit> const&, std::vector<recob::Wire> const&);
   void FillROIMatchedHitMap(std::vector<recob::Hit> const&, std::vector<recob::Wire> const&);
 
+  std::vector<SubROIProperties_t> CalcSubROIProperties(ROIProperties_t const&, std::vector<const recob::Hit*> const&);
+
+  std::map<SubROI_Key_t, std::vector<const sim::SimEnergyDeposit*>> MatchEdepsToSubROIs(std::vector<SubROIProperties_t> const&, std::vector<const sim::SimEnergyDeposit*> const&);
+
   TruthProperties_t CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDeposit*> const&);
 
-  std::vector<const sim::SimEnergyDeposit*> DummyFunction(std::vector<const sim::SimEnergyDeposit*> const&, std::vector<const recob::Hit*> const&, ROIProperties_t const&);
 
   ScaleValues_t GetScaleValues(TruthProperties_t const&,ROIProperties_t const&);
 
@@ -275,51 +288,59 @@ void sys::WireModifier::FillROIMatchedHitMap(std::vector<recob::Hit> const& hitV
  
 }
 
-sys::WireModifier::TruthProperties_t 
-sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec){
-  TruthProperties_t edep_col_properties;
-  
-  //do calculations here
-  edep_col_properties.x = 0.;
-  edep_col_properties.x_rms = 0.;
-  edep_col_properties.x_rms_noWeight = 0.;
-  edep_col_properties.x_min = 300.;
-  edep_col_properties.x_max = -50.;
+std::vector<sys::WireModifier::SubROIProperties_t>
+sys::WireModifier::CalcSubROIProperties(sys::WireModifier::ROIProperties_t const& roi_properties, std::vector<const recob::Hit*> const& hitPtrVec) {
 
-  double total_energy = 0.0;
-  for(auto edep_ptr : edepPtrVec){
-    edep_col_properties.x += edep_ptr->X()*edep_ptr->E();
-    if ( edep_ptr->X() < edep_col_properties.x_min ) edep_col_properties.x_min = edep_ptr->X();
-    if ( edep_ptr->X() > edep_col_properties.x_max ) edep_col_properties.x_max = edep_ptr->X();
-    total_energy += edep_ptr->E();
+  std::vector<SubROIProperties_t> subroi_properties_vec;
+  SubROIProperties_t subroi_properties;
+  subroi_properties.plane = roi_properties.plane;
+
+  // if this ROI doesn't contain any hits, define SubROI based on ROI properities
+  if ( hitPtrVec.size() == 0 ) {
+    subroi_properties.key     = std::make_pair( roi_properties.key, 0 );
+    subroi_properties.total_q = roi_properties.total_q;
+    subroi_properties.center  = roi_properties.center;
+    subroi_properties.sigma   = roi_properties.sigma;
+    subroi_properties_vec.push_back(subroi_properties);
   }
 
-  if(total_energy>0.0)
-    edep_col_properties.x = edep_col_properties.x/total_energy;
-
-  for(auto edep_ptr : edepPtrVec) {
-   edep_col_properties.x_rms += (edep_ptr->X()-edep_col_properties.x)*(edep_ptr->X()-edep_col_properties.x)*edep_ptr->E();
-   edep_col_properties.x_rms_noWeight += (edep_ptr->X()-edep_col_properties.x)*(edep_ptr->X()-edep_col_properties.x);
+  // otherwise, define SubROIs based on hits
+  else {
+    for ( unsigned int i_h=0; i_h < hitPtrVec.size(); i_h++ ) {
+      auto hit_ptr = hitPtrVec[i_h];
+      subroi_properties.key     = std::make_pair( roi_properties.key, i_h );
+      subroi_properties.total_q = hit_ptr->Integral();
+      subroi_properties.center  = hit_ptr->PeakTime();
+      subroi_properties.sigma   = hit_ptr->RMS();
+      subroi_properties_vec.push_back(subroi_properties);
+    }
   }
 
-  edep_col_properties.x_rms_noWeight = std::sqrt(edep_col_properties.x_rms_noWeight);
+  return subroi_properties_vec;
 
-  if(total_energy>0.0)
-    edep_col_properties.x_rms = std::sqrt(edep_col_properties.x_rms/total_energy);
-
-  // convert x-related proerties to ticks
-  edep_col_properties.tick = A_t*edep_col_properties.x + C_t;
-  edep_col_properties.tick_rms = A_t*edep_col_properties.x_rms;
-  edep_col_properties.tick_rms_noWeight = A_t*edep_col_properties.x_rms_noWeight;
-  edep_col_properties.tick_min = A_t*edep_col_properties.x_min + C_t;
-  edep_col_properties.tick_max = A_t*edep_col_properties.x_max + C_t;
-
-  edep_col_properties.total_energy = total_energy;
-
-  return edep_col_properties;
 }
 
+std::map<sys::WireModifier::SubROI_Key_t, std::vector<const sim::SimEnergyDeposit*>>
+sys::WireModifier::MatchEdepsToSubROIs(std::vector<sys::WireModifier::SubROIProperties_t> const& subROIPropVec,
+					 std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec) {
 
+  std::map<SubROI_Key_t, std::vector<const sim::SimEnergyDeposit*>> SubROIMatchedEdepMap;
+
+  // dumbest possible thing for now...
+  for ( auto sub_roi_prop : subROIPropVec ) {
+    auto key = sub_roi_prop.key;
+    for ( auto edep_ptr : edepPtrVec ) {
+      auto edep_tick = A_t * edep_ptr->X() + C_t;
+      if ( edep_tick > sub_roi_prop.center-sub_roi_prop.sigma && edep_tick < sub_roi_prop.center+sub_roi_prop.sigma ) 
+	SubROIMatchedEdepMap[key].push_back(edep_ptr);
+    }
+  }
+
+  return SubROIMatchedEdepMap;
+
+}
+
+/*
 std::vector<const sim::SimEnergyDeposit*>
 sys::WireModifier::DummyFunction(std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec, std::vector<const recob::Hit*> const& hitPtrVec, 
 				 sys::WireModifier::ROIProperties_t const& roi_properties) {
@@ -351,6 +372,7 @@ sys::WireModifier::DummyFunction(std::vector<const sim::SimEnergyDeposit*> const
   std::map<unsigned int, std::vector<unsigned int>> EDepMatchedHitMap;   // keys are indexes of edepPtrVec, values are vectors of indexes of hitPtrVec
   // for each TrackID, which hit(s) (if any) are its EDeps matched to? based on EDeps matched to exactly one hit
   std::map<int, std::unordered_set<unsigned int>> TrackIDMatchedHitMap;  // keys are TrackIDs, values are sets of indexes of hitPtrVec
+  std::map<int, std::unordered_set<unsigned int>> TrackIDLooseMatchedHitMap; // based on all hits that all EDeps get matched to
   // for each hit, which EDep(s) (if any) are matched to it? based on multi-pass matching
   std::map<unsigned int, std::vector<unsigned int>> HitMatchedEDepMap;   // keys are indexes of hitPtrVec, values are vectors of indexes of edepPtrVec
   // for each hit, which TrackID(s) (if any) are matched? for each TrackID, how much energy is matched? based on multi-pass matching
@@ -374,8 +396,10 @@ sys::WireModifier::DummyFunction(std::vector<const sim::SimEnergyDeposit*> const
     // loop over hits
     for ( unsigned int i_h=0; i_h < hitPtrVec.size(); i_h++ ) {
       auto hit_ptr = hitPtrVec[i_h];
-      if ( edep_tick > hit_ptr->PeakTime()-hit_ptr->RMS() && edep_tick < hit_ptr->PeakTime()+hit_ptr->RMS() )
+      if ( edep_tick > hit_ptr->PeakTime()-hit_ptr->RMS() && edep_tick < hit_ptr->PeakTime()+hit_ptr->RMS() ) {
 	EDepMatchedHitMap[i_e].push_back(i_h);
+	TrackIDLooseMatchedHitMap[edep_ptr->TrackID()].emplace(i_h);
+      }
     } // end loop over hits
 
     // if EDep is matched to exactly one hit, assign it to that hit => update HitMatchedEDepMap, HitMatchedTrackEnergyMap
@@ -588,7 +612,6 @@ sys::WireModifier::DummyFunction(std::vector<const sim::SimEnergyDeposit*> const
 
 
   // try out different distance metrics; if they disagree for any edep, print some info about that edep and all the ROI info
-  /*
   int flag = 0;
   for ( unsigned int i_e=0; i_e < edepPtrVec.size(); i_e++ ) {
 
@@ -655,11 +678,57 @@ sys::WireModifier::DummyFunction(std::vector<const sim::SimEnergyDeposit*> const
     std::cout << "\t -> hit #" << hit3 << std::endl;
 
   } // end loop over edeps
-  */
 
   // TODO -- merge elements of showers such that their energy depositions get counted together, recalculate these maps? not in this function...
 
 }
+*/
+
+sys::WireModifier::TruthProperties_t 
+sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec){
+  TruthProperties_t edep_col_properties;
+  
+  //do calculations here
+  edep_col_properties.x = 0.;
+  edep_col_properties.x_rms = 0.;
+  edep_col_properties.x_rms_noWeight = 0.;
+  edep_col_properties.x_min = 300.;
+  edep_col_properties.x_max = -50.;
+
+  double total_energy = 0.0;
+  for(auto edep_ptr : edepPtrVec){
+    edep_col_properties.x += edep_ptr->X()*edep_ptr->E();
+    if ( edep_ptr->X() < edep_col_properties.x_min ) edep_col_properties.x_min = edep_ptr->X();
+    if ( edep_ptr->X() > edep_col_properties.x_max ) edep_col_properties.x_max = edep_ptr->X();
+    total_energy += edep_ptr->E();
+  }
+
+  if(total_energy>0.0)
+    edep_col_properties.x = edep_col_properties.x/total_energy;
+
+  for(auto edep_ptr : edepPtrVec) {
+   edep_col_properties.x_rms += (edep_ptr->X()-edep_col_properties.x)*(edep_ptr->X()-edep_col_properties.x)*edep_ptr->E();
+   edep_col_properties.x_rms_noWeight += (edep_ptr->X()-edep_col_properties.x)*(edep_ptr->X()-edep_col_properties.x);
+  }
+
+  edep_col_properties.x_rms_noWeight = std::sqrt(edep_col_properties.x_rms_noWeight);
+
+  if(total_energy>0.0)
+    edep_col_properties.x_rms = std::sqrt(edep_col_properties.x_rms/total_energy);
+
+  // convert x-related proerties to ticks
+  edep_col_properties.tick = A_t*edep_col_properties.x + C_t;
+  edep_col_properties.tick_rms = A_t*edep_col_properties.x_rms;
+  edep_col_properties.tick_rms_noWeight = A_t*edep_col_properties.x_rms_noWeight;
+  edep_col_properties.tick_min = A_t*edep_col_properties.x_min + C_t;
+  edep_col_properties.tick_max = A_t*edep_col_properties.x_max + C_t;
+
+  edep_col_properties.total_energy = total_energy;
+
+  return edep_col_properties;
+}
+
+
 
 sys::WireModifier::ScaleValues_t sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& truth_props, sys::WireModifier::ROIProperties_t const& roi_vals)
 {
@@ -912,25 +981,37 @@ void sys::WireModifier::produce(art::Event& e)
       roi_properties.key   = roi_key;
       roi_properties.plane = my_plane;
 
+      // get the subROIs
+      auto subROIPropVec = CalcSubROIProperties(roi_properties, matchedHitPtrVec);
 
-      // run dummy function that spits out all the couts
-      auto testVec = DummyFunction(matchedShiftedEdepPtrVec, matchedHitPtrVec, roi_properties);  // N.B., using shifted EDeps because trying to compare projections onto wires
-      std::vector<unsigned int> testIdxVec;
-      for ( auto i_e : matchedEdepIdxVec ) {
-	for ( auto edep_ptr : testVec ) {
-	  if ( edep_ptr == matchedShiftedEdepPtrVec[i_e] ) testIdxVec.push_back(i_e);
+      // get the edeps per subROI
+      auto SubROIMatchedShifedEdepMap = MatchEdepsToSubROIs(subROIPropVec, matchedShiftedEdepPtrVec);
+      // convert from shifted edep pointers to edep indexes
+      std::map<SubROI_Key_t, std::vector<size_t>> SubROIMatchedEdepIdxMap;
+      for ( auto const& key_edepPtrVec_pair : SubROIMatchedShifedEdepMap ) {
+	auto key = key_edepPtrVec_pair.first;
+	for ( auto i_e : matchedEdepIdxVec ) {
+	  for ( auto const& edep_ptr : key_edepPtrVec_pair.second ) {
+	    if ( matchedShiftedEdepPtrVec[i_e] == edep_ptr ) 
+	      SubROIMatchedEdepIdxMap[key].push_back(i_e);
+	  }
 	}
       }
-      for ( auto i_e : testIdxVec ) std::cout << i_e << "  ";
-      std::cout << std::endl;
+      // convert from edep indexes to original edep pointers
+      //   maybe collapse with above and skip over edep indexes?
+      std::map<SubROI_Key_t, std::vector<const sim::SimEnergyDeposit*>> SubROIMatchedEdepMap;
+      for ( auto const& key_edepIdxVec_pair : SubROIMatchedEdepIdxMap ) {
+	auto key = key_edepIdxVec_pair.first;
+	for ( auto i_e : key_edepIdxVec_pair.second ) {
+	  SubROIMatchedEdepMap[key].push_back(matchedEdepPtrVec[i_e]);
+	}
+      }
 
       //get the scaling values
       auto edep_col_properties = CalcPropertiesFromEdeps(matchedEdepPtrVec);
       auto scales = GetScaleValues(edep_col_properties,roi_properties);
 
       //get modified ROI given scales
-
-      //recob::Wire::RegionsOfInterest_t::datarange_t::vector_t modified_data(range.data());
       std::vector<float> modified_data(range.data());
       ModifyROI(modified_data,roi_properties,edep_col_properties,scales);
       
