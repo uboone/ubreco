@@ -325,12 +325,11 @@ sys::WireModifier::MatchEdepsToSubROIs(std::vector<sys::WireModifier::SubROIProp
   std::map<SubROI_Key_t, std::vector<const sim::SimEnergyDeposit*>> SubROIMatchedEdepMap;
 
   // dumbest possible thing for now...
-  for ( auto sub_roi_prop : subROIPropVec ) {
-    auto key = sub_roi_prop.key;
-    //SubROIMatchedEdepMap[key].resize(0);
+  for ( auto subroi_prop : subROIPropVec ) {
+    auto key = subroi_prop.key;
     for ( auto edep_ptr : edepPtrVec ) {
       auto edep_tick = A_t * edep_ptr->X() + C_t;
-      if ( edep_tick > sub_roi_prop.center-sub_roi_prop.sigma && edep_tick < sub_roi_prop.center+sub_roi_prop.sigma ) 
+      if ( edep_tick > subroi_prop.center-subroi_prop.sigma && edep_tick < subroi_prop.center+subroi_prop.sigma ) 
 	SubROIMatchedEdepMap[key].push_back(edep_ptr);
     }
   }
@@ -686,7 +685,6 @@ sys::WireModifier::DummyFunction(std::vector<const sim::SimEnergyDeposit*> const
 sys::WireModifier::TruthProperties_t 
 sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec){
 
-  std::cout << "  Entered CalcPropertiesFromEdeps wtih edepPtrVec of size " << edepPtrVec.size() << std::endl;
   TruthProperties_t edep_col_properties;
   
   //do calculations here
@@ -799,7 +797,7 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
 			  scale_vals.r_Q     * subroi_prop.total_q );
     }
 
-    std::cout << "  q_orig = " << q_orig << ", q_mod = " << q_mod << std::endl;
+    //std::cout << "  q_orig = " << q_orig << ", q_mod = " << q_mod << std::endl;
 
     if(isnan(q_orig)) {
       std::cout << "WARNING: obtained q_orig = NaN... setting to zero" << std::endl;
@@ -961,31 +959,24 @@ void sys::WireModifier::produce(art::Event& e)
       std::cout << "  Have " << subROIPropVec.size() << " subROIs" << std::endl;
 
       // get the edeps per subROI
-      auto SubROIMatchedShifedEdepMap = MatchEdepsToSubROIs(subROIPropVec, matchedShiftedEdepPtrVec);
-      // convert from shifted edep pointers to edep indexes
-      std::map<SubROI_Key_t, std::vector<size_t>> SubROIMatchedEdepIdxMap;
-      for ( auto const& key_edepPtrVec_pair : SubROIMatchedShifedEdepMap ) {
+      auto SubROIMatchedShiftedEdepMap = MatchEdepsToSubROIs(subROIPropVec, matchedShiftedEdepPtrVec);
+      for ( auto const& pair : SubROIMatchedShiftedEdepMap ) std::cout << "  For subROI #" << pair.first.second << ", have " 
+								       << pair.second.size() << " matching Edeps (before conversion)" << std::endl;
+      // convert from shifted edep pointers to original edep pointers
+      std::map<SubROI_Key_t, std::vector<const sim::SimEnergyDeposit*>> SubROIMatchedEdepMap;
+      for ( auto const& key_edepPtrVec_pair : SubROIMatchedShiftedEdepMap ) {
 	auto key = key_edepPtrVec_pair.first;
-	//SubROIMatchedEdepIdxMap[key].resize(0);
-	for ( auto i_e : matchedEdepIdxVec ) {
-	  for ( auto const& edep_ptr : key_edepPtrVec_pair.second ) {
-	    if ( matchedShiftedEdepPtrVec[i_e] == edep_ptr ) 
-	      SubROIMatchedEdepIdxMap[key].push_back(i_e);
+	for ( auto const& shifted_edep_ptr : key_edepPtrVec_pair.second ) {
+	  for ( unsigned int i_e=0; i_e < matchedShiftedEdepPtrVec.size(); i_e++ ) {
+	    if ( shifted_edep_ptr == matchedShiftedEdepPtrVec[i_e] ) {
+	      SubROIMatchedEdepMap[key].push_back(matchedEdepPtrVec[i_e]);
+	      break;
+	    }
 	  }
 	}
       }
-      // convert from edep indexes to original edep pointers
-      //   maybe collapse with above and skip over edep indexes?
-      std::map<SubROI_Key_t, std::vector<const sim::SimEnergyDeposit*>> SubROIMatchedEdepMap;
-      for ( auto const& key_edepIdxVec_pair : SubROIMatchedEdepIdxMap ) {
-	auto key = key_edepIdxVec_pair.first;
-	//SubROIMatchedEdepMap[key].resize(0);
-	for ( auto i_e : key_edepIdxVec_pair.second ) {
-	  SubROIMatchedEdepMap[key].push_back(matchedEdepPtrVec[i_e]);
-	}
-      }
-      for ( auto const& key_edepIdxVec_pair : SubROIMatchedEdepIdxMap ) std::cout << "  For subROI #" << key_edepIdxVec_pair.first.second << ", have " 
-										  << key_edepIdxVec_pair.second.size() << " matching Edeps" << std::endl;
+      for ( auto const& pair : SubROIMatchedEdepMap ) std::cout << "  For subROI #" << pair.first.second << ", have " 
+								<< pair.second.size() << " matching Edeps (after conversion)" << std::endl;
 
       //get the scaling values
       //std::map<SubROI_Key_t, TruthProperties_t> SubROIMatchedTruthMap;
@@ -1000,22 +991,20 @@ void sys::WireModifier::produce(art::Event& e)
 	auto key_it =  SubROIMatchedEdepMap.find(key);
 	if ( key_it != SubROIMatchedEdepMap.end() ) std::cout << ", number of matched edeps: " << key_it->second.size();
 	std::cout << std::endl;
-	std::cout << "  hey!" << std::endl;
 	if ( key_it == SubROIMatchedEdepMap.end() ){
 	  std::cout << "    No matched edeps, setting scale factors to 1" << std::endl;
 	  scale_vals.r_Q     = 1.;
 	  scale_vals.r_sigma = 1.;
 	}
 	else {
-	  std::cout << "    hello!" << std::endl;
-	  std::cout << "    Have matched edeps... " << std::endl;
-	  std::cout << "      getting truth vals... " << std::endl;
+	  std::cout << "    Have matched edeps... ";
+	  std::cout << "getting truth vals... ";
 	  auto truth_vals = CalcPropertiesFromEdeps(key_it->second);
 	  //std::cout << "putting truth vals in map... ";
 	  //SubROIMatchedTruthMap[key] = truth_vals;
-	  std::cout << "      getting scale vals... " << std::endl;
+	  std::cout << "getting scale vals... ";
 	  scale_vals = GetScaleValues(truth_vals, roi_properties);
-	  std::cout << "      got scale vals" << std::endl;
+	  std::cout << "got scale vals" << std::endl;
 	}
 	std::cout << "    Scale values are r_Q = " << scale_vals.r_Q << ", r_sigma = " << scale_vals.r_sigma << std::endl;
 	SubROIMatchedScalesMap[key] = scale_vals;
