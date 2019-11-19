@@ -327,6 +327,7 @@ sys::WireModifier::MatchEdepsToSubROIs(std::vector<sys::WireModifier::SubROIProp
   // dumbest possible thing for now...
   for ( auto sub_roi_prop : subROIPropVec ) {
     auto key = sub_roi_prop.key;
+    //SubROIMatchedEdepMap[key].resize(0);
     for ( auto edep_ptr : edepPtrVec ) {
       auto edep_tick = A_t * edep_ptr->X() + C_t;
       if ( edep_tick > sub_roi_prop.center-sub_roi_prop.sigma && edep_tick < sub_roi_prop.center+sub_roi_prop.sigma ) 
@@ -684,6 +685,8 @@ sys::WireModifier::DummyFunction(std::vector<const sim::SimEnergyDeposit*> const
 
 sys::WireModifier::TruthProperties_t 
 sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec){
+
+  std::cout << "  Entered CalcPropertiesFromEdeps wtih edepPtrVec of size " << edepPtrVec.size() << std::endl;
   TruthProperties_t edep_col_properties;
   
   //do calculations here
@@ -914,7 +917,6 @@ void sys::WireModifier::produce(art::Event& e)
 
     for(size_t i_r=0; i_r<wire.SignalROI().get_ranges().size(); ++i_r){
 
-
       auto const& range = wire.SignalROI().get_ranges()[i_r];
       ROI_Key_t roi_key(wire.Channel(),i_r);
 
@@ -934,7 +936,10 @@ void sys::WireModifier::produce(art::Event& e)
       for(auto i_e : matchedEdepIdxVec) {
 	matchedEdepPtrVec.push_back(&edepOrigVec[i_e]);
 	matchedShiftedEdepPtrVec.push_back(&edepShiftedVec[i_e]);
-      }      
+      }
+
+      std::cout << "DOING WIRE ROI (wire=" << wire.Channel() << ", roi_idx=" << i_r << ")" << std::endl;
+      std::cout << "  Have " << matchedEdepPtrVec.size() << " matching Edeps" << std::endl;
 
       // get the matching hits
       std::vector<const recob::Hit*> matchedHitPtrVec;
@@ -944,6 +949,7 @@ void sys::WireModifier::produce(art::Event& e)
 	  matchedHitPtrVec.push_back(&hitVec[i_h]);
 	}
       }
+      std::cout << "  Have " << matchedHitPtrVec.size() << " matching hits" << std::endl;
 
       //calc roi properties
       auto roi_properties = CalcROIProperties(range);
@@ -952,6 +958,7 @@ void sys::WireModifier::produce(art::Event& e)
 
       // get the subROIs
       auto subROIPropVec = CalcSubROIProperties(roi_properties, matchedHitPtrVec);
+      std::cout << "  Have " << subROIPropVec.size() << " subROIs" << std::endl;
 
       // get the edeps per subROI
       auto SubROIMatchedShifedEdepMap = MatchEdepsToSubROIs(subROIPropVec, matchedShiftedEdepPtrVec);
@@ -959,6 +966,7 @@ void sys::WireModifier::produce(art::Event& e)
       std::map<SubROI_Key_t, std::vector<size_t>> SubROIMatchedEdepIdxMap;
       for ( auto const& key_edepPtrVec_pair : SubROIMatchedShifedEdepMap ) {
 	auto key = key_edepPtrVec_pair.first;
+	//SubROIMatchedEdepIdxMap[key].resize(0);
 	for ( auto i_e : matchedEdepIdxVec ) {
 	  for ( auto const& edep_ptr : key_edepPtrVec_pair.second ) {
 	    if ( matchedShiftedEdepPtrVec[i_e] == edep_ptr ) 
@@ -971,29 +979,51 @@ void sys::WireModifier::produce(art::Event& e)
       std::map<SubROI_Key_t, std::vector<const sim::SimEnergyDeposit*>> SubROIMatchedEdepMap;
       for ( auto const& key_edepIdxVec_pair : SubROIMatchedEdepIdxMap ) {
 	auto key = key_edepIdxVec_pair.first;
+	//SubROIMatchedEdepMap[key].resize(0);
 	for ( auto i_e : key_edepIdxVec_pair.second ) {
 	  SubROIMatchedEdepMap[key].push_back(matchedEdepPtrVec[i_e]);
 	}
       }
+      for ( auto const& key_edepIdxVec_pair : SubROIMatchedEdepIdxMap ) std::cout << "  For subROI #" << key_edepIdxVec_pair.first.second << ", have " 
+										  << key_edepIdxVec_pair.second.size() << " matching Edeps" << std::endl;
 
       //get the scaling values
-      //auto edep_col_properties = CalcPropertiesFromEdeps(matchedEdepPtrVec);
-      //auto scales = GetScaleValues(edep_col_properties,roi_properties);
-      std::map<SubROI_Key_t, TruthProperties_t> SubROIMatchedTruthMap;
+      //std::map<SubROI_Key_t, TruthProperties_t> SubROIMatchedTruthMap;
       std::map<SubROI_Key_t, ScaleValues_t>     SubROIMatchedScalesMap;
-      for( auto const& key_edepPtrVec_pair : SubROIMatchedEdepMap ) {
-	auto key = key_edepPtrVec_pair.first;
+      std::cout << "  Entering loop over SubROIMatchedEdepMap..." << std::endl;
+      //for( auto const& key_edepPtrVec_pair : SubROIMatchedEdepMap ) {
+      for ( auto const& subroi_prop : subROIPropVec ) {
+	auto key = subroi_prop.key;
 	ScaleValues_t scale_vals;
-	if ( key_edepPtrVec_pair.second.size() == 0 ){
+	std::cout << "    (" << key.first.first << ", " << key.first.second << ", " << key.second << ")";
+	//std::cout << ", number of matched edeps: " <<  key_edepPtrVec_pair.second.size() << std::endl;
+	auto key_it =  SubROIMatchedEdepMap.find(key);
+	if ( key_it != SubROIMatchedEdepMap.end() ) std::cout << ", number of matched edeps: " << key_it->second.size();
+	std::cout << std::endl;
+	std::cout << "  hey!" << std::endl;
+	if ( key_it == SubROIMatchedEdepMap.end() ){
+	  std::cout << "    No matched edeps, setting scale factors to 1" << std::endl;
 	  scale_vals.r_Q     = 1.;
 	  scale_vals.r_sigma = 1.;
 	}
 	else {
-	  auto truth_vals = CalcPropertiesFromEdeps(key_edepPtrVec_pair.second);
-	  SubROIMatchedTruthMap[key]  = truth_vals;
+	  std::cout << "    hello!" << std::endl;
+	  std::cout << "    Have matched edeps... " << std::endl;
+	  std::cout << "      getting truth vals... " << std::endl;
+	  auto truth_vals = CalcPropertiesFromEdeps(key_it->second);
+	  //std::cout << "putting truth vals in map... ";
+	  //SubROIMatchedTruthMap[key] = truth_vals;
+	  std::cout << "      getting scale vals... " << std::endl;
 	  scale_vals = GetScaleValues(truth_vals, roi_properties);
+	  std::cout << "      got scale vals" << std::endl;
 	}
+	std::cout << "    Scale values are r_Q = " << scale_vals.r_Q << ", r_sigma = " << scale_vals.r_sigma << std::endl;
 	SubROIMatchedScalesMap[key] = scale_vals;
+      }
+      std::cout << "  Finished loop over SubROIMatchedEdepMap." << std::endl;
+      for ( auto const& key_scale_pair : SubROIMatchedScalesMap ) {
+	std::cout << "For subroi (" << key_scale_pair.first.first.first << ", " << key_scale_pair.first.first.second << ", " << key_scale_pair.first.second << "), "
+		  << "and have scale factors r_Q = " << key_scale_pair.second.r_Q << " and r_sigma = " << key_scale_pair.second.r_sigma << std::endl;
       }
 
       //get modified ROI given scales
