@@ -78,7 +78,7 @@ private:
   static constexpr double C_Y = 4799.19;
   static constexpr double A_t = 18.2148;
   static constexpr double C_t = 818.351;
-  //static constexpr double SIN_SIXTY = std::sqrt(3)/2;
+  static constexpr double SIN_SIXTY = std::sqrt(3)/2;
   static constexpr double COS_SIXTY = 0.5;
 
 
@@ -139,14 +139,12 @@ private:
 
   TruthProperties_t CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDeposit*> const&);
 
-
   ScaleValues_t GetScaleValues(TruthProperties_t const&,ROIProperties_t const&);
 
-  void ModifyROI(//recob::Wire::RegionsOfInterest_t::datarange_t::vector_t &,
-		 std::vector<float> &,
-		 ROIProperties_t const&,
-		 TruthProperties_t const&,
-		 ScaleValues_t const&);
+  void ModifyROI(std::vector<float> &,
+		 ROIProperties_t const &, 
+		 std::vector<SubROIProperties_t> const&,
+		 std::map<SubROI_Key_t, ScaleValues_t> const&);
 
 };
 
@@ -182,8 +180,8 @@ sys::WireModifier::GetTargetROIs(sim::SimEnergyDeposit const& shifted_edep)
   //channel number, time tick
   std::vector< std::pair<unsigned int,unsigned int> > target_roi_vec;
 
-  int edep_U_wire = std::round( A_w*(-std::sqrt(3)/2*shifted_edep.Y() + COS_SIXTY*shifted_edep.Z()) + C_U );
-  int edep_V_wire = std::round( A_w*( std::sqrt(3)/2*shifted_edep.Y() + COS_SIXTY*shifted_edep.Z()) + C_V );
+  int edep_U_wire = std::round( A_w*(-SIN_SIXTY*shifted_edep.Y() + COS_SIXTY*shifted_edep.Z()) + C_U );
+  int edep_V_wire = std::round( A_w*( SIN_SIXTY*shifted_edep.Y() + COS_SIXTY*shifted_edep.Z()) + C_V );
   int edep_Y_wire = std::round( A_w*shifted_edep.Z() + C_Y );
   int edep_tick   = std::round( A_t*shifted_edep.X() + C_t );
 
@@ -322,7 +320,7 @@ sys::WireModifier::CalcSubROIProperties(sys::WireModifier::ROIProperties_t const
 
 std::map<sys::WireModifier::SubROI_Key_t, std::vector<const sim::SimEnergyDeposit*>>
 sys::WireModifier::MatchEdepsToSubROIs(std::vector<sys::WireModifier::SubROIProperties_t> const& subROIPropVec,
-					 std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec) {
+				       std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec) {
 
   std::map<SubROI_Key_t, std::vector<const sim::SimEnergyDeposit*>> SubROIMatchedEdepMap;
 
@@ -730,7 +728,8 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
 
 
 
-sys::WireModifier::ScaleValues_t sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& truth_props, sys::WireModifier::ROIProperties_t const& roi_vals)
+sys::WireModifier::ScaleValues_t
+sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& truth_props, sys::WireModifier::ROIProperties_t const& roi_vals)
 {
   ScaleValues_t scales;
 
@@ -755,113 +754,84 @@ sys::WireModifier::ScaleValues_t sys::WireModifier::GetScaleValues(sys::WireModi
 }
 
 void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
-				  sys::WireModifier::ROIProperties_t const& roi_vals,
-				  sys::WireModifier::TruthProperties_t const& truth_props,
-				  sys::WireModifier::ScaleValues_t const& scales)
+				  sys::WireModifier::ROIProperties_t const& roi_prop,
+				  std::vector<sys::WireModifier::SubROIProperties_t> const& subROIPropVec, 
+				  std::map<sys::WireModifier::SubROI_Key_t, sys::WireModifier::ScaleValues_t> const& subROIScaleMap)
 {
 
-  /*
-  std::cout << "\t\troi:[" << roi_vals.begin << "," << roi_vals.end << "]"
-  	    << "\n\t\tedep: " << truth_props.tick << " +/- " << truth_props.tick_rms << std::endl;
-  */
-  double tick_rms = std::sqrt(2*2+truth_props.tick_rms*truth_props.tick_rms);
-  int tick_window_begin = std::round(truth_props.tick-tick_rms)-roi_vals.begin;
-  int tick_window_end = std::round(truth_props.tick+tick_rms+1)-roi_vals.begin;
-  /*
-  std::cout << "\t\troi_sub:[" << tick_window_begin+roi_vals.begin << "," << tick_window_end+roi_vals.begin << "]" << std::endl;
-  */
-  if(tick_window_begin<0) tick_window_begin=0;
-  if(tick_window_end>(int)(roi_data.size())) tick_window_end=roi_data.size();
+  std::cout << "Modifying wire " << roi_prop.key.first << ", " << roi_prop.key.second << std::endl;
 
-  double center_sim=0,center_else=0;
-  double total_q_sim=0,total_q_else=0;
-  double sigma_sim=0,sigma_else=0;
-
-  for(size_t i_t = 0; i_t<roi_data.size(); ++i_t){
-
-    if((int)i_t >=tick_window_begin && (int)i_t<tick_window_end)
-      //for(int i_t=tick_window_begin; i_t<tick_window_end; ++i_t)
-    {
-      center_sim += roi_data[i_t]*(i_t+roi_vals.begin);
-      total_q_sim += roi_data[i_t];
-    }
-    else{
-      center_else += roi_data[i_t]*(i_t+roi_vals.begin);
-      total_q_else += roi_data[i_t];
-    }
-  }
-  center_sim = center_sim/total_q_sim;
-  center_else = center_else/total_q_else;
-
-
-
-
-  for(size_t i_t = 0; i_t<roi_data.size(); ++i_t){
-
-    if((int)i_t >=tick_window_begin && (int)i_t<tick_window_end)
-      //for(int i_t=tick_window_begin; i_t<tick_window_end; ++i_t)
-      sigma_sim += roi_data[i_t]*(i_t+roi_vals.begin-center_sim)*(i_t+roi_vals.begin-center_sim);
-    else
-      sigma_else += roi_data[i_t]*(i_t+roi_vals.begin-center_else)*(i_t+roi_vals.begin-center_else);
-  }
-  
-  sigma_sim = std::sqrt(sigma_sim/total_q_sim);
-  sigma_else = std::sqrt(sigma_else/total_q_else);
-  /*
-  std::cout << "\t\tsub_center = " << center+roi_vals.begin << " +/- " << sigma << std::endl;
-  */
-
-  double scale_ratio=1;
-  double q_else=0.0;
-  double q_sim_orig=0.0;
-  double q_sim_mod=0.0;
-
-  bool verbose=false;
+  bool verbose=true;
   //if(roi_data.size()>100) verbose=true;
 
-  for(size_t i_t = 0; i_t<roi_data.size(); ++i_t){
+  double q_orig = 0.;
+  double q_mod = 0.;
+  double scale_ratio = 1.;
+
+  for(size_t i_t=0; i_t < roi_data.size(); i_t++) {
+
+    std::cout << "  Doing tick #" << i_t << "..." << std::endl;
+
+    // reset q_orig, q_mod, scale_ratio
+    q_orig = 0.;
+    q_mod = 0.;
+    scale_ratio = 1.;
     
-    q_else = 0.0;
-    q_sim_orig = GAUSSIAN(i_t+roi_vals.begin,
-			  roi_vals.center,
-			  roi_vals.sigma);
-    q_sim_mod = scales.r_Q *GAUSSIAN(i_t+roi_vals.begin,
-				     roi_vals.center,
-				     roi_vals.sigma*scales.r_sigma);
+    // calculate q_orig, q_mod for this tick
+    for ( auto const& subroi_prop : subROIPropVec ) {
+      auto scale_vals = subROIScaleMap.find(subroi_prop.key)->second;
+      q_orig += GAUSSIAN( i_t+roi_prop.begin,
+			  subroi_prop.center,
+			  subroi_prop.sigma,
+			  subroi_prop.total_q );
+      std::cout << "    Incrementing q_mod by GAUSSIAN( " << i_t+roi_prop.begin << ", " << subroi_prop.center << ", " << scale_vals.r_sigma 
+		<< " * " << subroi_prop.sigma << ", " << scale_vals.r_Q << " * " << subroi_prop.total_q << ") = " << GAUSSIAN( i_t+roi_prop.begin,
+															       subroi_prop.center,
+															       scale_vals.r_sigma * subroi_prop.sigma,
+															       scale_vals.r_Q     * subroi_prop.total_q )
+		<< std::endl;
+      q_mod  += GAUSSIAN( i_t+roi_prop.begin,
+			  subroi_prop.center,
+			  scale_vals.r_sigma * subroi_prop.sigma, 
+			  scale_vals.r_Q     * subroi_prop.total_q );
+    }
 
+    std::cout << "  q_orig = " << q_orig << ", q_mod = " << q_mod << std::endl;
 
-    if(isnan(q_else)) q_else=0.0;
-    if(isnan(q_sim_orig)) q_sim_orig=0.0;
-    if(isnan(q_sim_mod)) q_sim_mod=0.0;
+    if(isnan(q_orig)) {
+      std::cout << "WARNING: obtained q_orig = NaN... setting to zero" << std::endl;
+      q_orig = 0.;
+    }
+    if(isnan(q_mod)) {
+      std::cout << "WARNING: obtained q_mod = NaN... settign to zero" << std::endl;
+      q_mod = 0.;
+    }
 
-    scale_ratio = (q_sim_mod+q_else)/(q_sim_orig+q_else);
+    scale_ratio = q_mod / q_orig;
+    std::cout << "  scale_ratio = " << scale_ratio << std::endl;
     
-    if(isnan(scale_ratio) || isinf(scale_ratio))
+    if(isnan(scale_ratio)) {
+      std::cout << "WARNING: obtained scale_ratio = " << q_mod << " / " << q_orig << " = NaN... setting to 1" << std::endl;
+      scale_ratio = 1.;
+    }
+    if(isinf(scale_ratio)) {
+      std::cout << "WARNING: obtained scale_ratio = " << q_mod << " / " << q_orig << " = inf... setting to 1" << std::endl;
       scale_ratio = 1.0;
+    }
     
-    roi_data[i_t] = roi_data[i_t] * scale_ratio;
+    roi_data[i_t] = scale_ratio * roi_data[i_t];
 
     if(verbose)
       std::cout << "\t\t\t tick " << i_t << ":"
 		<< " data=" << roi_data[i_t]
-		<< ", den. = "
-		<< "( " << total_q_sim*GAUSSIAN(i_t+roi_vals.begin,
-						center_sim,
-						sigma_sim)
-		<< " + " << total_q_else*GAUSSIAN(i_t+roi_vals.begin,
-						  center_else,
-						  sigma_else) << ")"
-		<< ", num. = "
-		<< "( " << scales.r_Q*total_q_sim*GAUSSIAN(i_t+roi_vals.begin,
-							   center_sim,
-							   sigma_sim*scales.r_sigma)
-		<< " + " << total_q_else*GAUSSIAN(i_t+roi_vals.begin,
-						  center_else,
-						  sigma_else) << ")"
+		<< ", den. = " << q_orig
+		<< ", num. = " << q_mod
 		<< ", ratio=" << scale_ratio
 		<< std::endl;
   }
+  
   return;
+
 }
 
 sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
@@ -942,7 +912,6 @@ void sys::WireModifier::produce(art::Event& e)
 
     unsigned int my_plane=wire.View();
 
-    //for(auto const& range: wire.SignalROI().get_ranges()){
     for(size_t i_r=0; i_r<wire.SignalROI().get_ranges().size(); ++i_r){
 
 
@@ -1008,12 +977,28 @@ void sys::WireModifier::produce(art::Event& e)
       }
 
       //get the scaling values
-      auto edep_col_properties = CalcPropertiesFromEdeps(matchedEdepPtrVec);
-      auto scales = GetScaleValues(edep_col_properties,roi_properties);
+      //auto edep_col_properties = CalcPropertiesFromEdeps(matchedEdepPtrVec);
+      //auto scales = GetScaleValues(edep_col_properties,roi_properties);
+      std::map<SubROI_Key_t, TruthProperties_t> SubROIMatchedTruthMap;
+      std::map<SubROI_Key_t, ScaleValues_t>     SubROIMatchedScalesMap;
+      for( auto const& key_edepPtrVec_pair : SubROIMatchedEdepMap ) {
+	auto key = key_edepPtrVec_pair.first;
+	ScaleValues_t scale_vals;
+	if ( key_edepPtrVec_pair.second.size() == 0 ){
+	  scale_vals.r_Q     = 1.;
+	  scale_vals.r_sigma = 1.;
+	}
+	else {
+	  auto truth_vals = CalcPropertiesFromEdeps(key_edepPtrVec_pair.second);
+	  SubROIMatchedTruthMap[key]  = truth_vals;
+	  scale_vals = GetScaleValues(truth_vals, roi_properties);
+	}
+	SubROIMatchedScalesMap[key] = scale_vals;
+      }
 
       //get modified ROI given scales
       std::vector<float> modified_data(range.data());
-      ModifyROI(modified_data,roi_properties,edep_col_properties,scales);
+      ModifyROI(modified_data, roi_properties, subROIPropVec, SubROIMatchedScalesMap);
       
       new_rois.add_range(roi_properties.begin,modified_data);
       
