@@ -17,6 +17,10 @@
 #include "MicroBooNEExternalVertexCreationAlgorithm.h"
 #include "MicroBooNEMasterAlgorithm.h"
 #include "MicroBooNEPreProcessingAlgorithm.h"
+#include "MicroBooNETrainedVertexSelectionAlgorithm.h"
+#include "MicroBooNEMvaVertexSelectionAlgorithm.h"
+#include "MicroBooNEMyDlVtxAlgorithm.h"
+#include "MicroBooNEMyDlVtxFeatureTool.h"
 
 #include "MicroBooNEContent.h"
 
@@ -65,6 +69,43 @@ public:
     pandora::Algorithm *CreateAlgorithm() const {return new lar_content::MicroBooNEPreProcessingAlgorithm;};
 };
 
+/**
+ *  @brief  MicroBooNE MyDlVtx algorithm factory
+ */
+class MyDlVtxAlgorithmFactory : public pandora::AlgorithmFactory
+{
+public:
+    pandora::Algorithm *CreateAlgorithm() const {return new lar_content::MicroBooNEMyDlVtxAlgorithm;};
+};
+
+/**
+ *  @brief  MicroBooNE MyDlVtxFeature algorithmTool factory
+ */
+class MyDlVtxFeatureToolFactory : public pandora::AlgorithmToolFactory
+{
+public:
+    pandora::AlgorithmTool *CreateAlgorithmTool() const {return new lar_content::MicroBooNEMyDlVtxFeatureTool;};
+};
+
+/**
+ *  @brief  MicroBooNE BdtVertexSelection algorithm factory
+ */
+class BdtVertexSelectionAlgorithmFactory : public pandora::AlgorithmFactory
+{
+public:
+    pandora::Algorithm *CreateAlgorithm() const {return new lar_content::MicroBooNEBdtVertexSelectionAlgorithm;};
+};
+
+
+/**
+ *  @brief  MicroBooNE SvmVertexSelection algorithm factory
+ */
+class SvmVertexSelectionAlgorithmFactory : public pandora::AlgorithmFactory
+{
+public:
+    pandora::Algorithm *CreateAlgorithm() const {return new lar_content::MicroBooNESvmVertexSelectionAlgorithm;};
+};
+
 //------------------------------------------------------------------------------------------------------------------------------------------
 
 pandora::StatusCode MicroBooNEContent::RegisterAlgorithms(const pandora::Pandora &pandora)
@@ -74,6 +115,10 @@ pandora::StatusCode MicroBooNEContent::RegisterAlgorithms(const pandora::Pandora
     PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(pandora, "MicroBooNEExternalVertexCreation", new MicroBooNEExternalVertexCreationAlgorithmFactory));
     PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(pandora, "MicroBooNEPreProcessing", new MicroBooNEPreProcessingAlgorithmFactory));
     PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(pandora, "MicroBooNEMaster", new MicroBooNEMasterAlgorithmFactory));
+    PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(pandora, "MicroBooNEBdtVertexSelection", new BdtVertexSelectionAlgorithmFactory));
+    PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(pandora, "MicroBooNESvmVertexSelection", new SvmVertexSelectionAlgorithmFactory));
+    PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmFactory(pandora, "MicroBooNEMyDlVtx", new MyDlVtxAlgorithmFactory));
+    PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::RegisterAlgorithmToolFactory(pandora, "MicroBooNEMyDlVtxFeature", new MyDlVtxFeatureToolFactory));
 
     return pandora::STATUS_CODE_SUCCESS;
 }

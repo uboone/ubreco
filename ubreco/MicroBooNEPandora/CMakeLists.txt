@@ -7,6 +7,13 @@ include_directories( $ENV{PANDORA_INC} )
 include_directories( $ENV{LARPANDORA_INC} )
 include_directories( $ENV{LARPANDORACONTENT_INC} )
 
+set(TORCH_LIBRARY1 "$ENV{LIBTORCH_LIB}/libtorch.so")
+set(TORCH_LIBRARY2 "$ENV{LIBTORCH_LIB}/libcaffe2.so")
+set(TORCH_LIBRARY3 "$ENV{LIBTORCH_LIB}/libc10.so")
+set(TORCH_INCLUDE_DIR "$ENV{LIBTORCH_INC}")
+link_libraries(${TORCH_LIBRARY1} ${TORCH_LIBRARY2} ${TORCH_LIBRARY3})
+include_directories(${TORCH_INCLUDE_DIR})
+
 art_make( BASENAME_ONLY
           LIBRARY_NAME  MicroBooNEPandora
           LIB_LIBRARIES larpandora_LArPandoraInterface

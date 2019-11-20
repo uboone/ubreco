@@ -78,6 +78,12 @@
     </algorithm>
 
     <!-- VertexAlgorithms -->
+    <algorithm type = "MicroBooNEMyDlVtx">
+        <InputClusterListNames>ClustersU ClustersV ClustersW</InputClusterListNames>
+        <OutputVertexListName>DlVertices3D</OutputVertexListName>
+        <ModelFileNamePrefix>torch_model</ModelFileNamePrefix>
+    </algorithm>
+
     <algorithm type = "LArCutClusterCharacterisation">
         <InputClusterListNames>ClustersU ClustersV ClustersW</InputClusterListNames>
     </algorithm>
@@ -87,20 +93,25 @@
         <ReplaceCurrentVertexList>true</ReplaceCurrentVertexList>
         <EnableCrossingCandidates>true</EnableCrossingCandidates>
     </algorithm>
-    <algorithm type = "LArSvmVertexSelection">
+    <algorithm type = "MicroBooNEBdtVertexSelection">
         <InputCaloHitListNames>CaloHitListU CaloHitListV CaloHitListW</InputCaloHitListNames>
         <InputClusterListNames>ClustersU ClustersV ClustersW</InputClusterListNames>
+        <MCParticleListName>Input</MCParticleListName> 
         <OutputVertexListName>NeutrinoVertices3D</OutputVertexListName>
         <ReplaceCurrentVertexList>true</ReplaceCurrentVertexList>
-        <MvaFileName>PandoraSvm_v03_11_00.xml</MvaFileName>
+        <MvaFileName>PandoraBdtTorchvtxVer1.xml</MvaFileName>
         <RegionMvaName>VertexSelectionRegion</RegionMvaName>
         <VertexMvaName>VertexSelectionVertex</VertexMvaName>
+        <TrainingSetMode>false</TrainingSetMode>
+        <CaloHitListName>CaloHitList2D</CaloHitListName>
+        <PathToSCEFile>/path/SCEoffsets_dataDriven_combined_fwd_Jan18.root</PathToSCEFile>
         <FeatureTools>
             <tool type = "LArEnergyKickFeature"/>
             <tool type = "LArLocalAsymmetryFeature"/>
             <tool type = "LArGlobalAsymmetryFeature"/>
             <tool type = "LArShowerAsymmetryFeature"/>
             <tool type = "LArRPhiFeature"/>
+            <tool type = "MicroBooNEMyDlVtxFeature"/>
         </FeatureTools>
     </algorithm>
     <algorithm type = "LArCutClusterCharacterisation">
@@ -346,27 +357,17 @@
     <algorithm type = "LArNeutrinoProperties">
         <NeutrinoPfoListName>NeutrinoParticles3D</NeutrinoPfoListName>
     </algorithm>
-
-    <!-- Track and shower building -->
-    <algorithm type = "LArTrackParticleBuilding">
-        <PfoListName>TrackParticles3D</PfoListName>
-        <VertexListName>DaughterVertices3D</VertexListName>
-    </algorithm>
-
-    <!-- Persist all vertex candidates -->
-    <algorithm type = "DummyVertexParticleCreation">
-        <InputVertexListNames>NeutrinoVertices3D CandidateVertices3D</InputVertexListNames>
-        <OutputVertexListName>CandidateVerticesCopy3D</OutputVertexListName>
-        <OutputPfoListName>CandidateVertexParticles3D</OutputPfoListName>
-        <!-- Parameters below required for vertex filtering only; can override default values for additional parameters here too -->
-        <ShouldFilterVertexList>true</ShouldFilterVertexList>
-        <InputCaloHitListNames>CaloHitListU CaloHitListV CaloHitListW</InputCaloHitListNames>
+    
+    <!-- Track and shower building --> 
+    <algorithm type = "LArTrackParticleBuilding"> 
+        <PfoListName>TrackParticles3D</PfoListName> 
+        <VertexListName>DaughterVertices3D</VertexListName> 
     </algorithm>
 
     <!-- Output list management -->
     <algorithm type = "LArPostProcessing">
-        <PfoListNames>NeutrinoParticles3D TrackParticles3D ShowerParticles3D CandidateVertexParticles3D</PfoListNames>
-        <VertexListNames>NeutrinoVertices3D DaughterVertices3D CandidateVertices3D CandidateVerticesCopy3D</VertexListNames>
+        <PfoListNames>NeutrinoParticles3D TrackParticles3D ShowerParticles3D</PfoListNames>
+        <VertexListNames>NeutrinoVertices3D DaughterVertices3D CandidateVertices3D</VertexListNames>
         <ClusterListNames>ClustersU ClustersV ClustersW TrackClusters3D ShowerClusters3D</ClusterListNames>
         <CaloHitListNames>CaloHitListU CaloHitListV CaloHitListW CaloHitList2D</CaloHitListNames>
         <CurrentPfoListReplacement>NeutrinoParticles3D</CurrentPfoListReplacement>
