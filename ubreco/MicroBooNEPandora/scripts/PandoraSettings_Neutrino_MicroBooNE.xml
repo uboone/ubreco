@@ -357,17 +357,27 @@
     <algorithm type = "LArNeutrinoProperties">
         <NeutrinoPfoListName>NeutrinoParticles3D</NeutrinoPfoListName>
     </algorithm>
-    
-    <!-- Track and shower building --> 
-    <algorithm type = "LArTrackParticleBuilding"> 
-        <PfoListName>TrackParticles3D</PfoListName> 
-        <VertexListName>DaughterVertices3D</VertexListName> 
+
+    <!-- Track and shower building -->
+    <algorithm type = "LArTrackParticleBuilding">
+        <PfoListName>TrackParticles3D</PfoListName>
+        <VertexListName>DaughterVertices3D</VertexListName>
+    </algorithm>
+
+    <!-- Persist all vertex candidates -->
+    <algorithm type = "DummyVertexParticleCreation">
+        <InputVertexListNames>NeutrinoVertices3D CandidateVertices3D</InputVertexListNames>
+        <OutputVertexListName>CandidateVerticesCopy3D</OutputVertexListName>
+        <OutputPfoListName>CandidateVertexParticles3D</OutputPfoListName>
+        <!-- Parameters below required for vertex filtering only; can override default values for additional parameters here too -->
+        <ShouldFilterVertexList>true</ShouldFilterVertexList>
+        <InputCaloHitListNames>CaloHitListU CaloHitListV CaloHitListW</InputCaloHitListNames>
     </algorithm>
 
     <!-- Output list management -->
     <algorithm type = "LArPostProcessing">
-        <PfoListNames>NeutrinoParticles3D TrackParticles3D ShowerParticles3D</PfoListNames>
-        <VertexListNames>NeutrinoVertices3D DaughterVertices3D CandidateVertices3D</VertexListNames>
+        <PfoListNames>NeutrinoParticles3D TrackParticles3D ShowerParticles3D CandidateVertexParticles3D</PfoListNames>
+        <VertexListNames>NeutrinoVertices3D DaughterVertices3D CandidateVertices3D CandidateVerticesCopy3D</VertexListNames>
         <ClusterListNames>ClustersU ClustersV ClustersW TrackClusters3D ShowerClusters3D</ClusterListNames>
         <CaloHitListNames>CaloHitListU CaloHitListV CaloHitListW CaloHitList2D</CaloHitListNames>
         <CurrentPfoListReplacement>NeutrinoParticles3D</CurrentPfoListReplacement>
