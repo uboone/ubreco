@@ -131,8 +131,6 @@ void CosmicFilter::produce(art::Event & e)
   auto const& clu_h = e.getValidHandle<std::vector<recob::Cluster>>(fCluProducer);
   // grab ssnet hits
   auto const& hit_h = e.getValidHandle<std::vector<recob::Hit>>(fHitProducer);
-  // grab vertex
-  auto const& vtx_h = e.getValidHandle<std::vector<recob::Vertex>>(fVtxProducer);
 
   // grab tracks and clusters associated to PFParticle
   art::FindManyP<recob::Track  > pfp_trk_assn_v(pfp_h, e, fPFPProducer);
@@ -151,17 +149,21 @@ void CosmicFilter::produce(art::Event & e)
   _trkhits.clear();
 
   // BEGIN : LOAD VERTEX
-  // check that only one vertex exists
-  if (vtx_h->size() != 1) 
-    std::cout << "\t\t DD \t\t ERROR" << std::endl;
-  auto vtx = vtx_h->at(0);
-  Double_t xyz[3] = {};
-  vtx.XYZ(xyz);
-  _xpos = xyz[0];
-  _ypos = xyz[1];
-  _zpos = xyz[2];
+  // grab vertex
+  if (fVtxProducer != ""){  // when empty -> do not use vertex
+    auto const& vtx_h = e.getValidHandle<std::vector<recob::Vertex>>(fVtxProducer);
+    // check that only one vertex exists
+    if (vtx_h->size() != 1) 
+      std::cout << "\t\t DD \t\t ERROR" << std::endl;
+    auto vtx = vtx_h->at(0);
+    Double_t xyz[3] = {};
+    vtx.XYZ(xyz);
+    _xpos = xyz[0];
+    _ypos = xyz[1];
+    _zpos = xyz[2];
+  }
   // END : LOAD VERTEX
-
+  
   // BEGIN : PERFORM HIT MATCHING
   // strategy:
   // fill map which links each channel with the vector of 
@@ -169,6 +171,8 @@ void CosmicFilter::produce(art::Event & e)
   FillChannelMap(hit_h);
   // END : PERFORM HIT MATCHING
   
+  _pfpmap.clear();
+
   // BEGIN : LOOP THROUGH ALL PFParticles
   for (size_t p=0; p < pfp_h->size(); p++) {
 
@@ -179,7 +183,7 @@ void CosmicFilter::produce(art::Event & e)
     
     // is it muon-like? if not skip
     if (pfp.PdgCode() != 13) continue;
-    
+
     // grab associated track ID
     const std::vector<art::Ptr<recob::Track> > pfp_trk_v = pfp_trk_assn_v.at(p);
     if (pfp_trk_v.size() != 1) 
@@ -191,7 +195,6 @@ void CosmicFilter::produce(art::Event & e)
     // get track key
     auto trkKey = pfp_trk_v.at(0).key();
     _pfpmap[trkKey] = std::vector<art::Ptr<recob::Hit>>{};
-
     // get daughters
     std::vector<size_t> daughters = pfp.Daughters();
 
@@ -232,23 +235,32 @@ void CosmicFilter::produce(art::Event & e)
     // and track length must be < twice start-end distance
     if (trk.Length() > 2 * (trk.Vertex()-trk.End()).R() ) continue;
 
-    auto trkdist = SphereIntersection(trk);
-    
-    std::cout << "Track has " << trkdist.first << " intersections w/ vertex ROI. IP min is : " << trkdist.second << std::endl;
-    std::cout << "Track start [x,z] -> " << trk.Vertex().X() << ", " << trk.Vertex().Z() << std::endl;
-    std::cout << "Track end   [x,z] -> " << trk.End().X()    << ", " << trk.End().Z()    << std::endl;
+    //if we are using the vertex
+    if (fVtxProducer != "") {
+      
+      auto trkdist = SphereIntersection(trk);
+      
+      std::cout << "Track has " << trkdist.first << " intersections w/ vertex ROI. IP min is : " << trkdist.second << std::endl;
+      std::cout << "Track start [x,z] -> " << trk.Vertex().X() << ", " << trk.Vertex().Z() << std::endl;
+      std::cout << "Track end   [x,z] -> " << trk.End().X()    << ", " << trk.End().Z()    << std::endl;
+      
+      // if no intersections -> check IP
+      if ( (trkdist.first == 0) && (trkdist.second < fIPmin) ) continue;
+      
+      // if a single intersection -> check IP
+      // if smaller then IP min -> neutrino track -> skip
+      if ( (trkdist.first == 1) && (trkdist.second < fIPmin) ) continue;
 
-    // if no intersections -> check IP
-    if ( (trkdist.first == 0) && (trkdist.second < fIPmin) ) continue;
+      // remove delta-rays if within 50 cm
+      if ( (trkdist.first <= 1) && (trkdist.second < fIPmin) ) continue;
 
-    // if a single intersection -> check IP
-    // if smaller then IP min -> neutrino track -> skip
-    if ( (trkdist.first == 1) && (trkdist.second < fIPmin) ) continue;
+    }// if we are using the vertex
 
     // in all other cases, track is cosmic-like
     // grab associated hits and compare to SSNet hits
     // if matched -> tag as one to be removed
     const std::vector<art::Ptr<recob::Hit> > hit_v = trk_hit_assn_v.at(t);
+
     for (size_t h=0; h < hit_v.size(); h++) {
       art::Ptr<recob::Hit> hit = hit_v.at(h);
       // if the hit channel is in the SSNet hit map:
@@ -262,28 +274,24 @@ void CosmicFilter::produce(art::Event & e)
       }// if the hit channel is in the SSNet hit map
     }// for all hits associated to track
 
+      // for all deltay-rays associated to track, if they exist
+      if ( _pfpmap.find(t) != _pfpmap.end() ) {
+	auto const& pfp_hit_ptr_v = _pfpmap[t];
+	for (size_t h=0; h < pfp_hit_ptr_v.size(); h++) {
+	  auto hitPtr = pfp_hit_ptr_v.at(h);// hit_h->at( pfp_hit_idx_v[h] );
+	  // if the hit channel is in the SSNet hit map:
+	  if (_hitmap.find( hitPtr->Channel() ) != _hitmap.end() ){
+	    auto const& hitidx_v = _hitmap[ hitPtr->Channel() ];
+	    for (auto const& idx : hitidx_v) {
+	      // compare hit information
+	      if ( hit_h->at(idx).PeakTime() == hitPtr->PeakTime() )
+		_trkhits.push_back( idx ); // save idx of SSNet hit to be removed
+	    }// for all hit indices associated to this channel
+	  }// if the hit channel is in the SSNet hit map
+	}// for all hits associated to track
+      }// if delta-rays associated to track
+      
 
-    // remove delta-rays if within 50 cm
-    if ( (trkdist.first <= 1) && (trkdist.second < fIPmin) ) continue;
-
-    // for all deltay-rays associated to track, if they exist
-    if ( _pfpmap.find(t) != _pfpmap.end() ) {
-      auto const& pfp_hit_ptr_v = _pfpmap[t];
-      for (size_t h=0; h < pfp_hit_ptr_v.size(); h++) {
-	auto hitPtr = pfp_hit_ptr_v.at(h);// hit_h->at( pfp_hit_idx_v[h] );
-	// if the hit channel is in the SSNet hit map:
-	if (_hitmap.find( hitPtr->Channel() ) != _hitmap.end() ){
-	  auto const& hitidx_v = _hitmap[ hitPtr->Channel() ];
-	  for (auto const& idx : hitidx_v) {
-	    // compare hit information
-	    if ( hit_h->at(idx).PeakTime() == hitPtr->PeakTime() )
-	      _trkhits.push_back( idx ); // save idx of SSNet hit to be removed
-	  }// for all hit indices associated to this channel
-	}// if the hit channel is in the SSNet hit map
-      }// for all hits associated to track
-    }// if delta-rays associated to track
-    
-    
   }// for all tracks
   // END : IDENTIFY COSMIC TRACK HITS
   

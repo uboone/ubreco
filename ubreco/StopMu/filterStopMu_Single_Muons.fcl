@@ -34,10 +34,10 @@ stopmufilter: {
            }
 }
 
- simulate: [ stopmufilter ] 
+ simulate: [ stopmufilter ]
  stream1:  [ out1 ]
- trigger_paths: [simulate] 
- end_paths:     [stream1]  
+ trigger_paths: [simulate]
+ end_paths:     [stream1]
 }
 
 outputs:

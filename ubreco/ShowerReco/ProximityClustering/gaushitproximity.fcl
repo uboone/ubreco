@@ -1,9 +1,10 @@
 BEGIN_PROLOG
 
 GausHitProximity: {
- module_type   : "ProximityClustering"  
+ module_type   : "ProximityClustering"
  HitProducer   : "gaushit"
- VtxProducer   : "ccvertex"
+ #VtxProducer   : "ccvertex"
+ VtxProducer   : ""
  CellSize      : 2.0
  ClusterRadius : 0.8
  ROI           : 10000.
