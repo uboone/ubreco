@@ -37,6 +37,7 @@ namespace gammacatcher {
     /// Default constructor
     ProximityClusterer(){    
       _verbose     = false;
+      _vertex      = false;
       _radius      = 2.0;
       _cellSize    = 2;
     }
