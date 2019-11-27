@@ -168,14 +168,9 @@ sys::WireModifier::CalcROIProperties(recob::Wire::RegionsOfInterest_t::datarange
   roi_vals.center = roi_vals.center/roi_vals.total_q;
 
   for(size_t i_t = 0; i_t<roi_data.size(); ++i_t) {
-    std::cout << "  incrementing proto sigma by " << roi_data[i_t] << " * (" << i_t << " + " << roi_vals.begin << " - " << roi_vals.center << ")^2 = "
-	      << roi_data[i_t]*(i_t+roi_vals.begin-roi_vals.center)*(i_t+roi_vals.begin-roi_vals.center) << std::endl;
     roi_vals.sigma += roi_data[i_t]*(i_t+roi_vals.begin-roi_vals.center)*(i_t+roi_vals.begin-roi_vals.center);
   }
-  std::cout << "  roi proto sigma: " << roi_vals.sigma << std::endl;
-  std::cout << "  roi total charge: " << roi_vals.total_q << std::endl;
   roi_vals.sigma = std::sqrt(roi_vals.sigma/roi_vals.total_q);
-  std::cout << "  roi sigma = sqrt( proto sigma / total_q ) = " << roi_vals.sigma << std::endl;
 
   return roi_vals;
 }
@@ -317,7 +312,7 @@ sys::WireModifier::CalcSubROIProperties(sys::WireModifier::ROIProperties_t const
       subroi_properties.center  = hit_ptr->PeakTime();
       subroi_properties.sigma   = hit_ptr->RMS();
       subroi_properties_vec.push_back(subroi_properties);
-    }
+    } //end loop over hits
   }
 
   return subroi_properties_vec;
@@ -328,68 +323,37 @@ std::map<sys::WireModifier::SubROI_Key_t, std::vector<const sim::SimEnergyDeposi
 sys::WireModifier::MatchEdepsToSubROIs(std::vector<sys::WireModifier::SubROIProperties_t> const& subROIPropVec,
 				       std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec) {
 
-  std::map<SubROI_Key_t, std::vector<const sim::SimEnergyDeposit*>> SubROIMatchedEdepMap;
-
-  // dumbest possible thing for now...
-  for ( auto subroi_prop : subROIPropVec ) {
-    auto key = subroi_prop.key;
-    for ( auto edep_ptr : edepPtrVec ) {
-      auto edep_tick = A_t * edep_ptr->X() + C_t;
-      if ( edep_tick > subroi_prop.center-subroi_prop.sigma && edep_tick < subroi_prop.center+subroi_prop.sigma ) 
-	SubROIMatchedEdepMap[key].push_back(edep_ptr);
-    }
-  }
-
-  return SubROIMatchedEdepMap;
-
-}
-
-/*
-std::vector<const sim::SimEnergyDeposit*>
-sys::WireModifier::DummyFunction(std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec, std::vector<const recob::Hit*> const& hitPtrVec, 
-				 sys::WireModifier::ROIProperties_t const& roi_properties) {
-
-  std::vector<const sim::SimEnergyDeposit*> returnVec;
-
-  int flag = 0;
-
   // for each TrackID, which EDeps are associated with it?
   std::map<int, std::vector<const sim::SimEnergyDeposit*>> TrackIDMatchedEDepMap;
-  // total energy of EDeps matched to the ROI
+  // total energy of EDeps matched to the ROI (not strictly necessary, but useful for understanding/development)
   double total_energy = 0.;
+  // loop over edeps, fill TrackIDMatchedEDepMap and calculate total energy
   for ( auto edep_ptr : edepPtrVec ) {
     TrackIDMatchedEDepMap[edep_ptr->TrackID()].push_back(edep_ptr);
     total_energy += edep_ptr->E();
   }
   // calculate EDep properties by TrackID
   std::map<int, sys::WireModifier::TruthProperties_t> TrackIDMatchedPropertyMap;
-  for ( auto const& track_edeps : TrackIDMatchedEDepMap ) { TrackIDMatchedPropertyMap[track_edeps.first] = CalcPropertiesFromEdeps(track_edeps.second); }  
-  // TODO -- clean the above up after we decide what we need in production
-  
-  // TODO --  handle case where hitPtrVec.size() == 0
-  if ( hitPtrVec.size() == 0 ) return returnVec;
-  
-  // do only ROIs with multiple hits for now
-  if ( hitPtrVec.size() == 1 ) return returnVec;
-  
-  // for each EDep, which hit(s) (if any) is it plausibly matched to? based on whether the EDep's projected tick is within +/-1 RMS of the hit peak
-  std::map<unsigned int, std::vector<unsigned int>> EDepMatchedHitMap;   // keys are indexes of edepPtrVec, values are vectors of indexes of hitPtrVec
-  // for each TrackID, which hit(s) (if any) are its EDeps matched to? based on EDeps matched to exactly one hit
-  std::map<int, std::unordered_set<unsigned int>> TrackIDMatchedHitMap;  // keys are TrackIDs, values are sets of indexes of hitPtrVec
-  std::map<int, std::unordered_set<unsigned int>> TrackIDLooseMatchedHitMap; // based on all hits that all EDeps get matched to
-  // for each hit, which EDep(s) (if any) are matched to it? based on multi-pass matching
-  std::map<unsigned int, std::vector<unsigned int>> HitMatchedEDepMap;   // keys are indexes of hitPtrVec, values are vectors of indexes of edepPtrVec
-  // for each hit, which TrackID(s) (if any) are matched? for each TrackID, how much energy is matched? based on multi-pass matching
-  std::map<unsigned int, std::map<int, double>> HitMatchedTrackEnergyMap; // keys are indexes of hitPtrVec, values are maps of TrackIDs to matched energy (in MeV)
+  for ( auto const& track_edeps : TrackIDMatchedEDepMap ) { TrackIDMatchedPropertyMap[track_edeps.first] = CalcPropertiesFromEdeps(track_edeps.second); }
+
+  // for each EDep, which subROI(s) (if any) is it plausibly matched to? based on whether the EDep's projected tick is within +/-1sigma of the subROI center
+  std::map<unsigned int, std::vector<unsigned int>> EDepMatchedSubROIMap;   // keys are indexes of edepPtrVec, values are vectors of indexes of subROIPropVec
+  // for each TrackID, which subROI(s) (if any) are its EDeps matched to? based on whether any EDeps with that TrackID are within +/-1sigma of the subROI center
+  std::map<int, std::unordered_set<unsigned int>> TrackIDMatchedSubROIMap;  // keys are TrackIDs, values are sets of indexes of subROIPropVec
+  // for each subROI, which EDep(s) (if any) are matched to it? based on multi-pass matching
+  std::map<unsigned int, std::vector<unsigned int>> SubROIMatchedEDepMap;   // keys are indexes of subROIPropVec, values are vectors of indexes of edepPtrVec
+  // for each subROI, which TrackID(s) (if any) are matched? for each TrackID, how much energy is matched? based on multi-pass matching
+  std::map<unsigned int, std::map<int, double>> SubROIMatchedTrackEnergyMap; // keys are indexes of subROIPropVec, values are maps of TrackIDs to matched energy (in MeV)
 
   // which EDeps have not yet been assigned?
   std::unordered_set<unsigned int> UnassignedEDeps;
   // for each pass, which EDeps were assigned in this pass?
   std::unordered_set<unsigned int> PassAssignedEDeps;
-  
 
-  // first pass: fill EDepMatchedHitMap, assign EDeps matched to exactly one hit
-  //   also fill TrackIDMatchedHitMap based on EDeps matched to exactly one hit
+
+  // first pass: fill EDepMatchedSubROIMap, assign EDeps matched to exactly one hit
+  //   also fill TrackIDMatchedSubROIMap based on EDeps matched to exactly one hit
+  //   and also fill TrackIDLooseMatchedSubROIMap
   // loop over EDeps
   for ( unsigned int i_e=0; i_e < edepPtrVec.size(); i_e++ ) {
     
@@ -397,79 +361,64 @@ sys::WireModifier::DummyFunction(std::vector<const sim::SimEnergyDeposit*> const
     auto edep_ptr  = edepPtrVec[i_e];
     auto edep_tick = A_t * edep_ptr->X() + C_t;
 
-    // loop over hits
-    for ( unsigned int i_h=0; i_h < hitPtrVec.size(); i_h++ ) {
-      auto hit_ptr = hitPtrVec[i_h];
-      if ( edep_tick > hit_ptr->PeakTime()-hit_ptr->RMS() && edep_tick < hit_ptr->PeakTime()+hit_ptr->RMS() ) {
-	EDepMatchedHitMap[i_e].push_back(i_h);
-	TrackIDLooseMatchedHitMap[edep_ptr->TrackID()].emplace(i_h);
+    // loop over subROIs
+    for ( unsigned int i_h=0; i_h < subROIPropVec.size(); i_h++ ) {
+      auto subroi_prop = subROIPropVec[i_h];
+      if ( edep_tick > subroi_prop.center-subroi_prop.sigma && edep_tick < subroi_prop.center+subroi_prop.sigma ) {
+	EDepMatchedSubROIMap[i_e].push_back(i_h);
+	TrackIDMatchedSubROIMap[edep_ptr->TrackID()].emplace(i_h);
       }
-    } // end loop over hits
+    } // end loop over subROIs
 
-    // if EDep is matched to exactly one hit, assign it to that hit => update HitMatchedEDepMap, HitMatchedTrackEnergyMap
-    //   also fill TrackIDMatchedHitMap
-    if ( EDepMatchedHitMap[i_e].size() == 1 ) {
-      auto i_h = EDepMatchedHitMap[i_e][0];
-      TrackIDMatchedHitMap[edep_ptr->TrackID()].emplace(i_h);
-      HitMatchedEDepMap[i_h].push_back(i_e);
-      HitMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()] += edep_ptr->E();
+    // if EDep is matched to exactly one subROI, assign it to that hit => update SubROIMatchedEDepMap, SubROIMatchedTrackEnergyMap
+    if ( EDepMatchedSubROIMap[i_e].size() == 1 ) {
+      auto i_h = EDepMatchedSubROIMap[i_e][0];
+      SubROIMatchedEDepMap[i_h].push_back(i_e);
+      SubROIMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()] += edep_ptr->E();
       //PassAssignedEDeps.emplace(i_e);
-      returnVec.push_back(edep_ptr);
     }
     // else, add this EDep to the set of unassigned EDeps
     else UnassignedEDeps.emplace(i_e);
 
   } // end loop over EDeps
   // end first pass
-  
-  // if first pass assigned every EDep, return here
-  //if ( UnassignedEDeps.size() == 0 ) return;
 
-  return returnVec;
-
-  //std::cout << "EDeps not assigned: ";
-  //for ( auto i_e : UnassignedEDeps ) std::cout << i_e << " ";
-  //std::cout << std::endl;
   
-  
-  // second pass: for EDeps that are matched to no hits...
-  //                if EDep's TrackID is not matched to any hits, do not match it
-  //                if EDep's TrackID is matched to exactly one hit, match it to that hit
+  // second pass: for EDeps that are matched to no subROIs...
+  //                if EDep's TrackID is not matched to any subROIs, do not match it
+  //                if EDep's TrackID is matched to exactly one subROI, match it to that hit
   // reset PassAssignedEDeps
   PassAssignedEDeps.clear();
   // loop over unassigned EDeps
   for ( auto i_e :  UnassignedEDeps ) {
-    //std::cout << "Doing second pass for EDep #" << i_e << "..." << std::endl;
-    
     // if EDep is matched to multiple hits, skip it for this pass
-    if ( EDepMatchedHitMap[i_e].size() != 0 ) continue;
+    if ( EDepMatchedSubROIMap[i_e].size() != 0 ) continue;
 
     // get EDep pointer
     auto edep_ptr = edepPtrVec[i_e];
 
     // if EDep's TrackID is not matched to any hits, do not match it
-    if ( TrackIDMatchedHitMap[edep_ptr->TrackID()].size() == 0 ) {
-      //std::cout << "  Resloved by case 0-0" << std::endl;
+    if ( TrackIDMatchedSubROIMap[edep_ptr->TrackID()].size() == 0 ) {
       PassAssignedEDeps.emplace(i_e);
       continue;
     }
 
     // if EDep's TrackID is matched to exactly one hit, assign it to that hit
-    if ( TrackIDMatchedHitMap[edep_ptr->TrackID()].size() == 1 ) { 
-      //std::cout << "  Resolved by case 0-1" << std::endl;
-      auto i_h = *TrackIDMatchedHitMap[edep_ptr->TrackID()].begin();
+    if ( TrackIDMatchedSubROIMap[edep_ptr->TrackID()].size() == 1 ) { 
+      auto i_h = *TrackIDMatchedSubROIMap[edep_ptr->TrackID()].begin();
 
-      // if this approach sems boarderline, print out some info
-      if ( HitMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()] < 0.75*TrackIDMatchedPropertyMap[edep_ptr->TrackID()].total_energy ) {
-	flag = 1;
+      // if this approach seems boarderline, print out some info
+      /*
+      if ( SubROIMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()] < 0.75*TrackIDMatchedPropertyMap[edep_ptr->TrackID()].total_energy ) {
 	std::cout << "WARNING: assigning EDep #" << i_e << " to hit #" << i_h << ", but that hit contains "
-		  << HitMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()] << " / " << TrackIDMatchedPropertyMap[edep_ptr->TrackID()].total_energy
-		  << " = " << HitMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()]/TrackIDMatchedPropertyMap[edep_ptr->TrackID()].total_energy
+		  << SubROIMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()] << " / " << TrackIDMatchedPropertyMap[edep_ptr->TrackID()].total_energy
+		  << " = " << SubROIMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()]/TrackIDMatchedPropertyMap[edep_ptr->TrackID()].total_energy
 		  << " < 0.75 of the TrackID's total energy (TrackID " << edep_ptr->TrackID() << ")" << std::endl;
       }
+      */
 
-      HitMatchedEDepMap[i_h].push_back(i_e);
-      HitMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()] += edep_ptr->E();
+      SubROIMatchedEDepMap[i_h].push_back(i_e);
+      SubROIMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()] += edep_ptr->E();
       PassAssignedEDeps.emplace(i_e);
     }
     
@@ -477,11 +426,7 @@ sys::WireModifier::DummyFunction(std::vector<const sim::SimEnergyDeposit*> const
   // update UnassignedEDeps
   for ( auto i_e : PassAssignedEDeps ) UnassignedEDeps.erase(i_e);
   // end second pass
-
-  // if second pass assigned every EDep, return here
-  //if ( UnassignedEDeps.size() == 0 ) return;
-  // if second pass was not sufficient, set flag = 1
-  if ( UnassignedEDeps.size() != 0 ) flag = 1;
+  
 
   // third pass: assign remaining EDeps to the closest hit, based on the hit RMS
   // reset PassAssignedEDeps
@@ -494,17 +439,17 @@ sys::WireModifier::DummyFunction(std::vector<const sim::SimEnergyDeposit*> const
     auto edep_ptr = edepPtrVec[i_e];
     auto edep_tick = A_t * edep_ptr->X() + C_t;
 
-    // get list of hits to consider assigning the EDep to
+    // get list of subROIs to consider assigning the EDep to
     std::vector<unsigned int> hit_list;
-    if ( EDepMatchedHitMap[i_e].size() != 0 ) hit_list = EDepMatchedHitMap[i_e];
-    else  { for ( auto i_h : TrackIDMatchedHitMap[edep_ptr->TrackID()] ) hit_list.push_back(i_h); }
+    if ( EDepMatchedSubROIMap[i_e].size() != 0 ) hit_list = EDepMatchedSubROIMap[i_e];
+    else  { for ( auto i_h : TrackIDMatchedSubROIMap[edep_ptr->TrackID()] ) hit_list.push_back(i_h); }
 
     // get the hit that is closest to this EDep
     unsigned int closest_hit;
     float min_dist = 6400.;
     for ( auto i_h : hit_list ) {
-      auto hit_ptr = hitPtrVec[i_h];
-      float hit_dist = std::abs( edep_tick - hit_ptr->PeakTime() ) / hit_ptr->RMS();
+      auto subroi_prop = subROIPropVec[i_h];
+      float hit_dist = std::abs( edep_tick - subroi_prop.center ) / subroi_prop.sigma;
       if ( hit_dist < min_dist ) {
 	closest_hit = i_h;
 	min_dist    = hit_dist;
@@ -512,8 +457,8 @@ sys::WireModifier::DummyFunction(std::vector<const sim::SimEnergyDeposit*> const
     }
 
     // assign the EDep to the closest hit
-    HitMatchedEDepMap[closest_hit].push_back(i_e);
-    HitMatchedTrackEnergyMap[closest_hit][edep_ptr->TrackID()] += edep_ptr->E();
+    SubROIMatchedEDepMap[closest_hit].push_back(i_e);
+    SubROIMatchedTrackEnergyMap[closest_hit][edep_ptr->TrackID()] += edep_ptr->E();
     PassAssignedEDeps.emplace(i_e);
     
   } // end loop over EDeps
@@ -521,28 +466,39 @@ sys::WireModifier::DummyFunction(std::vector<const sim::SimEnergyDeposit*> const
   for ( auto i_e : PassAssignedEDeps ) UnassignedEDeps.erase(i_e);
   // end third pass
 
-  //if ( UnassignedEDeps.size() == 0 ) return;
-  if ( flag == 0 ) return returnVec;
-  
+
+  // convert to desired format (possibly a better way to do this...?)
+  std::map<SubROI_Key_t, std::vector<const sim::SimEnergyDeposit*>> ReturnMap;
+  for ( auto it_h = SubROIMatchedEDepMap.begin(); it_h != SubROIMatchedEDepMap.end(); it_h++ ) {
+    auto key = subROIPropVec[it_h->first].key;
+    for ( auto i_e : it_h->second ) {
+      ReturnMap[key].push_back(edepPtrVec[i_e]);
+    }
+  }
+
+  //if ( verbose == 0 ) return ReturnMap;
+
+  /*
   // ** INITIAL INFORMATIONAL COUTS **
+  std::cout << "Initial info..." << std::endl;
   // print out ROI properties
-  std::cout << "Channel " << roi_properties.key.first << ", signal ROI " << roi_properties.key.second << " (plane " << roi_properties.plane << ")" << std::endl;
-  std::cout << "  ROI bounds: (" << roi_properties.begin << ", " << roi_properties.end << ")" << std::endl;
-  std::cout << "  ROI center: " << roi_properties.center<< std::endl;
-  std::cout << "  ROI sigma:  " << roi_properties.sigma << std::endl;
-  std::cout << "  ROI charge: " << roi_properties.total_q << std::endl;
+  //std::cout << "Channel " << roi_properties.key.first << ", signal ROI " << roi_properties.key.second << " (plane " << roi_properties.plane << ")" << std::endl;
+  //std::cout << "  ROI bounds: (" << roi_properties.begin << ", " << roi_properties.end << ")" << std::endl;
+  //std::cout << "  ROI center: " << roi_properties.center<< std::endl;
+  //std::cout << "  ROI sigma:  " << roi_properties.sigma << std::endl;
+  //std::cout << "  ROI charge: " << roi_properties.total_q << std::endl;
   
   // print out hit properties
-  std::cout << "  Number of hits: " << hitPtrVec.size() << std::endl;
+  std::cout << "  Number of hits: " << subROIPropVec.size() << std::endl;
   float total_hit_charge = 0.;
-  for ( auto hit_ptr : hitPtrVec ) total_hit_charge += hit_ptr->Integral();
+  for ( auto subroi_prop : subROIPropVec ) total_hit_charge += subroi_prop.total_q;
   std::cout << "  Total hit charge: " << total_hit_charge << std::endl;
-  for ( unsigned int i_h=0; i_h < hitPtrVec.size(); i_h++ ) { 
-    auto hit_ptr = hitPtrVec[i_h];
+  for ( unsigned int i_h=0; i_h < subROIPropVec.size(); i_h++ ) { 
+    auto subroi_prop = subROIPropVec[i_h];
     std::cout << "    For hit #" << i_h << ":" << std::endl;
-    std::cout << "      Hit center: " << hit_ptr->PeakTime() << std::endl;
-    std::cout << "      Hit width:  " << hit_ptr->RMS() << std::endl;
-    std::cout << "      Hit charge: " << hit_ptr->Integral() << std::endl;
+    std::cout << "      Hit center: " << subroi_prop.center  << std::endl;
+    std::cout << "      Hit width:  " << subroi_prop.sigma   << std::endl;
+    std::cout << "      Hit charge: " << subroi_prop.total_q << std::endl;
   }
 
   // print out global edep properties
@@ -571,23 +527,27 @@ sys::WireModifier::DummyFunction(std::vector<const sim::SimEnergyDeposit*> const
     std::cout << "      TrackID total energy:   " << edep_col_properties.total_energy << " MeV" << std::endl;
     trk_ctr++;
   }
+  */
 
+  /*
   // print out information on assigned EDeps
   std::cout << "  Info for assigned EDeps..." << std::endl;
   //for ( auto hit_trk_pair : HitMatchedTrackEnergyMap ) {
-  for ( unsigned int i_h=0; i_h < hitPtrVec.size(); i_h++ ) {
+  for ( unsigned int i_h=0; i_h < subROIPropVec.size(); i_h++ ) {
     std::cout << "  Hit #" << std::setw(4) << i_h << ":";
     for ( auto trk_edep_pair : TrackIDMatchedEDepMap ) {
       std::cout << std::setw(10);
       auto trk = trk_edep_pair.first;
-      auto it_trk = HitMatchedTrackEnergyMap[i_h].find(trk);
-      if ( it_trk == HitMatchedTrackEnergyMap[i_h].end() ) std::cout << "--";
+      auto it_trk = SubROIMatchedTrackEnergyMap[i_h].find(trk);
+      if ( it_trk == SubROIMatchedTrackEnergyMap[i_h].end() ) std::cout << "--";
       else std::cout << it_trk->second;
     }
     std::cout << std::endl;
   }
-
-
+  */
+  
+  // by construction, no unassiged EDeps after first pass
+  /*
   // print out information about unassigned EDeps
   std::cout << "  Number of unassigned EDeps: " << UnassignedEDeps.size() << std::endl;
   for ( auto i_e : UnassignedEDeps ) {
@@ -611,82 +571,11 @@ sys::WireModifier::DummyFunction(std::vector<const sim::SimEnergyDeposit*> const
       std::cout << "        Hit #" << i_h << " has " << HitMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()] << " MeV of the TrackID's energy" << std::endl;
     }
   }
+  */
 
-  
-
-
-  // try out different distance metrics; if they disagree for any edep, print some info about that edep and all the ROI info
-  int flag = 0;
-  for ( unsigned int i_e=0; i_e < edepPtrVec.size(); i_e++ ) {
-
-    // get the edep ptr and its tick
-    auto edep_ptr  = edepPtrVec[i_e];
-    auto edep_tick = A_t * edep_ptr->X() + C_t;
-
-    // reset values
-    float min_dist1 = 6400.;
-    float min_dist2 = 6400.;
-    float max_weight3 = -1.;
-    int hit1 = -1;
-    int hit2 = -1; 
-    int hit3 = -1;
-    std::vector<float> dist1_vec, dist2_vec, dist3_vec;
-
-    // loop over hits
-    for ( unsigned int i_h=0; i_h < hitPtrVec.size(); i_h++ ) {
-      
-      // get the hit ptr
-      auto hit_ptr = hitPtrVec[i_h];
-
-      // calculate hit using distance metric #1 -> distance in ticks
-      float dist1 = std::abs( edep_tick - hit_ptr->PeakTime() );
-      dist1_vec.push_back(dist1);
-      if ( dist1 < min_dist1 ) {
-	min_dist1 = dist1;
-	hit1 = i_h;
-      }
-
-      // calculate hit using distance metric #2 -> distance in hit RMS
-      float dist2 = std::abs( edep_tick - hit_ptr->PeakTime() ) / hit_ptr->RMS();
-      dist2_vec.push_back(dist2);
-      if ( dist2 < min_dist2 ){
-	min_dist2 = dist2;
-	hit2 = i_h;
-      }
-      
-      // calculate hit using distance metric #3 -> "pull"
-      float weight3 = GAUSSIAN( edep_tick, hit_ptr->PeakTime(), hit_ptr->RMS(), hit_ptr->PeakAmplitude() );
-      dist3_vec.push_back(weight3);
-      if ( weight3 > max_weight3 ) {
-	max_weight3 = weight3;
-	hit3 = i_h;
-      }
-      
-    } // end loop over hits
-
-    // if all metrics agree, be quiet
-    if ( hit1 == hit2 && hit2 == hit3 && hit1 != -1 ) continue;
-
-    // otherwise, flag this as interesting
-    flag = 1;
-
-    std::cout << "EDep #" << i_e << " (tick " << edep_tick << ", energy " << edep_ptr->E() << " MeV, trackID " << edep_ptr->TrackID() << "):" << std::endl;
-    std::cout << "  dist1    ";
-    for ( auto dist : dist1_vec) std::cout << "\t" << dist;
-    std::cout << "\t -> hit #" << hit1 << std::endl;
-    std::cout << "  dist2    ";
-    for ( auto dist : dist2_vec) std::cout << "\t" << dist;
-    std::cout << "\t -> hit #" << hit2 << std::endl;
-    std::cout << "  wght3  ";
-    for ( auto dist : dist3_vec) std::cout << "\t" << dist;
-    std::cout << "\t -> hit #" << hit3 << std::endl;
-
-  } // end loop over edeps
-
-  // TODO -- merge elements of showers such that their energy depositions get counted together, recalculate these maps? not in this function...
+  return ReturnMap;
 
 }
-*/
 
 sys::WireModifier::TruthProperties_t 
 sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec){
@@ -754,8 +643,8 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     scales.r_sigma = fTSplines_Sigma_X[2]->Eval(truth_props.x);
   }
 
-  std::cout << "For plane=" << roi_vals.plane << " and x=" << truth_props.x
-  	    << " scales are " << scales.r_Q << " and " << scales.r_sigma << std::endl;
+  //std::cout << "For plane=" << roi_vals.plane << " and x=" << truth_props.x
+  //	    << " scales are " << scales.r_Q << " and " << scales.r_sigma << std::endl;
 
   return scales;
 }
@@ -766,7 +655,7 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
 				  std::map<sys::WireModifier::SubROI_Key_t, sys::WireModifier::ScaleValues_t> const& subROIScaleMap)
 {
 
-  bool verbose=true;
+  bool verbose=false;
   //if(roi_data.size()>100) verbose=true;
 
   double q_orig = 0.;
@@ -963,8 +852,8 @@ void sys::WireModifier::produce(art::Event& e)
 
       std::cout << "DOING WIRE ROI (wire=" << wire.Channel() << ", roi_idx=" << i_r
 		<< ", roi_begin=" << roi_properties.begin << ", roi_size=" << roi_properties.end-roi_properties.begin << ")" << std::endl;
-      std::cout << "  Have " << matchedEdepPtrVec.size() << " matching Edeps" << std::endl;
-      std::cout << "  Have " << matchedHitPtrVec.size() << " matching hits" << std::endl;
+      //std::cout << "  Have " << matchedEdepPtrVec.size() << " matching Edeps" << std::endl;
+      //std::cout << "  Have " << matchedHitPtrVec.size() << " matching hits" << std::endl;
 
       // get the subROIs
       auto subROIPropVec = CalcSubROIProperties(roi_properties, matchedHitPtrVec);
@@ -1007,10 +896,10 @@ void sys::WireModifier::produce(art::Event& e)
 	}
 	SubROIMatchedScalesMap[key] = scale_vals;
       }
-      for ( auto const& key_scale_pair : SubROIMatchedScalesMap ) {
-	std::cout << "  For subroi #" << key_scale_pair.first.second << ", have "
-		  << "scale factors r_Q = " << key_scale_pair.second.r_Q << " and r_sigma = " << key_scale_pair.second.r_sigma << std::endl;
-      }
+      //for ( auto const& key_scale_pair : SubROIMatchedScalesMap ) {
+      //  std::cout << "  For subroi #" << key_scale_pair.first.second << ", have "
+      //              << "scale factors r_Q = " << key_scale_pair.second.r_Q << " and r_sigma = " << key_scale_pair.second.r_sigma << std::endl;
+      //}
 
       //get modified ROI given scales
       std::vector<float> modified_data(range.data());
