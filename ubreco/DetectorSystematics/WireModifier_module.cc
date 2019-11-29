@@ -118,6 +118,13 @@ private:
     float x_max;
     float tick_min;
     float tick_max;
+
+    float y;
+    float z;
+    double dxdy;
+    double dxdz;
+    double dydz;
+
   } TruthProperties_t;
 
   typedef struct ScaleValues{
@@ -580,6 +587,32 @@ sys::WireModifier::MatchEdepsToSubROIs(std::vector<sys::WireModifier::SubROIProp
 sys::WireModifier::TruthProperties_t 
 sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec){
 
+  //remove edeps outside the 
+
+
+
+  //split the edeps by TrackID
+  std::map< int, std::vector<const sim::SimEnergyDeposit*> > edepptrs_by_trkid;
+  std::map< int, double > energy_per_trkid;
+  for(auto edep_ptr : edepPtrVec){
+    edepptrs_by_trkid[edep_ptr->TrackID()].push_back(edep_ptr);
+    energy_per_trkid[edep_ptr->TrackID()]+=edep_ptr->E();
+  }
+
+  int trkid_max=-1;
+  double energy_max=-1;
+  for(auto e_p_id : energy_per_trkid){
+    std::cout << "\t" << e_p_id.first << " :" << e_p_id.second << std::endl;
+    if(e_p_id.second > energy_max){
+      trkid_max = e_p_id.first;
+      energy_max = e_p_id.second;
+    }      
+  }
+
+  std::cout << "TrkID with max energy (" << energy_max << ") is " << trkid_max << std::endl;
+  auto edepPtrVecMaxE = edepptrs_by_trkid[trkid_max];
+
+
   TruthProperties_t edep_col_properties;
   
   //do calculations here
@@ -589,18 +622,52 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
   edep_col_properties.x_min = 300.;
   edep_col_properties.x_max = -50.;
 
+  edep_col_properties.y = 0.;
+  edep_col_properties.z = 0.;
+  edep_col_properties.dxdy = 0.;
+  edep_col_properties.dxdz = 0.;
+  edep_col_properties.dydz = 0.;
+
   double total_energy = 0.0;
-  for(auto edep_ptr : edepPtrVec){
+  for(auto edep_ptr : edepPtrVecMaxE){
+
+    std::cout << "\t\t" << edep_ptr->E() << " " << edep_ptr->X() << " " << edep_ptr->Y() << " " << edep_ptr->Z()
+	      << " " << edep_ptr->EndX()-edep_ptr->StartX() << " " << edep_ptr->EndY()-edep_ptr->StartY() << " " << edep_ptr->EndZ()-edep_ptr->StartZ()
+	      << " " << (edep_ptr->EndX()-edep_ptr->StartX())/(edep_ptr->EndY()-edep_ptr->StartY())
+	      << " " << (edep_ptr->EndX()-edep_ptr->StartX())/(edep_ptr->EndZ()-edep_ptr->StartZ())
+	      << " " << (edep_ptr->EndY()-edep_ptr->StartY())/(edep_ptr->EndZ()-edep_ptr->StartZ())
+	      << " " << edep_ptr->E()*(edep_ptr->EndX()-edep_ptr->StartX())/(edep_ptr->EndY()-edep_ptr->StartY())
+	      << " " << edep_ptr->E()*(edep_ptr->EndX()-edep_ptr->StartX())/(edep_ptr->EndZ()-edep_ptr->StartZ())
+	      << " " << edep_ptr->E()*(edep_ptr->EndY()-edep_ptr->StartY())/(edep_ptr->EndZ()-edep_ptr->StartZ())
+	      << std::endl;
+
+
     edep_col_properties.x += edep_ptr->X()*edep_ptr->E();
     if ( edep_ptr->X() < edep_col_properties.x_min ) edep_col_properties.x_min = edep_ptr->X();
     if ( edep_ptr->X() > edep_col_properties.x_max ) edep_col_properties.x_max = edep_ptr->X();
     total_energy += edep_ptr->E();
+
+    edep_col_properties.y += edep_ptr->Y()*edep_ptr->E();
+    edep_col_properties.z += edep_ptr->Z()*edep_ptr->E();
+
+    edep_col_properties.dxdy += edep_ptr->E()*(edep_ptr->EndX()-edep_ptr->StartX())/(edep_ptr->EndY()-edep_ptr->StartY());
+    edep_col_properties.dxdz += edep_ptr->E()*(edep_ptr->EndX()-edep_ptr->StartX())/(edep_ptr->EndZ()-edep_ptr->StartZ());
+    edep_col_properties.dydz += edep_ptr->E()*(edep_ptr->EndY()-edep_ptr->StartY())/(edep_ptr->EndZ()-edep_ptr->StartZ());
+
   }
 
-  if(total_energy>0.0)
+  if(total_energy>0.0){
     edep_col_properties.x = edep_col_properties.x/total_energy;
 
-  for(auto edep_ptr : edepPtrVec) {
+    edep_col_properties.y = edep_col_properties.y/total_energy;
+    edep_col_properties.z = edep_col_properties.z/total_energy;
+
+    edep_col_properties.dxdy = edep_col_properties.dxdy/total_energy;
+    edep_col_properties.dxdz = edep_col_properties.dxdz/total_energy;
+    edep_col_properties.dydz = edep_col_properties.dydz/total_energy;
+  }
+
+  for(auto edep_ptr : edepPtrVecMaxE) {
    edep_col_properties.x_rms += (edep_ptr->X()-edep_col_properties.x)*(edep_ptr->X()-edep_col_properties.x)*edep_ptr->E();
    edep_col_properties.x_rms_noWeight += (edep_ptr->X()-edep_col_properties.x)*(edep_ptr->X()-edep_col_properties.x);
   }
@@ -618,6 +685,17 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
   edep_col_properties.tick_max = A_t*edep_col_properties.x_max + C_t;
 
   edep_col_properties.total_energy = total_energy;
+
+
+  std::cout << "Edep Props: " << std::endl;
+  std::cout << "\tnedep=" << edepPtrVecMaxE.size() << std::endl;
+  std::cout << "\te=" << edep_col_properties.total_energy << std::endl;
+  std::cout << "\tx=" << edep_col_properties.x << std::endl;
+  std::cout << "\ty=" << edep_col_properties.y << std::endl;
+  std::cout << "\tz=" << edep_col_properties.z << std::endl;
+  std::cout << "\tdxdy=" << edep_col_properties.dxdy << std::endl;
+  std::cout << "\tdxdz=" << edep_col_properties.dxdz << std::endl;
+  std::cout << "\tdydz=" << edep_col_properties.dydz << std::endl;
 
   return edep_col_properties;
 }
