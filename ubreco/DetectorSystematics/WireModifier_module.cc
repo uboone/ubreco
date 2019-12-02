@@ -66,6 +66,14 @@ private:
   std::vector<TSpline3*> fTSplines_Charge_X;
   std::vector<TSpline3*> fTSplines_Sigma_X;
 
+  bool fUseCollectiveEdepsForScales; //alternative is to use energy weighted scales per edep
+  bool fApplyXScale;
+  bool fApplyYScale;
+  bool fApplyZScale;
+  bool fApplyYZScale;
+  bool fApplyAngleScales;
+  bool fApplydEdXScale;
+
   //useful math things
   //static constexpr double ONE_OVER_SQRT_2PI = 1./std::sqrt(2*util::pi());
   double GAUSSIAN(double t, double mean,double sigma,double a=1.0){
@@ -106,6 +114,11 @@ private:
     float sigma;
   } SubROIProperties_t;
 
+  typedef struct ScaleValues{
+    double r_Q;
+    double r_sigma;
+  } ScaleValues_t;
+
   typedef struct TruthProperties{
     float x;
     float x_rms;
@@ -121,16 +134,15 @@ private:
 
     float y;
     float z;
-    double dxdy;
-    double dxdz;
-    double dydz;
+    double dxdr;
+    double dydr;
+    double dzdr;
+    double dedr;
+
+    ScaleValues_t scales_avg[3];
 
   } TruthProperties_t;
 
-  typedef struct ScaleValues{
-    float r_Q;
-    float r_sigma;
-  } ScaleValues_t;
 
   ROIProperties_t CalcROIProperties(recob::Wire::RegionsOfInterest_t::datarange_t const&);
 
@@ -147,6 +159,7 @@ private:
   TruthProperties_t CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDeposit*> const&);
 
   ScaleValues_t GetScaleValues(TruthProperties_t const&,ROIProperties_t const&);
+  ScaleValues_t GetScaleValues(TruthProperties_t const&,unsigned int const&);
 
   void ModifyROI(std::vector<float> &,
 		 ROIProperties_t const &, 
@@ -586,11 +599,8 @@ sys::WireModifier::MatchEdepsToSubROIs(std::vector<sys::WireModifier::SubROIProp
 
 sys::WireModifier::TruthProperties_t 
 sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec){
-
-  //remove edeps outside the 
-
-
-
+  
+  
   //split the edeps by TrackID
   std::map< int, std::vector<const sim::SimEnergyDeposit*> > edepptrs_by_trkid;
   std::map< int, double > energy_per_trkid;
@@ -598,22 +608,75 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
     edepptrs_by_trkid[edep_ptr->TrackID()].push_back(edep_ptr);
     energy_per_trkid[edep_ptr->TrackID()]+=edep_ptr->E();
   }
-
+  
   int trkid_max=-1;
   double energy_max=-1;
   for(auto e_p_id : energy_per_trkid){
-    std::cout << "\t" << e_p_id.first << " :" << e_p_id.second << std::endl;
+    //std::cout << "\t" << e_p_id.first << " :" << e_p_id.second << std::endl;
     if(e_p_id.second > energy_max){
       trkid_max = e_p_id.first;
       energy_max = e_p_id.second;
     }      
   }
-
-  std::cout << "TrkID with max energy (" << energy_max << ") is " << trkid_max << std::endl;
+  
+  //std::cout << "TrkID with max energy (" << energy_max << ") is " << trkid_max << std::endl;
   auto edepPtrVecMaxE = edepptrs_by_trkid[trkid_max];
+  
+  //first, let's loop over all edeps and get an average weight scale...
+  TruthProperties_t edep_props;
+  double total_energy_all = 0.0;//,dx=0,dy=0,dz=0;
+  
+  ScaleValues_t scales_e_weighted[3];
+  for(size_t i_p=0; i_p<3; ++i_p){
+    scales_e_weighted[i_p].r_Q=0.0;
+    scales_e_weighted[i_p].r_sigma=0.0;
+  }
+  for(auto edep_ptr : edepPtrVec){
+    
+    if (edep_ptr->StepLength()==0) continue;
+    
+    edep_props.x=edep_ptr->X();
+    edep_props.y=edep_ptr->X();
+    edep_props.z=edep_ptr->Z();
+    
+    edep_props.dxdr=(edep_ptr->EndX()-edep_ptr->StartX())/edep_ptr->StepLength();
+    edep_props.dydr=(edep_ptr->EndY()-edep_ptr->StartY())/edep_ptr->StepLength();
+    edep_props.dzdr=(edep_ptr->EndZ()-edep_ptr->StartZ())/edep_ptr->StepLength();
+    
+    edep_props.dedr = edep_ptr->E()/edep_ptr->StepLength();
+    total_energy_all += edep_ptr->E();
+    
+    //std::cout << "\t\t" << edep_ptr->E() << " " << edep_ptr->X() << " ";
 
+    for(size_t i_p=0; i_p<3; ++i_p){
+      auto scales = GetScaleValues(edep_props,i_p);
+      scales_e_weighted[i_p].r_Q += edep_ptr->E()*scales.r_Q;
+      scales_e_weighted[i_p].r_sigma += edep_ptr->E()*scales.r_sigma;
 
+      //std::cout << scales.r_Q << " " << scales.r_sigma << " ";
+
+    }
+    //std::cout << std::endl;
+
+  }
+  
+  //std::cout << "\tAvg:" << total_energy_all << " \t ";
+  for(size_t i_p=0; i_p<3; ++i_p){
+    scales_e_weighted[i_p].r_Q = scales_e_weighted[i_p].r_Q/total_energy_all;
+    scales_e_weighted[i_p].r_sigma = scales_e_weighted[i_p].r_sigma/total_energy_all;
+
+    //std::cout<< scales_e_weighted[i_p].r_Q << " " <<scales_e_weighted[i_p].r_sigma << " ";
+  }
+  //std::cout << std::endl;
+  
   TruthProperties_t edep_col_properties;
+  
+  //copy in the scales that were calculated before
+  for(size_t i_p=0; i_p<3; ++i_p){
+    edep_col_properties.scales_avg[i_p].r_Q = scales_e_weighted[i_p].r_Q;
+    edep_col_properties.scales_avg[i_p].r_sigma = scales_e_weighted[i_p].r_sigma;
+  }
+  
   
   //do calculations here
   edep_col_properties.x = 0.;
@@ -621,82 +684,110 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
   edep_col_properties.x_rms_noWeight = 0.;
   edep_col_properties.x_min = 300.;
   edep_col_properties.x_max = -50.;
-
+  
   edep_col_properties.y = 0.;
   edep_col_properties.z = 0.;
-  edep_col_properties.dxdy = 0.;
-  edep_col_properties.dxdz = 0.;
-  edep_col_properties.dydz = 0.;
-
-  double total_energy = 0.0;
+  edep_col_properties.dxdr = 0.;
+  edep_col_properties.dydr = 0.;
+  edep_col_properties.dzdr = 0.;
+  
+  double total_energy = 0.0;//,dx=0,dy=0,dz=0;
   for(auto edep_ptr : edepPtrVecMaxE){
-
-    std::cout << "\t\t" << edep_ptr->E() << " " << edep_ptr->X() << " " << edep_ptr->Y() << " " << edep_ptr->Z()
-	      << " " << edep_ptr->EndX()-edep_ptr->StartX() << " " << edep_ptr->EndY()-edep_ptr->StartY() << " " << edep_ptr->EndZ()-edep_ptr->StartZ()
-	      << " " << (edep_ptr->EndX()-edep_ptr->StartX())/(edep_ptr->EndY()-edep_ptr->StartY())
-	      << " " << (edep_ptr->EndX()-edep_ptr->StartX())/(edep_ptr->EndZ()-edep_ptr->StartZ())
-	      << " " << (edep_ptr->EndY()-edep_ptr->StartY())/(edep_ptr->EndZ()-edep_ptr->StartZ())
-	      << " " << edep_ptr->E()*(edep_ptr->EndX()-edep_ptr->StartX())/(edep_ptr->EndY()-edep_ptr->StartY())
-	      << " " << edep_ptr->E()*(edep_ptr->EndX()-edep_ptr->StartX())/(edep_ptr->EndZ()-edep_ptr->StartZ())
-	      << " " << edep_ptr->E()*(edep_ptr->EndY()-edep_ptr->StartY())/(edep_ptr->EndZ()-edep_ptr->StartZ())
-	      << std::endl;
-
-
+    
+    /*
+      std::cout << "\t\t" << edep_ptr->E() << " " << edep_ptr->X() << " " << edep_ptr->Y() << " " << edep_ptr->Z()
+      << " " << edep_ptr->EndX()-edep_ptr->StartX() << " " << edep_ptr->EndY()-edep_ptr->StartY() << " " << edep_ptr->EndZ()-edep_ptr->StartZ()
+      << " " << (edep_ptr->EndX()-edep_ptr->StartX())/(edep_ptr->EndY()-edep_ptr->StartY())
+      << " " << (edep_ptr->EndX()-edep_ptr->StartX())/(edep_ptr->EndZ()-edep_ptr->StartZ())
+      << " " << (edep_ptr->EndY()-edep_ptr->StartY())/(edep_ptr->EndZ()-edep_ptr->StartZ())
+      << " " << (edep_ptr->EndX()-edep_ptr->StartX())/edep_ptr->StepLength()
+      << " " << (edep_ptr->EndY()-edep_ptr->StartY())/edep_ptr->StepLength()
+      << " " << (edep_ptr->EndZ()-edep_ptr->StartZ())/edep_ptr->StepLength()
+      << std::endl;
+    */
+    
     edep_col_properties.x += edep_ptr->X()*edep_ptr->E();
     if ( edep_ptr->X() < edep_col_properties.x_min ) edep_col_properties.x_min = edep_ptr->X();
     if ( edep_ptr->X() > edep_col_properties.x_max ) edep_col_properties.x_max = edep_ptr->X();
     total_energy += edep_ptr->E();
-
+    
     edep_col_properties.y += edep_ptr->Y()*edep_ptr->E();
     edep_col_properties.z += edep_ptr->Z()*edep_ptr->E();
-
-    edep_col_properties.dxdy += edep_ptr->E()*(edep_ptr->EndX()-edep_ptr->StartX())/(edep_ptr->EndY()-edep_ptr->StartY());
-    edep_col_properties.dxdz += edep_ptr->E()*(edep_ptr->EndX()-edep_ptr->StartX())/(edep_ptr->EndZ()-edep_ptr->StartZ());
-    edep_col_properties.dydz += edep_ptr->E()*(edep_ptr->EndY()-edep_ptr->StartY())/(edep_ptr->EndZ()-edep_ptr->StartZ());
-
+    
+    
+    if (edep_ptr->StepLength()==0) continue;
+    
+    /*
+      dx = edep_ptr->EndX()-edep_ptr->StartX();
+      dy = edep_ptr->EndY()-edep_ptr->StartY();
+      dz = edep_ptr->EndZ()-edep_ptr->StartZ();
+      
+      edep_col_properties.dxdy += edep_ptr->E()*(edep_ptr->EndX()-edep_ptr->StartX())/(edep_ptr->EndY()-edep_ptr->StartY());
+      edep_col_properties.dxdz += edep_ptr->E()*(edep_ptr->EndX()-edep_ptr->StartX())/(edep_ptr->EndZ()-edep_ptr->StartZ());
+      edep_col_properties.dydz += edep_ptr->E()*(edep_ptr->EndY()-edep_ptr->StartY())/(edep_ptr->EndZ()-edep_ptr->StartZ());
+    */
+    
+    edep_col_properties.dxdr += edep_ptr->E()*(edep_ptr->EndX()-edep_ptr->StartX())/edep_ptr->StepLength();
+    edep_col_properties.dydr += edep_ptr->E()*(edep_ptr->EndY()-edep_ptr->StartY())/edep_ptr->StepLength();
+    edep_col_properties.dzdr += edep_ptr->E()*(edep_ptr->EndZ()-edep_ptr->StartZ())/edep_ptr->StepLength();
+    
   }
-
+  
   if(total_energy>0.0){
     edep_col_properties.x = edep_col_properties.x/total_energy;
-
+    
     edep_col_properties.y = edep_col_properties.y/total_energy;
     edep_col_properties.z = edep_col_properties.z/total_energy;
 
-    edep_col_properties.dxdy = edep_col_properties.dxdy/total_energy;
-    edep_col_properties.dxdz = edep_col_properties.dxdz/total_energy;
-    edep_col_properties.dydz = edep_col_properties.dydz/total_energy;
+    /*
+      edep_col_properties.dxdy = edep_col_properties.dxdy/total_energy;
+      edep_col_properties.dxdz = edep_col_properties.dxdz/total_energy;
+      edep_col_properties.dydz = edep_col_properties.dydz/total_energy;
+    */
+    edep_col_properties.dxdr = edep_col_properties.dxdr/total_energy;
+    edep_col_properties.dydr = edep_col_properties.dydr/total_energy;
+    edep_col_properties.dzdr = edep_col_properties.dzdr/total_energy;
+    
   }
-
+  
   for(auto edep_ptr : edepPtrVecMaxE) {
-   edep_col_properties.x_rms += (edep_ptr->X()-edep_col_properties.x)*(edep_ptr->X()-edep_col_properties.x)*edep_ptr->E();
-   edep_col_properties.x_rms_noWeight += (edep_ptr->X()-edep_col_properties.x)*(edep_ptr->X()-edep_col_properties.x);
+    edep_col_properties.x_rms += (edep_ptr->X()-edep_col_properties.x)*(edep_ptr->X()-edep_col_properties.x)*edep_ptr->E();
+    edep_col_properties.x_rms_noWeight += (edep_ptr->X()-edep_col_properties.x)*(edep_ptr->X()-edep_col_properties.x);
   }
-
+  
   edep_col_properties.x_rms_noWeight = std::sqrt(edep_col_properties.x_rms_noWeight);
-
+  
   if(total_energy>0.0)
     edep_col_properties.x_rms = std::sqrt(edep_col_properties.x_rms/total_energy);
-
+  
   // convert x-related proerties to ticks
   edep_col_properties.tick = A_t*edep_col_properties.x + C_t;
   edep_col_properties.tick_rms = A_t*edep_col_properties.x_rms;
   edep_col_properties.tick_rms_noWeight = A_t*edep_col_properties.x_rms_noWeight;
   edep_col_properties.tick_min = A_t*edep_col_properties.x_min + C_t;
   edep_col_properties.tick_max = A_t*edep_col_properties.x_max + C_t;
-
+  
   edep_col_properties.total_energy = total_energy;
-
-
-  std::cout << "Edep Props: " << std::endl;
-  std::cout << "\tnedep=" << edepPtrVecMaxE.size() << std::endl;
-  std::cout << "\te=" << edep_col_properties.total_energy << std::endl;
-  std::cout << "\tx=" << edep_col_properties.x << std::endl;
-  std::cout << "\ty=" << edep_col_properties.y << std::endl;
-  std::cout << "\tz=" << edep_col_properties.z << std::endl;
-  std::cout << "\tdxdy=" << edep_col_properties.dxdy << std::endl;
-  std::cout << "\tdxdz=" << edep_col_properties.dxdz << std::endl;
-  std::cout << "\tdydz=" << edep_col_properties.dydz << std::endl;
-
+  
+  /*
+    std::cout << "Edep Props: " << std::endl;
+    std::cout << "\tnedep=" << edepPtrVecMaxE.size() << std::endl;
+    std::cout << "\te=" << edep_col_properties.total_energy << std::endl;
+    std::cout << "\tx=" << edep_col_properties.x << std::endl;
+    std::cout << "\ty=" << edep_col_properties.y << std::endl;
+    std::cout << "\tz=" << edep_col_properties.z << std::endl;
+    
+    std::cout << "\tdxdy=" << edep_col_properties.dxdy << std::endl;
+    std::cout << "\tdxdz=" << edep_col_properties.dxdz << std::endl;
+    std::cout << "\tdydz=" << edep_col_properties.dydz << std::endl;
+    
+    std::cout << "\tdxdr=" << edep_col_properties.dxdr << std::endl;
+    std::cout << "\tdydr=" << edep_col_properties.dydr << std::endl;
+    std::cout << "\tdzdr=" << edep_col_properties.dzdr << std::endl;
+  */
+  
+  
+  
   return edep_col_properties;
 }
 
@@ -705,25 +796,69 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
 sys::WireModifier::ScaleValues_t
 sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& truth_props, sys::WireModifier::ROIProperties_t const& roi_vals)
 {
+  return GetScaleValues(truth_props,roi_vals.plane);
+}
+sys::WireModifier::ScaleValues_t
+sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& truth_props, unsigned int const& plane)
+{
   ScaleValues_t scales;
+  
+  scales.r_Q=1.;
+  scales.r_sigma=1.;
 
   //get scales here
-  if(roi_vals.plane==0){
-    scales.r_Q = fTSplines_Charge_X[0]->Eval(truth_props.x);
-    scales.r_sigma = fTSplines_Sigma_X[0]->Eval(truth_props.x);
+  if(plane==0){
+    if(fApplyXScale){
+      scales.r_Q = fTSplines_Charge_X[0]->Eval(truth_props.x);
+      scales.r_sigma = fTSplines_Sigma_X[0]->Eval(truth_props.x);
+    }
+    if(fApplyYScale){    
+    }
+    if(fApplyZScale){    
+    }
+    if(fApplyYZScale){    
+    }
+    if(fApplyAngleScales){    
+    }
+    if(fApplydEdXScale){    
+    }
   }
-  else if(roi_vals.plane==1){
-    scales.r_Q = fTSplines_Charge_X[1]->Eval(truth_props.x);
-    scales.r_sigma = fTSplines_Sigma_X[1]->Eval(truth_props.x);
+  else if(plane==1){
+    if(fApplyXScale){
+      scales.r_Q = fTSplines_Charge_X[1]->Eval(truth_props.x);
+      scales.r_sigma = fTSplines_Sigma_X[1]->Eval(truth_props.x);
+    }
+    if(fApplyYScale){    
+    }
+    if(fApplyZScale){    
+    }
+    if(fApplyYZScale){    
+    }
+    if(fApplyAngleScales){    
+    }
+    if(fApplydEdXScale){    
+    }
   }
-  else if(roi_vals.plane==2){
-    scales.r_Q = fTSplines_Charge_X[2]->Eval(truth_props.x);
-    scales.r_sigma = fTSplines_Sigma_X[2]->Eval(truth_props.x);
+  else if(plane==2){
+    if(fApplyXScale){
+      scales.r_Q = fTSplines_Charge_X[2]->Eval(truth_props.x);
+      scales.r_sigma = fTSplines_Sigma_X[2]->Eval(truth_props.x);
+    }
+    if(fApplyYScale){    
+    }
+    if(fApplyZScale){    
+    }
+    if(fApplyYZScale){    
+    }
+    if(fApplyAngleScales){    
+    }
+    if(fApplydEdXScale){    
+    }
   }
-
+  
   //std::cout << "For plane=" << roi_vals.plane << " and x=" << truth_props.x
   //	    << " scales are " << scales.r_Q << " and " << scales.r_sigma << std::endl;
-
+  
   return scales;
 }
 
@@ -732,16 +867,16 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
 				  std::vector<sys::WireModifier::SubROIProperties_t> const& subROIPropVec, 
 				  std::map<sys::WireModifier::SubROI_Key_t, sys::WireModifier::ScaleValues_t> const& subROIScaleMap)
 {
-
+  
   bool verbose=false;
   //if(roi_data.size()>100) verbose=true;
-
+  
   double q_orig = 0.;
   double q_mod = 0.;
   double scale_ratio = 1.;
-
+  
   for(size_t i_t=0; i_t < roi_data.size(); i_t++) {
-
+    
     // reset q_orig, q_mod, scale_ratio
     q_orig = 0.;
     q_mod = 0.;
@@ -751,32 +886,32 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
     for ( auto const& subroi_prop : subROIPropVec ) {
       auto scale_vals = subROIScaleMap.find(subroi_prop.key)->second;
       /*
-      std::cout << "    Incrementing q_orig by GAUSSIAN( " << i_t+roi_prop.begin << ", " << subroi_prop.center << ", " << subroi_prop.sigma 
-		<< ", " << subroi_prop.total_q << ") = " << GAUSSIAN( i_t+roi_prop.begin,
-								      subroi_prop.center,
-								      subroi_prop.sigma,
-								      subroi_prop.total_q )
-		<< std::endl;
+	std::cout << "    Incrementing q_orig by GAUSSIAN( " << i_t+roi_prop.begin << ", " << subroi_prop.center << ", " << subroi_prop.sigma 
+	<< ", " << subroi_prop.total_q << ") = " << GAUSSIAN( i_t+roi_prop.begin,
+	subroi_prop.center,
+	subroi_prop.sigma,
+	subroi_prop.total_q )
+	<< std::endl;
       */
       q_orig += GAUSSIAN( i_t+roi_prop.begin,
 			  subroi_prop.center,
 			  subroi_prop.sigma,
 			  subroi_prop.total_q );
       /*
-      std::cout << "    Incrementing q_mod by GAUSSIAN( " << i_t+roi_prop.begin << ", " << subroi_prop.center << ", " << scale_vals.r_sigma 
-		<< " * " << subroi_prop.sigma << ", " << scale_vals.r_Q << " * " << subroi_prop.total_q << ") = " << GAUSSIAN( i_t+roi_prop.begin,
-															       subroi_prop.center,
-															       scale_vals.r_sigma * subroi_prop.sigma,
-															       scale_vals.r_Q     * subroi_prop.total_q )
-		<< std::endl;
+	std::cout << "    Incrementing q_mod by GAUSSIAN( " << i_t+roi_prop.begin << ", " << subroi_prop.center << ", " << scale_vals.r_sigma 
+	<< " * " << subroi_prop.sigma << ", " << scale_vals.r_Q << " * " << subroi_prop.total_q << ") = " << GAUSSIAN( i_t+roi_prop.begin,
+	subroi_prop.center,
+	scale_vals.r_sigma * subroi_prop.sigma,
+	scale_vals.r_Q     * subroi_prop.total_q )
+	<< std::endl;
       */
       q_mod  += GAUSSIAN( i_t+roi_prop.begin,
 			  subroi_prop.center,
 			  scale_vals.r_sigma * subroi_prop.sigma, 
 			  scale_vals.r_Q     * subroi_prop.total_q );
-
+      
     }
-
+    
     if(isnan(q_orig)) {
       std::cout << "WARNING: obtained q_orig = NaN... setting to zero" << std::endl;
       q_orig = 0.;
@@ -785,7 +920,7 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
       std::cout << "WARNING: obtained q_mod = NaN... settign to zero" << std::endl;
       q_mod = 0.;
     }
-
+    
     scale_ratio = q_mod / q_orig;
     
     if(isnan(scale_ratio)) {
@@ -798,7 +933,7 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
     }
     
     roi_data[i_t] = scale_ratio * roi_data[i_t];
-
+    
     if(verbose)
       std::cout << "\t tick " << i_t << ":"
 		<< " data=" << roi_data[i_t]
@@ -809,7 +944,7 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
   }
   
   return;
-
+  
 }
 
 sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
@@ -822,11 +957,19 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fCopyRawDigitAssn(p.get<bool>("CopyRawDigitAssn",false)),
   fSplinesFileName(p.get<std::string>("SplinesFileName")),
   fSplineNames_Charge_X(p.get< std::vector<std::string> >("SplineNames_Charge_X")),
-  fSplineNames_Sigma_X(p.get< std::vector<std::string> >("SplineNames_Sigma_X"))
-  //  ONE_OVER_SQRT_2PI(1./std::sqrt(2*util::pi()))
+  fSplineNames_Sigma_X(p.get< std::vector<std::string> >("SplineNames_Sigma_X")),
+  fUseCollectiveEdepsForScales(p.get<bool>("UseCollectiveEdepsForScales",false)),
+  fApplyXScale(p.get<bool>("ApplyXScale",true)),
+  fApplyYScale(p.get<bool>("ApplyYScale",false)),
+  fApplyZScale(p.get<bool>("ApplyZScale",false)),
+  fApplyYZScale(p.get<bool>("ApplyYZScale",true)),
+  fApplyAngleScales(p.get<bool>("ApplyAngleScales",true)),
+  fApplydEdXScale(p.get<bool>("ApplydEdXScale",true))
+				 //  ONE_OVER_SQRT_2PI(1./std::sqrt(2*util::pi()))
+				 
 {
   produces< std::vector< recob::Wire > >();
-
+    
   if(fMakeRawDigitAssn)
     produces< art::Assns<raw::RawDigit,recob::Wire> >();
 
@@ -843,6 +986,13 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fTSplines_Sigma_X.resize(fSplineNames_Sigma_X.size());
   for(size_t i_s=0; i_s<fSplineNames_Sigma_X.size(); ++i_s)
     f_splines.GetObject(fSplineNames_Sigma_X[i_s].c_str(),fTSplines_Sigma_X[i_s]);
+
+  //ifApplyYZ, don't applyY and applyZ separately
+  if(fApplyYZScale){
+    fApplyYScale=false;
+    fApplyZScale=false;
+  }
+
 }
 
 void sys::WireModifier::produce(art::Event& e)
@@ -970,8 +1120,14 @@ void sys::WireModifier::produce(art::Event& e)
 	  auto truth_vals = CalcPropertiesFromEdeps(key_it->second);
 	  //std::cout << "putting truth vals in map... ";
 	  //SubROIMatchedTruthMap[key] = truth_vals;
-	  scale_vals = GetScaleValues(truth_vals, roi_properties);
+
+	  if(fUseCollectiveEdepsForScales) //use bulk properties of edeps to determine scale
+	    scale_vals = GetScaleValues(truth_vals, roi_properties);
+	  else //use the energy-weighted average scale values per edep
+	    scale_vals = truth_vals.scales_avg[roi_properties.plane];
 	}
+	//std::cout << "Using scale values for plane " << roi_properties.plane << ": " << scale_vals.r_Q << " " << scale_vals.r_sigma << std::endl;
+
 	SubROIMatchedScalesMap[key] = scale_vals;
       }
       //for ( auto const& key_scale_pair : SubROIMatchedScalesMap ) {
