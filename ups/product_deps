@@ -2,7 +2,7 @@
 
 # The *parent* line must the first non-commented line and defines this product and version
 # The version must be of the form vxx_yy_zz (e.g. v01_02_03)
-parent ubreco v08_00_00_13f
+parent ubreco v08_00_00_13h
 
 defaultqual e17
 
@@ -29,7 +29,7 @@ table_fragment_end
 # Add the dependent product and version
 
 product                 version
-ubsim                   v08_00_00_13
+ubsim                   v08_00_00_13h
 larreco                 v08_04_00_05
 swtrigger               v02_02_05i
 larpandora              v08_03_00_05
