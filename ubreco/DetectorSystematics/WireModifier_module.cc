@@ -314,7 +314,7 @@ sys::WireModifier::CalcSubROIProperties(sys::WireModifier::ROIProperties_t const
   SubROIProperties_t subroi_properties;
   subroi_properties.plane = roi_properties.plane;
 
-  // if this ROI doesn't contain any hits, define SubROI based on ROI properities
+  // if this ROI doesn't contain any hits, define subROI based on ROI properities
   if ( hitPtrVec.size() == 0 ) {
     subroi_properties.key     = std::make_pair( roi_properties.key, 0 );
     subroi_properties.total_q = roi_properties.total_q;
@@ -323,7 +323,7 @@ sys::WireModifier::CalcSubROIProperties(sys::WireModifier::ROIProperties_t const
     subroi_properties_vec.push_back(subroi_properties);
   }
 
-  // otherwise, define SubROIs based on hits
+  // otherwise, define subROIs based on hits
   else {
     for ( unsigned int i_h=0; i_h < hitPtrVec.size(); i_h++ ) {
       auto hit_ptr = hitPtrVec[i_h];
@@ -975,7 +975,7 @@ void sys::WireModifier::produce(art::Event& e)
       std::cout << "DOING WIRE ROI (wire=" << wire.Channel() << ", roi_idx=" << i_r
 		<< ", roi_begin=" << roi_properties.begin << ", roi_size=" << roi_properties.end-roi_properties.begin << ")" << std::endl;
       std::cout << "  Have " << matchedEdepPtrVec.size() << " matching Edeps" << std::endl;
-      std::cout << "  Have " << matchedHitPtrVec.size() << " matching hits" << std::endl;
+      //std::cout << "  Have " << matchedHitPtrVec.size() << " matching hits" << std::endl;
 
       // get the subROIs
       auto subROIPropVec = CalcSubROIProperties(roi_properties, matchedHitPtrVec);
@@ -1000,27 +1000,27 @@ void sys::WireModifier::produce(art::Event& e)
 								<< pair.second.size() << " matching Edeps" << std::endl;
 
       //get the scaling values
-      //std::map<SubROI_Key_t, TruthProperties_t> SubROIMatchedTruthMap;
       std::map<SubROI_Key_t, ScaleValues_t>     SubROIMatchedScalesMap;
       for ( auto const& subroi_prop : subROIPropVec ) {
 	ScaleValues_t scale_vals;
 	auto key = subroi_prop.key;
 	auto key_it =  SubROIMatchedEdepMap.find(key);
-	if ( key_it == SubROIMatchedEdepMap.end() ){
-	  scale_vals.r_Q     = 1.;
-	  scale_vals.r_sigma = 1.;
-	}
-	else {
+	// if 
+	if ( key_it != SubROIMatchedEdepMap.end() && key_it->second.size() > 0 ) {
 	  auto truth_vals = CalcPropertiesFromEdeps(key_it->second);
 	  if(fUseCollectiveEdepsForScales) //use bulk properties of edeps to determine scale
 	    scale_vals = GetScaleValues(truth_vals, roi_properties);
 	  else //use the energy-weighted average scale values per edep
 	    scale_vals = truth_vals.scales_avg[roi_properties.plane];
 	}
+	else {
+	  scale_vals.r_Q     = 1.;
+	  scale_vals.r_sigma = 1.;
+	}
 	SubROIMatchedScalesMap[key] = scale_vals;
       }
       for ( auto const& key_scale_pair : SubROIMatchedScalesMap ) {
-        std::cout << "  For subroi #" << key_scale_pair.first.second << ", have "
+        std::cout << "  For subROI #" << key_scale_pair.first.second << ", have "
                     << "scale factors r_Q = " << key_scale_pair.second.r_Q << " and r_sigma = " << key_scale_pair.second.r_sigma << std::endl;
       }
 
