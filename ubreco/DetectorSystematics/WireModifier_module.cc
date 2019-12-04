@@ -343,7 +343,7 @@ std::map<sys::WireModifier::SubROI_Key_t, std::vector<const sim::SimEnergyDeposi
 sys::WireModifier::MatchEdepsToSubROIs(std::vector<sys::WireModifier::SubROIProperties_t> const& subROIPropVec,
 				       std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec) {
 
-  // for each TrackID, which EDeps are associated with it?
+  // for each TrackID, which EDeps are associated with it? keys are TrackIDs
   std::map<int, std::vector<const sim::SimEnergyDeposit*>> TrackIDMatchedEDepMap;
   // total energy of EDeps matched to the ROI (not strictly necessary, but useful for understanding/development)
   double total_energy = 0.;
@@ -360,20 +360,12 @@ sys::WireModifier::MatchEdepsToSubROIs(std::vector<sys::WireModifier::SubROIProp
   std::map<unsigned int, std::vector<unsigned int>> EDepMatchedSubROIMap;   // keys are indexes of edepPtrVec, values are vectors of indexes of subROIPropVec
   // for each TrackID, which subROI(s) (if any) are its EDeps matched to? based on whether any EDeps with that TrackID are within +/-1sigma of the subROI center
   std::map<int, std::unordered_set<unsigned int>> TrackIDMatchedSubROIMap;  // keys are TrackIDs, values are sets of indexes of subROIPropVec
-  // for each subROI, which EDep(s) (if any) are matched to it? based on multi-pass matching
+  // for each subROI, which EDep(s) (if any) are matched to it? based on minimum distance matching
   std::map<unsigned int, std::vector<unsigned int>> SubROIMatchedEDepMap;   // keys are indexes of subROIPropVec, values are vectors of indexes of edepPtrVec
-  // for each subROI, which TrackID(s) (if any) are matched? for each TrackID, how much energy is matched? based on multi-pass matching
+  // for each subROI, which TrackID(s) (if any) are matched? for each TrackID, how much energy is matched? based on minimum distance matching
   std::map<unsigned int, std::map<int, double>> SubROIMatchedTrackEnergyMap; // keys are indexes of subROIPropVec, values are maps of TrackIDs to matched energy (in MeV)
 
-  // which EDeps have not yet been assigned?
-  std::unordered_set<unsigned int> UnassignedEDeps;
-  // for each pass, which EDeps were assigned in this pass?
-  std::unordered_set<unsigned int> PassAssignedEDeps;
 
-
-  // first pass: fill EDepMatchedSubROIMap, assign EDeps matched to exactly one hit
-  //   also fill TrackIDMatchedSubROIMap based on EDeps matched to exactly one hit
-  //   and also fill TrackIDLooseMatchedSubROIMap
   // loop over EDeps
   for ( unsigned int i_e=0; i_e < edepPtrVec.size(); i_e++ ) {
     
@@ -381,111 +373,30 @@ sys::WireModifier::MatchEdepsToSubROIs(std::vector<sys::WireModifier::SubROIProp
     auto edep_ptr  = edepPtrVec[i_e];
     auto edep_tick = A_t * edep_ptr->X() + C_t;
 
-    // loop over subROIs
+    // loop over subROIs  
+    unsigned int closest_hit = 0;
+    float min_dist = 100000.;
     for ( unsigned int i_h=0; i_h < subROIPropVec.size(); i_h++ ) {
       auto subroi_prop = subROIPropVec[i_h];
       if ( edep_tick > subroi_prop.center-subroi_prop.sigma && edep_tick < subroi_prop.center+subroi_prop.sigma ) {
 	EDepMatchedSubROIMap[i_e].push_back(i_h);
 	TrackIDMatchedSubROIMap[edep_ptr->TrackID()].emplace(i_h);
       }
-    } // end loop over subROIs
-
-    // if EDep is matched to exactly one subROI, assign it to that hit => update SubROIMatchedEDepMap, SubROIMatchedTrackEnergyMap
-    if ( EDepMatchedSubROIMap[i_e].size() == 1 ) {
-      auto i_h = EDepMatchedSubROIMap[i_e][0];
-      SubROIMatchedEDepMap[i_h].push_back(i_e);
-      SubROIMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()] += edep_ptr->E();
-      //PassAssignedEDeps.emplace(i_e);
-    }
-    // else, add this EDep to the set of unassigned EDeps
-    else UnassignedEDeps.emplace(i_e);
-
-  } // end loop over EDeps
-  // end first pass
-
-  
-  // second pass: for EDeps that are matched to no subROIs...
-  //                if EDep's TrackID is not matched to any subROIs, do not match it
-  //                if EDep's TrackID is matched to exactly one subROI, match it to that hit
-  // reset PassAssignedEDeps
-  PassAssignedEDeps.clear();
-  // loop over unassigned EDeps
-  for ( auto i_e :  UnassignedEDeps ) {
-    // if EDep is matched to multiple hits, skip it for this pass
-    if ( EDepMatchedSubROIMap[i_e].size() != 0 ) continue;
-
-    // get EDep pointer
-    auto edep_ptr = edepPtrVec[i_e];
-
-    // if EDep's TrackID is not matched to any hits, do not match it
-    if ( TrackIDMatchedSubROIMap[edep_ptr->TrackID()].size() == 0 ) {
-      PassAssignedEDeps.emplace(i_e);
-      continue;
-    }
-
-    // if EDep's TrackID is matched to exactly one hit, assign it to that hit
-    if ( TrackIDMatchedSubROIMap[edep_ptr->TrackID()].size() == 1 ) { 
-      auto i_h = *TrackIDMatchedSubROIMap[edep_ptr->TrackID()].begin();
-
-      // if this approach seems boarderline, print out some info
-      /*
-      if ( SubROIMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()] < 0.75*TrackIDMatchedPropertyMap[edep_ptr->TrackID()].total_energy ) {
-	std::cout << "WARNING: assigning EDep #" << i_e << " to hit #" << i_h << ", but that hit contains "
-		  << SubROIMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()] << " / " << TrackIDMatchedPropertyMap[edep_ptr->TrackID()].total_energy
-		  << " = " << SubROIMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()]/TrackIDMatchedPropertyMap[edep_ptr->TrackID()].total_energy
-		  << " < 0.75 of the TrackID's total energy (TrackID " << edep_ptr->TrackID() << ")" << std::endl;
-      }
-      */
-
-      SubROIMatchedEDepMap[i_h].push_back(i_e);
-      SubROIMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()] += edep_ptr->E();
-      PassAssignedEDeps.emplace(i_e);
-    }
-    
-  } // end loop over EDeps
-  // update UnassignedEDeps
-  for ( auto i_e : PassAssignedEDeps ) UnassignedEDeps.erase(i_e);
-  // end second pass
-  
-
-  // third pass: assign remaining EDeps to the closest hit, based on the hit RMS
-  // reset PassAssignedEDeps
-  PassAssignedEDeps.clear();
-  // loop over unassigned EDeps
-  for ( auto i_e :  UnassignedEDeps ) {
-    //std::cout << "Doing third pass for EDep #" << i_e << "..." << std::endl;
-    
-    // get EDep properties
-    auto edep_ptr = edepPtrVec[i_e];
-    auto edep_tick = A_t * edep_ptr->X() + C_t;
-
-    // get list of subROIs to consider assigning the EDep to
-    std::vector<unsigned int> hit_list;
-    if ( EDepMatchedSubROIMap[i_e].size() != 0 ) hit_list = EDepMatchedSubROIMap[i_e];
-    else  { for ( auto i_h : TrackIDMatchedSubROIMap[edep_ptr->TrackID()] ) hit_list.push_back(i_h); }
-
-    // get the hit that is closest to this EDep
-    unsigned int closest_hit;
-    float min_dist = 6400.;
-    for ( auto i_h : hit_list ) {
-      auto subroi_prop = subROIPropVec[i_h];
       float hit_dist = std::abs( edep_tick - subroi_prop.center ) / subroi_prop.sigma;
       if ( hit_dist < min_dist ) {
 	closest_hit = i_h;
-	min_dist    = hit_dist;
+	min_dist = hit_dist;
       }
-    }
+    } // end loop over subROIs
 
-    // assign the EDep to the closest hit
-    SubROIMatchedEDepMap[closest_hit].push_back(i_e);
-    SubROIMatchedTrackEnergyMap[closest_hit][edep_ptr->TrackID()] += edep_ptr->E();
-    PassAssignedEDeps.emplace(i_e);
+    // if EDep is less than 2.5 units away from closest subROI, assign it to that subROI
+    if ( min_dist < 2.5 ) {
+      auto i_h = closest_hit;
+      SubROIMatchedEDepMap[i_h].push_back(i_e);
+      SubROIMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()] += edep_ptr->E();
+    }
     
   } // end loop over EDeps
-  // update UnassignedEDeps
-  for ( auto i_e : PassAssignedEDeps ) UnassignedEDeps.erase(i_e);
-  // end third pass
-
 
   // convert to desired format (possibly a better way to do this...?)
   std::map<SubROI_Key_t, std::vector<const sim::SimEnergyDeposit*>> ReturnMap;
@@ -809,8 +720,8 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
   //get scales here
   if(plane==0){
     if(fApplyXScale){
-      scales.r_Q = fTSplines_Charge_X[0]->Eval(truth_props.x);
-      scales.r_sigma = fTSplines_Sigma_X[0]->Eval(truth_props.x);
+      scales.r_Q *= fTSplines_Charge_X[0]->Eval(truth_props.x);
+      scales.r_sigma *= fTSplines_Sigma_X[0]->Eval(truth_props.x);
     }
     if(fApplyYScale){    
     }
@@ -825,8 +736,8 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
   }
   else if(plane==1){
     if(fApplyXScale){
-      scales.r_Q = fTSplines_Charge_X[1]->Eval(truth_props.x);
-      scales.r_sigma = fTSplines_Sigma_X[1]->Eval(truth_props.x);
+      scales.r_Q *= fTSplines_Charge_X[1]->Eval(truth_props.x);
+      scales.r_sigma *= fTSplines_Sigma_X[1]->Eval(truth_props.x);
     }
     if(fApplyYScale){    
     }
@@ -841,8 +752,8 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
   }
   else if(plane==2){
     if(fApplyXScale){
-      scales.r_Q = fTSplines_Charge_X[2]->Eval(truth_props.x);
-      scales.r_sigma = fTSplines_Sigma_X[2]->Eval(truth_props.x);
+      scales.r_Q *= fTSplines_Charge_X[2]->Eval(truth_props.x);
+      scales.r_sigma *= fTSplines_Sigma_X[2]->Eval(truth_props.x);
     }
     if(fApplyYScale){    
     }
@@ -885,26 +796,10 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
     // calculate q_orig, q_mod for this tick
     for ( auto const& subroi_prop : subROIPropVec ) {
       auto scale_vals = subROIScaleMap.find(subroi_prop.key)->second;
-      /*
-	std::cout << "    Incrementing q_orig by GAUSSIAN( " << i_t+roi_prop.begin << ", " << subroi_prop.center << ", " << subroi_prop.sigma 
-	<< ", " << subroi_prop.total_q << ") = " << GAUSSIAN( i_t+roi_prop.begin,
-	subroi_prop.center,
-	subroi_prop.sigma,
-	subroi_prop.total_q )
-	<< std::endl;
-      */
       q_orig += GAUSSIAN( i_t+roi_prop.begin,
 			  subroi_prop.center,
 			  subroi_prop.sigma,
 			  subroi_prop.total_q );
-      /*
-	std::cout << "    Incrementing q_mod by GAUSSIAN( " << i_t+roi_prop.begin << ", " << subroi_prop.center << ", " << scale_vals.r_sigma 
-	<< " * " << subroi_prop.sigma << ", " << scale_vals.r_Q << " * " << subroi_prop.total_q << ") = " << GAUSSIAN( i_t+roi_prop.begin,
-	subroi_prop.center,
-	scale_vals.r_sigma * subroi_prop.sigma,
-	scale_vals.r_Q     * subroi_prop.total_q )
-	<< std::endl;
-      */
       q_mod  += GAUSSIAN( i_t+roi_prop.begin,
 			  subroi_prop.center,
 			  scale_vals.r_sigma * subroi_prop.sigma, 
@@ -917,7 +812,7 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
       q_orig = 0.;
     }
     if(isnan(q_mod)) {
-      std::cout << "WARNING: obtained q_mod = NaN... settign to zero" << std::endl;
+      std::cout << "WARNING: obtained q_mod = NaN... setting to zero" << std::endl;
       q_mod = 0.;
     }
     
@@ -965,7 +860,6 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fApplyYZScale(p.get<bool>("ApplyYZScale",true)),
   fApplyAngleScales(p.get<bool>("ApplyAngleScales",true)),
   fApplydEdXScale(p.get<bool>("ApplydEdXScale",true))
-				 //  ONE_OVER_SQRT_2PI(1./std::sqrt(2*util::pi()))
 				 
 {
   produces< std::vector< recob::Wire > >();
@@ -1080,8 +974,8 @@ void sys::WireModifier::produce(art::Event& e)
 
       std::cout << "DOING WIRE ROI (wire=" << wire.Channel() << ", roi_idx=" << i_r
 		<< ", roi_begin=" << roi_properties.begin << ", roi_size=" << roi_properties.end-roi_properties.begin << ")" << std::endl;
-      //std::cout << "  Have " << matchedEdepPtrVec.size() << " matching Edeps" << std::endl;
-      //std::cout << "  Have " << matchedHitPtrVec.size() << " matching hits" << std::endl;
+      std::cout << "  Have " << matchedEdepPtrVec.size() << " matching Edeps" << std::endl;
+      std::cout << "  Have " << matchedHitPtrVec.size() << " matching hits" << std::endl;
 
       // get the subROIs
       auto subROIPropVec = CalcSubROIProperties(roi_properties, matchedHitPtrVec);
@@ -1101,7 +995,7 @@ void sys::WireModifier::produce(art::Event& e)
 	    }
 	  }
 	}
-      }
+      } // end conversion
       for ( auto const& pair : SubROIMatchedEdepMap ) std::cout << "  For subROI #" << pair.first.second << ", have " 
 								<< pair.second.size() << " matching Edeps" << std::endl;
 
@@ -1118,22 +1012,17 @@ void sys::WireModifier::produce(art::Event& e)
 	}
 	else {
 	  auto truth_vals = CalcPropertiesFromEdeps(key_it->second);
-	  //std::cout << "putting truth vals in map... ";
-	  //SubROIMatchedTruthMap[key] = truth_vals;
-
 	  if(fUseCollectiveEdepsForScales) //use bulk properties of edeps to determine scale
 	    scale_vals = GetScaleValues(truth_vals, roi_properties);
 	  else //use the energy-weighted average scale values per edep
 	    scale_vals = truth_vals.scales_avg[roi_properties.plane];
 	}
-	//std::cout << "Using scale values for plane " << roi_properties.plane << ": " << scale_vals.r_Q << " " << scale_vals.r_sigma << std::endl;
-
 	SubROIMatchedScalesMap[key] = scale_vals;
       }
-      //for ( auto const& key_scale_pair : SubROIMatchedScalesMap ) {
-      //  std::cout << "  For subroi #" << key_scale_pair.first.second << ", have "
-      //              << "scale factors r_Q = " << key_scale_pair.second.r_Q << " and r_sigma = " << key_scale_pair.second.r_sigma << std::endl;
-      //}
+      for ( auto const& key_scale_pair : SubROIMatchedScalesMap ) {
+        std::cout << "  For subroi #" << key_scale_pair.first.second << ", have "
+                    << "scale factors r_Q = " << key_scale_pair.second.r_Q << " and r_sigma = " << key_scale_pair.second.r_sigma << std::endl;
+      }
 
       //get modified ROI given scales
       std::vector<float> modified_data(range.data());
