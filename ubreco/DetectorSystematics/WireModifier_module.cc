@@ -30,6 +30,10 @@
 #include "TFile.h"
 #include "TSpline.h"
 
+//include for the TFileService/ROOT
+#include "art/Framework/Services/Optional/TFileService.h"
+#include "TNtuple.h"
+
 namespace sys {
   class WireModifier;
 }
@@ -73,6 +77,10 @@ private:
   bool fApplyYZScale;
   bool fApplyAngleScales;
   bool fApplydEdXScale;
+
+
+  //output ana trees
+  TNtuple* fNt;
 
   //useful math things
   //static constexpr double ONE_OVER_SQRT_2PI = 1./std::sqrt(2*util::pi());
@@ -887,6 +895,9 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
     fApplyZScale=false;
   }
 
+  art::ServiceHandle<art::TFileService> tfs;
+  fNt = tfs->make<TNtuple>("nt","Ana Ntuple","edep_e:subroi_q");
+
 }
 
 void sys::WireModifier::produce(art::Event& e)
@@ -1012,6 +1023,9 @@ void sys::WireModifier::produce(art::Event& e)
 	}
 	else {
 	  auto truth_vals = CalcPropertiesFromEdeps(key_it->second);
+	  
+	  fNt->Fill(truth_vals.total_energy,roi_properties.total_q);
+	  
 	  if(fUseCollectiveEdepsForScales) //use bulk properties of edeps to determine scale
 	    scale_vals = GetScaleValues(truth_vals, roi_properties);
 	  else //use the energy-weighted average scale values per edep
@@ -1022,6 +1036,7 @@ void sys::WireModifier::produce(art::Event& e)
       for ( auto const& key_scale_pair : SubROIMatchedScalesMap ) {
         std::cout << "  For subroi #" << key_scale_pair.first.second << ", have "
                     << "scale factors r_Q = " << key_scale_pair.second.r_Q << " and r_sigma = " << key_scale_pair.second.r_sigma << std::endl;
+
       }
 
       //get modified ROI given scales
