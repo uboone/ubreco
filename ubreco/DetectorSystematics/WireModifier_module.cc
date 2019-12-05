@@ -75,9 +75,21 @@ private:
   bool fApplyYScale;
   bool fApplyZScale;
   bool fApplyYZScale;
-  bool fApplyAngleScales;
+  bool fApplyXZAngleScale;
+  bool fApplyYZAngleScale;
   bool fApplydEdXScale;
 
+  std::vector<double> fXZAngleQParsA_Data;
+  std::vector<double> fXZAngleQParsB_Data;
+  std::vector<double> fXZAngleQParsA_MC;
+  std::vector<double> fXZAngleQParsB_MC;
+  std::vector<double> fYZAngleQParsA_Data;
+  std::vector<double> fYZAngleQParsB_Data;
+  std::vector<double> fYZAngleQParsA_MC;
+  std::vector<double> fYZAngleQParsB_MC;
+
+  std::vector<std::string> fSplineNames_Sigma_XZAngle;
+  std::vector<TSpline3*> fTSplines_Sigma_XZAngle;
 
   //output ana trees
   TNtuple* fNt;
@@ -94,9 +106,9 @@ private:
   static constexpr double C_Y = 4799.19;
   static constexpr double A_t = 18.2148;
   static constexpr double C_t = 818.351;
-  static constexpr double SIN_SIXTY = std::sqrt(3)/2;
+  static constexpr double SIN_SIXTY = std::sqrt(3)/2.;
   static constexpr double COS_SIXTY = 0.5;
-
+  static constexpr double PI_OVER_TWO = util::pi()/2.;
 
   typedef std::pair<unsigned int,unsigned int> ROI_Key_t;
   std::map< ROI_Key_t,std::vector<size_t> > fROIMatchedEdepMap;
@@ -151,6 +163,63 @@ private:
 
   } TruthProperties_t;
 
+  double FoldAngle(double theta)
+  {
+    double th = std::abs(theta);
+    if(th>PI_OVER_TWO) th = PI_OVER_TWO*2. - th;
+    return th;
+  }
+
+  double ThetaXZ_U(double dxdr,double dydr,double dzdr)
+  { 
+    double theta = std::atan2(dxdr,(-1*SIN_SIXTY*dydr + COS_SIXTY*dzdr));
+    return FoldAngle(theta);
+  }
+
+  double ThetaYZ_U(double dxdr,double dydr,double dzdr)
+  {
+    double theta = std::atan2((COS_SIXTY*dydr+SIN_SIXTY*dzdr),(-1*SIN_SIXTY*dydr + COS_SIXTY*dzdr));
+    return FoldAngle(theta);
+  }
+
+  double ThetaXZ_V(double dxdr,double dydr,double dzdr)
+  { 
+    double theta = std::atan2(dxdr,(SIN_SIXTY*dydr + COS_SIXTY*dzdr));
+    return FoldAngle(theta);
+  }
+
+  double ThetaYZ_V(double dxdr,double dydr,double dzdr)
+  {
+    double theta = std::atan2((COS_SIXTY*dydr-SIN_SIXTY*dzdr),(SIN_SIXTY*dydr + COS_SIXTY*dzdr));
+    return FoldAngle(theta);
+  }
+
+  double ThetaXZ_Y(double dxdr,double ,double dzdr)
+  { 
+    double theta = std::atan2(dxdr,dzdr);
+    return FoldAngle(theta);
+  }
+
+  double ThetaYZ_Y(double ,double dydr,double dzdr)
+  {
+    double theta = std::atan2(dydr,dzdr);
+    return FoldAngle(theta);
+  }
+
+  double AngleScale(double theta,double parA_data, double parB_data, double parA_MC, double parB_MC){
+    double scale=1.;
+
+    try{
+      double cos_theta = std::cos(theta);    
+      if(std::abs(cos_theta)<1e-4)
+	scale = parA_data/parA_MC;
+      else
+	scale = (parA_data/cos_theta + parB_data)/(parA_MC/cos_theta + parB_MC);
+    }
+    catch(...){}
+    
+    return scale;
+  }
 
   ROIProperties_t CalcROIProperties(recob::Wire::RegionsOfInterest_t::datarange_t const&);
 
@@ -737,7 +806,17 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     }
     if(fApplyYZScale){    
     }
-    if(fApplyAngleScales){    
+    if(fApplyXZAngleScale){    
+      scales.r_Q *= AngleScale(std::cos(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)),
+			       fXZAngleQParsA_Data[plane],fXZAngleQParsB_Data[plane],
+			       fXZAngleQParsA_MC[plane],fXZAngleQParsB_MC[plane]);
+      scales.r_sigma *= fTSplines_Sigma_XZAngle[0]->Eval(std::cos(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)));
+    }
+    if(fApplyYZAngleScale){    
+      scales.r_Q *= AngleScale(std::cos(ThetaYZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)),
+			       fYZAngleQParsA_Data[plane],fYZAngleQParsB_Data[plane],
+			       fYZAngleQParsA_MC[plane],fYZAngleQParsB_MC[plane]);
+      //no sigma scaling
     }
     if(fApplydEdXScale){    
     }
@@ -753,7 +832,17 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     }
     if(fApplyYZScale){    
     }
-    if(fApplyAngleScales){    
+    if(fApplyXZAngleScale){    
+      scales.r_Q *= AngleScale(std::cos(ThetaXZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)),
+			       fXZAngleQParsA_Data[plane],fXZAngleQParsB_Data[plane],
+			       fXZAngleQParsA_MC[plane],fXZAngleQParsB_MC[plane]);
+      scales.r_sigma *= fTSplines_Sigma_XZAngle[0]->Eval(std::cos(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)));
+    }
+    if(fApplyYZAngleScale){    
+      scales.r_Q *= AngleScale(std::cos(ThetaYZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)),
+			       fYZAngleQParsA_Data[plane],fYZAngleQParsB_Data[plane],
+			       fYZAngleQParsA_MC[plane],fYZAngleQParsB_MC[plane]);
+      //no sigma scaling
     }
     if(fApplydEdXScale){    
     }
@@ -769,7 +858,17 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     }
     if(fApplyYZScale){    
     }
-    if(fApplyAngleScales){    
+    if(fApplyXZAngleScale){    
+      scales.r_Q *= AngleScale(std::cos(ThetaXZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)),
+			       fXZAngleQParsA_Data[plane],fXZAngleQParsB_Data[plane],
+			       fXZAngleQParsA_MC[plane],fXZAngleQParsB_MC[plane]);
+      scales.r_sigma *= fTSplines_Sigma_XZAngle[0]->Eval(std::cos(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)));
+    }
+    if(fApplyYZAngleScale){    
+      scales.r_Q *= AngleScale(std::cos(ThetaYZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)),
+			       fYZAngleQParsA_Data[plane],fYZAngleQParsB_Data[plane],
+			       fYZAngleQParsA_MC[plane],fYZAngleQParsB_MC[plane]);
+      //no sigma scaling
     }
     if(fApplydEdXScale){    
     }
@@ -866,8 +965,18 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fApplyYScale(p.get<bool>("ApplyYScale",false)),
   fApplyZScale(p.get<bool>("ApplyZScale",false)),
   fApplyYZScale(p.get<bool>("ApplyYZScale",true)),
-  fApplyAngleScales(p.get<bool>("ApplyAngleScales",true)),
-  fApplydEdXScale(p.get<bool>("ApplydEdXScale",true))
+  fApplyXZAngleScale(p.get<bool>("ApplyXZAngleScale",true)),
+  fApplyYZAngleScale(p.get<bool>("ApplyYZAngleScale",true)),
+  fApplydEdXScale(p.get<bool>("ApplydEdXScale",true)),
+  fXZAngleQParsA_Data(p.get< std::vector<double> >("XZAngleQParsA_Data",std::vector<double>(3,1.))),
+  fXZAngleQParsB_Data(p.get< std::vector<double> >("XZAngleQParsB_Data",std::vector<double>(3,0.))),
+  fXZAngleQParsA_MC(p.get< std::vector<double> >("XZAngleQParsA_MC",std::vector<double>(3,1.))),
+  fXZAngleQParsB_MC(p.get< std::vector<double> >("XZAngleQParsB_MC",std::vector<double>(3,0.))),
+  fYZAngleQParsA_Data(p.get< std::vector<double> >("YZAngleQParsA_Data",std::vector<double>(3,1.))),
+  fYZAngleQParsB_Data(p.get< std::vector<double> >("YZAngleQParsB_Data",std::vector<double>(3,0.))),
+  fYZAngleQParsA_MC(p.get< std::vector<double> >("YZAngleQParsA_MC",std::vector<double>(3,1.))),
+  fYZAngleQParsB_MC(p.get< std::vector<double> >("YZAngleQParsB_MC",std::vector<double>(3,0.))),
+  fSplineNames_Sigma_XZAngle(p.get< std::vector<std::string> >("SplineNames_Sigma_XZAngle"))
 				 
 {
   produces< std::vector< recob::Wire > >();
@@ -888,6 +997,10 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fTSplines_Sigma_X.resize(fSplineNames_Sigma_X.size());
   for(size_t i_s=0; i_s<fSplineNames_Sigma_X.size(); ++i_s)
     f_splines.GetObject(fSplineNames_Sigma_X[i_s].c_str(),fTSplines_Sigma_X[i_s]);
+
+  fTSplines_Sigma_XZAngle.resize(fSplineNames_Sigma_XZAngle.size());
+  for(size_t i_s=0; i_s<fSplineNames_Sigma_XZAngle.size(); ++i_s)
+    f_splines.GetObject(fSplineNames_Sigma_XZAngle[i_s].c_str(),fTSplines_Sigma_XZAngle[i_s]);
 
   //ifApplyYZ, don't applyY and applyZ separately
   if(fApplyYZScale){
