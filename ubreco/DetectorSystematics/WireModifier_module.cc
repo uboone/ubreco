@@ -29,6 +29,7 @@
 
 #include "TFile.h"
 #include "TSpline.h"
+#include "TGraph2DErrors.h"
 
 //include for the TFileService/ROOT
 #include "art/Framework/Services/Optional/TFileService.h"
@@ -90,6 +91,11 @@ private:
 
   std::vector<std::string> fSplineNames_Sigma_XZAngle;
   std::vector<TSpline3*> fTSplines_Sigma_XZAngle;
+
+  std::vector<std::string> fGraph2DNames_Charge_YZ;
+  std::vector<std::string> fGraph2DNames_Sigma_YZ;
+  std::vector<TGraph2DErrors*> fTGraph2Ds_Charge_YZ;
+  std::vector<TGraph2DErrors*> fTGraph2Ds_Sigma_YZ;
 
   //output ana trees
   TNtuple* fNt;
@@ -793,6 +799,8 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
   
   scales.r_Q=1.;
   scales.r_sigma=1.;
+  
+  double temp_scale=1.;
 
   //get scales here
   if(plane==0){
@@ -805,6 +813,11 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     if(fApplyZScale){    
     }
     if(fApplyYZScale){    
+      temp_scale = fTGraph2Ds_Charge_YZ[plane]->Interpolate(truth_props.z,truth_props.y);
+      if(temp_scale>0.001) scales.r_Q *= temp_scale;
+
+      temp_scale = fTGraph2Ds_Sigma_YZ[plane]->Interpolate(truth_props.z,truth_props.y);
+      if(temp_scale>0.001) scales.r_sigma *= temp_scale;
     }
     if(fApplyXZAngleScale){    
       scales.r_Q *= AngleScale(std::cos(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)),
@@ -831,6 +844,11 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     if(fApplyZScale){    
     }
     if(fApplyYZScale){    
+      temp_scale = fTGraph2Ds_Charge_YZ[plane]->Interpolate(truth_props.z,truth_props.y);
+      if(temp_scale>0.001) scales.r_Q *= temp_scale;
+
+      temp_scale = fTGraph2Ds_Sigma_YZ[plane]->Interpolate(truth_props.z,truth_props.y);
+      if(temp_scale>0.001) scales.r_sigma *= temp_scale;
     }
     if(fApplyXZAngleScale){    
       scales.r_Q *= AngleScale(std::cos(ThetaXZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)),
@@ -857,6 +875,11 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     if(fApplyZScale){    
     }
     if(fApplyYZScale){    
+      temp_scale = fTGraph2Ds_Charge_YZ[plane]->Interpolate(truth_props.z,truth_props.y);
+      if(temp_scale>0.001) scales.r_Q *= temp_scale;
+
+      temp_scale = fTGraph2Ds_Sigma_YZ[plane]->Interpolate(truth_props.z,truth_props.y);
+      if(temp_scale>0.001) scales.r_sigma *= temp_scale;
     }
     if(fApplyXZAngleScale){    
       scales.r_Q *= AngleScale(std::cos(ThetaXZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)),
@@ -976,7 +999,10 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fYZAngleQParsB_Data(p.get< std::vector<double> >("YZAngleQParsB_Data",std::vector<double>(3,0.))),
   fYZAngleQParsA_MC(p.get< std::vector<double> >("YZAngleQParsA_MC",std::vector<double>(3,1.))),
   fYZAngleQParsB_MC(p.get< std::vector<double> >("YZAngleQParsB_MC",std::vector<double>(3,0.))),
-  fSplineNames_Sigma_XZAngle(p.get< std::vector<std::string> >("SplineNames_Sigma_XZAngle"))
+  fSplineNames_Sigma_XZAngle(p.get< std::vector<std::string> >("SplineNames_Sigma_XZAngle")),
+  fGraph2DNames_Charge_YZ(p.get< std::vector<std::string> >("Graph2DNames_Charge_YZ")),
+  fGraph2DNames_Sigma_YZ(p.get< std::vector<std::string> >("Graph2DNames_Sigma_YZ"))
+
 				 
 {
   produces< std::vector< recob::Wire > >();
@@ -990,22 +1016,32 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
 
   TFile f_splines(fSplinesFileName.c_str(),"r");
 
-  fTSplines_Charge_X.resize(fSplineNames_Charge_X.size());
-  for(size_t i_s=0; i_s<fSplineNames_Charge_X.size(); ++i_s)
-    f_splines.GetObject(fSplineNames_Charge_X[i_s].c_str(),fTSplines_Charge_X[i_s]);
-  
-  fTSplines_Sigma_X.resize(fSplineNames_Sigma_X.size());
-  for(size_t i_s=0; i_s<fSplineNames_Sigma_X.size(); ++i_s)
-    f_splines.GetObject(fSplineNames_Sigma_X[i_s].c_str(),fTSplines_Sigma_X[i_s]);
-
-  fTSplines_Sigma_XZAngle.resize(fSplineNames_Sigma_XZAngle.size());
-  for(size_t i_s=0; i_s<fSplineNames_Sigma_XZAngle.size(); ++i_s)
-    f_splines.GetObject(fSplineNames_Sigma_XZAngle[i_s].c_str(),fTSplines_Sigma_XZAngle[i_s]);
-
+  if(fApplyXScale){
+    fTSplines_Charge_X.resize(fSplineNames_Charge_X.size());
+    for(size_t i_s=0; i_s<fSplineNames_Charge_X.size(); ++i_s)
+      f_splines.GetObject(fSplineNames_Charge_X[i_s].c_str(),fTSplines_Charge_X[i_s]);
+    
+    fTSplines_Sigma_X.resize(fSplineNames_Sigma_X.size());
+    for(size_t i_s=0; i_s<fSplineNames_Sigma_X.size(); ++i_s)
+      f_splines.GetObject(fSplineNames_Sigma_X[i_s].c_str(),fTSplines_Sigma_X[i_s]);
+  }
+  if(fApplyXZAngleScale){
+    fTSplines_Sigma_XZAngle.resize(fSplineNames_Sigma_XZAngle.size());
+    for(size_t i_s=0; i_s<fSplineNames_Sigma_XZAngle.size(); ++i_s)
+      f_splines.GetObject(fSplineNames_Sigma_XZAngle[i_s].c_str(),fTSplines_Sigma_XZAngle[i_s]);
+  }
   //ifApplyYZ, don't applyY and applyZ separately
   if(fApplyYZScale){
     fApplyYScale=false;
     fApplyZScale=false;
+
+    fTGraph2Ds_Charge_YZ.resize(fGraph2DNames_Charge_YZ.size());
+    for(size_t i_s=0; i_s<fGraph2DNames_Charge_YZ.size(); ++i_s)
+      f_splines.GetObject(fGraph2DNames_Charge_YZ[i_s].c_str(),fTGraph2Ds_Charge_YZ[i_s]);
+
+    fTGraph2Ds_Sigma_YZ.resize(fGraph2DNames_Sigma_YZ.size());
+    for(size_t i_s=0; i_s<fGraph2DNames_Sigma_YZ.size(); ++i_s)
+      f_splines.GetObject(fGraph2DNames_Sigma_YZ[i_s].c_str(),fTGraph2Ds_Sigma_YZ[i_s]);
   }
 
   art::ServiceHandle<art::TFileService> tfs;
