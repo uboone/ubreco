@@ -200,6 +200,12 @@ sys::WireModifier::CalcROIProperties(recob::Wire::RegionsOfInterest_t::datarange
   }
   roi_vals.sigma = std::sqrt(roi_vals.sigma/roi_vals.total_q);
 
+  // if roi is only one tick, calculated sigma is zero, but set it to 0.5
+  if ( roi_vals.end-roi_vals.begin == 1 ) {
+    roi_vals.center += 0.5;
+    roi_vals.sigma   = 0.5;
+  }
+
   return roi_vals;
 }
 
@@ -581,9 +587,13 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
   
   //std::cout << "\tAvg:" << total_energy_all << " \t ";
   for(size_t i_p=0; i_p<3; ++i_p){
-    scales_e_weighted[i_p].r_Q = scales_e_weighted[i_p].r_Q/total_energy_all;
-    scales_e_weighted[i_p].r_sigma = scales_e_weighted[i_p].r_sigma/total_energy_all;
-
+    if ( total_energy_all > 0. ) {
+      scales_e_weighted[i_p].r_Q = scales_e_weighted[i_p].r_Q/total_energy_all;
+      scales_e_weighted[i_p].r_sigma = scales_e_weighted[i_p].r_sigma/total_energy_all;
+    }
+    // if no EDeps contributed to energy-weighted scales, set scales to 1
+    if ( scales_e_weighted[i_p].r_Q == 0. ) scales_e_weighted[i_p].r_Q = 1.;
+    if ( scales_e_weighted[i_p].r_sigma == 0. ) scales_e_weighted[i_p].r_sigma = 1.;
     //std::cout<< scales_e_weighted[i_p].r_Q << " " <<scales_e_weighted[i_p].r_sigma << " ";
   }
   //std::cout << std::endl;
@@ -788,7 +798,8 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
 {
   
   bool verbose=false;
-  //if(roi_data.size()>100) verbose=true;
+  if(roi_data.size()>100) verbose=true;
+  if(roi_data.size()==1) verbose=true;
   
   double q_orig = 0.;
   double q_mod = 0.;
@@ -808,10 +819,22 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
 			  subroi_prop.center,
 			  subroi_prop.sigma,
 			  subroi_prop.total_q );
+      if ( verbose ) std::cout << "    Incrementing q_orig by GAUSSIAN( " << i_t+roi_prop.begin << ", " << subroi_prop.center << ", " << subroi_prop.sigma 
+			       << ", " << subroi_prop.total_q << ") = " << GAUSSIAN( i_t+roi_prop.begin,
+										     subroi_prop.center,
+										     subroi_prop.sigma,
+										     subroi_prop.total_q )
+			       << std::endl;
       q_mod  += GAUSSIAN( i_t+roi_prop.begin,
 			  subroi_prop.center,
 			  scale_vals.r_sigma * subroi_prop.sigma, 
 			  scale_vals.r_Q     * subroi_prop.total_q );
+      if (verbose ) std::cout << "    Incrementing q_mod by GAUSSIAN( " << i_t+roi_prop.begin << ", " << subroi_prop.center << ", " << scale_vals.r_sigma 
+			      << " * " << subroi_prop.sigma << ", " << scale_vals.r_Q << " * " << subroi_prop.total_q << ") = " << GAUSSIAN( i_t+roi_prop.begin,
+																	     subroi_prop.center,
+																	     scale_vals.r_sigma * subroi_prop.sigma,
+																	     scale_vals.r_Q     * subroi_prop.total_q )
+			      << std::endl;
       
     }
     
@@ -986,7 +1009,7 @@ void sys::WireModifier::produce(art::Event& e)
       std::cout << "DOING WIRE ROI (wire=" << wire.Channel() << ", roi_idx=" << i_r
 		<< ", roi_begin=" << roi_properties.begin << ", roi_size=" << roi_properties.end-roi_properties.begin << ")" << std::endl;
       std::cout << "  Have " << matchedEdepPtrVec.size() << " matching Edeps" << std::endl;
-      //std::cout << "  Have " << matchedHitPtrVec.size() << " matching hits" << std::endl;
+      std::cout << "  Have " << matchedHitPtrVec.size() << " matching hits" << std::endl;
 
       // get the subROIs
       auto subROIPropVec = CalcSubROIProperties(roi_properties, matchedHitPtrVec);
@@ -1011,22 +1034,24 @@ void sys::WireModifier::produce(art::Event& e)
 								<< pair.second.size() << " matching Edeps" << std::endl;
 
       //get the scaling values
-      std::map<SubROI_Key_t, ScaleValues_t>     SubROIMatchedScalesMap;
+      std::map<SubROI_Key_t, ScaleValues_t> SubROIMatchedScalesMap;
       for ( auto const& subroi_prop : subROIPropVec ) {
 	ScaleValues_t scale_vals;
 	auto key = subroi_prop.key;
 	auto key_it =  SubROIMatchedEdepMap.find(key);
-	// if 
+	// if subROI has matched EDeps, use them to get the scale values
 	if ( key_it != SubROIMatchedEdepMap.end() && key_it->second.size() > 0 ) {
 	  auto truth_vals = CalcPropertiesFromEdeps(key_it->second);
 	  
-	  fNt->Fill(truth_vals.total_energy,roi_properties.total_q);
-	  
+	  // fill ntuple with total subROI total energy and total Q information
+	  fNt->Fill(truth_vals.total_energy,subroi_prop.total_q);
+
 	  if(fUseCollectiveEdepsForScales) //use bulk properties of edeps to determine scale
 	    scale_vals = GetScaleValues(truth_vals, roi_properties);
 	  else //use the energy-weighted average scale values per edep
 	    scale_vals = truth_vals.scales_avg[roi_properties.plane];
 	}
+	// otherwise, set scale values to 1
 	else {
 	  scale_vals.r_Q     = 1.;
 	  scale_vals.r_sigma = 1.;
