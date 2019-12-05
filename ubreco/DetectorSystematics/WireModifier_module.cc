@@ -99,6 +99,9 @@ private:
 
   //output ana trees
   TNtuple* fNt;
+  TNtuple* fNtScaleCheck;
+
+  bool fFillScaleCheckTree;
 
   //useful math things
   //static constexpr double ONE_OVER_SQRT_2PI = 1./std::sqrt(2*util::pi());
@@ -172,7 +175,7 @@ private:
   double FoldAngle(double theta)
   {
     double th = std::abs(theta);
-    if(th>PI_OVER_TWO) th = PI_OVER_TWO*2. - th;
+    if(th>0.5*util::pi()) th = util::pi() - th;
     return th;
   }
 
@@ -639,8 +642,12 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
     
     edep_props.dedr = edep_ptr->E()/edep_ptr->StepLength();
     total_energy_all += edep_ptr->E();
-    
-    //std::cout << "\t\t" << edep_ptr->E() << " " << edep_ptr->X() << " ";
+    /*    
+    std::cout << "\t\t" << edep_ptr->E() << " " 
+	      << edep_ptr->X() << " " << edep_ptr->Y() << " " << edep_ptrZ() << " "
+	      << edep_props.dxdr << " " << edep_props.dydr << " " << edep_props.dzdr << " "
+	      << ThetaXZ_U(edep_props.dxdr,edep_props.dydr,edep_props.dzdr);
+    */
 
     for(size_t i_p=0; i_p<3; ++i_p){
       auto scales = GetScaleValues(edep_props,i_p);
@@ -648,6 +655,27 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
       scales_e_weighted[i_p].r_sigma += edep_ptr->E()*scales.r_sigma;
 
       //std::cout << scales.r_Q << " " << scales.r_sigma << " ";
+
+      if(fFillScaleCheckTree){
+	if(i_p==0)
+	  fNtScaleCheck->Fill(i_p,edep_ptr->E(),edep_ptr->X(),edep_ptr->Y(),edep_ptr->Z(),
+			      edep_props.dxdr,edep_props.dydr,edep_props.dzdr,
+			      ThetaXZ_U(edep_props.dxdr,edep_props.dydr,edep_props.dzdr),
+			      ThetaYZ_U(edep_props.dxdr,edep_props.dydr,edep_props.dzdr),
+			      scales.r_Q,scales.r_sigma);
+	else if(i_p==1)
+	  fNtScaleCheck->Fill(i_p,edep_ptr->E(),edep_ptr->X(),edep_ptr->Y(),edep_ptr->Z(),
+			      edep_props.dxdr,edep_props.dydr,edep_props.dzdr,
+			      ThetaXZ_V(edep_props.dxdr,edep_props.dydr,edep_props.dzdr),
+			      ThetaYZ_V(edep_props.dxdr,edep_props.dydr,edep_props.dzdr),
+			      scales.r_Q,scales.r_sigma);
+	else if(i_p==2)
+	  fNtScaleCheck->Fill(i_p,edep_ptr->E(),edep_ptr->X(),edep_ptr->Y(),edep_ptr->Z(),
+			      edep_props.dxdr,edep_props.dydr,edep_props.dzdr,
+			      ThetaXZ_Y(edep_props.dxdr,edep_props.dydr,edep_props.dzdr),
+			      ThetaYZ_Y(edep_props.dxdr,edep_props.dydr,edep_props.dzdr),
+			      scales.r_Q,scales.r_sigma);
+      }
 
     }
     //std::cout << std::endl;
@@ -1001,8 +1029,8 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fYZAngleQParsB_MC(p.get< std::vector<double> >("YZAngleQParsB_MC",std::vector<double>(3,0.))),
   fSplineNames_Sigma_XZAngle(p.get< std::vector<std::string> >("SplineNames_Sigma_XZAngle")),
   fGraph2DNames_Charge_YZ(p.get< std::vector<std::string> >("Graph2DNames_Charge_YZ")),
-  fGraph2DNames_Sigma_YZ(p.get< std::vector<std::string> >("Graph2DNames_Sigma_YZ"))
-
+  fGraph2DNames_Sigma_YZ(p.get< std::vector<std::string> >("Graph2DNames_Sigma_YZ")),
+  fFillScaleCheckTree(p.get<bool>("FillScaleCheckTree",false))
 				 
 {
   produces< std::vector< recob::Wire > >();
@@ -1046,7 +1074,8 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
 
   art::ServiceHandle<art::TFileService> tfs;
   fNt = tfs->make<TNtuple>("nt","Ana Ntuple","edep_e:subroi_q");
-
+  fNtScaleCheck = tfs->make<TNtuple>("nt_scales","Scale Check ntuple",
+				     "plane:e:x:y:z:dxdr:dydr:dzdr:thetaXZ:thetaYZ:r_Q:r_sigma");
 }
 
 void sys::WireModifier::produce(art::Event& e)
