@@ -63,6 +63,12 @@ microboone_hitvaranalyzer:{
 
 microboone_wiremod_dL_Down50: @local::microboone_wiremod
 microboone_wiremod_dL_Down50.SplinesFileName: "splines_CrossingMuons_dL_Down50_v0.root"
+microboone_wiremod_dL_Down50.ApplyXScale: true
+microboone_wiremod_dL_Down50.ApplyYScale: false
+microboone_wiremod_dL_Down50.ApplyZScale: false
+microboone_wiremod_dL_Down50.ApplyYZScale: false
+microboone_wiremod_dL_Down50.ApplyXZAngleScale: false
+microboone_wiremod_dL_Down50.ApplyYZAngleScale: false
 
 #make a blank slate wiremod config
 microboone_wiremod_NoScale: @local::microboone_wiremod
