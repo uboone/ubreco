@@ -420,104 +420,7 @@ sys::WireModifier::MatchEdepsToSubROIs(std::vector<sys::WireModifier::SubROIProp
       ReturnMap[key].push_back(edepPtrVec[i_e]);
     }
   }
-
-  //if ( verbose == 0 ) return ReturnMap;
-
-  /*
-  // ** INITIAL INFORMATIONAL COUTS **
-  std::cout << "Initial info..." << std::endl;
-  // print out ROI properties
-  //std::cout << "Channel " << roi_properties.key.first << ", signal ROI " << roi_properties.key.second << " (plane " << roi_properties.plane << ")" << std::endl;
-  //std::cout << "  ROI bounds: (" << roi_properties.begin << ", " << roi_properties.end << ")" << std::endl;
-  //std::cout << "  ROI center: " << roi_properties.center<< std::endl;
-  //std::cout << "  ROI sigma:  " << roi_properties.sigma << std::endl;
-  //std::cout << "  ROI charge: " << roi_properties.total_q << std::endl;
   
-  // print out hit properties
-  std::cout << "  Number of hits: " << subROIPropVec.size() << std::endl;
-  float total_hit_charge = 0.;
-  for ( auto subroi_prop : subROIPropVec ) total_hit_charge += subroi_prop.total_q;
-  std::cout << "  Total hit charge: " << total_hit_charge << std::endl;
-  for ( unsigned int i_h=0; i_h < subROIPropVec.size(); i_h++ ) { 
-    auto subroi_prop = subROIPropVec[i_h];
-    std::cout << "    For hit #" << i_h << ":" << std::endl;
-    std::cout << "      Hit center: " << subroi_prop.center  << std::endl;
-    std::cout << "      Hit width:  " << subroi_prop.sigma   << std::endl;
-    std::cout << "      Hit charge: " << subroi_prop.total_q << std::endl;
-  }
-
-  // print out global edep properties
-  auto edep_col_properties = CalcPropertiesFromEdeps(edepPtrVec);
-  //std::cout << "  Global EDep center: " << edep_col_properties.tick << std::endl;
-  //std::cout << "  Global EDep width:  " << edep_col_properties.tick_rms << " (with charge-weighted RMS)" << std::endl;
-  //std::cout << "  Global EDep width:  " << edep_col_properties.tick_rms_noWeight << " (with non-charge-weighted RMS)" << std::endl;
-  std::cout << "  Number of contributing EDeps: " << edepPtrVec.size() << std::endl;
-  std::cout << "  Number of contributing TrackIDs: " << TrackIDMatchedEDepMap.size() << std::endl;
-  std::cout << "  Total energy: " << total_energy << "  MeV" << std::endl;
-
-  // print out EDep properties by TrackID...
-  // for each TrackID, print center, width, and total energy
-  int trk_ctr = 0;
-  for ( auto trk_edep_pair : TrackIDMatchedEDepMap ) {
-    std::cout << "    For track #" << trk_ctr << ":" << std::endl;
-    std::cout << "      TrackID:   " << trk_edep_pair.first << std::endl;
-    std::cout << "      Num EDeps: " << trk_edep_pair.second.size() << std::endl;
-    std::cout << "      PDG code:  " << trk_edep_pair.second[0]->PdgCode() << std::endl;
-    edep_col_properties = CalcPropertiesFromEdeps(trk_edep_pair.second);
-    std::cout << "      TrackID EDep center:    " << edep_col_properties.tick << std::endl;
-    //std::cout << "      TrackID EDep width:     " << edep_col_properties.tick_rms << " (with charge-weighted RMS)" << std::endl;
-    //std::cout << "      TrackID EDep width:     " << edep_col_properties.tick_rms_noWeight << " (with non-charge-weighted RMS)" << std::endl; 
-    std::cout << "      TrackID EDep min tick:  " << edep_col_properties.tick_min << std::endl;
-    std::cout << "      TrackID EDep max tick:  " << edep_col_properties.tick_max << std::endl;
-    std::cout << "      TrackID total energy:   " << edep_col_properties.total_energy << " MeV" << std::endl;
-    trk_ctr++;
-  }
-  */
-
-  /*
-  // print out information on assigned EDeps
-  std::cout << "  Info for assigned EDeps..." << std::endl;
-  //for ( auto hit_trk_pair : HitMatchedTrackEnergyMap ) {
-  for ( unsigned int i_h=0; i_h < subROIPropVec.size(); i_h++ ) {
-    std::cout << "  Hit #" << std::setw(4) << i_h << ":";
-    for ( auto trk_edep_pair : TrackIDMatchedEDepMap ) {
-      std::cout << std::setw(10);
-      auto trk = trk_edep_pair.first;
-      auto it_trk = SubROIMatchedTrackEnergyMap[i_h].find(trk);
-      if ( it_trk == SubROIMatchedTrackEnergyMap[i_h].end() ) std::cout << "--";
-      else std::cout << it_trk->second;
-    }
-    std::cout << std::endl;
-  }
-  */
-  
-  // by construction, no unassiged EDeps after first pass
-  /*
-  // print out information about unassigned EDeps
-  std::cout << "  Number of unassigned EDeps: " << UnassignedEDeps.size() << std::endl;
-  for ( auto i_e : UnassignedEDeps ) {
-
-    // get EDep properties
-    auto edep_ptr  = edepPtrVec[i_e];
-    auto edep_tick = A_t * edep_ptr->X() + C_t;
-
-    std::cout << "    For EDep #" << i_e << ":" << std::endl;
-    std::cout << "      TrackID:         " << edep_ptr->TrackID() << std::endl;
-    std::cout << "      EDep tick:       " << edep_tick << std::endl;
-    std::cout << "      EDep energy:     " << edep_ptr->E() << " MeV" << std::endl;
-    std::cout << "      Matched to hits: ";
-    if ( EDepMatchedHitMap[i_e].size() == 0 ) std::cout << "none" << std::endl;
-    else { 
-      for ( auto i_h : EDepMatchedHitMap[i_e] ) std::cout << i_h << " ";
-      std::cout << std::endl;
-    }
-    std::cout << "      TrackID matched to " << TrackIDMatchedHitMap[edep_ptr->TrackID()].size() << " hits..." << std::endl;
-    for ( auto i_h : TrackIDMatchedHitMap[edep_ptr->TrackID()] ) {
-      std::cout << "        Hit #" << i_h << " has " << HitMatchedTrackEnergyMap[i_h][edep_ptr->TrackID()] << " MeV of the TrackID's energy" << std::endl;
-    }
-  }
-  */
-
   return ReturnMap;
 
 }
@@ -798,8 +701,8 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
 {
   
   bool verbose=false;
-  if(roi_data.size()>100) verbose=true;
-  if(roi_data.size()==1) verbose=true;
+  //if(roi_data.size()>100) verbose=true;
+  //if(roi_data.size()==1) verbose=true;
   
   double q_orig = 0.;
   double q_mod = 0.;
@@ -1006,14 +909,16 @@ void sys::WireModifier::produce(art::Event& e)
       roi_properties.key   = roi_key;
       roi_properties.plane = my_plane;
 
+      /*
       std::cout << "DOING WIRE ROI (wire=" << wire.Channel() << ", roi_idx=" << i_r
 		<< ", roi_begin=" << roi_properties.begin << ", roi_size=" << roi_properties.end-roi_properties.begin << ")" << std::endl;
       std::cout << "  Have " << matchedEdepPtrVec.size() << " matching Edeps" << std::endl;
       std::cout << "  Have " << matchedHitPtrVec.size() << " matching hits" << std::endl;
+      */
 
       // get the subROIs
       auto subROIPropVec = CalcSubROIProperties(roi_properties, matchedHitPtrVec);
-      std::cout << "  Have " << subROIPropVec.size() << " subROIs" << std::endl;
+      //std::cout << "  Have " << subROIPropVec.size() << " subROIs" << std::endl;
 
       // get the edeps per subROI
       auto SubROIMatchedShiftedEdepMap = MatchEdepsToSubROIs(subROIPropVec, matchedShiftedEdepPtrVec);
@@ -1030,8 +935,8 @@ void sys::WireModifier::produce(art::Event& e)
 	  }
 	}
       } // end conversion
-      for ( auto const& pair : SubROIMatchedEdepMap ) std::cout << "  For subROI #" << pair.first.second << ", have " 
-								<< pair.second.size() << " matching Edeps" << std::endl;
+      //for ( auto const& pair : SubROIMatchedEdepMap ) std::cout << "  For subROI #" << pair.first.second << ", have " 
+      //<< pair.second.size() << " matching Edeps" << std::endl;
 
       //get the scaling values
       std::map<SubROI_Key_t, ScaleValues_t> SubROIMatchedScalesMap;
@@ -1039,6 +944,7 @@ void sys::WireModifier::produce(art::Event& e)
 	ScaleValues_t scale_vals;
 	auto key = subroi_prop.key;
 	auto key_it =  SubROIMatchedEdepMap.find(key);
+	
 	// if subROI has matched EDeps, use them to get the scale values
 	if ( key_it != SubROIMatchedEdepMap.end() && key_it->second.size() > 0 ) {
 	  auto truth_vals = CalcPropertiesFromEdeps(key_it->second);
@@ -1046,10 +952,18 @@ void sys::WireModifier::produce(art::Event& e)
 	  // fill ntuple with total subROI total energy and total Q information
 	  fNt->Fill(truth_vals.total_energy,subroi_prop.total_q);
 
-	  if(fUseCollectiveEdepsForScales) //use bulk properties of edeps to determine scale
-	    scale_vals = GetScaleValues(truth_vals, roi_properties);
-	  else //use the energy-weighted average scale values per edep
-	    scale_vals = truth_vals.scales_avg[roi_properties.plane];
+	  // if we have a large it with little energy, default to r_Q = r_sigma = 1
+	  if ( truth_vals.total_energy < 0.3 && subroi_prop.total_q > 80 ) {
+	    scale_vals.r_Q     = 1.;
+	    scale_vals.r_sigma = 1.;
+	  }
+	  // otherwise, use scale factors based on EDep properties
+	  else {
+	    if(fUseCollectiveEdepsForScales) //use bulk properties of edeps to determine scale
+	      scale_vals = GetScaleValues(truth_vals, roi_properties);
+	    else //use the energy-weighted average scale values per edep
+	      scale_vals = truth_vals.scales_avg[roi_properties.plane];
+	  }
 	}
 	// otherwise, set scale values to 1
 	else {
@@ -1058,11 +972,13 @@ void sys::WireModifier::produce(art::Event& e)
 	}
 	SubROIMatchedScalesMap[key] = scale_vals;
       }
+      /*
       for ( auto const& key_scale_pair : SubROIMatchedScalesMap ) {
         std::cout << "  For subROI #" << key_scale_pair.first.second << ", have "
                     << "scale factors r_Q = " << key_scale_pair.second.r_Q << " and r_sigma = " << key_scale_pair.second.r_sigma << std::endl;
 
       }
+      */
 
       //get modified ROI given scales
       std::vector<float> modified_data(range.data());
