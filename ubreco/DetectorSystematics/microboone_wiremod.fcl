@@ -83,20 +83,28 @@ microboone_wiremod_NoScale.ApplyYZAngleScale: false
 microboone_wiremod_ScaleX: @local::microboone_wiremod_NoScale
 microboone_wiremod_ScaleX.ApplyXScale: true
 
+#Y scaling only
+microboone_wiremod_ScaleY: @local::microboone_wiremod_NoScale
+microboone_wiremod_ScaleY.ApplyYScale: true
+
+#Z scaling only
+microboone_wiremod_ScaleZ: @local::microboone_wiremod_NoScale
+microboone_wiremod_ScaleZ.ApplyZScale: true
+
 #YZ scaling only
 microboone_wiremod_ScaleYZ: @local::microboone_wiremod_NoScale
 microboone_wiremod_ScaleYZ.ApplyYZScale: true
 
 #XZAngle scaling only
-microboone_wiremod_ScaleXZAnlge: @local::microboone_wiremod_NoScale
-microboone_wiremod_ScaleXZAngle.ApplyXZAngleScale: true
+microboone_wiremod_ScaleAngleXZ: @local::microboone_wiremod_NoScale
+microboone_wiremod_ScaleAngleXZ.ApplyXZAngleScale: true
 
 #YZAngle scaling only
-microboone_wiremod_ScaleYZAnlge: @local::microboone_wiremod_NoScale
-microboone_wiremod_ScaleYZAngle.ApplyYZAngleScale: true
+microboone_wiremod_ScaleAngleYZ: @local::microboone_wiremod_NoScale
+microboone_wiremod_ScaleAngleYZ.ApplyYZAngleScale: true
 
 #XZ and YZ angle scaling only
-microboone_wiremod_ScaleAnlges: @local::microboone_wiremod_NoScale
+microboone_wiremod_ScaleAngles: @local::microboone_wiremod_NoScale
 microboone_wiremod_ScaleAngles.ApplyXZAngleScale: true
 microboone_wiremod_ScaleAngles.ApplyYZAngleScale: true
 
