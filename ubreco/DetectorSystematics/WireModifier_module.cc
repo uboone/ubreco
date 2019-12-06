@@ -115,7 +115,6 @@ private:
   static constexpr double C_Y = 4799.19;
   static constexpr double A_t = 18.2148;
   static constexpr double C_t = 818.351;
-  static constexpr double SIN_SIXTY = std::sqrt(3)/2.;
   static constexpr double COS_SIXTY = 0.5;
   static constexpr double PI_OVER_TWO = util::pi()/2.;
 
@@ -181,25 +180,25 @@ private:
 
   double ThetaXZ_U(double dxdr,double dydr,double dzdr)
   { 
-    double theta = std::atan2(dxdr,(-1*SIN_SIXTY*dydr + COS_SIXTY*dzdr));
+    double theta = std::atan2(dxdr,(-1*std::sqrt(0.75)*dydr + COS_SIXTY*dzdr));
     return FoldAngle(theta);
   }
 
   double ThetaYZ_U(double dxdr,double dydr,double dzdr)
   {
-    double theta = std::atan2((COS_SIXTY*dydr+SIN_SIXTY*dzdr),(-1*SIN_SIXTY*dydr + COS_SIXTY*dzdr));
+    double theta = std::atan2((COS_SIXTY*dydr+std::sqrt(0.75)*dzdr),(-1*std::sqrt(0.75)*dydr + COS_SIXTY*dzdr));
     return FoldAngle(theta);
   }
 
   double ThetaXZ_V(double dxdr,double dydr,double dzdr)
   { 
-    double theta = std::atan2(dxdr,(SIN_SIXTY*dydr + COS_SIXTY*dzdr));
+    double theta = std::atan2(dxdr,(std::sqrt(0.75)*dydr + COS_SIXTY*dzdr));
     return FoldAngle(theta);
   }
 
   double ThetaYZ_V(double dxdr,double dydr,double dzdr)
   {
-    double theta = std::atan2((COS_SIXTY*dydr-SIN_SIXTY*dzdr),(SIN_SIXTY*dydr + COS_SIXTY*dzdr));
+    double theta = std::atan2((COS_SIXTY*dydr-std::sqrt(0.75)*dzdr),(std::sqrt(0.75)*dydr + COS_SIXTY*dzdr));
     return FoldAngle(theta);
   }
 
@@ -254,7 +253,6 @@ private:
 
 };
 
-
 sys::WireModifier::ROIProperties_t 
 sys::WireModifier::CalcROIProperties(recob::Wire::RegionsOfInterest_t::datarange_t const& roi)
 {
@@ -293,8 +291,8 @@ sys::WireModifier::GetTargetROIs(sim::SimEnergyDeposit const& shifted_edep)
   //channel number, time tick
   std::vector< std::pair<unsigned int,unsigned int> > target_roi_vec;
 
-  int edep_U_wire = std::round( A_w*(-SIN_SIXTY*shifted_edep.Y() + COS_SIXTY*shifted_edep.Z()) + C_U );
-  int edep_V_wire = std::round( A_w*( SIN_SIXTY*shifted_edep.Y() + COS_SIXTY*shifted_edep.Z()) + C_V );
+  int edep_U_wire = std::round( A_w*(-std::sqrt(0.75)*shifted_edep.Y() + COS_SIXTY*shifted_edep.Z()) + C_U );
+  int edep_V_wire = std::round( A_w*( std::sqrt(0.75)*shifted_edep.Y() + COS_SIXTY*shifted_edep.Z()) + C_V );
   int edep_Y_wire = std::round( A_w*shifted_edep.Z() + C_Y );
   int edep_tick   = std::round( A_t*shifted_edep.X() + C_t );
 
