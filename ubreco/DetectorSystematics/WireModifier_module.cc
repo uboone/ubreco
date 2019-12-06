@@ -542,7 +542,7 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
     if (edep_ptr->StepLength()==0) continue;
     
     edep_props.x=edep_ptr->X();
-    edep_props.y=edep_ptr->X();
+    edep_props.y=edep_ptr->Y();
     edep_props.z=edep_ptr->Z();
     
     edep_props.dxdr=(edep_ptr->EndX()-edep_ptr->StartX())/edep_ptr->StepLength();
