@@ -273,7 +273,7 @@ void ShrReco3D::produce(art::Event & e)
 		 pfp_h, pfp_clus_assn_v, pfp_hit_assn_v,
 		 Shower_PFP_assn_v, Shower_Cluster_assn_v, Shower_Hit_assn_v);
     }
-    catch (showerreco::ShowerRecoException e) {
+    catch (showerreco::ShowerRecoException const& e) {
       std::cout << e.what() << std::endl;
     }
   }// for all output reconstructed showers
