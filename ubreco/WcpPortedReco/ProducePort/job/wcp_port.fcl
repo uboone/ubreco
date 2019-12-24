@@ -60,6 +60,12 @@ standard_selectWires:
  WireProducer: "butcher"
 }
 
+standard_nuselectionplus:
+{
+ module_type: 	"NuSelectionPlus"
+ PortInput:  	"WCP_STM.log"
+}
+
 END_PROLOG
 
 

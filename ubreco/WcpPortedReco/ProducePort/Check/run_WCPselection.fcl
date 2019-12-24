@@ -30,12 +30,14 @@ physics:
       TruthLabel:       "nuselMetrics"
       MatchLabel:       "nuselMetrics"
       MC:               true
+      STMLabel:       	"nuselMetricsSTM"
       
-      Hist_nbins: 	33   #60MeV/bin
+      Hist_nbins: 	34   #60MeV/bin
       Hist_binlow:	0
-      Hist_binup:	1980 #MeV
+      Hist_binup:	2040 #MeV
       Cut_lowE:		60 #MeV	
       Cut_completeness: 0.1
+      Cut_clusterlength: 15
 
       POT_counting:	true
       POT_inputTag:	"generator" #this if for overlay. For data e.g. "beamdata:bnbETOR875"

@@ -23,6 +23,7 @@
 #include "ubobj/WcpPort/NuSelectionMatch.h"
 #include "ubobj/WcpPort/NuSelectionTruth.h"
 #include "ubobj/WcpPort/NuSelectionCharge.h"
+#include "ubobj/WcpPort/NuSelectionSTM.h"
 
 
 #include "TTree.h"
@@ -68,6 +69,7 @@ private:
   std::string fChargeLabel;
   std::string fTruthLabel;
   std::string fMatchLabel;
+  std::string fSTMLabel;
   bool fMC;
   
   // output 
@@ -113,6 +115,13 @@ private:
   Float_t         f_match_purity_xz;
   Float_t         f_match_purity_xy;
  
+  Int_t		  f_stm_eventtype;
+  Int_t		  f_stm_lowenergy;
+  Int_t		  f_stm_LM;
+  Int_t		  f_stm_TGM;
+  Int_t		  f_stm_STM;
+  Int_t		  f_stm_FullDead;
+  Float_t	  f_stm_clusterlength;
 
   TTree* fTreePot;
   std::string fPOT_inputTag; 
@@ -136,10 +145,11 @@ private:
   float fhist_binlow;
   float fhist_binup;
  
-  float fcut_lowenergy;
+  float fcut_lowenergy; //MeV
   float fcut_completeness;
+  float fcut_clusterlength; //cm
 
-  // not FC
+  // not STM
   TH1F* h1_total;
   TH1F* h1_cosmic;
   TH1F* h1_numuCC_FV;
@@ -149,38 +159,38 @@ private:
   TH1F* h1_numubar;
   TH1F* h1_nue;
   TH1F* h1_nuebar;
-  // FC
-  TH1F* h1_FC_total;
-  TH1F* h1_FC_cosmic;
-  TH1F* h1_FC_numuCC_FV;
-  TH1F* h1_FC_numuCC_nFV;
-  TH1F* h1_FC_numuNC_FV;
-  TH1F* h1_FC_numuNC_nFV;
-  TH1F* h1_FC_numubar;
-  TH1F* h1_FC_nue;
-  TH1F* h1_FC_nuebar;
+  // STM
+  TH1F* h1_STM_total;
+  TH1F* h1_STM_cosmic;
+  TH1F* h1_STM_numuCC_FV;
+  TH1F* h1_STM_numuCC_nFV;
+  TH1F* h1_STM_numuNC_FV;
+  TH1F* h1_STM_numuNC_nFV;
+  TH1F* h1_STM_numubar;
+  TH1F* h1_STM_nue;
+  TH1F* h1_STM_nuebar;
 
   // breakdown of inefficiency
   TH1F* h2_nuCC_FV; 
-  TH1F* h2_nuCC_FCselected;
+  TH1F* h2_nuCC_STMselected;
 
   TH1F* h2_flash_found;
   TH1F* h2_match_found;
   TH1F* h2_match_energy;
   TH1F* h2_lightmismatch; 
   TH1F* h2_Tgm;
-  TH1F* h2_FC;
+  TH1F* h2_STM;
   TH1F* h2_cosmic_match;  
 
   TH1F* h2_nuNC_FV; 
-  TH1F* h2_nuNC_FCselected;
+  TH1F* h2_nuNC_STMselected;
 
   TH1F* h2_NC_flash_found;
   TH1F* h2_NC_match_found;
   TH1F* h2_NC_match_energy;
   TH1F* h2_NC_lightmismatch; 
   TH1F* h2_NC_Tgm;
-  TH1F* h2_NC_FC;
+  TH1F* h2_NC_STM;
   TH1F* h2_NC_cosmic_match;  
 };
 
@@ -210,12 +220,14 @@ void WCPselection::reconfigure(fhicl::ParameterSet const& pset)
   fTruthLabel = pset.get<std::string>("TruthLabel");
   fMatchLabel = pset.get<std::string>("MatchLabel");
   fMC = pset.get<bool>("MC"); // overlay and full mc
-
+  fSTMLabel = pset.get<std::string>("STMLabel");
+  
   fhist_nbins = pset.get<int>("Hist_nbins");
   fhist_binlow = pset.get<float>("Hist_binlow");
   fhist_binup = pset.get<float>("Hist_binup");
   fcut_lowenergy = pset.get<float>("Cut_lowE");
   fcut_completeness = pset.get<float>("Cut_completeness");
+  fcut_clusterlength = pset.get<float>("Cut_clusterlength");
 
   fPOT_inputTag = pset.get<std::string>("POT_inputTag");
   fPOT_counting = pset.get<bool>("POT_counting");
@@ -250,6 +262,14 @@ void WCPselection::initOutput()
   fTreeEval->Branch("light_mismatch", 		&f_lightmismatch);
   fTreeEval->Branch("match_charge", 		&f_match_charge);
   fTreeEval->Branch("match_energy", 		&f_match_energy);
+  fTreeEval->Branch("stm_eventtype",		&f_stm_eventtype);
+  fTreeEval->Branch("stm_lowenergy",		&f_stm_lowenergy);
+  fTreeEval->Branch("stm_LM",			&f_stm_LM);
+  fTreeEval->Branch("stm_TGM",			&f_stm_TGM);
+  fTreeEval->Branch("stm_STM",			&f_stm_STM);
+  fTreeEval->Branch("stm_FullDead",		&f_stm_FullDead);
+  fTreeEval->Branch("stm_clusterlength",	&f_stm_clusterlength);
+
   if( fMC==true ){
   fTreeEval->Branch("truth_nuEnergy", 		&f_truth_nuEnergy);
   fTreeEval->Branch("truth_energyInside", 	&f_truth_energyInside);
@@ -304,27 +324,27 @@ void WCPselection::initOutput()
   roostr="h1_nuebar"; 
   h1_nuebar = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
  
-  roostr="h1_FC_cosmic"; 
-  h1_FC_cosmic = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
-  roostr="h1_FC_numuCC_FV"; 
-  h1_FC_numuCC_FV = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
-  roostr="h1_FC_numuCC_nFV"; 
-  h1_FC_numuCC_nFV = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
-  roostr="h1_FC_numuNC_FV"; 
-  h1_FC_numuNC_FV = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
-  roostr="h1_FC_numuNC_nFV"; 
-  h1_FC_numuNC_nFV = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
-  roostr="h1_FC_numubar"; 
-  h1_FC_numubar = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
-  roostr="h1_FC_nue"; 
-  h1_FC_nue = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
-  roostr="h1_FC_nuebar"; 
-  h1_FC_nuebar = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
+  roostr="h1_STM_cosmic"; 
+  h1_STM_cosmic = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
+  roostr="h1_STM_numuCC_FV"; 
+  h1_STM_numuCC_FV = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
+  roostr="h1_STM_numuCC_nFV"; 
+  h1_STM_numuCC_nFV = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
+  roostr="h1_STM_numuNC_FV"; 
+  h1_STM_numuNC_FV = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
+  roostr="h1_STM_numuNC_nFV"; 
+  h1_STM_numuNC_nFV = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
+  roostr="h1_STM_numubar"; 
+  h1_STM_numubar = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
+  roostr="h1_STM_nue"; 
+  h1_STM_nue = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
+  roostr="h1_STM_nuebar"; 
+  h1_STM_nuebar = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
 
   roostr="h2_nuCC_FV"; 
   h2_nuCC_FV = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);
-  roostr="h2_nuCC_FCselected";
-  h2_nuCC_FCselected = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);
+  roostr="h2_nuCC_STMselected";
+  h2_nuCC_STMselected = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);
   roostr="h2_flash_found";
   h2_flash_found = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);
   roostr="h2_match_found";
@@ -335,15 +355,15 @@ void WCPselection::initOutput()
   h2_lightmismatch = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
   roostr="h2_Tgm";
   h2_Tgm = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);
-  roostr="h2_FC";
-  h2_FC = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);
+  roostr="h2_STM";
+  h2_STM = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);
   roostr="h2_cosmic_match";  
   h2_cosmic_match = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);  
   
   roostr="h2_nuNC_FV"; 
   h2_nuNC_FV = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);
-  roostr="h2_nuNC_FCselected";
-  h2_nuNC_FCselected = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);
+  roostr="h2_nuNC_STMselected";
+  h2_nuNC_STMselected = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);
   roostr="h2_NC_flash_found";
   h2_NC_flash_found = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);
   roostr="h2_NC_match_found";
@@ -354,16 +374,16 @@ void WCPselection::initOutput()
   h2_NC_lightmismatch = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up); 
   roostr="h2_NC_Tgm";
   h2_NC_Tgm = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);
-  roostr="h2_NC_FC";
-  h2_NC_FC = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);
+  roostr="h2_NC_STM";
+  h2_NC_STM = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);
   roostr="h2_NC_cosmic_match";  
   h2_NC_cosmic_match = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);  
   }
 
   roostr="h1_total";
   h1_total = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);
-  roostr="h1_FC_total";
-  h1_FC_total = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);
+  roostr="h1_STM_total";
+  h1_STM_total = tfs->make<TH1F>(roostr, roostr, nbins, bin_low, bin_up);
 
 }
 
@@ -417,6 +437,35 @@ void WCPselection::analyze(art::Event const& e)
 		f_match_chargeU = c->GetChargeU();
 		f_match_chargeV = c->GetChargeV();
 		f_match_chargeY = c->GetChargeY();
+	}
+
+	art::Handle<std::vector<nsm::NuSelectionSTM> > stm_handle;
+	e.getByLabel(fSTMLabel,stm_handle);
+	std::vector<art::Ptr<nsm::NuSelectionSTM> > stm_vec;
+	art::fill_ptr_vector(stm_vec,stm_handle);
+	std::cout<<"--- NuSelectionSTM ---"<<std::endl;
+	if(stm_vec.size()>1) {
+		std::cout<<"WARNING: >1 in-beam matched TPC activity?!" << std::endl;
+		return;
+	} 
+	if(stm_vec.size()<1) {
+		f_stm_eventtype = -1;
+		f_stm_lowenergy = -1;
+		f_stm_LM = -1;
+		f_stm_TGM = -1;
+		f_stm_STM = -1;
+		f_stm_FullDead = -1;
+		f_stm_clusterlength = -1.0;
+	} 
+	for(size_t i=0; i<stm_vec.size(); i++){
+		art::Ptr<nsm::NuSelectionSTM> s = stm_vec.at(i);
+		f_stm_eventtype = s->GetEventType();
+		f_stm_lowenergy = s->GetLowEnergy();
+		f_stm_LM = s->GetLM();
+		f_stm_TGM = s->GetTGM();
+		f_stm_STM = s->GetSTM();
+		f_stm_FullDead = s->GetFullDead();
+		f_stm_clusterlength = s->GetClusterLength();
 	}
 
 	if(fMC==true){
@@ -488,34 +537,34 @@ void WCPselection::analyze(art::Event const& e)
 		if(f_truth_isEligible) h2_match_found->Fill(f_truth_energyInside);		
 		if(f_NC_truth_isEligible) h2_NC_match_found->Fill(f_truth_energyInside);		
 	}
-	else if( f_match_energyY<fcut_lowenergy ){
+	else if( f_match_energy<fcut_lowenergy ){
 		if(f_truth_isEligible) h2_match_energy->Fill(f_truth_energyInside);		
 		if(f_NC_truth_isEligible) h2_NC_match_energy->Fill(f_truth_energyInside);		
 	}
-	else if( f_lightmismatch ){
+	else if( f_lightmismatch || f_stm_LM || f_stm_lowenergy){
 		if(f_truth_isEligible) h2_lightmismatch->Fill(f_truth_energyInside);		
 		if(f_NC_truth_isEligible) h2_NC_lightmismatch->Fill(f_truth_energyInside);		
 	}
-	else if( f_match_isTgm ){
+	else if( f_match_isTgm || f_stm_TGM ){
 		if(f_truth_isEligible) h2_Tgm->Fill(f_truth_energyInside);		
 		if(f_NC_truth_isEligible) h2_NC_Tgm->Fill(f_truth_energyInside);		
 	}
-	else if( !f_match_isFC ){
-		if(f_truth_isEligible) h2_FC->Fill(f_truth_energyInside);
-		if(f_NC_truth_isEligible) h2_NC_FC->Fill(f_truth_energyInside);
+	else if( f_stm_STM || f_stm_FullDead || f_stm_clusterlength<=fcut_clusterlength ){
+		if(f_truth_isEligible) h2_STM->Fill(f_truth_energyInside);
+		if(f_NC_truth_isEligible) h2_NC_STM->Fill(f_truth_energyInside);
 		
-		h1_total->Fill(f_match_energyY);
+		h1_total->Fill(f_match_energy);
 		if( fMC && f_match_completeness_energy/f_truth_energyInside>fcut_completeness ){
-			if( f_truth_isCC && f_truth_nuPdg==14 && f_truth_vtxInside) h1_numuCC_FV->Fill(f_match_energyY);
-			if( f_truth_isCC && f_truth_nuPdg==14 && !f_truth_vtxInside) h1_numuCC_nFV->Fill(f_match_energyY);		
-			if( !f_truth_isCC && f_truth_nuPdg==14 && f_truth_vtxInside) h1_numuNC_FV->Fill(f_match_energyY);
-			if( !f_truth_isCC && f_truth_nuPdg==14 && !f_truth_vtxInside) h1_numuNC_nFV->Fill(f_match_energyY);		
-			if( f_truth_nuPdg==-14) h1_numubar->Fill(f_match_energyY);		
-			if( f_truth_nuPdg==12) h1_nue->Fill(f_match_energyY);		
-			if( f_truth_nuPdg==-12) h1_nuebar->Fill(f_match_energyY);		
+			if( f_truth_isCC && f_truth_nuPdg==14 && f_truth_vtxInside) h1_numuCC_FV->Fill(f_match_energy);
+			if( f_truth_isCC && f_truth_nuPdg==14 && !f_truth_vtxInside) h1_numuCC_nFV->Fill(f_match_energy);		
+			if( !f_truth_isCC && f_truth_nuPdg==14 && f_truth_vtxInside) h1_numuNC_FV->Fill(f_match_energy);
+			if( !f_truth_isCC && f_truth_nuPdg==14 && !f_truth_vtxInside) h1_numuNC_nFV->Fill(f_match_energy);		
+			if( f_truth_nuPdg==-14) h1_numubar->Fill(f_match_energy);		
+			if( f_truth_nuPdg==12) h1_nue->Fill(f_match_energy);		
+			if( f_truth_nuPdg==-12) h1_nuebar->Fill(f_match_energy);		
 		}
 		else if( fMC ){
-			h1_cosmic->Fill(f_match_energyY);
+			h1_cosmic->Fill(f_match_energy);
 		}	
 	
 	}
@@ -525,22 +574,22 @@ void WCPselection::analyze(art::Event const& e)
 			if(f_NC_truth_isEligible) h2_NC_cosmic_match->Fill(f_truth_energyInside);
 		}
 		else{
-			if(f_truth_isEligible) h2_nuCC_FCselected->Fill(f_truth_energyInside);
-			if(f_NC_truth_isEligible) h2_nuNC_FCselected->Fill(f_truth_energyInside);
+			if(f_truth_isEligible) h2_nuCC_STMselected->Fill(f_truth_energyInside);
+			if(f_NC_truth_isEligible) h2_nuNC_STMselected->Fill(f_truth_energyInside);
 		}
 		
-		h1_FC_total->Fill(f_match_energyY);
+		h1_STM_total->Fill(f_match_energy);
 		if( fMC && f_match_completeness_energy/f_truth_energyInside>fcut_completeness ){
-			if( f_truth_isCC && f_truth_nuPdg==14 && f_truth_vtxInside) h1_FC_numuCC_FV->Fill(f_match_energyY);
-			if( f_truth_isCC && f_truth_nuPdg==14 && !f_truth_vtxInside) h1_FC_numuCC_nFV->Fill(f_match_energyY);		
-			if( !f_truth_isCC && f_truth_nuPdg==14 && f_truth_vtxInside) h1_FC_numuNC_FV->Fill(f_match_energyY);
-			if( !f_truth_isCC && f_truth_nuPdg==14 && !f_truth_vtxInside) h1_FC_numuNC_nFV->Fill(f_match_energyY);		
-			if( f_truth_nuPdg==-14) h1_FC_numubar->Fill(f_match_energyY);		
-			if( f_truth_nuPdg==12) h1_FC_nue->Fill(f_match_energyY);		
-			if( f_truth_nuPdg==-12) h1_FC_nuebar->Fill(f_match_energyY);		
+			if( f_truth_isCC && f_truth_nuPdg==14 && f_truth_vtxInside) h1_STM_numuCC_FV->Fill(f_match_energy);
+			if( f_truth_isCC && f_truth_nuPdg==14 && !f_truth_vtxInside) h1_STM_numuCC_nFV->Fill(f_match_energy);		
+			if( !f_truth_isCC && f_truth_nuPdg==14 && f_truth_vtxInside) h1_STM_numuNC_FV->Fill(f_match_energy);
+			if( !f_truth_isCC && f_truth_nuPdg==14 && !f_truth_vtxInside) h1_STM_numuNC_nFV->Fill(f_match_energy);		
+			if( f_truth_nuPdg==-14) h1_STM_numubar->Fill(f_match_energy);		
+			if( f_truth_nuPdg==12) h1_STM_nue->Fill(f_match_energy);		
+			if( f_truth_nuPdg==-12) h1_STM_nuebar->Fill(f_match_energy);		
 		}
 		else if( fMC ){
-			h1_FC_cosmic->Fill(f_match_energyY);
+			h1_STM_cosmic->Fill(f_match_energy);
 		}	
 	}
 
