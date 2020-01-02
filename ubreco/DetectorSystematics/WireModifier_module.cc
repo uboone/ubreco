@@ -63,6 +63,7 @@ private:
   art::InputTag fHitInputTag;
   bool          fMakeRawDigitAssn;
   bool          fCopyRawDigitAssn;
+  double        fTickOffset; //0 for butcher, 2400 for full...
 
   std::string fSplinesFileName;
   std::vector<std::string> fSplineNames_Charge_X;
@@ -294,7 +295,7 @@ sys::WireModifier::GetTargetROIs(sim::SimEnergyDeposit const& shifted_edep)
   int edep_U_wire = std::round( A_w*(-std::sqrt(0.75)*shifted_edep.Y() + COS_SIXTY*shifted_edep.Z()) + C_U );
   int edep_V_wire = std::round( A_w*( std::sqrt(0.75)*shifted_edep.Y() + COS_SIXTY*shifted_edep.Z()) + C_V );
   int edep_Y_wire = std::round( A_w*shifted_edep.Z() + C_Y );
-  int edep_tick   = std::round( A_t*shifted_edep.X() + C_t );
+  int edep_tick   = std::round( A_t*shifted_edep.X() + C_t + fTickOffset);
 
   if (edep_tick<0 || edep_tick>=6400)
     return target_roi_vec;
@@ -461,7 +462,7 @@ sys::WireModifier::MatchEdepsToSubROIs(std::vector<sys::WireModifier::SubROIProp
     
     // get EDep properties
     auto edep_ptr  = edepPtrVec[i_e];
-    auto edep_tick = A_t * edep_ptr->X() + C_t;
+    auto edep_tick = A_t * edep_ptr->X() + C_t + fTickOffset;
 
     // loop over subROIs  
     unsigned int closest_hit = 0;
@@ -694,11 +695,11 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
     edep_col_properties.x_rms = std::sqrt(edep_col_properties.x_rms/total_energy);
   
   // convert x-related proerties to ticks
-  edep_col_properties.tick = A_t*edep_col_properties.x + C_t;
+  edep_col_properties.tick = A_t*edep_col_properties.x + C_t + fTickOffset;
   edep_col_properties.tick_rms = A_t*edep_col_properties.x_rms;
   edep_col_properties.tick_rms_noWeight = A_t*edep_col_properties.x_rms_noWeight;
-  edep_col_properties.tick_min = A_t*edep_col_properties.x_min + C_t;
-  edep_col_properties.tick_max = A_t*edep_col_properties.x_max + C_t;
+  edep_col_properties.tick_min = A_t*edep_col_properties.x_min + C_t + fTickOffset;
+  edep_col_properties.tick_max = A_t*edep_col_properties.x_max + C_t + fTickOffset;
   
   edep_col_properties.total_energy = total_energy;
   
@@ -932,6 +933,7 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fHitInputTag(p.get<art::InputTag>("HitInputTag")),
   fMakeRawDigitAssn(p.get<bool>("MakeRawDigitAssn",true)),
   fCopyRawDigitAssn(p.get<bool>("CopyRawDigitAssn",false)),
+  fTickOffset(p.get<double>("TickOffset",0.0)),
   fSplinesFileName(p.get<std::string>("SplinesFileName")),
   fSplineNames_Charge_X(p.get< std::vector<std::string> >("SplineNames_Charge_X")),
   fSplineNames_Sigma_X(p.get< std::vector<std::string> >("SplineNames_Sigma_X")),

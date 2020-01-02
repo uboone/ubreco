@@ -12,6 +12,7 @@ art_make(
           MODULE_LIBRARIES 
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
+			lardataobj_RawData
 			lardataobj_RecoBase
 			lardataobj_AnalysisBase	
 			lardata_RecoObjects larreco_Deprecated  

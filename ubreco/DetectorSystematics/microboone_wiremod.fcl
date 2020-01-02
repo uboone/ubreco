@@ -1,5 +1,9 @@
 BEGIN_PROLOG
 
+microboone_dummyrawdigit: {
+  module_type: "DummyRawDigitCreator"
+}
+
 microboone_wiremod:{
 
   module_type: "WireModifier"
