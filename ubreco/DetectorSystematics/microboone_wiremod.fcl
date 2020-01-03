@@ -54,6 +54,7 @@ microboone_wiremod:{
   ApplyYZScale: true
   ApplyXZAngleScale: true
   ApplyYZAngleScale: true
+  ApplyOverallScale: false
 }
 
 microboone_hitvaranalyzer:{

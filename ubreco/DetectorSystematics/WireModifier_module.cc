@@ -81,6 +81,9 @@ private:
   bool fApplyYZAngleScale;
   bool fApplydEdXScale;
 
+  bool fApplyOverallScale;
+  std::vector<double> fOverallScale;
+
   std::vector<double> fXZAngleQParsA_Data;
   std::vector<double> fXZAngleQParsB_Data;
   std::vector<double> fXZAngleQParsA_MC;
@@ -773,6 +776,10 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     }
     if(fApplydEdXScale){    
     }
+
+    if(fApplyOverallScale){
+      scales.r_Q *= fOverallScale[0];
+    }
   }
   else if(plane==1){
     if(fApplyXScale){
@@ -804,6 +811,9 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     }
     if(fApplydEdXScale){    
     }
+    if(fApplyOverallScale){
+      scales.r_Q *= fOverallScale[1];
+    }
   }
   else if(plane==2){
     if(fApplyXScale){
@@ -834,6 +844,9 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
       //no sigma scaling
     }
     if(fApplydEdXScale){    
+    }
+    if(fApplyOverallScale){
+      scales.r_Q *= fOverallScale[2];
     }
   }
   
@@ -945,6 +958,8 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fApplyXZAngleScale(p.get<bool>("ApplyXZAngleScale",true)),
   fApplyYZAngleScale(p.get<bool>("ApplyYZAngleScale",true)),
   fApplydEdXScale(p.get<bool>("ApplydEdXScale",true)),
+  fApplyOverallScale(p.get<bool>("ApplyOverallScale",false)),
+  fOverallScale(p.get< std::vector<double> >("OverallScale",std::vector<double>(3,1.))),
   fXZAngleQParsA_Data(p.get< std::vector<double> >("XZAngleQParsA_Data",std::vector<double>(3,1.))),
   fXZAngleQParsB_Data(p.get< std::vector<double> >("XZAngleQParsB_Data",std::vector<double>(3,0.))),
   fXZAngleQParsA_MC(p.get< std::vector<double> >("XZAngleQParsA_MC",std::vector<double>(3,1.))),
