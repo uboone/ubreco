@@ -759,13 +759,13 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
       if(temp_scale>0.001) scales.r_sigma *= temp_scale;
     }
     if(fApplyXZAngleScale){    
-      scales.r_Q *= AngleScale(std::cos(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)),
+      scales.r_Q *= AngleScale(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr),
 			       fXZAngleQParsA_Data[plane],fXZAngleQParsB_Data[plane],
 			       fXZAngleQParsA_MC[plane],fXZAngleQParsB_MC[plane]);
-      scales.r_sigma *= fTSplines_Sigma_XZAngle[0]->Eval(std::cos(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)));
+      scales.r_sigma *= fTSplines_Sigma_XZAngle[0]->Eval(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
     }
     if(fApplyYZAngleScale){    
-      scales.r_Q *= AngleScale(std::cos(ThetaYZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)),
+      scales.r_Q *= AngleScale(ThetaYZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr),
 			       fYZAngleQParsA_Data[plane],fYZAngleQParsB_Data[plane],
 			       fYZAngleQParsA_MC[plane],fYZAngleQParsB_MC[plane]);
       //no sigma scaling
@@ -790,13 +790,13 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
       if(temp_scale>0.001) scales.r_sigma *= temp_scale;
     }
     if(fApplyXZAngleScale){    
-      scales.r_Q *= AngleScale(std::cos(ThetaXZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)),
+      scales.r_Q *= AngleScale(ThetaXZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr),
 			       fXZAngleQParsA_Data[plane],fXZAngleQParsB_Data[plane],
 			       fXZAngleQParsA_MC[plane],fXZAngleQParsB_MC[plane]);
-      scales.r_sigma *= fTSplines_Sigma_XZAngle[0]->Eval(std::cos(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)));
+      scales.r_sigma *= fTSplines_Sigma_XZAngle[0]->Eval(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
     }
     if(fApplyYZAngleScale){    
-      scales.r_Q *= AngleScale(std::cos(ThetaYZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)),
+      scales.r_Q *= AngleScale(ThetaYZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr),
 			       fYZAngleQParsA_Data[plane],fYZAngleQParsB_Data[plane],
 			       fYZAngleQParsA_MC[plane],fYZAngleQParsB_MC[plane]);
       //no sigma scaling
@@ -821,13 +821,13 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
       if(temp_scale>0.001) scales.r_sigma *= temp_scale;
     }
     if(fApplyXZAngleScale){    
-      scales.r_Q *= AngleScale(std::cos(ThetaXZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)),
+      scales.r_Q *= AngleScale(ThetaXZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr),
 			       fXZAngleQParsA_Data[plane],fXZAngleQParsB_Data[plane],
 			       fXZAngleQParsA_MC[plane],fXZAngleQParsB_MC[plane]);
-      scales.r_sigma *= fTSplines_Sigma_XZAngle[0]->Eval(std::cos(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)));
+      scales.r_sigma *= fTSplines_Sigma_XZAngle[0]->Eval(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
     }
     if(fApplyYZAngleScale){    
-      scales.r_Q *= AngleScale(std::cos(ThetaYZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr)),
+      scales.r_Q *= AngleScale(ThetaYZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr),
 			       fYZAngleQParsA_Data[plane],fYZAngleQParsB_Data[plane],
 			       fYZAngleQParsA_MC[plane],fYZAngleQParsB_MC[plane]);
       //no sigma scaling
