@@ -777,9 +777,9 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     if(fApplydEdXScale){    
     }
 
-    if(fApplyOverallScale){
-      scales.r_Q *= fOverallScale[0];
-    }
+    //if(fApplyOverallScale){
+    //scales.r_Q *= fOverallScale[0];
+    //}
   }
   else if(plane==1){
     if(fApplyXScale){
@@ -811,9 +811,9 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     }
     if(fApplydEdXScale){    
     }
-    if(fApplyOverallScale){
-      scales.r_Q *= fOverallScale[1];
-    }
+    //if(fApplyOverallScale){
+    //scales.r_Q *= fOverallScale[1];
+    //}
   }
   else if(plane==2){
     if(fApplyXScale){
@@ -845,12 +845,12 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     }
     if(fApplydEdXScale){    
     }
-    if(fApplyOverallScale){
-      scales.r_Q *= fOverallScale[2];
-    }
+    //if(fApplyOverallScale){
+    //scales.r_Q *= fOverallScale[2];
+    //}
   }
   
-  //std::cout << "For plane=" << roi_vals.plane << " and x=" << truth_props.x
+  //std::cout << "For plane=" << plane << " and x=" << truth_props.x
   //	    << " scales are " << scales.r_Q << " and " << scales.r_sigma << std::endl;
   
   return scales;
@@ -922,7 +922,12 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
       std::cout << "WARNING: obtained scale_ratio = " << q_mod << " / " << q_orig << " = inf... setting to 1" << std::endl;
       scale_ratio = 1.0;
     }
-    
+ 
+    /*   
+    if(fApplyOverallScale)
+      scale_ratio = scale_ratio * fOverallScale[roi_prop.plane];
+    */
+
     roi_data[i_t] = scale_ratio * roi_data[i_t];
     
     if(verbose)
@@ -1069,15 +1074,22 @@ void sys::WireModifier::produce(art::Event& e)
       auto const& range = wire.SignalROI().get_ranges()[i_r];
       ROI_Key_t roi_key(wire.Channel(),i_r);
 
+
+      std::vector<float> modified_data(range.data());
+
+      if(fApplyOverallScale)
+	for(size_t i_t=0; i_t<modified_data.size(); ++i_t)
+	  modified_data[i_t] = modified_data[i_t]*fOverallScale[my_plane];
+      
       //get the matching edeps
       auto it_map = fROIMatchedEdepMap.find(roi_key);
-      if(it_map==fROIMatchedEdepMap.end()){
-	new_rois.add_range(range.begin_index(),range.data());
+      if(it_map==fROIMatchedEdepMap.end()){	
+	new_rois.add_range(range.begin_index(),modified_data);
 	continue;
       }
       std::vector<size_t> matchedEdepIdxVec = it_map->second;      
       if(matchedEdepIdxVec.size()==0){
-	new_rois.add_range(range.begin_index(),range.data());
+	new_rois.add_range(range.begin_index(),modified_data);
 	continue;
       }
       std::vector<const sim::SimEnergyDeposit*> matchedEdepPtrVec;
@@ -1174,14 +1186,15 @@ void sys::WireModifier::produce(art::Event& e)
       */
 
       //get modified ROI given scales
-      std::vector<float> modified_data(range.data());
+      //std::vector<float> modified_data(range.data());
       ModifyROI(modified_data, roi_properties, subROIPropVec, SubROIMatchedScalesMap);
-      
+
       new_rois.add_range(roi_properties.begin,modified_data);
       
     }//end loop over rois
     
     //make our new wire object
+    //std::cout << "adding channel " << wire.Channel() << std::endl; 
     new_wires->emplace_back(new_rois,wire.Channel(),wire.View());
 
     
