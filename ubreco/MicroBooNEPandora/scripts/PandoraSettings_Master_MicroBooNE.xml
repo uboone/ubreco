@@ -34,7 +34,7 @@
                 <MvaName>NeutrinoId</MvaName>
             </tool>
         </SliceIdTools>
-        <InputHitListName>Input</InputHitListName>
+        <InputHitListName>CaloHitList2D</InputHitListName>
         <RecreatedPfoListName>RecreatedPfos</RecreatedPfoListName>
         <RecreatedClusterListName>RecreatedClusters</RecreatedClusterListName>
         <RecreatedVertexListName>RecreatedVertices</RecreatedVertexListName>
