@@ -63,6 +63,7 @@ private:
   art::InputTag fHitInputTag;
   bool          fMakeRawDigitAssn;
   bool          fCopyRawDigitAssn;
+  double        fTickOffset; //0 for butcher, 2400 for full...
 
   std::string fSplinesFileName;
   std::vector<std::string> fSplineNames_Charge_X;
@@ -79,6 +80,9 @@ private:
   bool fApplyXZAngleScale;
   bool fApplyYZAngleScale;
   bool fApplydEdXScale;
+
+  bool fApplyOverallScale;
+  std::vector<double> fOverallScale;
 
   std::vector<double> fXZAngleQParsA_Data;
   std::vector<double> fXZAngleQParsB_Data;
@@ -294,7 +298,7 @@ sys::WireModifier::GetTargetROIs(sim::SimEnergyDeposit const& shifted_edep)
   int edep_U_wire = std::round( A_w*(-std::sqrt(0.75)*shifted_edep.Y() + COS_SIXTY*shifted_edep.Z()) + C_U );
   int edep_V_wire = std::round( A_w*( std::sqrt(0.75)*shifted_edep.Y() + COS_SIXTY*shifted_edep.Z()) + C_V );
   int edep_Y_wire = std::round( A_w*shifted_edep.Z() + C_Y );
-  int edep_tick   = std::round( A_t*shifted_edep.X() + C_t );
+  int edep_tick   = std::round( A_t*shifted_edep.X() + C_t + fTickOffset);
 
   if (edep_tick<0 || edep_tick>=6400)
     return target_roi_vec;
@@ -461,7 +465,7 @@ sys::WireModifier::MatchEdepsToSubROIs(std::vector<sys::WireModifier::SubROIProp
     
     // get EDep properties
     auto edep_ptr  = edepPtrVec[i_e];
-    auto edep_tick = A_t * edep_ptr->X() + C_t;
+    auto edep_tick = A_t * edep_ptr->X() + C_t + fTickOffset;
 
     // loop over subROIs  
     unsigned int closest_hit = 0;
@@ -694,11 +698,11 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
     edep_col_properties.x_rms = std::sqrt(edep_col_properties.x_rms/total_energy);
   
   // convert x-related proerties to ticks
-  edep_col_properties.tick = A_t*edep_col_properties.x + C_t;
+  edep_col_properties.tick = A_t*edep_col_properties.x + C_t + fTickOffset;
   edep_col_properties.tick_rms = A_t*edep_col_properties.x_rms;
   edep_col_properties.tick_rms_noWeight = A_t*edep_col_properties.x_rms_noWeight;
-  edep_col_properties.tick_min = A_t*edep_col_properties.x_min + C_t;
-  edep_col_properties.tick_max = A_t*edep_col_properties.x_max + C_t;
+  edep_col_properties.tick_min = A_t*edep_col_properties.x_min + C_t + fTickOffset;
+  edep_col_properties.tick_max = A_t*edep_col_properties.x_max + C_t + fTickOffset;
   
   edep_col_properties.total_energy = total_energy;
   
@@ -772,6 +776,10 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     }
     if(fApplydEdXScale){    
     }
+
+    //if(fApplyOverallScale){
+    //scales.r_Q *= fOverallScale[0];
+    //}
   }
   else if(plane==1){
     if(fApplyXScale){
@@ -803,6 +811,9 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     }
     if(fApplydEdXScale){    
     }
+    //if(fApplyOverallScale){
+    //scales.r_Q *= fOverallScale[1];
+    //}
   }
   else if(plane==2){
     if(fApplyXScale){
@@ -834,9 +845,12 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     }
     if(fApplydEdXScale){    
     }
+    //if(fApplyOverallScale){
+    //scales.r_Q *= fOverallScale[2];
+    //}
   }
   
-  //std::cout << "For plane=" << roi_vals.plane << " and x=" << truth_props.x
+  //std::cout << "For plane=" << plane << " and x=" << truth_props.x
   //	    << " scales are " << scales.r_Q << " and " << scales.r_sigma << std::endl;
   
   return scales;
@@ -908,7 +922,12 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
       std::cout << "WARNING: obtained scale_ratio = " << q_mod << " / " << q_orig << " = inf... setting to 1" << std::endl;
       scale_ratio = 1.0;
     }
-    
+ 
+    /*   
+    if(fApplyOverallScale)
+      scale_ratio = scale_ratio * fOverallScale[roi_prop.plane];
+    */
+
     roi_data[i_t] = scale_ratio * roi_data[i_t];
     
     if(verbose)
@@ -932,6 +951,7 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fHitInputTag(p.get<art::InputTag>("HitInputTag")),
   fMakeRawDigitAssn(p.get<bool>("MakeRawDigitAssn",true)),
   fCopyRawDigitAssn(p.get<bool>("CopyRawDigitAssn",false)),
+  fTickOffset(p.get<double>("TickOffset",0.0)),
   fSplinesFileName(p.get<std::string>("SplinesFileName")),
   fSplineNames_Charge_X(p.get< std::vector<std::string> >("SplineNames_Charge_X")),
   fSplineNames_Sigma_X(p.get< std::vector<std::string> >("SplineNames_Sigma_X")),
@@ -943,6 +963,8 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fApplyXZAngleScale(p.get<bool>("ApplyXZAngleScale",true)),
   fApplyYZAngleScale(p.get<bool>("ApplyYZAngleScale",true)),
   fApplydEdXScale(p.get<bool>("ApplydEdXScale",true)),
+  fApplyOverallScale(p.get<bool>("ApplyOverallScale",false)),
+  fOverallScale(p.get< std::vector<double> >("OverallScale",std::vector<double>(3,1.))),
   fXZAngleQParsA_Data(p.get< std::vector<double> >("XZAngleQParsA_Data",std::vector<double>(3,1.))),
   fXZAngleQParsB_Data(p.get< std::vector<double> >("XZAngleQParsB_Data",std::vector<double>(3,0.))),
   fXZAngleQParsA_MC(p.get< std::vector<double> >("XZAngleQParsA_MC",std::vector<double>(3,1.))),
@@ -1052,15 +1074,22 @@ void sys::WireModifier::produce(art::Event& e)
       auto const& range = wire.SignalROI().get_ranges()[i_r];
       ROI_Key_t roi_key(wire.Channel(),i_r);
 
+
+      std::vector<float> modified_data(range.data());
+
+      if(fApplyOverallScale)
+	for(size_t i_t=0; i_t<modified_data.size(); ++i_t)
+	  modified_data[i_t] = modified_data[i_t]*fOverallScale[my_plane];
+      
       //get the matching edeps
       auto it_map = fROIMatchedEdepMap.find(roi_key);
-      if(it_map==fROIMatchedEdepMap.end()){
-	new_rois.add_range(range.begin_index(),range.data());
+      if(it_map==fROIMatchedEdepMap.end()){	
+	new_rois.add_range(range.begin_index(),modified_data);
 	continue;
       }
       std::vector<size_t> matchedEdepIdxVec = it_map->second;      
       if(matchedEdepIdxVec.size()==0){
-	new_rois.add_range(range.begin_index(),range.data());
+	new_rois.add_range(range.begin_index(),modified_data);
 	continue;
       }
       std::vector<const sim::SimEnergyDeposit*> matchedEdepPtrVec;
@@ -1157,14 +1186,15 @@ void sys::WireModifier::produce(art::Event& e)
       */
 
       //get modified ROI given scales
-      std::vector<float> modified_data(range.data());
+      //std::vector<float> modified_data(range.data());
       ModifyROI(modified_data, roi_properties, subROIPropVec, SubROIMatchedScalesMap);
-      
+
       new_rois.add_range(roi_properties.begin,modified_data);
       
     }//end loop over rois
     
     //make our new wire object
+    //std::cout << "adding channel " << wire.Channel() << std::endl; 
     new_wires->emplace_back(new_rois,wire.Channel(),wire.View());
 
     
