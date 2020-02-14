@@ -300,7 +300,7 @@ sys::WireModifier::GetTargetROIs(sim::SimEnergyDeposit const& shifted_edep)
   int edep_Y_wire = std::round( A_w*shifted_edep.Z() + C_Y );
   int edep_tick   = std::round( A_t*shifted_edep.X() + C_t + fTickOffset);
 
-  if (edep_tick<0 || edep_tick>=6400)
+  if (edep_tick<fTickOffset || edep_tick>=6400+fTickOffset)
     return target_roi_vec;
 
   if(edep_U_wire>=0 && edep_U_wire<2400)
@@ -324,7 +324,7 @@ sys::WireModifier::GetHitTargetROIs(recob::Hit const& hit)
   int hit_wire = hit.Channel();
   int hit_tick = int(round(hit.PeakTime()));
   
-  if ( hit_tick<0 || hit_tick>=6400 )
+  if ( hit_tick<fTickOffset || hit_tick>=6400+fTickOffset )
     return target_roi_vec;
 
   target_roi_vec.emplace_back((unsigned int)hit_wire, (unsigned int)hit_tick);
@@ -349,6 +349,9 @@ void sys::WireModifier::FillROIMatchedEdepMap(std::vector<sim::SimEnergyDeposit>
 
       //std::cout << "Matched edeps to channel " << target_roi.first << " time tick " << target_roi.second << std::endl;
 
+      if(wireChannelMap.find(target_roi.first)==wireChannelMap.end())
+	continue;
+      
       auto const& target_wire = wireVec.at(wireChannelMap[target_roi.first]);
 
       //if(target_roi.first!=target_wire.Channel())
@@ -386,6 +389,9 @@ void sys::WireModifier::FillROIMatchedHitMap(std::vector<recob::Hit> const& hitV
     
     for( auto const& target_roi : target_rois){
       
+      if(wireChannelMap.find(target_roi.first)==wireChannelMap.end())
+	continue;
+
       auto const& target_wire = wireVec.at(wireChannelMap[target_roi.first]);
       
       if(target_wire.SignalROI().n_ranges()==0) continue;
@@ -748,15 +754,15 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
   //get scales here
   if(plane==0){
     if(fApplyXScale){
-      scales.r_Q *= fTSplines_Charge_X[0]->Eval(truth_props.x);
-      scales.r_sigma *= fTSplines_Sigma_X[0]->Eval(truth_props.x);
+      scales.r_Q *= fTSplines_Charge_X[plane]->Eval(truth_props.x);
+      scales.r_sigma *= fTSplines_Sigma_X[plane]->Eval(truth_props.x);
     }
     if(fApplyYScale){    
     }
     if(fApplyZScale){    
     }
     if(fApplyYZScale){    
-      temp_scale = fTGraph2Ds_Charge_YZ[plane]->Interpolate(truth_props.z,truth_props.y);
+      temp_scale = fTGraph2Ds_Charge_YZ[plane]->Interpolate(truth_props.z,truth_props.y); //confirmed order is (z,y) by Aruturo, 1/24/20
       if(temp_scale>0.001) scales.r_Q *= temp_scale;
 
       temp_scale = fTGraph2Ds_Sigma_YZ[plane]->Interpolate(truth_props.z,truth_props.y);
@@ -766,7 +772,7 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
       scales.r_Q *= AngleScale(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr),
 			       fXZAngleQParsA_Data[plane],fXZAngleQParsB_Data[plane],
 			       fXZAngleQParsA_MC[plane],fXZAngleQParsB_MC[plane]);
-      scales.r_sigma *= fTSplines_Sigma_XZAngle[0]->Eval(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
+      scales.r_sigma *= fTSplines_Sigma_XZAngle[plane]->Eval(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
     }
     if(fApplyYZAngleScale){    
       scales.r_Q *= AngleScale(ThetaYZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr),
@@ -783,8 +789,8 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
   }
   else if(plane==1){
     if(fApplyXScale){
-      scales.r_Q *= fTSplines_Charge_X[1]->Eval(truth_props.x);
-      scales.r_sigma *= fTSplines_Sigma_X[1]->Eval(truth_props.x);
+      scales.r_Q *= fTSplines_Charge_X[plane]->Eval(truth_props.x);
+      scales.r_sigma *= fTSplines_Sigma_X[plane]->Eval(truth_props.x);
     }
     if(fApplyYScale){    
     }
@@ -801,7 +807,7 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
       scales.r_Q *= AngleScale(ThetaXZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr),
 			       fXZAngleQParsA_Data[plane],fXZAngleQParsB_Data[plane],
 			       fXZAngleQParsA_MC[plane],fXZAngleQParsB_MC[plane]);
-      scales.r_sigma *= fTSplines_Sigma_XZAngle[0]->Eval(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
+      scales.r_sigma *= fTSplines_Sigma_XZAngle[plane]->Eval(ThetaXZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
     }
     if(fApplyYZAngleScale){    
       scales.r_Q *= AngleScale(ThetaYZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr),
@@ -817,8 +823,8 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
   }
   else if(plane==2){
     if(fApplyXScale){
-      scales.r_Q *= fTSplines_Charge_X[2]->Eval(truth_props.x);
-      scales.r_sigma *= fTSplines_Sigma_X[2]->Eval(truth_props.x);
+      scales.r_Q *= fTSplines_Charge_X[plane]->Eval(truth_props.x);
+      scales.r_sigma *= fTSplines_Sigma_X[plane]->Eval(truth_props.x);
     }
     if(fApplyYScale){    
     }
@@ -835,7 +841,7 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
       scales.r_Q *= AngleScale(ThetaXZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr),
 			       fXZAngleQParsA_Data[plane],fXZAngleQParsB_Data[plane],
 			       fXZAngleQParsA_MC[plane],fXZAngleQParsB_MC[plane]);
-      scales.r_sigma *= fTSplines_Sigma_XZAngle[0]->Eval(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
+      scales.r_sigma *= fTSplines_Sigma_XZAngle[plane]->Eval(ThetaXZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
     }
     if(fApplyYZAngleScale){    
       scales.r_Q *= AngleScale(ThetaYZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr),
@@ -885,20 +891,22 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
 			  subroi_prop.sigma,
 			  subroi_prop.total_q );
       if ( verbose ) std::cout << "    Incrementing q_orig by GAUSSIAN( " << i_t+roi_prop.begin << ", " << subroi_prop.center << ", " << subroi_prop.sigma 
-			       << ", " << subroi_prop.total_q << ") = " << GAUSSIAN( i_t+roi_prop.begin,
-										     subroi_prop.center,
-										     subroi_prop.sigma,
-										     subroi_prop.total_q )
+			       << ", " << subroi_prop.total_q << ") = " 
+			       << GAUSSIAN( i_t+roi_prop.begin,
+					    subroi_prop.center,
+					    subroi_prop.sigma,
+					    subroi_prop.total_q )
 			       << std::endl;
       q_mod  += GAUSSIAN( i_t+roi_prop.begin,
 			  subroi_prop.center,
 			  scale_vals.r_sigma * subroi_prop.sigma, 
 			  scale_vals.r_Q     * subroi_prop.total_q );
       if (verbose ) std::cout << "    Incrementing q_mod by GAUSSIAN( " << i_t+roi_prop.begin << ", " << subroi_prop.center << ", " << scale_vals.r_sigma 
-			      << " * " << subroi_prop.sigma << ", " << scale_vals.r_Q << " * " << subroi_prop.total_q << ") = " << GAUSSIAN( i_t+roi_prop.begin,
-																	     subroi_prop.center,
-																	     scale_vals.r_sigma * subroi_prop.sigma,
-																	     scale_vals.r_Q     * subroi_prop.total_q )
+			      << " * " << subroi_prop.sigma << ", " << scale_vals.r_Q << " * " << subroi_prop.total_q << ") = " 
+			      << GAUSSIAN( i_t+roi_prop.begin,
+					   subroi_prop.center,
+					   scale_vals.r_sigma * subroi_prop.sigma,
+					   scale_vals.r_Q     * subroi_prop.total_q )
 			      << std::endl;
       
     }
