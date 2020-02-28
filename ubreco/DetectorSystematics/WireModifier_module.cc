@@ -65,13 +65,6 @@ private:
   bool          fCopyRawDigitAssn;
   double        fTickOffset; //0 for butcher, 2400 for full...
 
-  std::string fSplinesFileName;
-  std::vector<std::string> fSplineNames_Charge_X;
-  std::vector<std::string> fSplineNames_Sigma_X;
-  
-  std::vector<TSpline3*> fTSplines_Charge_X;
-  std::vector<TSpline3*> fTSplines_Sigma_X;
-
   bool fUseCollectiveEdepsForScales; //alternative is to use energy weighted scales per edep
   bool fApplyXScale;
   bool fApplyYScale;
@@ -80,26 +73,25 @@ private:
   bool fApplyXZAngleScale;
   bool fApplyYZAngleScale;
   bool fApplydEdXScale;
-
   bool fApplyOverallScale;
-  std::vector<double> fOverallScale;
 
-  std::vector<double> fXZAngleQParsA_Data;
-  std::vector<double> fXZAngleQParsB_Data;
-  std::vector<double> fXZAngleQParsA_MC;
-  std::vector<double> fXZAngleQParsB_MC;
-  std::vector<double> fYZAngleQParsA_Data;
-  std::vector<double> fYZAngleQParsB_Data;
-  std::vector<double> fYZAngleQParsA_MC;
-  std::vector<double> fYZAngleQParsB_MC;
-
-  std::vector<std::string> fSplineNames_Sigma_XZAngle;
-  std::vector<TSpline3*> fTSplines_Sigma_XZAngle;
-
+  std::string fSplinesFileName;
+  std::vector<std::string> fSplineNames_Charge_X;
+  std::vector<std::string> fSplineNames_Sigma_X;
   std::vector<std::string> fGraph2DNames_Charge_YZ;
   std::vector<std::string> fGraph2DNames_Sigma_YZ;
+  std::vector<std::string> fSplineNames_Charge_XZAngle;
+  std::vector<std::string> fSplineNames_Sigma_XZAngle;
+  std::vector<std::string> fSplineNames_Charge_YZAngle;
+  
+  std::vector<TSpline3*> fTSplines_Charge_X;
+  std::vector<TSpline3*> fTSplines_Sigma_X;
   std::vector<TGraph2DErrors*> fTGraph2Ds_Charge_YZ;
   std::vector<TGraph2DErrors*> fTGraph2Ds_Sigma_YZ;
+  std::vector<TSpline3*> fTSplines_Charge_XZAngle;
+  std::vector<TSpline3*> fTSplines_Sigma_XZAngle;
+  std::vector<TSpline3*> fTSplines_Charge_YZAngle;
+  std::vector<double> fOverallScale;
 
   //output ana trees
   TNtuple* fNt;
@@ -216,21 +208,6 @@ private:
   {
     double theta = std::atan2(dydr,dzdr);
     return FoldAngle(theta);
-  }
-
-  double AngleScale(double theta,double parA_data, double parB_data, double parA_MC, double parB_MC){
-    double scale=1.;
-
-    try{
-      double cos_theta = std::cos(theta);    
-      if(std::abs(cos_theta)<1e-4)
-	scale = parA_data/parA_MC;
-      else
-	scale = (parA_data/cos_theta + parB_data)/(parA_MC/cos_theta + parB_MC);
-    }
-    catch(...){}
-    
-    return scale;
   }
 
   ROIProperties_t CalcROIProperties(recob::Wire::RegionsOfInterest_t::datarange_t const&);
@@ -769,15 +746,11 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
       if(temp_scale>0.001) scales.r_sigma *= temp_scale;
     }
     if(fApplyXZAngleScale){    
-      scales.r_Q *= AngleScale(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr),
-			       fXZAngleQParsA_Data[plane],fXZAngleQParsB_Data[plane],
-			       fXZAngleQParsA_MC[plane],fXZAngleQParsB_MC[plane]);
+      scales.r_Q     *= fTSplines_Charge_XZAngle[plane]->Eval(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
       scales.r_sigma *= fTSplines_Sigma_XZAngle[plane]->Eval(ThetaXZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
     }
     if(fApplyYZAngleScale){    
-      scales.r_Q *= AngleScale(ThetaYZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr),
-			       fYZAngleQParsA_Data[plane],fYZAngleQParsB_Data[plane],
-			       fYZAngleQParsA_MC[plane],fYZAngleQParsB_MC[plane]);
+      scales.r_Q *= fTSplines_Charge_YZAngle[plane]->Eval(ThetaYZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
       //no sigma scaling
     }
     if(fApplydEdXScale){    
@@ -804,15 +777,11 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
       if(temp_scale>0.001) scales.r_sigma *= temp_scale;
     }
     if(fApplyXZAngleScale){    
-      scales.r_Q *= AngleScale(ThetaXZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr),
-			       fXZAngleQParsA_Data[plane],fXZAngleQParsB_Data[plane],
-			       fXZAngleQParsA_MC[plane],fXZAngleQParsB_MC[plane]);
+      scales.r_Q     *= fTSplines_Charge_XZAngle[plane]->Eval(ThetaXZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
       scales.r_sigma *= fTSplines_Sigma_XZAngle[plane]->Eval(ThetaXZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
     }
     if(fApplyYZAngleScale){    
-      scales.r_Q *= AngleScale(ThetaYZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr),
-			       fYZAngleQParsA_Data[plane],fYZAngleQParsB_Data[plane],
-			       fYZAngleQParsA_MC[plane],fYZAngleQParsB_MC[plane]);
+      scales.r_Q *= fTSplines_Charge_YZAngle[plane]->Eval(ThetaYZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
       //no sigma scaling
     }
     if(fApplydEdXScale){    
@@ -838,15 +807,11 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
       if(temp_scale>0.001) scales.r_sigma *= temp_scale;
     }
     if(fApplyXZAngleScale){    
-      scales.r_Q *= AngleScale(ThetaXZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr),
-			       fXZAngleQParsA_Data[plane],fXZAngleQParsB_Data[plane],
-			       fXZAngleQParsA_MC[plane],fXZAngleQParsB_MC[plane]);
+      scales.r_Q     *= fTSplines_Charge_XZAngle[plane]->Eval(ThetaXZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
       scales.r_sigma *= fTSplines_Sigma_XZAngle[plane]->Eval(ThetaXZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
     }
     if(fApplyYZAngleScale){    
-      scales.r_Q *= AngleScale(ThetaYZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr),
-			       fYZAngleQParsA_Data[plane],fYZAngleQParsB_Data[plane],
-			       fYZAngleQParsA_MC[plane],fYZAngleQParsB_MC[plane]);
+      scales.r_Q *= fTSplines_Charge_YZAngle[plane]->Eval(ThetaYZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
       //no sigma scaling
     }
     if(fApplydEdXScale){    
@@ -960,9 +925,6 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fMakeRawDigitAssn(p.get<bool>("MakeRawDigitAssn",true)),
   fCopyRawDigitAssn(p.get<bool>("CopyRawDigitAssn",false)),
   fTickOffset(p.get<double>("TickOffset",0.0)),
-  fSplinesFileName(p.get<std::string>("SplinesFileName")),
-  fSplineNames_Charge_X(p.get< std::vector<std::string> >("SplineNames_Charge_X")),
-  fSplineNames_Sigma_X(p.get< std::vector<std::string> >("SplineNames_Sigma_X")),
   fUseCollectiveEdepsForScales(p.get<bool>("UseCollectiveEdepsForScales",false)),
   fApplyXScale(p.get<bool>("ApplyXScale",true)),
   fApplyYScale(p.get<bool>("ApplyYScale",false)),
@@ -972,18 +934,15 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fApplyYZAngleScale(p.get<bool>("ApplyYZAngleScale",true)),
   fApplydEdXScale(p.get<bool>("ApplydEdXScale",true)),
   fApplyOverallScale(p.get<bool>("ApplyOverallScale",false)),
-  fOverallScale(p.get< std::vector<double> >("OverallScale",std::vector<double>(3,1.))),
-  fXZAngleQParsA_Data(p.get< std::vector<double> >("XZAngleQParsA_Data",std::vector<double>(3,1.))),
-  fXZAngleQParsB_Data(p.get< std::vector<double> >("XZAngleQParsB_Data",std::vector<double>(3,0.))),
-  fXZAngleQParsA_MC(p.get< std::vector<double> >("XZAngleQParsA_MC",std::vector<double>(3,1.))),
-  fXZAngleQParsB_MC(p.get< std::vector<double> >("XZAngleQParsB_MC",std::vector<double>(3,0.))),
-  fYZAngleQParsA_Data(p.get< std::vector<double> >("YZAngleQParsA_Data",std::vector<double>(3,1.))),
-  fYZAngleQParsB_Data(p.get< std::vector<double> >("YZAngleQParsB_Data",std::vector<double>(3,0.))),
-  fYZAngleQParsA_MC(p.get< std::vector<double> >("YZAngleQParsA_MC",std::vector<double>(3,1.))),
-  fYZAngleQParsB_MC(p.get< std::vector<double> >("YZAngleQParsB_MC",std::vector<double>(3,0.))),
-  fSplineNames_Sigma_XZAngle(p.get< std::vector<std::string> >("SplineNames_Sigma_XZAngle")),
+  fSplinesFileName(p.get<std::string>("SplinesFileName")),
+  fSplineNames_Charge_X(p.get< std::vector<std::string> >("SplineNames_Charge_X")),
+  fSplineNames_Sigma_X(p.get< std::vector<std::string> >("SplineNames_Sigma_X")),
   fGraph2DNames_Charge_YZ(p.get< std::vector<std::string> >("Graph2DNames_Charge_YZ")),
   fGraph2DNames_Sigma_YZ(p.get< std::vector<std::string> >("Graph2DNames_Sigma_YZ")),
+  fSplineNames_Charge_XZAngle(p.get< std::vector<std::string> >("SplineNames_Charge_XZAngle")),
+  fSplineNames_Sigma_XZAngle(p.get< std::vector<std::string> >("SplineNames_Sigma_XZAngle")),
+  fSplineNames_Charge_YZAngle(p.get< std::vector<std::string> >("SplineNames_Charge_YZAngle")),
+  fOverallScale(p.get< std::vector<double> >("OverallScale",std::vector<double>(3,1.))),
   fFillScaleCheckTree(p.get<bool>("FillScaleCheckTree",false))
 				 
 {
@@ -1008,9 +967,18 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
       f_splines.GetObject(fSplineNames_Sigma_X[i_s].c_str(),fTSplines_Sigma_X[i_s]);
   }
   if(fApplyXZAngleScale){
+    fTSplines_Charge_XZAngle.resize(fSplineNames_Charge_XZAngle.size());
+    for(size_t i_s=0; i_s<fSplineNames_Charge_XZAngle.size(); ++i_s)
+      f_splines.GetObject(fSplineNames_Charge_XZAngle[i_s].c_str(),fTSplines_Charge_XZAngle[i_s]);
+
     fTSplines_Sigma_XZAngle.resize(fSplineNames_Sigma_XZAngle.size());
     for(size_t i_s=0; i_s<fSplineNames_Sigma_XZAngle.size(); ++i_s)
       f_splines.GetObject(fSplineNames_Sigma_XZAngle[i_s].c_str(),fTSplines_Sigma_XZAngle[i_s]);
+  }
+  if(fApplyYZAngleScale){
+    fTSplines_Charge_YZAngle.resize(fSplineNames_Charge_YZAngle.size());
+    for(size_t i_s=0; i_s<fSplineNames_Charge_YZAngle.size(); ++i_s)
+      f_splines.GetObject(fSplineNames_Charge_YZAngle[i_s].c_str(),fTSplines_Charge_YZAngle[i_s]);
   }
   //ifApplyYZ, don't applyY and applyZ separately
   if(fApplyYZScale){

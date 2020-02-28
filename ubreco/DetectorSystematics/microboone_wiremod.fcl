@@ -15,37 +15,6 @@ microboone_wiremod:{
              
   MakeRawDigitAssn: true
 
-  SplinesFileName: "splines_CrossingMuons_v1.root"
-  SplineNames_Charge_X: ["trk_x_hit_Q_spline_Plane0_CV",
-                         "trk_x_hit_Q_spline_Plane1_CV",
-                         "trk_x_hit_Q_spline_Plane2_CV"]
-  SplineNames_Sigma_X:  ["trk_x_hit_sigma_spline_Plane0_CV",
-                         "trk_x_hit_sigma_spline_Plane1_CV",
-                         "trk_x_hit_sigma_spline_Plane2_CV"]
-    
-  #q(theta)=a/cos(theta) + b
-  XZAngleQParsA_Data: [ 0.80534,   0.780818,   0.83771 ]
-  XZAngleQParsB_Data: [ 0.0577242, 0.0636468, -0.0699738 ]
-  XZAngleQParsA_MC:   [ 0.760263,  0.764,      0.875456 ]
-  XZAngleQParsB_MC:   [ 0.10471,   0.0983629,  -0.116559 ]
-    
-  SplineNames_Sigma_XZAngle: ["trk_ThetaXZ_hit_sigma_spline_Plane0_CV",
-                              "trk_ThetaXZ_hit_sigma_spline_Plane1_CV",
-                              "trk_ThetaXZ_hit_sigma_spline_Plane2_CV"]
-
-  #q(theta)=a/cos(theta) + b
-  YZAngleQParsA_Data: [ 1.01948,     1.00537,    0.786614 ]
-  YZAngleQParsB_Data: [ -0.100125,  -0.0985345, -0.0711556 ]
-  YZAngleQParsA_MC:   [ 0.955672,    0.947355,   0.761953 ]
-  YZAngleQParsB_MC:   [ -0.0378586, -0.0418715, -0.0622119 ]
-
-  Graph2DNames_Charge_YZ: ["hit_Q_trk_yz_spline_Plane0_CV",
-                           "hit_Q_trk_yz_spline_Plane1_CV",
-                           "hit_Q_trk_yz_spline_Plane2_CV"]
-  Graph2DNames_Sigma_YZ:  ["hit_sigma_trk_yz_spline_Plane0_CV",
-                           "hit_sigma_trk_yz_spline_Plane1_CV",
-                           "hit_sigma_trk_yz_spline_Plane2_CV"]
-    
   UseCollectiveEdepsForScales: false
 
   ApplyXScale: true
@@ -55,6 +24,34 @@ microboone_wiremod:{
   ApplyXZAngleScale: true
   ApplyYZAngleScale: true
   ApplyOverallScale: false
+
+  SplinesFileName: "splines_CrossingMuons_v2.root"
+  
+  SplineNames_Charge_X: ["trk_x_hit_Q_spline_Plane0_Run1_CVMC",
+                         "trk_x_hit_Q_spline_Plane1_Run1_CVMC",
+                         "trk_x_hit_Q_spline_Plane2_Run1_CVMC"]
+  SplineNames_Sigma_X:  ["trk_x_hit_sigma_spline_Plane0_Run1_CVMC",
+                         "trk_x_hit_sigma_spline_Plane1_Run1_CVMC",
+                         "trk_x_hit_sigma_spline_Plane2_Run1_CVMC"]
+    
+  Graph2DNames_Charge_YZ: ["trk_yz_hit_Q_spline_Plane0_Run1_CVMC",
+                           "trk_yz_hit_Q_spline_Plane1_Run1_CVMC",
+                           "trk_yz_hit_Q_spline_Plane2_Run1_CVMC"]
+  Graph2DNames_Sigma_YZ:  ["trk_yz_hit_sigma_spline_Plane0_Run1_CVMC",
+                           "trk_yz_hit_sigma_spline_Plane1_Run1_CVMC",
+                           "trk_yz_hit_sigma_spline_Plane2_Run1_CVMC"]
+
+  SplineNames_Charge_XZAngle: ["trk_ThetaXZ_hit_Q_spline_Plane0_Run1_CVMC",
+                  	       "trk_ThetaXZ_hit_Q_spline_Plane1_Run1_CVMC",
+                               "trk_ThetaXZ_hit_Q_spline_Plane2_Run1_CVMC"]
+  SplineNames_Sigma_XZAngle:  ["trk_ThetaXZ_hit_sigma_spline_Plane0_Run1_CVMC",
+                               "trk_ThetaXZ_hit_sigma_spline_Plane1_Run1_CVMC",
+                               "trk_ThetaXZ_hit_sigma_spline_Plane2_Run1_CVMC"]
+
+  SplineNames_Charge_YZAngle: ["trk_ThetaYZ_hit_Q_spline_Plane0_Run1_CVMC",
+			       "trk_ThetaYZ_hit_Q_spline_Plane1_Run1_CVMC",
+                               "trk_ThetaYZ_hit_Q_spline_Plane2_Run1_CVMC"]
+    
 }
 
 microboone_hitvaranalyzer:{
