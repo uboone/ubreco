@@ -83,6 +83,8 @@ private:
   std::vector<std::string> fSplineNames_Charge_XZAngle;
   std::vector<std::string> fSplineNames_Sigma_XZAngle;
   std::vector<std::string> fSplineNames_Charge_YZAngle;
+  std::vector<std::string> fSplineNames_Charge_dEdX;
+  std::vector<std::string> fSplineNames_Sigma_dEdX;
   
   std::vector<TSpline3*> fTSplines_Charge_X;
   std::vector<TSpline3*> fTSplines_Sigma_X;
@@ -91,6 +93,8 @@ private:
   std::vector<TSpline3*> fTSplines_Charge_XZAngle;
   std::vector<TSpline3*> fTSplines_Sigma_XZAngle;
   std::vector<TSpline3*> fTSplines_Charge_YZAngle;
+  std::vector<TSpline3*> fTSplines_Charge_dEdX;
+  std::vector<TSpline3*> fTSplines_Sigma_dEdX;
   std::vector<double> fOverallScale;
 
   //output ana trees
@@ -556,18 +560,21 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
 			      edep_props.dxdr,edep_props.dydr,edep_props.dzdr,
 			      ThetaXZ_U(edep_props.dxdr,edep_props.dydr,edep_props.dzdr),
 			      ThetaYZ_U(edep_props.dxdr,edep_props.dydr,edep_props.dzdr),
+			      edep_props.dedr,
 			      scales.r_Q,scales.r_sigma);
 	else if(i_p==1)
 	  fNtScaleCheck->Fill(i_p,edep_ptr->E(),edep_ptr->X(),edep_ptr->Y(),edep_ptr->Z(),
 			      edep_props.dxdr,edep_props.dydr,edep_props.dzdr,
 			      ThetaXZ_V(edep_props.dxdr,edep_props.dydr,edep_props.dzdr),
 			      ThetaYZ_V(edep_props.dxdr,edep_props.dydr,edep_props.dzdr),
+			      edep_props.dedr,
 			      scales.r_Q,scales.r_sigma);
 	else if(i_p==2)
 	  fNtScaleCheck->Fill(i_p,edep_ptr->E(),edep_ptr->X(),edep_ptr->Y(),edep_ptr->Z(),
 			      edep_props.dxdr,edep_props.dydr,edep_props.dzdr,
 			      ThetaXZ_Y(edep_props.dxdr,edep_props.dydr,edep_props.dzdr),
 			      ThetaYZ_Y(edep_props.dxdr,edep_props.dydr,edep_props.dzdr),
+			      edep_props.dedr,
 			      scales.r_Q,scales.r_sigma);
       }
 
@@ -610,6 +617,7 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
   edep_col_properties.dxdr = 0.;
   edep_col_properties.dydr = 0.;
   edep_col_properties.dzdr = 0.;
+  edep_col_properties.dedr = 0.;
   
   double total_energy = 0.0;//,dx=0,dy=0,dz=0;
   for(auto edep_ptr : edepPtrVecMaxE){
@@ -650,7 +658,8 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
     edep_col_properties.dxdr += edep_ptr->E()*(edep_ptr->EndX()-edep_ptr->StartX())/edep_ptr->StepLength();
     edep_col_properties.dydr += edep_ptr->E()*(edep_ptr->EndY()-edep_ptr->StartY())/edep_ptr->StepLength();
     edep_col_properties.dzdr += edep_ptr->E()*(edep_ptr->EndZ()-edep_ptr->StartZ())/edep_ptr->StepLength();
-    
+    edep_col_properties.dedr += edep_ptr->E()*edep_ptr->E()/edep_ptr->StepLength();
+
   }
   
   if(total_energy>0.0){
@@ -667,6 +676,7 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
     edep_col_properties.dxdr = edep_col_properties.dxdr/total_energy;
     edep_col_properties.dydr = edep_col_properties.dydr/total_energy;
     edep_col_properties.dzdr = edep_col_properties.dzdr/total_energy;
+    edep_col_properties.dedr = edep_col_properties.dedr/total_energy;
     
   }
   
@@ -753,7 +763,9 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
       scales.r_Q *= fTSplines_Charge_YZAngle[plane]->Eval(ThetaYZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
       //no sigma scaling
     }
-    if(fApplydEdXScale){    
+    if(fApplydEdXScale){
+      scales.r_Q *= fTSplines_Charge_dEdX[plane]->Eval(truth_props.dedr);
+      scales.r_sigma *= fTSplines_Sigma_dEdX[plane]->Eval(truth_props.dedr);
     }
 
     //if(fApplyOverallScale){
@@ -785,6 +797,8 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
       //no sigma scaling
     }
     if(fApplydEdXScale){    
+      scales.r_Q *= fTSplines_Charge_dEdX[plane]->Eval(truth_props.dedr);
+      scales.r_sigma *= fTSplines_Sigma_dEdX[plane]->Eval(truth_props.dedr);
     }
     //if(fApplyOverallScale){
     //scales.r_Q *= fOverallScale[1];
@@ -815,6 +829,8 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
       //no sigma scaling
     }
     if(fApplydEdXScale){    
+      scales.r_Q *= fTSplines_Charge_dEdX[plane]->Eval(truth_props.dedr);
+      scales.r_sigma *= fTSplines_Sigma_dEdX[plane]->Eval(truth_props.dedr);
     }
     //if(fApplyOverallScale){
     //scales.r_Q *= fOverallScale[2];
@@ -942,6 +958,8 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fSplineNames_Charge_XZAngle(p.get< std::vector<std::string> >("SplineNames_Charge_XZAngle")),
   fSplineNames_Sigma_XZAngle(p.get< std::vector<std::string> >("SplineNames_Sigma_XZAngle")),
   fSplineNames_Charge_YZAngle(p.get< std::vector<std::string> >("SplineNames_Charge_YZAngle")),
+  fSplineNames_Charge_dEdX(p.get< std::vector<std::string> >("SplineNames_Charge_dEdX")),
+  fSplineNames_Sigma_dEdX(p.get< std::vector<std::string> >("SplineNames_Sigma_dEdX")),
   fOverallScale(p.get< std::vector<double> >("OverallScale",std::vector<double>(3,1.))),
   fFillScaleCheckTree(p.get<bool>("FillScaleCheckTree",false))
 				 
@@ -993,11 +1011,20 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
     for(size_t i_s=0; i_s<fGraph2DNames_Sigma_YZ.size(); ++i_s)
       f_splines.GetObject(fGraph2DNames_Sigma_YZ[i_s].c_str(),fTGraph2Ds_Sigma_YZ[i_s]);
   }
+  if(fApplydEdXScale){
+    fTSplines_Charge_dEdX.resize(fSplineNames_Charge_dEdX.size());
+    for(size_t i_s=0; i_s<fSplineNames_Charge_dEdX.size(); ++i_s)
+      f_splines.GetObject(fSplineNames_Charge_dEdX[i_s].c_str(),fTSplines_Charge_dEdX[i_s]);
+    
+    fTSplines_Sigma_dEdX.resize(fSplineNames_Sigma_dEdX.size());
+    for(size_t i_s=0; i_s<fSplineNames_Sigma_dEdX.size(); ++i_s)
+      f_splines.GetObject(fSplineNames_Sigma_dEdX[i_s].c_str(),fTSplines_Sigma_dEdX[i_s]);
+  }
 
   art::ServiceHandle<art::TFileService> tfs;
   fNt = tfs->make<TNtuple>("nt","Ana Ntuple","edep_e:subroi_q");
   fNtScaleCheck = tfs->make<TNtuple>("nt_scales","Scale Check ntuple",
-				     "plane:e:x:y:z:dxdr:dydr:dzdr:thetaXZ:thetaYZ:r_Q:r_sigma");
+				     "plane:e:x:y:z:dxdr:dydr:dzdr:thetaXZ:thetaYZ:dedr:r_Q:r_sigma");
 }
 
 void sys::WireModifier::produce(art::Event& e)
