@@ -1,7 +1,7 @@
 BEGIN_PROLOG
 
-ACPTtrig: {
-    module_type: "ACPTtrig"
+ACPTtrigLightStudies: {
+    module_type: "ACPTtrigLightStudies"
     TrackLenMin: 10
     CathodeMin: 254
     CathodeMax: 256.5
