@@ -969,9 +969,11 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   if(fMakeRawDigitAssn)
     produces< art::Assns<raw::RawDigit,recob::Wire> >();
 
+  std::cout << "Entering initialization..." << std::endl;
+
 
   fSplinesFileName = std::string(std::getenv("UBOONEDATA_DIR"))+"/systematics/det_sys/"+fSplinesFileName;
-  std::cout << "Spline file is " << fSplinesFileName;
+  std::cout << "Spline file is " << fSplinesFileName << std::endl;
 
   TFile f_splines(fSplinesFileName.c_str(),"r");
 
@@ -984,6 +986,9 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
     for(size_t i_s=0; i_s<fSplineNames_Sigma_X.size(); ++i_s)
       f_splines.GetObject(fSplineNames_Sigma_X[i_s].c_str(),fTSplines_Sigma_X[i_s]);
   }
+
+  std::cout << "Got X scales..." << std::endl;
+
   if(fApplyXZAngleScale){
     fTSplines_Charge_XZAngle.resize(fSplineNames_Charge_XZAngle.size());
     for(size_t i_s=0; i_s<fSplineNames_Charge_XZAngle.size(); ++i_s)
@@ -1021,45 +1026,60 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
       f_splines.GetObject(fSplineNames_Sigma_dEdX[i_s].c_str(),fTSplines_Sigma_dEdX[i_s]);
   }
 
+  std::cout << "Got other scales" << std::endl;
+
   art::ServiceHandle<art::TFileService> tfs;
   fNt = tfs->make<TNtuple>("nt","Ana Ntuple","edep_e:subroi_q");
   fNtScaleCheck = tfs->make<TNtuple>("nt_scales","Scale Check ntuple",
 				     "plane:e:x:y:z:dxdr:dydr:dzdr:thetaXZ:thetaYZ:dedr:r_Q:r_sigma");
+  std::cout << "Finished initialization" << std::endl;
+
 }
 
 void sys::WireModifier::produce(art::Event& e)
 {
 
+  std::cout << "Made it into `produce` function..." << std::endl;
+  
   //get wires
   art::Handle< std::vector<recob::Wire> > wireHandle;
   e.getByLabel(fWireInputTag, wireHandle);
   auto const& wireVec(*wireHandle);
+  std::cout << "Got wires" << std::endl;
 
   //get association to rawdigit
   art::FindManyP<raw::RawDigit> digit_assn(wireHandle,e,fWireInputTag);
+  std::cout << "Got association to RawDigit" << std::endl;
 
   //get sim edeps
   art::Handle< std::vector<sim::SimEnergyDeposit> > edepShiftedHandle;
   e.getByLabel(fSimEdepShiftedInputTag,edepShiftedHandle);
   auto const& edepShiftedVec(*edepShiftedHandle);
+  std::cout << "Got first set of edeps" << std::endl;
   
   art::Handle< std::vector<sim::SimEnergyDeposit> > edepOrigHandle;
   e.getByLabel(fSimEdepOrigInputTag,edepOrigHandle);
   auto const& edepOrigVec(*edepOrigHandle);
+  std::cout << "Got second set of edeps" << std::endl;
 
   // get hits
   art::Handle< std::vector<recob::Hit> > hitHandle;
   e.getByLabel(fHitInputTag, hitHandle);
   auto const& hitVec(*hitHandle);
+  std::cout << "Got hits" << std::endl;
 
   //output new wires and new associations
   std::unique_ptr< std::vector<recob::Wire> > new_wires(new std::vector<recob::Wire>());
   std::unique_ptr< art::Assns<raw::RawDigit,recob::Wire> > new_digit_assn(new art::Assns<raw::RawDigit,recob::Wire>());
+  std::cout << "Last bit of art stuffs..." << std::endl;
+
 
   //first fill our roi to edep map
   FillROIMatchedEdepMap(edepShiftedVec,wireVec);
   // and fill our roi to hit map
   FillROIMatchedHitMap(hitVec,wireVec);
+
+  std::cout << "First bit of real WireMod code, and about to loop over wires..." << std::endl;
 
   //loop through the wires and rois per wire...
   for(size_t i_w=0; i_w<wireVec.size(); ++i_w){
