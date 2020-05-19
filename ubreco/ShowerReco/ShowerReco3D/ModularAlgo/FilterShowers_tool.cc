@@ -29,7 +29,8 @@ namespace showerreco {
     void configure(const fhicl::ParameterSet& pset);
     
     
-    void do_reconstruction(const ::protoshower::ProtoShower &, Shower_t &);
+    void do_reconstruction(util::GeometryUtilities const&,
+                           const ::protoshower::ProtoShower &, Shower_t &);
     
   private:
     
@@ -43,9 +44,10 @@ namespace showerreco {
   {
     _name = "FilterShowers";
     auto const* geom = ::lar::providerFrom<geo::Geometry>();
-    auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+    auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
     _wire2cm = geom->WirePitch(0,0,0);
-    _time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
+    _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
     configure(pset);
   }
 
@@ -54,7 +56,8 @@ namespace showerreco {
     _anglecut = pset.get<double>("anglecut");
   }
 
-void FilterShowers::do_reconstruction(const ::protoshower::ProtoShower & proto_shower,
+void FilterShowers::do_reconstruction(util::GeometryUtilities const&,
+                                      const ::protoshower::ProtoShower & proto_shower,
                                     Shower_t& resultShower) {
 
   //if the module does not have 2D cluster info -> fail the reconstruction

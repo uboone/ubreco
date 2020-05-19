@@ -1,4 +1,3 @@
-
 art_make(	
 	  LIB_LIBRARIES
 			art_Framework_Core
@@ -7,9 +6,10 @@ art_make(
 			larcorealg_Geometry lardataobj_RecoBase
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
+                        lardataalg_DetectorInfo
 			art_Utilities canvas ${MF_MESSAGELOGGER}
 			${MF_UTILITIES} ${CETLIB}
-			${Boost_SYSTEM_LIBRARY} ${ROOT_BASIC_LIB_LIST}
+                        ${ROOT_BASIC_LIB_LIST}
 			${ART_FRAMEWORK_SERVICES_REGISTRY}
 			${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
 			${MF_MESSAGELOGGER}
@@ -20,4 +20,3 @@ art_make(
 install_fhicl()
 install_headers()
 install_source()
-

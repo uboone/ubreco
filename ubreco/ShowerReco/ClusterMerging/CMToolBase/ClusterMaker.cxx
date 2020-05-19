@@ -12,19 +12,21 @@ namespace cluster {
 
     // get detector specific properties
     auto const* geom = ::lar::providerFrom<geo::Geometry>();
-    auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+    auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
     _wire2cm = geom->WirePitch(0,0,0);
-    _time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
+    _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
 
   }
 
-  void ClusterMaker::MakeClusters(const art::ValidHandle<std::vector<recob::Cluster> >& clus_h,
+  void ClusterMaker::MakeClusters(detinfo::DetectorClocksData const& clockData,
+                                  const art::ValidHandle<std::vector<recob::Cluster> >& clus_h,
 				  const art::FindManyP<recob::Hit>&  clus_hit_assn_v,
 				  const art::ValidHandle<std::vector<recob::Vertex> >& vtx_h,
 				  std::vector<::cluster::Cluster>& cluster) {
 
 
-    if (loadVertex(vtx_h) == false) {
+    if (loadVertex(clockData, vtx_h) == false) {
       std::cout << "NO VERTEX" << std::endl;
       return;
     }
@@ -104,10 +106,10 @@ namespace cluster {
 
   
 
-  bool ClusterMaker::loadVertex(const art::ValidHandle<std::vector<::recob::Vertex> > vtx_h) {
+  bool ClusterMaker::loadVertex(detinfo::DetectorClocksData const& clockData,
+                                const art::ValidHandle<std::vector<::recob::Vertex> > vtx_h) {
 
     // load required services to obtain offsets
-    auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
     auto const* geom = ::lar::providerFrom<geo::Geometry>();
     
     if (vtx_h->size() != 1) return false;
@@ -120,12 +122,13 @@ namespace cluster {
 
     //std::cout << "Vtx coordinates : [" << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << "]" << std::endl;
 
+    auto const triggerOffset = trigger_offset(clockData);
     for (size_t pl = 0; pl < 3; pl++) {
 
       _vtx_w_cm[pl] = geom->WireCoordinate(xyz[1],xyz[2],geo::PlaneID(0,0,pl)) * _wire2cm + 0.15;
-      _vtx_t_cm[pl] = xyz[0] + (detp->TriggerOffset() * _time2cm) + pl*0.3;
+      _vtx_t_cm[pl] = xyz[0] + (triggerOffset * _time2cm) + pl*0.3;
 
-      std::cout << "trigger offset [cm] : " << (detp->TriggerOffset() * _time2cm) << std::endl;
+      std::cout << "trigger offset [cm] : " << (triggerOffset * _time2cm) << std::endl;
       std::cout << "Vtx @ pl " << pl << " [" << _vtx_w_cm[pl] << ", " << _vtx_t_cm[pl] << " ]" << std::endl;
 
       }

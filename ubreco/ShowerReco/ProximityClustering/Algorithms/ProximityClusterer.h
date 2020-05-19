@@ -68,7 +68,9 @@ namespace gammacatcher {
     void setVerbose(bool on) { _verbose = on; }
 
     // vertex coordinates on each plane
-    bool loadVertex(const art::ValidHandle<std::vector<::recob::Vertex> > vtx_h,
+    bool loadVertex(detinfo::DetectorClocksData const& clockData,
+                    detinfo::DetectorPropertiesData const& detProp,
+                    const art::ValidHandle<std::vector<::recob::Vertex> > vtx_h,
 		    const double& ROI);
     
   protected:

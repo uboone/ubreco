@@ -174,12 +174,11 @@ CosmicTaggingAnodeCathodePiercing::CosmicTaggingAnodeCathodePiercing(fhicl::Para
   
   _det_width = geom->DetHalfWidth() * 2;
 
-  // Use '_detp' to find 'efield' and 'temp'
-  auto const* _detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-  double efield = _detp -> Efield();
-  double temp   = _detp -> Temperature();
+  auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob();
+  double efield = detProp.Efield();
+  double temp   = detProp.Temperature();
   // Determine the drift velocity from 'efield' and 'temp'
-  fDriftVelocity = _detp -> DriftVelocity(efield,temp);
+  fDriftVelocity = detProp.DriftVelocity(efield,temp);
 
 }
 

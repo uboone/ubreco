@@ -25,7 +25,8 @@ namespace showerreco {
     ~StartPoint3DfromVtx() {}
     
     /// Inherited/overloaded function from ShowerRecoModuleBase
-    void do_reconstruction(const ::protoshower::ProtoShower &, Shower_t &);
+    void do_reconstruction(const util::GeometryUtilities&,
+                           const ::protoshower::ProtoShower &, Shower_t &);
 
   private:
 
@@ -37,13 +38,14 @@ namespace showerreco {
   {
     _name = "StartPoint3DfromVtx"; 
     auto const* geom = ::lar::providerFrom<geo::Geometry>();
-    auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+    auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
     _wire2cm = geom->WirePitch(0,0,0);
-    _time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
-
+    _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
   }
 
-  void StartPoint3DfromVtx::do_reconstruction( const ::protoshower::ProtoShower & proto_shower,
+  void StartPoint3DfromVtx::do_reconstruction(const util::GeometryUtilities&,
+                                              const ::protoshower::ProtoShower & proto_shower,
 					      Shower_t& resultShower)
 {
 

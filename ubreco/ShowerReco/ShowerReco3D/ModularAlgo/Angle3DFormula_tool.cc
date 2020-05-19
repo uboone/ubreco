@@ -32,7 +32,8 @@ namespace showerreco {
     /// set minimum dot product between shower direction and vtx -> strt direction
     void setMinDotProduct(double d) { _dot_min = d; }
     
-    void do_reconstruction(const ::protoshower::ProtoShower &, Shower_t &);
+    void do_reconstruction(const util::GeometryUtilities&,
+                           const ::protoshower::ProtoShower &, Shower_t &);
     
   private:
     
@@ -61,7 +62,8 @@ namespace showerreco {
     _dot_min = pset.get<double>("dot_min");
   }
   
-  void Angle3DFormula::do_reconstruction(const ::protoshower::ProtoShower & proto_shower,
+  void Angle3DFormula::do_reconstruction(const util::GeometryUtilities& geomH,
+                                         const ::protoshower::ProtoShower & proto_shower,
 					 Shower_t& resultShower) {
     
     
@@ -73,8 +75,6 @@ namespace showerreco {
     }
     
     auto & clusters = proto_shower.clusters();
-    
-    auto const& geomH = ::util::GeometryUtilities();
     
     // use geometry helper function to go from 2 2D angles to 1 3D angle
     // do this for all plane combinations available
