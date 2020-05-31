@@ -83,6 +83,7 @@ private:
   std::vector<std::string> fSplineNames_Charge_XZAngle;
   std::vector<std::string> fSplineNames_Sigma_XZAngle;
   std::vector<std::string> fSplineNames_Charge_YZAngle;
+  std::vector<std::string> fSplineNames_Sigma_YZAngle;
   std::vector<std::string> fSplineNames_Charge_dEdX;
   std::vector<std::string> fSplineNames_Sigma_dEdX;
   
@@ -93,6 +94,7 @@ private:
   std::vector<TSpline3*> fTSplines_Charge_XZAngle;
   std::vector<TSpline3*> fTSplines_Sigma_XZAngle;
   std::vector<TSpline3*> fTSplines_Charge_YZAngle;
+  std::vector<TSpline3*> fTSplines_Sigma_YZAngle;
   std::vector<TSpline3*> fTSplines_Charge_dEdX;
   std::vector<TSpline3*> fTSplines_Sigma_dEdX;
   std::vector<double> fOverallScale;
@@ -761,7 +763,7 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     }
     if(fApplyYZAngleScale){    
       scales.r_Q *= fTSplines_Charge_YZAngle[plane]->Eval(ThetaYZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
-      //no sigma scaling
+      scales.r_sigma *= fTSplines_Sigma_YZAngle[plane]->Eval(ThetaYZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
     }
     if(fApplydEdXScale){
       scales.r_Q *= fTSplines_Charge_dEdX[plane]->Eval(truth_props.dedr);
@@ -794,7 +796,7 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     }
     if(fApplyYZAngleScale){    
       scales.r_Q *= fTSplines_Charge_YZAngle[plane]->Eval(ThetaYZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
-      //no sigma scaling
+      scales.r_sigma *= fTSplines_Sigma_YZAngle[plane]->Eval(ThetaYZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
     }
     if(fApplydEdXScale){    
       scales.r_Q *= fTSplines_Charge_dEdX[plane]->Eval(truth_props.dedr);
@@ -826,7 +828,7 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     }
     if(fApplyYZAngleScale){    
       scales.r_Q *= fTSplines_Charge_YZAngle[plane]->Eval(ThetaYZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
-      //no sigma scaling
+      scales.r_sigma *= fTSplines_Sigma_YZAngle[plane]->Eval(ThetaYZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
     }
     if(fApplydEdXScale){    
       scales.r_Q *= fTSplines_Charge_dEdX[plane]->Eval(truth_props.dedr);
@@ -958,6 +960,7 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fSplineNames_Charge_XZAngle(p.get< std::vector<std::string> >("SplineNames_Charge_XZAngle")),
   fSplineNames_Sigma_XZAngle(p.get< std::vector<std::string> >("SplineNames_Sigma_XZAngle")),
   fSplineNames_Charge_YZAngle(p.get< std::vector<std::string> >("SplineNames_Charge_YZAngle")),
+  fSplineNames_Sigma_YZAngle(p.get< std::vector<std::string> >("SplineNames_Sigma_YZAngle")),
   fSplineNames_Charge_dEdX(p.get< std::vector<std::string> >("SplineNames_Charge_dEdX")),
   fSplineNames_Sigma_dEdX(p.get< std::vector<std::string> >("SplineNames_Sigma_dEdX")),
   fOverallScale(p.get< std::vector<double> >("OverallScale",std::vector<double>(3,1.))),
@@ -997,6 +1000,10 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
     fTSplines_Charge_YZAngle.resize(fSplineNames_Charge_YZAngle.size());
     for(size_t i_s=0; i_s<fSplineNames_Charge_YZAngle.size(); ++i_s)
       f_splines.GetObject(fSplineNames_Charge_YZAngle[i_s].c_str(),fTSplines_Charge_YZAngle[i_s]);
+
+    fTSplines_Sigma_YZAngle.resize(fSplineNames_Sigma_YZAngle.size());
+    for(size_t i_s=0; i_s<fSplineNames_Sigma_YZAngle.size(); ++i_s)
+      f_splines.GetObject(fSplineNames_Sigma_YZAngle[i_s].c_str(),fTSplines_Sigma_YZAngle[i_s]);
   }
   //ifApplyYZ, don't applyY and applyZ separately
   if(fApplyYZScale){
