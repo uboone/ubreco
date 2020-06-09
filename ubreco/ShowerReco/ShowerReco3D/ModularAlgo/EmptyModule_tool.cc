@@ -22,7 +22,8 @@ namespace showerreco {
     ~EmptyModule(){}
     
     
-    void do_reconstruction(const ::protoshower::ProtoShower &, Shower_t &);
+    void do_reconstruction(util::GeometryUtilities const&,
+                           const ::protoshower::ProtoShower &, Shower_t &);
     
   private:
     
@@ -33,7 +34,8 @@ namespace showerreco {
     _name = "EmptyModule";
   }
   
-  void EmptyModule::do_reconstruction(const ::protoshower::ProtoShower & proto_shower,
+  void EmptyModule::do_reconstruction(util::GeometryUtilities const&,
+                                      const ::protoshower::ProtoShower & proto_shower,
 				      Shower_t& resultShower) {
     
     // This function takes the shower cluster set and computes the best fit 3D axis

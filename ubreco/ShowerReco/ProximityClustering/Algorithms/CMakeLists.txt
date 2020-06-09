@@ -3,6 +3,7 @@ art_make(
 		   	larcorealg_Geometry		
 			lardata_Utilities	
 			larcore_Geometry_Geometry_service	
+                        lardataalg_DetectorInfo
 			lardataobj_RecoBase
 			art_Utilities canvas
                         ${MF_MESSAGELOGGER}

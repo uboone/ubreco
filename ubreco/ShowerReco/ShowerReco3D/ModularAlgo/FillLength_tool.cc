@@ -21,7 +21,8 @@ namespace showerreco {
     /// Default destructor
     ~FillLength() {}
     
-    void do_reconstruction(const ::protoshower::ProtoShower &, Shower_t &);
+    void do_reconstruction(util::GeometryUtilities const&,
+                           const ::protoshower::ProtoShower &, Shower_t &);
     
   private:
     
@@ -32,7 +33,8 @@ namespace showerreco {
     _name        = "FillLength";
   }
   
-  void FillLength::do_reconstruction(const ::protoshower::ProtoShower & proto_shower,
+  void FillLength::do_reconstruction(util::GeometryUtilities const&,
+                                     const ::protoshower::ProtoShower & proto_shower,
 				     Shower_t& resultShower) {
     
     //if the module does not have 2D cluster info -> fail the reconstruction
@@ -82,4 +84,3 @@ namespace showerreco {
 }// showerreco
 
 #endif
-

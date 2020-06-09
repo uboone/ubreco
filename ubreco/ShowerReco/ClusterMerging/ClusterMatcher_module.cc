@@ -85,9 +85,10 @@ ClusterMatcher::ClusterMatcher(fhicl::ParameterSet const & pset)
 
   // get detector specific properties
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
-  auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+  auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
   _wire2cm = geom->WirePitch(0,0,0);
-  _time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
+  _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
 
   // Call appropriate produces<>() functions here.
   _mgr = new ::clusmtool::CMatchManager(geom->Nplanes());
@@ -143,7 +144,8 @@ void ClusterMatcher::produce(art::Event & e)
 
   // create cluster::Clusters
   std::vector<::cluster::Cluster> event_clusters;
-  _CMaker->MakeClusters(clus_h, clus_hit_assn_v, vtx_h, event_clusters);
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataFor(e);
+  _CMaker->MakeClusters(clockData, clus_h, clus_hit_assn_v, vtx_h, event_clusters);
 
   _mgr->Reset();
   _mgr->SetClusters(event_clusters);

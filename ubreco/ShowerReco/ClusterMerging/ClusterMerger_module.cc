@@ -21,6 +21,7 @@
 
 #include "art/Utilities/make_tool.h"
 
+#include "lardata/DetectorInfoServices/DetectorClocksService.h"
 #include "ubreco/ShowerReco/ClusterMerging/CMToolApp/CMergeHelper.h"
 #include "ubreco/ShowerReco/ClusterMerging/CMToolBase/ClusterMaker.h"
 
@@ -99,9 +100,10 @@ ClusterMerger::ClusterMerger(fhicl::ParameterSet const & pset)
   
   // get detector specific properties
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
-  auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+  auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
   _wire2cm = geom->WirePitch(0,0,0);
-  _time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
+  _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
 
   fClusterProducer = pset.get<std::string>("ClusterProducer");
   fVertexProducer  = pset.get<std::string>("VertexProducer" );
@@ -155,7 +157,9 @@ void ClusterMerger::produce(art::Event & e)
 
   // create cluster::Clusters
   std::vector<::cluster::Cluster> event_clusters;
-  _CMaker->MakeClusters(clus_h, clus_hit_assn_v, vtx_h, event_clusters);
+
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataFor(e);
+  _CMaker->MakeClusters(clockData, clus_h, clus_hit_assn_v, vtx_h, event_clusters);
 
   _merge_helper->Process(event_clusters);
 
@@ -212,13 +216,11 @@ const recob::Cluster ClusterMerger::FillClusterProperties(const ::cluster::Clust
   
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
 
-  //auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-  
   float startW = CMCluster._start_pt._w / _wire2cm;
-  float startT = CMCluster._start_pt._t / _time2cm;// + detp->TriggerOffset();
+  float startT = CMCluster._start_pt._t / _time2cm;
   
   float endW   = CMCluster._end_pt._w / _wire2cm;
-  float endT   = CMCluster._end_pt._t / _time2cm;// + detp->TriggerOffset();
+  float endT   = CMCluster._end_pt._t / _time2cm;
 
   
   auto planeid = geo::PlaneID(0,0,CMCluster._plane);

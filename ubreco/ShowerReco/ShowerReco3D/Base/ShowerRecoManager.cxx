@@ -27,7 +27,8 @@ namespace showerreco {
     return;
   }
   
-  void ShowerRecoManager::Reconstruct(std::vector<showerreco::Shower_t>& showers)
+  void ShowerRecoManager::Reconstruct(util::GeometryUtilities const& gser,
+                                      std::vector<showerreco::Shower_t>& showers)
   {
     
     showers.clear();
@@ -35,7 +36,7 @@ namespace showerreco {
     
     // for all pfparticle proto-showers
     for (auto const& proto_shower : _proto_showers) 
-      showers.push_back(RecoOneShower(proto_shower));
+      showers.push_back(RecoOneShower(gser, proto_shower));
     
     // Check that the showers reconstructed are the same length as the proto_showers vector
     if (showers.size() != _proto_showers.size()) {
@@ -45,7 +46,8 @@ namespace showerreco {
     return;
   }
 
-  ::showerreco::Shower_t ShowerRecoManager::RecoOneShower(const ::protoshower::ProtoShower& proto_shower)
+  ::showerreco::Shower_t ShowerRecoManager::RecoOneShower(util::GeometryUtilities const& gser,
+                                                          const ::protoshower::ProtoShower& proto_shower)
   {
     
     // reset product shoer
@@ -62,7 +64,7 @@ namespace showerreco {
       _watch.Start();
       
       try {
-	_alg_v[n] -> do_reconstruction(proto_shower, result);
+        _alg_v[n] -> do_reconstruction(gser, proto_shower, result);
       }// if reco succeeds
       catch (ShowerRecoException const& e) {
 	//catch (std::exception e) {

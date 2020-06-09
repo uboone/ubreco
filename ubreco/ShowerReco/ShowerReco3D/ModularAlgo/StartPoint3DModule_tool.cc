@@ -23,7 +23,8 @@ namespace showerreco {
     ~StartPoint3DModule() {}
     
     /// Inherited/overloaded function from ShowerRecoModuleBase
-    void do_reconstruction(const ::protoshower::ProtoShower &, Shower_t &);
+    void do_reconstruction(util::GeometryUtilities const&,
+                           const ::protoshower::ProtoShower &, Shower_t &);
     
   };
 
@@ -32,7 +33,8 @@ namespace showerreco {
       _name = "StartPoint3DModule"; 
     }
   
-  void StartPoint3DModule::do_reconstruction( const ::protoshower::ProtoShower & proto_shower,
+  void StartPoint3DModule::do_reconstruction(util::GeometryUtilities const&,
+                                             const ::protoshower::ProtoShower & proto_shower,
 					      Shower_t& resultShower)
 {
 
