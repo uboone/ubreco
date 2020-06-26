@@ -135,8 +135,8 @@ DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
     fEventTree->Branch("reco_hit_charge", "std::vector< float >", &fHitCharge);
     fEventTree->Branch("reco_hit_amplitude", "std::vector< float >", &fHitAmplitude);
     fEventTree->Branch("reco_hit_time", "std::vector< float >", &fHitTime);
-    fEventTree->Branch("reco_hit_plane", &fHitPlane, "reco_hit_plane/i");
-    fEventTree->Branch("reco_hit_wire", &fHitWire, "reco_hit_wire/i");
+    fEventTree->Branch("reco_hit_plane", "std::vector< uint >", &fHitPlane);
+    fEventTree->Branch("reco_hit_wire", "std::vector< uint >", &fHitWire);
 }
 
 void DecayFinder::clearEvent()

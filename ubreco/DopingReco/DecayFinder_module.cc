@@ -75,8 +75,8 @@ bool DecayFinder::FindRecoHits(art::Event const &evt)
 
       // Store information for all hits.
       fHitCharge.push_back(this_hit->Integral());
-      fHitAmplitude.push_back(this_hit->PeakTime());
-      fHitTime.push_back(this_hit->SigmaPeakTime());
+      fHitAmplitude.push_back(this_hit->PeakAmplitude());
+      fHitTime.push_back(this_hit->PeakTime());
       fHitPlane.push_back(this_hit->View());
       fHitWire.push_back(this_hit->Channel());
     }
