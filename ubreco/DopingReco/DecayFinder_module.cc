@@ -33,8 +33,20 @@ void DecayFinder::FillTrueDecay(art::Event const &evt)
 bool DecayFinder::FindRecoHits(art::Event const &evt)
 {
   // Here we implement the loop over the reconstructed objects
-
-  return true;
+  HitHandle hits_in_event;
+  evt.getByLabel(m_hit_producer, hits_in_event);
+  if (!hits_in_event.isValid())
+  {
+    std::cout << "Failed to access Recob::Hit objects with producer " << m_hit_producer << "." << std::endl;
+    return false;
+  }
+  else
+  {
+    fNumHits = hits_in_event->size();
+    std::cout << "Recob::Hit objects with producer " << m_hit_producer << " in event: " << fNumHits << std::endl;
+    // Dummy return
+    return true;
+  }
 }
 
 bool DecayFinder::IsContained(float x, float y, float z, const std::vector<float> &borders) const

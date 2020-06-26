@@ -76,6 +76,8 @@ public:
     void endSubRun(const art::SubRun &subrun);
 
 private:
+    typedef art::Handle< std::vector<recob::Hit> > HitHandle;
+    typedef std::vector< art::Ptr<recob::Hit> > HitVector;
     // Fields needed for the analyser
     std::string m_hit_producer;
     bool m_isData;
@@ -100,7 +102,7 @@ private:
 
 void DecayFinder::reconfigure(fhicl::ParameterSet const &p)
 {
-    m_hit_producer = p.get<std::string>("hit_producer", "pandora");
+    m_hit_producer = p.get<std::string>("hit_producer", "gaushit");
     m_isData = p.get<bool>("is_data", false);
 }
 

@@ -6,7 +6,7 @@ decay_finder_analyser:
     module_type: "DecayFinder"
 
     # Input producers
-    hit_producer: "pandora"
+    hit_producer: "gaushit"
     is_data: true
 }
 
