@@ -1,2 +1,2 @@
 #include "decay_finder_common.fcl"
-physics.analyzers.nuCCAnalyser.is_data: true
+physics.analyzers.decayFinder.is_data: true
