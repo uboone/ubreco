@@ -44,6 +44,42 @@ bool DecayFinder::FindRecoHits(art::Event const &evt)
   {
     fNumHits = hits_in_event->size();
     std::cout << "Recob::Hit objects with producer " << m_hit_producer << " in event: " << fNumHits << std::endl;
+
+    for (uint i = 0; i < fNumHits; ++i)
+    {
+      const art::Ptr<recob::Hit> this_hit(hits_in_event, i);
+
+      // For the first hit in the event, print all information.
+      if (i == fNumHits - 1)
+      {
+        std::cout << "\t--- Summary of last hit in event ---" << std::endl;
+        std::cout << "\tRecob::Hit StartTick " << this_hit->StartTick() << std::endl;
+        std::cout << "\tRecob::Hit EndTick " << this_hit->EndTick() << std::endl;
+        std::cout << "\tRecob::Hit PeakTime " << this_hit->PeakTime() << std::endl;
+        std::cout << "\tRecob::Hit SigmaPeakTime " << this_hit->SigmaPeakTime() << std::endl;
+        std::cout << "\tRecob::Hit RMS " << this_hit->RMS() << std::endl;
+        std::cout << "\tRecob::Hit PeakAmplitude " << this_hit->PeakAmplitude() << std::endl;
+        std::cout << "\tRecob::Hit SigmaPeakAmplitude " << this_hit->SigmaPeakAmplitude() << std::endl;
+        std::cout << "\tRecob::Hit SummedADC  " << this_hit->SummedADC() << std::endl;
+        std::cout << "\tRecob::Hit Integral " << this_hit->Integral() << std::endl;
+        std::cout << "\tRecob::Hit SigmaIntegral " << this_hit->SigmaIntegral() << std::endl;
+        std::cout << "\tRecob::Hit Multiplicity " << this_hit->Multiplicity() << std::endl;
+        std::cout << "\tRecob::Hit LocalIndex " << this_hit->LocalIndex() << std::endl;
+        std::cout << "\tRecob::Hit GoodnessOfFit " << this_hit->GoodnessOfFit() << std::endl;
+        std::cout << "\tRecob::Hit DegreesOfFreedom " << this_hit->DegreesOfFreedom() << std::endl;
+        std::cout << "\tRecob::Hit Channel " << this_hit->Channel() << std::endl;
+        std::cout << "\tRecob::Hit View " << this_hit->View() << std::endl;
+        std::cout << "\tRecob::Hit SignalType " << this_hit->SignalType() << std::endl;
+        std::cout << "\tRecob::Hit WireID " << this_hit->WireID() << std::endl;
+      }
+
+      // Store information for all hits.
+      fHitCharge.push_back(this_hit->Integral());
+      fHitAmplitude.push_back(this_hit->PeakTime());
+      fHitTime.push_back(this_hit->SigmaPeakTime());
+      fHitPlane.push_back(this_hit->View());
+      fHitWire.push_back(this_hit->Channel());
+    }
     // Dummy return
     return true;
   }

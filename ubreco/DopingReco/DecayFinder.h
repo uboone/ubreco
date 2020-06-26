@@ -77,7 +77,7 @@ public:
 
 private:
     typedef art::Handle< std::vector<recob::Hit> > HitHandle;
-    typedef std::vector< art::Ptr<recob::Hit> > HitVector;
+
     // Fields needed for the analyser
     std::string m_hit_producer;
     bool m_isData;
@@ -92,7 +92,7 @@ private:
     int fDecayType;
 
     // Reco info
-    int fNumHits;
+    uint fNumHits;
     std::vector<float> fHitCharge;
     std::vector<float> fHitAmplitude;
     std::vector<float> fHitTime;
