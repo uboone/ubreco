@@ -18,8 +18,8 @@ void DecayFinder::analyze(art::Event const &evt)
   {
     FillTrueDecay(evt);
   }
-  bool DecayFound = FindRecoHits(evt);
-  std::cout << "[DecayFinder::analyze]: Currently a placeholder, decay found? " << DecayFound << std::endl;
+  FindRecoHits(evt);
+  //  std::cout << "[DecayFinder::analyze]: Currently a placeholder, decay found? " << DecayFound << std::endl;
 
   fEventTree->Fill();
   std::cout << "\n\n";
@@ -28,17 +28,64 @@ void DecayFinder::analyze(art::Event const &evt)
 void DecayFinder::FillTrueDecay(art::Event const &evt)
 {
   // Here we store truth information about the simulated decay.
+
+  MCParticleHandle mcparticles_in_event;
+  evt.getByLabel(m_mcparticle_producer,mcparticles_in_event);
+  if (!mcparticles_in_event.isValid()) {
+    std::cout << "Failed to get simb::MCParticles with producer " << m_mcparticle_producer << std::endl;
+  }
+  else {
+    fNumMCParticles = mcparticles_in_event->size();
+    for (UInt_t ii = 0; ii < fNumMCParticles; ii++) {
+      const art::Ptr<simb::MCParticle> this_mcparticle(mcparticles_in_event, ii);
+
+      fTrackId.push_back(this_mcparticle->TrackId());
+      fMother.push_back(this_mcparticle->Mother());
+      fNumberDaughters.push_back(this_mcparticle->NumberDaughters());
+      fpdg.push_back(this_mcparticle->PdgCode());
+      fEng.push_back(this_mcparticle->E());
+      fStartPointx.push_back(this_mcparticle->Vx());
+      fStartPointy.push_back(this_mcparticle->Vy());
+      fStartPointz.push_back(this_mcparticle->Vz());
+      fPx.push_back(this_mcparticle->Px());
+      fPy.push_back(this_mcparticle->Py());
+      fPz.push_back(this_mcparticle->Pz());
+      fTime.push_back(this_mcparticle->T());
+      fprocess.push_back(this_mcparticle->Process());
+
+    }
+  }
+
 }
 
-bool DecayFinder::FindRecoHits(art::Event const &evt)
+void DecayFinder::FindRecoHits(art::Event const &evt)
 {
   // Here we implement the loop over the reconstructed objects
+
+  RawDigitHandle rawdigits_in_event;
+  evt.getByLabel(m_rawdigits_producer, rawdigits_in_event);
+  if (!rawdigits_in_event.isValid()){
+    std::cout << "Failed to get raw::RawDigits with producer " << m_rawdigits_producer << std::endl;
+  }
+  else {
+    fNumRawDigits = rawdigits_in_event->size();
+    for (UInt_t ii = 0; ii < fNumRawDigits; ii++){
+      const art::Ptr<raw::RawDigit> this_rawdigit(rawdigits_in_event, ii);
+
+      fChannel.push_back(this_rawdigit->Channel());
+      fPedestal.push_back(this_rawdigit->GetPedestal());
+      fSigma.push_back(this_rawdigit->GetSigma());
+
+    }
+
+  }
+
+
   HitHandle hits_in_event;
   evt.getByLabel(m_hit_producer, hits_in_event);
   if (!hits_in_event.isValid())
   {
     std::cout << "Failed to access Recob::Hit objects with producer " << m_hit_producer << "." << std::endl;
-    return false;
   }
   else
   {
@@ -80,8 +127,6 @@ bool DecayFinder::FindRecoHits(art::Event const &evt)
       fHitPlane.push_back(this_hit->View());
       fHitWire.push_back(this_hit->Channel());
     }
-    // Dummy return
-    return true;
   }
 }
 

@@ -23,6 +23,7 @@
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "lardataobj/RecoBase/Hit.h"
+#include "lardataobj/RawData/RawDigit.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
 
 #include "larcore/Geometry/Geometry.h"
@@ -63,7 +64,7 @@ public:
      *
      *  @return 1 if succesfully, 0 if not.
      */
-    bool FindRecoHits(art::Event const &e);
+    void FindRecoHits(art::Event const &e);
 
     /**
      *  @brief  Returns if point is inside a fiducial volume
@@ -77,9 +78,13 @@ public:
 
 private:
     typedef art::Handle< std::vector<recob::Hit> > HitHandle;
+    typedef art::Handle< std::vector<raw::RawDigit> > RawDigitHandle;
+    typedef art::Handle< std::vector<simb::MCParticle> > MCParticleHandle;
 
     // Fields needed for the analyser
     std::string m_hit_producer;
+    std::string m_rawdigits_producer;
+    std::string m_mcparticle_producer;
     bool m_isData;
 
     //// Tree for every event
@@ -87,12 +92,32 @@ private:
     uint fRun, fSubrun, fEvent;
 
     // MC info
+    UInt_t fNumMCParticles = 0;
+    std::vector<Int_t> fTrackId;
+    std::vector<Int_t> fMother;
+    std::vector<Int_t> fNumberDaughters;
+    std::vector<Int_t> fpdg;
+    std::vector<double> fEng;
+    std::vector<double> fStartPointx;
+    std::vector<double> fStartPointy;
+    std::vector<double> fStartPointz;
+    std::vector<double> fTime;
+    std::vector<double> fPx;
+    std::vector<double> fPy;
+    std::vector<double> fPz;
+    std::vector<std::string> fprocess;
     float fDecayEnergy;
     float fDecayTime;
     int fDecayType;
 
+    // RawDigit Info
+    UInt_t fNumRawDigits = 0;
+    std::vector<Int_t> fChannel;
+    std::vector<float> fPedestal;
+    std::vector<float> fSigma;
+
     // Reco info
-    uint fNumHits;
+    UInt_t fNumHits = 0;
     std::vector<float> fHitCharge;
     std::vector<float> fHitAmplitude;
     std::vector<float> fHitTime;
@@ -104,6 +129,10 @@ void DecayFinder::reconfigure(fhicl::ParameterSet const &p)
 {
     m_hit_producer = p.get<std::string>("hit_producer", "gaushit");
     m_isData = p.get<bool>("is_data", false);
+
+    m_rawdigits_producer = p.get<std::string>("rawdigits_producer","butcher");
+
+    m_mcparticle_producer = p.get<std::string>("mcparticle_producer","largeant");
 }
 
 DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
@@ -116,6 +145,7 @@ DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
     std::cout << std::endl;
     std::cout << "[DecayFinder constructor] Checking set-up" << std::endl;
     std::cout << "[DecayFinder constructor] hit_producer: " << m_hit_producer << std::endl;
+    std::cout << "[DecayFinder constructor] rawdigits_producer: " << m_rawdigits_producer << std::endl;
     std::cout << "[DecayFinder constructor] is_data: " << m_isData << std::endl;
 
     //// Tree for every event
@@ -129,6 +159,19 @@ DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
         fEventTree->Branch("sim_decay_energy", &fDecayEnergy, "sim_decay_energy/F");
         fEventTree->Branch("sim_decay_time", &fDecayTime, "sim_decay_time/F");
         fEventTree->Branch("sim_decay_type", &fDecayType, "sim_decay_type/i");
+
+        fEventTree->Branch("TrackId", "std::vector<Int_t>", &fTrackId);
+        fEventTree->Branch("Mother", "std::vector<Int_t>", &fMother);
+        fEventTree->Branch("NumberDaughters", "std::vector<Int_t>", &fNumberDaughters);
+        fEventTree->Branch("pdg", "std::vector<Int_t>", &fpdg);
+        fEventTree->Branch("StartPointx", "std::vector<double>", &fStartPointx);
+        fEventTree->Branch("StartPointy", "std::vector<double>", &fStartPointy);
+        fEventTree->Branch("StartPointz", "std::vector<double>", &fStartPointz);
+        fEventTree->Branch("Time", "std::vector<double>", &fTime);
+        fEventTree->Branch("Px", "std::vector<double>", &fPx);
+        fEventTree->Branch("Py", "std::vector<double>", &fPy);
+        fEventTree->Branch("Pz", "std::vector<double>", &fPz);
+        fEventTree->Branch("process", "std::vector<std::string>", &fprocess);
     }
 
     fEventTree->Branch("reco_num_hits", &fNumHits, "reco_num_hits/i");
@@ -137,6 +180,12 @@ DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
     fEventTree->Branch("reco_hit_time", "std::vector< float >", &fHitTime);
     fEventTree->Branch("reco_hit_plane", "std::vector< uint >", &fHitPlane);
     fEventTree->Branch("reco_hit_wire", "std::vector< uint >", &fHitWire);
+
+
+    fEventTree->Branch("raw_Channel", "std::vector<Int_t>", &fChannel);
+    fEventTree->Branch("raw_Pedestal", "std::vector<float>", &fPedestal);
+    fEventTree->Branch("raw_Sigma", "std::vector<float>", &fSigma);
+
 }
 
 void DecayFinder::clearEvent()
@@ -153,6 +202,26 @@ void DecayFinder::clearEvent()
     fHitTime.clear();
     fHitPlane.clear();
     fHitWire.clear();
+
+    fNumRawDigits = 0;
+    fChannel.clear();
+    fPedestal.clear();
+    fSigma.clear();
+
+    fNumMCParticles = 0;
+    fTrackId.clear();
+    fMother.clear();
+    fNumberDaughters.clear();
+    fpdg.clear();
+    fEng.clear();
+    fStartPointx.clear();
+    fStartPointy.clear();
+    fStartPointz.clear();
+    fPx.clear();
+    fPy.clear();
+    fPz.clear();
+    fTime.clear();
+    fprocess.clear();
 }
 
 DEFINE_ART_MODULE(DecayFinder)
