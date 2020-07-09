@@ -499,19 +499,20 @@ void gammacorrelation::analyze(art::Event const& e)
 
       if (plane==2){
         sps_cluster_charge = cluster->Integral();
+        Event_cluster_charge += sps_cluster_charge;
          // std::cout<<"sps_cluster_charge: "<<sps_cluster_charge<<std::endl;
       }
     }
 
     if (distance<distance_smallest){
       distance_smallest=distance;
-      for (auto const& cluster: cluster_v){
-        auto plane = cluster->View();
-
-        if (plane==2){
-          Event_cluster_charge = cluster->Integral();
-        }
-      }
+      // for (auto const& cluster: cluster_v){
+      //   auto plane = cluster->View();
+      //
+      //   if (plane==2){
+      //     Event_cluster_charge += cluster->Integral();
+      //   }
+      // }
 
     }
 
@@ -523,8 +524,9 @@ void gammacorrelation::analyze(art::Event const& e)
       N_sps10++;
       for (auto const& cluster: cluster_v){
         auto plane = cluster->View();
-        if (plane==2){
+        if (plane==2){// && (cluster->Integral()>20)){
           sps_cluster_charge10 += cluster->Integral();
+          // N_sps10++;
         }
       }
     }
@@ -533,8 +535,9 @@ void gammacorrelation::analyze(art::Event const& e)
       N_sps20++;
       for (auto const& cluster: cluster_v){
         auto plane = cluster->View();
-        if (plane==2){
+        if (plane==2){// && (cluster->Integral()>20)){
           sps_cluster_charge20 += cluster->Integral();
+          // N_sps20++;
         }
       }
     }
@@ -543,8 +546,9 @@ void gammacorrelation::analyze(art::Event const& e)
       N_sps50++;
       for (auto const& cluster: cluster_v){
         auto plane = cluster->View();
-        if (plane==2){
+        if (plane==2){// && (cluster->Integral()>20)){
           sps_cluster_charge50 += cluster->Integral();
+          // N_sps50++;
         }
       }
     }

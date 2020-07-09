@@ -8,7 +8,7 @@ module_type: "SelectNeutrino"
 BadEvents: []
 BadRuns: []
 Selection : 1
-EventList : "data_extbnb_mcc9.1_v08_00_00_16_18_run1_reco2_CheckNeutrino.txt"
+EventList : "data_extbnb_mcc9.1_v08_00_00_25_reco2_C1_nucc_reco2_CheckNeutrino.txt"
 
 }
 

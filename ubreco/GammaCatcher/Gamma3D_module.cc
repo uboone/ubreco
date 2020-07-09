@@ -359,77 +359,77 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
   for (size_t i_c = 0, size_cluster = cluster_handle->size(); i_c != size_cluster; ++i_c) { //start cluster FOR loop for calculating 2-D distance
 
     // std::cout<<"Cluster # "<<i_c<<std::endl;
+    //
+    // COMMENT OUT FROM HERE TO THE END OF IF CONTINUE STATEMENT BEFORE THE RECO TRACK FOR LOOP IF RUNNING OVER DATA OR MONTE CARLO WITH COSMICS
+    //
+    // UNCOMMENT IF RUNNING OVER DATA OR MONTE CARLO WITH NO COSMICS
 
-    //COMMENT OUT FROM HERE TO THE END OF IF CONTINUE STATEMENT BEFORE THE RECO TRACK FOR LOOP IF RUNNING OVER DATA OR MONTE CARLO WITH COSMICS
-
-    //UNCOMMENT IF RUNNING OVER DATA OR MONTE CARLO WITH NO COSMICS
 
 
-    //
-    // auto hits = clus_hit_assn_v.at(i_c);
-    //
-    //
-    //
-    // for (auto const& hit : hits) {//START CLUSTER HIT LOOP
-    //
-    //   cluster_hit_z = hit->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
-    //   cluster_hit_x = (hit->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
-    //
-    // }
-    //
-    // std::cout<<"Number of reco tracks: "<<recotrack_handle->size()<<std::endl;
-    //
-    //
-    //
-    // if(cluster[i_c].View()==2){
-    //   std::cout<<"HERE 2 !"<<std::endl;
-    //   plane=2;
-    //   Start_Cluster2.push_back((cluster[i_c].StartTick ())-3.0);//added +- 3.0 time tick tolerances
-    //   End_Cluster2.push_back((cluster[i_c].EndTick ())+3.0);
-    //   // Start_Cluster2.push_back((cluster[i_c].StartTick ()));//added +- 3.0 time tick tolerances
-    //   // End_Cluster2.push_back((cluster[i_c].EndTick ()));
-    //   Y_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
-    //   Y_index_vector.push_back(i_c); //Y Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
-    // }
-    //
-    // if(cluster[i_c].View()==1){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
-    //   std::cout<<"HERE 1 !"<<std::endl;
-    //   plane=1;
-    //   Start_Cluster1.push_back((cluster[i_c].StartTick ())-3.0);
-    //   End_Cluster1.push_back((cluster[i_c].EndTick ())+3.0);
-    //   V_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
-    //   // Start_Cluster1.push_back((cluster[i_c].StartTick ()));
-    //   // End_Cluster1.push_back((cluster[i_c].EndTick ()));
-    //   V_index_vector.push_back(i_c);//V Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
-    // }
-    //
-    // if(cluster[i_c].View()==0){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
-    //   std::cout<<"HERE 0 !"<<std::endl;
-    //   plane=0;
-    //   //
-    //   Start_Cluster0.push_back((cluster[i_c].StartTick ())-3.0);
-    //   End_Cluster0.push_back((cluster[i_c].EndTick ())+3.0);
-    //   U_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
-    //   // Start_Cluster0.push_back((cluster[i_c].StartTick ()));
-    //   // End_Cluster0.push_back((cluster[i_c].EndTick ()));
-    //   U_index_vector.push_back(i_c);//U Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
-    // }
-    //
-    //
-    //
-    //
-    // distance_smallest=1e10; //Variable for 2D distance between a cluster and nearest reco track, initialized to a large number for comparison
-    // distance_smallest_nu=1e10;
-    //
-    //
-    //
-    //
-    //
-    // Clustertree->Fill();
-    //
-    // if (recotrack_handle->size()==0)
-    //
-    // continue;
+    auto hits = clus_hit_assn_v.at(i_c);
+
+
+
+    for (auto const& hit : hits) {//START CLUSTER HIT LOOP
+
+      cluster_hit_z = hit->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
+      cluster_hit_x = (hit->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
+
+    }
+
+    std::cout<<"Number of reco tracks: "<<recotrack_handle->size()<<std::endl;
+
+
+
+    if(cluster[i_c].View()==2){
+      std::cout<<"HERE 2 !"<<std::endl;
+      plane=2;
+      Start_Cluster2.push_back((cluster[i_c].StartTick ())-3.0);//added +- 3.0 time tick tolerances
+      End_Cluster2.push_back((cluster[i_c].EndTick ())+3.0);
+      // Start_Cluster2.push_back((cluster[i_c].StartTick ()));//added +- 3.0 time tick tolerances
+      // End_Cluster2.push_back((cluster[i_c].EndTick ()));
+      Y_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
+      Y_index_vector.push_back(i_c); //Y Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
+    }
+
+    if(cluster[i_c].View()==1){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+      std::cout<<"HERE 1 !"<<std::endl;
+      plane=1;
+      Start_Cluster1.push_back((cluster[i_c].StartTick ())-3.0);
+      End_Cluster1.push_back((cluster[i_c].EndTick ())+3.0);
+      V_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
+      // Start_Cluster1.push_back((cluster[i_c].StartTick ()));
+      // End_Cluster1.push_back((cluster[i_c].EndTick ()));
+      V_index_vector.push_back(i_c);//V Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
+    }
+
+    if(cluster[i_c].View()==0){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+      std::cout<<"HERE 0 !"<<std::endl;
+      plane=0;
+      //
+      Start_Cluster0.push_back((cluster[i_c].StartTick ())-3.0);
+      End_Cluster0.push_back((cluster[i_c].EndTick ())+3.0);
+      U_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
+      // Start_Cluster0.push_back((cluster[i_c].StartTick ()));
+      // End_Cluster0.push_back((cluster[i_c].EndTick ()));
+      U_index_vector.push_back(i_c);//U Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
+    }
+
+
+
+
+    distance_smallest=1e10; //Variable for 2D distance between a cluster and nearest reco track, initialized to a large number for comparison
+    distance_smallest_nu=1e10;
+
+
+
+
+
+    Clustertree->Fill();
+
+    if (recotrack_handle->size()==0)
+
+    continue;
 
 
 
