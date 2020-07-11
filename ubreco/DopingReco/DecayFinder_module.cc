@@ -14,6 +14,13 @@ void DecayFinder::analyze(art::Event const &evt)
   fEvent = evt.id().event();
   std::cout << "[DecayFinder::analyze]: Run " << fRun << ", Subrun " << fSubrun << ", Event " << fEvent << std::endl;
 
+  // Fill the Pandora vectors and maps
+  lar_pandora::LArPandoraHelper::CollectSpacePoints(evt, m_spacepoint_producer, spacepoints, spacepointsToHits, hitsToSpacepoints);
+  lar_pandora::LArPandoraHelper::CollectPFParticles(evt, m_particle_producer, particles, particlesToSpacepoints);
+  lar_pandora::LArPandoraHelper::BuildPFParticleHitMaps(evt, m_particle_producer, m_spacepoint_producer, particlesToHits, hitsToParticles);
+  std::cout << "Recob::SpacePoint objects with producer " << m_spacepoint_producer << " in event: " << spacepoints.size() << std::endl;
+  std::cout << "Recob::PFParticle objects with producer " << m_particle_producer << " in event: " << particles.size() << std::endl;
+
   if (!m_isData)
   {
     FillTrueDecay(evt);
@@ -30,13 +37,16 @@ void DecayFinder::FillTrueDecay(art::Event const &evt)
   // Here we store truth information about the simulated decay.
 
   MCParticleHandle mcparticles_in_event;
-  evt.getByLabel(m_mcparticle_producer,mcparticles_in_event);
-  if (!mcparticles_in_event.isValid()) {
+  evt.getByLabel(m_mcparticle_producer, mcparticles_in_event);
+  if (!mcparticles_in_event.isValid())
+  {
     std::cout << "Failed to get simb::MCParticles with producer " << m_mcparticle_producer << std::endl;
   }
-  else {
+  else
+  {
     fNumMCParticles = mcparticles_in_event->size();
-    for (UInt_t ii = 0; ii < fNumMCParticles; ii++) {
+    for (UInt_t ii = 0; ii < fNumMCParticles; ii++)
+    {
       const art::Ptr<simb::MCParticle> this_mcparticle(mcparticles_in_event, ii);
 
       fTrackId.push_back(this_mcparticle->TrackId());
@@ -52,10 +62,8 @@ void DecayFinder::FillTrueDecay(art::Event const &evt)
       fPz.push_back(this_mcparticle->Pz());
       fTime.push_back(this_mcparticle->T());
       fprocess.push_back(this_mcparticle->Process());
-
     }
   }
-
 }
 
 void DecayFinder::FindRecoHits(art::Event const &evt)
@@ -64,22 +72,22 @@ void DecayFinder::FindRecoHits(art::Event const &evt)
 
   RawDigitHandle rawdigits_in_event;
   evt.getByLabel(m_rawdigits_producer, rawdigits_in_event);
-  if (!rawdigits_in_event.isValid()){
+  if (!rawdigits_in_event.isValid())
+  {
     std::cout << "Failed to get raw::RawDigits with producer " << m_rawdigits_producer << std::endl;
   }
-  else {
+  else
+  {
     fNumRawDigits = rawdigits_in_event->size();
-    for (UInt_t ii = 0; ii < fNumRawDigits; ii++){
+    for (UInt_t ii = 0; ii < fNumRawDigits; ii++)
+    {
       const art::Ptr<raw::RawDigit> this_rawdigit(rawdigits_in_event, ii);
 
       fChannel.push_back(this_rawdigit->Channel());
       fPedestal.push_back(this_rawdigit->GetPedestal());
       fSigma.push_back(this_rawdigit->GetSigma());
-
     }
-
   }
-
 
   HitHandle hits_in_event;
   evt.getByLabel(m_hit_producer, hits_in_event);

@@ -30,6 +30,7 @@
 #include "nusimdata/SimulationBase/MCParticle.h"
 #include "nusimdata/SimulationBase/MCTruth.h"
 
+#include "larpandora/LArPandoraInterface/LArPandoraHelper.h"
 #include "TTree.h"
 
 class DecayFinder;
@@ -77,15 +78,25 @@ public:
     void endSubRun(const art::SubRun &subrun);
 
 private:
-    typedef art::Handle< std::vector<recob::Hit> > HitHandle;
-    typedef art::Handle< std::vector<raw::RawDigit> > RawDigitHandle;
-    typedef art::Handle< std::vector<simb::MCParticle> > MCParticleHandle;
+    typedef art::Handle<std::vector<recob::Hit>> HitHandle;
+    typedef art::Handle<std::vector<raw::RawDigit>> RawDigitHandle;
+    typedef art::Handle<std::vector<simb::MCParticle>> MCParticleHandle;
 
     // Fields needed for the analyser
     std::string m_hit_producer;
+    std::string m_spacepoint_producer;
+    std::string m_particle_producer;
     std::string m_rawdigits_producer;
     std::string m_mcparticle_producer;
     bool m_isData;
+
+    lar_pandora::PFParticleVector particles;
+    lar_pandora::SpacePointVector spacepoints;
+    lar_pandora::PFParticlesToHits particlesToHits;
+    lar_pandora::HitsToPFParticles hitsToParticles;
+    lar_pandora::SpacePointsToHits spacepointsToHits;
+    lar_pandora::HitsToSpacePoints hitsToSpacepoints;
+    lar_pandora::PFParticlesToSpacePoints particlesToSpacepoints;
 
     //// Tree for every event
     TTree *fEventTree;
@@ -127,12 +138,12 @@ private:
 
 void DecayFinder::reconfigure(fhicl::ParameterSet const &p)
 {
-    m_hit_producer = p.get<std::string>("hit_producer", "gaushit");
     m_isData = p.get<bool>("is_data", false);
-
-    m_rawdigits_producer = p.get<std::string>("rawdigits_producer","butcher");
-
-    m_mcparticle_producer = p.get<std::string>("mcparticle_producer","largeant");
+    m_hit_producer = p.get<std::string>("hit_producer", "gaushit");
+    m_spacepoint_producer = p.get<std::string>("spacepoint_producer", "pandora");
+    m_particle_producer = p.get<std::string>("particle_producer", "pandora");
+    m_rawdigits_producer = p.get<std::string>("rawdigits_producer", "butcher");
+    m_mcparticle_producer = p.get<std::string>("mcparticle_producer", "largeant");
 }
 
 DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
@@ -145,6 +156,8 @@ DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
     std::cout << std::endl;
     std::cout << "[DecayFinder constructor] Checking set-up" << std::endl;
     std::cout << "[DecayFinder constructor] hit_producer: " << m_hit_producer << std::endl;
+    std::cout << "[DecayFinder constructor] spacepoint_producer: " << m_spacepoint_producer << std::endl;
+    std::cout << "[DecayFinder constructor] particle_producer: " << m_particle_producer << std::endl;
     std::cout << "[DecayFinder constructor] rawdigits_producer: " << m_rawdigits_producer << std::endl;
     std::cout << "[DecayFinder constructor] is_data: " << m_isData << std::endl;
 
@@ -181,15 +194,22 @@ DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
     fEventTree->Branch("reco_hit_plane", "std::vector< uint >", &fHitPlane);
     fEventTree->Branch("reco_hit_wire", "std::vector< uint >", &fHitWire);
 
-
     fEventTree->Branch("raw_Channel", "std::vector<Int_t>", &fChannel);
     fEventTree->Branch("raw_Pedestal", "std::vector<float>", &fPedestal);
     fEventTree->Branch("raw_Sigma", "std::vector<float>", &fSigma);
-
 }
 
 void DecayFinder::clearEvent()
 {
+    // Clean object vectors and maps
+    particles.clear();
+    spacepoints.clear();
+    particlesToHits.clear();
+    hitsToParticles.clear();
+    spacepointsToHits.clear();
+    hitsToSpacepoints.clear();
+    particlesToSpacepoints.clear();
+
     // MC info
     fDecayEnergy = 0;
     fDecayTime = 0;

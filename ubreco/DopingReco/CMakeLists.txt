@@ -4,6 +4,7 @@ art_make(
 
           # Needed for the main module          
           MODULE_LIBRARIES
+                        larpandora_LArPandoraInterface
                         larcorealg_Geometry
                         larreco_RecoAlg
                         larcore_Geometry_Geometry_service
