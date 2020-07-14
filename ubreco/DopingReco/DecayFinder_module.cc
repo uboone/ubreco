@@ -99,10 +99,15 @@ void DecayFinder::FindRecoHits(art::Event const &evt)
   {
     fNumHits = hits_in_event->size();
     std::cout << "Recob::Hit objects with producer " << m_hit_producer << " in event: " << fNumHits << std::endl;
+    uint hits_in_particles = 0;
+    uint hits_as_spacepoint = 0; 
 
     for (uint i = 0; i < fNumHits; ++i)
     {
       const art::Ptr<recob::Hit> this_hit(hits_in_event, i);
+
+      hits_in_particles += (hitsToParticles.find(this_hit)!=hitsToParticles.end());
+      hits_as_spacepoint += (hitsToSpacepoints.find(this_hit)!=hitsToSpacepoints.end());
 
       // For the first hit in the event, print all information.
       if (i == fNumHits - 1)
@@ -135,6 +140,8 @@ void DecayFinder::FindRecoHits(art::Event const &evt)
       fHitPlane.push_back(this_hit->View());
       fHitWire.push_back(this_hit->Channel());
     }
+    std::cout << "Fraction of hits that are reconstructed as spacepoint " << hits_as_spacepoint/(float)fNumHits << std::endl;
+    std::cout << "Fraction of hits that belong to a PFParticle " << hits_in_particles/(float)fNumHits << std::endl;
   }
 }
 
