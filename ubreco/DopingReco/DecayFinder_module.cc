@@ -90,6 +90,7 @@ void DecayFinder::FindRecoHits(art::Event const &evt)
   }
 
   HitHandle hits_in_event;
+  std::vector<art::Ptr<recob::Hit>> vector_of_hits;
   evt.getByLabel(m_hit_producer, hits_in_event);
   if (!hits_in_event.isValid())
   {
@@ -100,7 +101,7 @@ void DecayFinder::FindRecoHits(art::Event const &evt)
     fNumHits = hits_in_event->size();
     std::cout << "Recob::Hit objects with producer " << m_hit_producer << " in event: " << fNumHits << std::endl;
     uint hits_in_particles = 0;
-    uint hits_as_spacepoint = 0; 
+    uint hits_as_spacepoint = 0;
 
     for (uint i = 0; i < fNumHits; ++i)
     {
@@ -133,6 +134,8 @@ void DecayFinder::FindRecoHits(art::Event const &evt)
         std::cout << "\tRecob::Hit WireID " << this_hit->WireID() << std::endl;
       }
 
+      vector_of_hits.push_back(this_hit);
+
       // Store information for all hits.
       fHitCharge.push_back(this_hit->Integral());
       fHitAmplitude.push_back(this_hit->PeakAmplitude());
@@ -143,7 +146,30 @@ void DecayFinder::FindRecoHits(art::Event const &evt)
     std::cout << "Fraction of hits that are reconstructed as spacepoint " << hits_as_spacepoint/(float)fNumHits << std::endl;
     std::cout << "Fraction of hits that belong to a PFParticle " << hits_in_particles/(float)fNumHits << std::endl;
   }
-}
+
+  //GausHitTruthmatch
+  auto const &hit_mcpart_assn = *evt.getValidHandle<art::Assns<recob::Hit,simb::MCParticle,anab::BackTrackerHitMatchingData>>("gaushitTruthMatch");
+
+    std::unordered_set<size_t> my_hit_key_mc;
+
+    for(auto &pair : hit_mcpart_assn){
+      my_hit_key_mc.insert(pair.first.key());
+    }
+
+   // Check fraction that are truth:
+   for(UInt_t ht = 0; ht < fNumHits; ht++){
+     if(my_hit_key_mc.count(vector_of_hits.at(ht).key()) > 0){
+     //if(my_hit_key_mc.count(4825) > 0){
+       fMCHit.push_back(true);
+     }
+     else {
+        fMCHit.push_back(false);
+     }
+   }
+    
+
+} //End FindRecoHits
+
 
 bool DecayFinder::IsContained(float x, float y, float z, const std::vector<float> &borders) const
 {

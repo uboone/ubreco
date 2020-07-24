@@ -25,6 +25,8 @@
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RawData/RawDigit.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
+#include "lardataobj/AnalysisBase/BackTrackerMatchingData.h"
+
 
 #include "larcore/Geometry/Geometry.h"
 #include "nusimdata/SimulationBase/MCParticle.h"
@@ -134,6 +136,7 @@ private:
     std::vector<float> fHitTime;
     std::vector<uint> fHitPlane;
     std::vector<uint> fHitWire;
+    std::vector<bool> fMCHit;
 };
 
 void DecayFinder::reconfigure(fhicl::ParameterSet const &p)
@@ -193,6 +196,7 @@ DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
     fEventTree->Branch("reco_hit_time", "std::vector< float >", &fHitTime);
     fEventTree->Branch("reco_hit_plane", "std::vector< uint >", &fHitPlane);
     fEventTree->Branch("reco_hit_wire", "std::vector< uint >", &fHitWire);
+    fEventTree->Branch("MCHit", "std::vector< bool >", &fMCHit);
 
     fEventTree->Branch("raw_Channel", "std::vector<Int_t>", &fChannel);
     fEventTree->Branch("raw_Pedestal", "std::vector<float>", &fPedestal);
@@ -222,6 +226,7 @@ void DecayFinder::clearEvent()
     fHitTime.clear();
     fHitPlane.clear();
     fHitWire.clear();
+    fMCHit.clear();
 
     fNumRawDigits = 0;
     fChannel.clear();
