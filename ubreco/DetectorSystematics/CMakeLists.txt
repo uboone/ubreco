@@ -9,7 +9,9 @@ art_make(
                         ${Boost_SYSTEM_LIBRARY}
 			${ROOT_BASIC_LIB_LIST}
 			${ROOT_HIST}
+			nusimdata_SimulationBase
           MODULE_LIBRARIES 
+	  		nusimdata_SimulationBase
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
 			lardataobj_RawData
