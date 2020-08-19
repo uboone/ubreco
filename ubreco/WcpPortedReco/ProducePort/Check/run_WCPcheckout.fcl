@@ -1,6 +1,6 @@
 #include "time_memory_tracker_microboone.fcl"
 #include "services_microboone.fcl"
-process_name: WCPselection
+process_name: WCPcheckout
 
 services:
 {
@@ -24,29 +24,24 @@ physics:
   {
     wcpselection:
     {
-      module_type:      "WCPselection"
+      module_type:      "WCPcheckout"
       ContainmentLabel: "nuselMetrics"
       ChargeLabel:      "nuselMetrics"
       TruthLabel:       "nuselMetrics"
       MatchLabel:       "nuselMetrics"
       STMLabel:       	"nuselMetricsSTM"
-      
-      Hist_nbins: 	34   #60MeV/bin
-      Hist_binlow:	0
-      Hist_binup:	2040 #MeV
-      Cut_lowE:		60 #MeV	
-      Cut_completeness: 0.1
-      Cut_clusterlength: 15
 
       MC:               true
       SaveWeights:	false
+      SaveLeeWeights:	false
 
       POT_counting:	true
       POT_inputTag:	"generator" #this if for overlay. For data e.g. "beamdata:bnbETOR875"
 
       ## Wire-Cell particle flow
-      wirecellPF:	false
-      BDTvars:		false
+      wirecellPF:	true	
+      BDTvars:		true
+      KINEvars:		true
       PF_validation: 	true
       PF_inputtag:	"wirecellPF"
       PFtruth_inputtag: "largeant"
