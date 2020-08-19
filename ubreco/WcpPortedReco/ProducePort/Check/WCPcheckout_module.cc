@@ -754,6 +754,7 @@ private:
   std::vector<int> *kine_energy_included = new std::vector<int>;
   float kine_pio_mass;
   int 	kine_pio_flag;
+  float	kine_pio_vtx_dis;
   float kine_pio_energy_1;
   float kine_pio_theta_1;
   float kine_pio_phi_1;
@@ -1619,6 +1620,7 @@ void WCPcheckout::initOutput()
   fKINE->Branch("kine_energy_included",&kine_energy_included);
   fKINE->Branch("kine_pio_mass",&kine_pio_mass,"kine_pio_mass/F");
   fKINE->Branch("kine_pio_flag",&kine_pio_flag,"kine_pio_flag/I");
+  fKINE->Branch("kine_pio_vtx_dis",&kine_pio_vtx_dis,"kine_pio_vtx_dis/F");
   fKINE->Branch("kine_pio_energy_1",&kine_pio_energy_1,"kine_pio_energy_1/F");
   fKINE->Branch("kine_pio_theta_1",&kine_pio_theta_1,"kine_pio_theta_1/F");
   fKINE->Branch("kine_pio_phi_1",&kine_pio_phi_1,"kine_pio_phi_1/F");
@@ -2007,6 +2009,7 @@ void WCPcheckout::analyze(art::Event const& e)
 	kine->GetKineInfo().kine_energy_included->at(0)<<" "<<
 	kine->GetKineInfo().kine_pio_mass<<" "<<
 	kine->GetKineInfo().kine_pio_flag<<" "<<
+	kine->GetKineInfo().kine_pio_vtx_dis<<" "<<
 	kine->GetKineInfo().kine_pio_energy_1<<" "<<
 	kine->GetKineInfo().kine_pio_theta_1<<" "<<
 	kine->GetKineInfo().kine_pio_phi_1<<" "<<
@@ -2666,6 +2669,7 @@ void WCPcheckout::resetOutput()
 		  kine_energy_included=nullptr;
 		  kine_pio_mass=-1;
 		  kine_pio_flag=-1;
+		  kine_pio_vtx_dis=-1;
 		  kine_pio_energy_1=-1;
 		  kine_pio_theta_1=-1;
 		  kine_pio_phi_1=-1;
@@ -3377,6 +3381,7 @@ void WCPcheckout::ReadKINEvar(art::Ptr<nsm::NuSelectionKINE> kine)
 	kine_energy_included = kine->GetKineInfo().kine_energy_included;
 	kine_pio_mass = kine->GetKineInfo().kine_pio_mass;
 	kine_pio_flag = kine->GetKineInfo().kine_pio_flag;
+	kine_pio_vtx_dis = kine->GetKineInfo().kine_pio_vtx_dis;
 	kine_pio_energy_1 = kine->GetKineInfo().kine_pio_energy_1;
 	kine_pio_theta_1 = kine->GetKineInfo().kine_pio_theta_1;
 	kine_pio_phi_1 = kine->GetKineInfo().kine_pio_phi_1;

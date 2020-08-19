@@ -2120,6 +2120,7 @@ if(f_KINEport){
 	  std::vector<int> *kine_energy_included = new std::vector<int>; // included in the neutrino energy calculation?
 	  float kine_pio_mass; // mass
 	  int kine_pio_flag; // 0 not filled, 1, with vertex: CCpio, 2 without vertex: NCpi0
+	  float kine_pio_vtx_dis;
 	  float kine_pio_energy_1;
 	  float kine_pio_theta_1;
 	  float kine_pio_phi_1;
@@ -2138,6 +2139,7 @@ if(f_KINEport){
 	  tree4->SetBranchAddress("kine_energy_included", &kine_energy_included); // included in the neutrino energy calculation?
 	  tree4->SetBranchAddress("kine_pio_mass", &kine_pio_mass); // mass
 	  tree4->SetBranchAddress("kine_pio_flag", &kine_pio_flag); // 0 not filled, 1, with vertex: CCpio, 2 without vertex: NCpi0
+	  tree4->SetBranchAddress("kine_pio_vtx_dis", &kine_pio_vtx_dis);
 	  tree4->SetBranchAddress("kine_pio_energy_1", &kine_pio_energy_1);
 	  tree4->SetBranchAddress("kine_pio_theta_1", &kine_pio_theta_1);
 	  tree4->SetBranchAddress("kine_pio_phi_1", &kine_pio_phi_1);
@@ -2159,6 +2161,7 @@ if(f_KINEport){
 		  kine_energy_included,
 		  kine_pio_mass,
 		  kine_pio_flag,
+		  kine_pio_vtx_dis,
 		  kine_pio_energy_1,
 		  kine_pio_theta_1,
 		  kine_pio_phi_1,
