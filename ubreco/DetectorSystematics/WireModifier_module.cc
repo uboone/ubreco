@@ -31,6 +31,10 @@
 #include "TSpline.h"
 #include "TGraph2DErrors.h"
 
+// Use include statements for the truth products.
+#include "nusimdata/SimulationBase/MCParticle.h"
+#include "nusimdata/SimulationBase/MCTruth.h"
+
 //include for the TFileService/ROOT
 #include "art/Framework/Services/Optional/TFileService.h"
 #include "TNtuple.h"
@@ -218,17 +222,17 @@ private:
 
   ROIProperties_t CalcROIProperties(recob::Wire::RegionsOfInterest_t::datarange_t const&);
 
-  std::vector< std::pair<unsigned int, unsigned int> > GetTargetROIs(sim::SimEnergyDeposit const&);
+  std::vector< std::pair<unsigned int, unsigned int> > GetTargetROIs(sim::SimEnergyDeposit const&, double offset);
   std::vector< std::pair<unsigned int, unsigned int> > GetHitTargetROIs(recob::Hit const&);
   
-  void FillROIMatchedEdepMap(std::vector<sim::SimEnergyDeposit> const&, std::vector<recob::Wire> const&);
+  void FillROIMatchedEdepMap(std::vector<sim::SimEnergyDeposit> const&, std::vector<recob::Wire> const&, double offset);
   void FillROIMatchedHitMap(std::vector<recob::Hit> const&, std::vector<recob::Wire> const&);
 
   std::vector<SubROIProperties_t> CalcSubROIProperties(ROIProperties_t const&, std::vector<const recob::Hit*> const&);
 
-  std::map<SubROI_Key_t, std::vector<const sim::SimEnergyDeposit*>> MatchEdepsToSubROIs(std::vector<SubROIProperties_t> const&, std::vector<const sim::SimEnergyDeposit*> const&);
+  std::map<SubROI_Key_t, std::vector<const sim::SimEnergyDeposit*>> MatchEdepsToSubROIs(std::vector<SubROIProperties_t> const&, std::vector<const sim::SimEnergyDeposit*> const&, double offset);
 
-  TruthProperties_t CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDeposit*> const&);
+  TruthProperties_t CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDeposit*> const&, double offset);
 
   ScaleValues_t GetScaleValues(TruthProperties_t const&,ROIProperties_t const&);
   ScaleValues_t GetScaleValues(TruthProperties_t const&,unsigned int const&);
@@ -273,15 +277,16 @@ sys::WireModifier::CalcROIProperties(recob::Wire::RegionsOfInterest_t::datarange
 }
 
 std::vector< std::pair<unsigned int, unsigned int> > 
-sys::WireModifier::GetTargetROIs(sim::SimEnergyDeposit const& shifted_edep)
+sys::WireModifier::GetTargetROIs(sim::SimEnergyDeposit const& shifted_edep, double offset)
 {
+
   //channel number, time tick
   std::vector< std::pair<unsigned int,unsigned int> > target_roi_vec;
 
   int edep_U_wire = std::round( A_w*(-std::sqrt(0.75)*shifted_edep.Y() + COS_SIXTY*shifted_edep.Z()) + C_U );
   int edep_V_wire = std::round( A_w*( std::sqrt(0.75)*shifted_edep.Y() + COS_SIXTY*shifted_edep.Z()) + C_V );
   int edep_Y_wire = std::round( A_w*shifted_edep.Z() + C_Y );
-  int edep_tick   = std::round( A_t*shifted_edep.X() + C_t + fTickOffset);
+  int edep_tick   = std::round( A_t*shifted_edep.X() + ( C_t + offset ) + fTickOffset);
 
   if (edep_tick<fTickOffset || edep_tick>=6400+fTickOffset)
     return target_roi_vec;
@@ -316,7 +321,7 @@ sys::WireModifier::GetHitTargetROIs(recob::Hit const& hit)
 }
 
 void sys::WireModifier::FillROIMatchedEdepMap(std::vector<sim::SimEnergyDeposit> const& edepVec,
-					      std::vector<recob::Wire> const& wireVec)
+					      std::vector<recob::Wire> const& wireVec, double offset)
 {
   fROIMatchedEdepMap.clear();
 
@@ -326,7 +331,7 @@ void sys::WireModifier::FillROIMatchedEdepMap(std::vector<sim::SimEnergyDeposit>
 
   for(size_t i_e=0; i_e<edepVec.size(); ++i_e){
 
-    std::vector< std::pair<unsigned int, unsigned int> > target_rois = GetTargetROIs(edepVec[i_e]); 
+    std::vector< std::pair<unsigned int, unsigned int> > target_rois = GetTargetROIs(edepVec[i_e], offset); 
 
     for( auto const& target_roi : target_rois){
 
@@ -424,7 +429,7 @@ sys::WireModifier::CalcSubROIProperties(sys::WireModifier::ROIProperties_t const
 
 std::map<sys::WireModifier::SubROI_Key_t, std::vector<const sim::SimEnergyDeposit*>>
 sys::WireModifier::MatchEdepsToSubROIs(std::vector<sys::WireModifier::SubROIProperties_t> const& subROIPropVec,
-				       std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec) {
+				       std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec, double offset) {
 
   // for each TrackID, which EDeps are associated with it? keys are TrackIDs
   std::map<int, std::vector<const sim::SimEnergyDeposit*>> TrackIDMatchedEDepMap;
@@ -437,7 +442,7 @@ sys::WireModifier::MatchEdepsToSubROIs(std::vector<sys::WireModifier::SubROIProp
   }
   // calculate EDep properties by TrackID
   std::map<int, sys::WireModifier::TruthProperties_t> TrackIDMatchedPropertyMap;
-  for ( auto const& track_edeps : TrackIDMatchedEDepMap ) { TrackIDMatchedPropertyMap[track_edeps.first] = CalcPropertiesFromEdeps(track_edeps.second); }
+  for ( auto const& track_edeps : TrackIDMatchedEDepMap ) { TrackIDMatchedPropertyMap[track_edeps.first] = CalcPropertiesFromEdeps(track_edeps.second, offset); }
 
   // for each EDep, which subROI(s) (if any) is it plausibly matched to? based on whether the EDep's projected tick is within +/-1sigma of the subROI center
   std::map<unsigned int, std::vector<unsigned int>> EDepMatchedSubROIMap;   // keys are indexes of edepPtrVec, values are vectors of indexes of subROIPropVec
@@ -454,7 +459,7 @@ sys::WireModifier::MatchEdepsToSubROIs(std::vector<sys::WireModifier::SubROIProp
     
     // get EDep properties
     auto edep_ptr  = edepPtrVec[i_e];
-    auto edep_tick = A_t * edep_ptr->X() + C_t + fTickOffset;
+    auto edep_tick = A_t * edep_ptr->X() + ( C_t + offset ) + fTickOffset;
 
     // loop over subROIs  
     unsigned int closest_hit = 0;
@@ -495,8 +500,7 @@ sys::WireModifier::MatchEdepsToSubROIs(std::vector<sys::WireModifier::SubROIProp
 }
 
 sys::WireModifier::TruthProperties_t 
-sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec){
-  
+sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDeposit*> const& edepPtrVec, double offset){
   
   //split the edeps by TrackID
   std::map< int, std::vector<const sim::SimEnergyDeposit*> > edepptrs_by_trkid;
@@ -693,11 +697,11 @@ sys::WireModifier::CalcPropertiesFromEdeps(std::vector<const sim::SimEnergyDepos
     edep_col_properties.x_rms = std::sqrt(edep_col_properties.x_rms/total_energy);
   
   // convert x-related proerties to ticks
-  edep_col_properties.tick = A_t*edep_col_properties.x + C_t + fTickOffset;
+  edep_col_properties.tick = A_t*edep_col_properties.x + ( C_t + offset ) + fTickOffset;
   edep_col_properties.tick_rms = A_t*edep_col_properties.x_rms;
   edep_col_properties.tick_rms_noWeight = A_t*edep_col_properties.x_rms_noWeight;
-  edep_col_properties.tick_min = A_t*edep_col_properties.x_min + C_t + fTickOffset;
-  edep_col_properties.tick_max = A_t*edep_col_properties.x_max + C_t + fTickOffset;
+  edep_col_properties.tick_min = A_t*edep_col_properties.x_min + ( C_t + offset ) + fTickOffset;
+  edep_col_properties.tick_max = A_t*edep_col_properties.x_max + ( C_t + offset ) + fTickOffset;
   
   edep_col_properties.total_energy = total_energy;
   
@@ -869,10 +873,12 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
     // calculate q_orig, q_mod for this tick
     for ( auto const& subroi_prop : subROIPropVec ) {
       auto scale_vals = subROIScaleMap.find(subroi_prop.key)->second;
+
       q_orig += GAUSSIAN( i_t+roi_prop.begin,
 			  subroi_prop.center,
 			  subroi_prop.sigma,
 			  subroi_prop.total_q );
+
       if ( verbose ) std::cout << "    Incrementing q_orig by GAUSSIAN( " << i_t+roi_prop.begin << ", " << subroi_prop.center << ", " << subroi_prop.sigma 
 			       << ", " << subroi_prop.total_q << ") = " 
 			       << GAUSSIAN( i_t+roi_prop.begin,
@@ -880,10 +886,12 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
 					    subroi_prop.sigma,
 					    subroi_prop.total_q )
 			       << std::endl;
+
       q_mod  += GAUSSIAN( i_t+roi_prop.begin,
 			  subroi_prop.center,
 			  scale_vals.r_sigma * subroi_prop.sigma, 
 			  scale_vals.r_Q     * subroi_prop.total_q );
+
       if (verbose ) std::cout << "    Incrementing q_mod by GAUSSIAN( " << i_t+roi_prop.begin << ", " << subroi_prop.center << ", " << scale_vals.r_sigma 
 			      << " * " << subroi_prop.sigma << ", " << scale_vals.r_Q << " * " << subroi_prop.total_q << ") = " 
 			      << GAUSSIAN( i_t+roi_prop.begin,
@@ -1037,6 +1045,37 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
 void sys::WireModifier::produce(art::Event& e)
 {
 
+  double nu_t = 0.;
+
+  // Load in the truth products and find the truth neutrino time.                                                                                                                                          
+  art::Handle<std::vector<simb::MCTruth> > neutrino_h;
+  e.getByLabel("generator", neutrino_h);
+
+  // make sure MCTruth info looks good                                                                                                                                                                      
+  if(!neutrino_h.isValid()) {
+    std::cerr<<"\033[93m[ERROR]\033[00m ... could not locate Neutrino!"<<std::endl;
+    throw std::exception();
+  }
+
+  std::vector<art::Ptr<simb::MCTruth> >NeutrinoVec;
+  art::fill_ptr_vector(NeutrinoVec, neutrino_h);
+
+  for (auto& neutrino : NeutrinoVec ) {
+
+    // Unpack the neutrino object to find an MCParticle.                                                                                                                                                    
+    const simb::MCNeutrino& truth_neutrino = neutrino->GetNeutrino();
+    const simb::MCParticle& truth_particle = truth_neutrino.Nu();
+
+    nu_t = truth_particle.T( 0 );
+
+  }
+
+  std::cout << "nu_t = " << nu_t << " ns." << std::endl;
+
+  double offset_ADC = ( nu_t - 3906.5 ) / 500.;
+
+  std::cout << "offset_ADC = " << offset_ADC << " ticks." << std::endl;
+
   //get wires
   art::Handle< std::vector<recob::Wire> > wireHandle;
   e.getByLabel(fWireInputTag, wireHandle);
@@ -1064,7 +1103,7 @@ void sys::WireModifier::produce(art::Event& e)
   std::unique_ptr< art::Assns<raw::RawDigit,recob::Wire> > new_digit_assn(new art::Assns<raw::RawDigit,recob::Wire>());
 
   //first fill our roi to edep map
-  FillROIMatchedEdepMap(edepShiftedVec,wireVec);
+  FillROIMatchedEdepMap(edepShiftedVec,wireVec,offset_ADC);
   // and fill our roi to hit map
   FillROIMatchedHitMap(hitVec,wireVec);
 
@@ -1136,7 +1175,7 @@ void sys::WireModifier::produce(art::Event& e)
       //std::cout << "  Have " << subROIPropVec.size() << " subROIs" << std::endl;
 
       // get the edeps per subROI
-      auto SubROIMatchedShiftedEdepMap = MatchEdepsToSubROIs(subROIPropVec, matchedShiftedEdepPtrVec);
+      auto SubROIMatchedShiftedEdepMap = MatchEdepsToSubROIs(subROIPropVec, matchedShiftedEdepPtrVec, offset_ADC);
       // convert from shifted edep pointers to original edep pointers
       std::map<SubROI_Key_t, std::vector<const sim::SimEnergyDeposit*>> SubROIMatchedEdepMap;
       for ( auto const& key_edepPtrVec_pair : SubROIMatchedShiftedEdepMap ) {
@@ -1162,12 +1201,12 @@ void sys::WireModifier::produce(art::Event& e)
 	
 	// if subROI has matched EDeps, use them to get the scale values
 	if ( key_it != SubROIMatchedEdepMap.end() && key_it->second.size() > 0 ) {
-	  auto truth_vals = CalcPropertiesFromEdeps(key_it->second);
+	  auto truth_vals = CalcPropertiesFromEdeps(key_it->second, offset_ADC);
 	  
 	  // fill ntuple with total subROI total energy and total Q information
 	  fNt->Fill(truth_vals.total_energy,subroi_prop.total_q);
 
-	  // if we have a large it with little energy, default to r_Q = r_sigma = 1
+	  // if we have a large it with little energy, default to r_Q = r_sigma = 
 	  if ( truth_vals.total_energy < 0.3 && subroi_prop.total_q > 80 ) {
 	    scale_vals.r_Q     = 1.;
 	    scale_vals.r_sigma = 1.;
