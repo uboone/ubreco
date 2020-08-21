@@ -19,6 +19,7 @@ art_make(
 	  		ubreco_ShowerReco_ShowerReco3D_Base
 	  		#ubreco_ShowerReco_ShowerReco3D_ProtoShower
 		   	#larpandora_LArPandoraInterface	
+                        lardataalg_DetectorInfo
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
 			lardataobj_RecoBase

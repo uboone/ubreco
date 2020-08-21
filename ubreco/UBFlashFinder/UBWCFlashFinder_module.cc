@@ -179,8 +179,8 @@ void UBWCFlashFinder::produce(art::Event & evt)
 
   // initialize data handles and services
   art::ServiceHandle<geo::Geometry> geo;
-  auto const* ts = lar::providerFrom<detinfo::DetectorClocksService>();
-  double triggerTime = ts->TriggerTime();
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataFor(evt);
+  double triggerTime = clockData.TriggerTime();
 
   //get gains from database if requested
   if(_usePmtGainDB){

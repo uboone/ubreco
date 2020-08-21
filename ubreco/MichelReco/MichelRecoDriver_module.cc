@@ -97,9 +97,10 @@ MichelRecoDriver::MichelRecoDriver(fhicl::ParameterSet const & p)
   
   // get detector specific properties
   auto const* geom = lar::providerFrom<geo::Geometry>();
-  auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+  auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
   _w2cm = geom->WirePitch();
-  _t2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
+  _t2cm = sampling_rate(clockData) / 1000.0 * detProp.DriftVelocity( detProp.Efield(), detProp.Temperature() );
 
   std::cout << "**********************" << std::endl
 	    << "Wire 2 Cm -> " << _w2cm << std::endl

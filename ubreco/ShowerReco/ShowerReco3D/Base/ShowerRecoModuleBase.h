@@ -59,7 +59,8 @@ public:
      * @param t proto_shower The set of shower inputs
      * @param t shower The shower that is passed by reference.  Make edits to this object
      */
-    virtual void do_reconstruction(const ::protoshower::ProtoShower & proto_shower, Shower_t & shower) = 0;
+    virtual void do_reconstruction(const util::GeometryUtilities& geomUtilities,
+                                   const ::protoshower::ProtoShower & proto_shower, Shower_t & shower) = 0;
 
     /**
      * @brief Verbosity setter function for each Modular Algo
@@ -92,4 +93,3 @@ protected:
 
 #endif
 /** @} */ // end of doxygen group
-

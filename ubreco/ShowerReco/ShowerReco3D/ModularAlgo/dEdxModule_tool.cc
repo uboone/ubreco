@@ -29,7 +29,8 @@ namespace showerreco {
 
     void configure(const fhicl::ParameterSet& pset);
     
-    void do_reconstruction(const ::protoshower::ProtoShower &, Shower_t &);
+    void do_reconstruction(const util::GeometryUtilities&,
+                           const ::protoshower::ProtoShower &, Shower_t &);
     
     void initialize();
     
@@ -106,7 +107,8 @@ namespace showerreco {
     return;
   }
   
-  void dEdxModule::do_reconstruction(const ::protoshower::ProtoShower & proto_shower, Shower_t & resultShower) {
+  void dEdxModule::do_reconstruction(const util::GeometryUtilities&,
+                                     const ::protoshower::ProtoShower & proto_shower, Shower_t & resultShower) {
 
     //handle to tpc energy calibration provider
     //const lariov::TPCEnergyCalibProvider& energyCalibProvider  = art::ServiceHandle<lariov::TPCEnergyCalibService>()->GetProvider();

@@ -12,6 +12,7 @@ art_make(
           MODULE_LIBRARIES 
 			ubreco_MichelReco_Fmwk
 			ubreco_MichelReco_Algo
+                        lardataalg_DetectorInfo
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
 			larsim_MCCheater_ParticleInventoryService_service

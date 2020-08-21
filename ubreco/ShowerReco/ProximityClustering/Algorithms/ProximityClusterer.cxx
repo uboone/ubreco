@@ -9,9 +9,10 @@ namespace gammacatcher {
 
     // get detector specific properties
     auto const* geom = ::lar::providerFrom<geo::Geometry>();
-    auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+    auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
     _wire2cm = geom->WirePitch(0,0,0);
-    _time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
+    _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
     
     return true;
   }
@@ -334,7 +335,9 @@ namespace gammacatcher {
     return;
   }
 
-    bool ProximityClusterer::loadVertex(const art::ValidHandle<std::vector<::recob::Vertex> > vtx_h, const double& ROI) {
+  bool ProximityClusterer::loadVertex(detinfo::DetectorClocksData const& clockData,
+                                      detinfo::DetectorPropertiesData const& detProp,
+                                      const art::ValidHandle<std::vector<::recob::Vertex> > vtx_h, const double& ROI) {
 
     _vtx_w_cm = {0., 0., 0.};
     _vtx_t_cm = {0., 0., 0.};
@@ -342,8 +345,9 @@ namespace gammacatcher {
     _ROISq = ROI*ROI;
 
     // load required services to obtain offsets
-    auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    auto const& geomH = ::util::GeometryUtilities::GetME();
+    util::GeometryUtilities const geomH{*lar::providerFrom<geo::Geometry>(),
+                                        clockData,
+                                        detProp};
     
     if (vtx_h->size() != 1) {
       _vertex = false;
@@ -360,11 +364,11 @@ namespace gammacatcher {
 
     for (size_t pl = 0; pl < 3; pl++) {
 
-      auto const& pt = geomH->Get2DPointProjectionCM(xyz,pl);
+      auto const& pt = geomH.Get2DPointProjectionCM(xyz,pl);
       _vtx_w_cm[pl] = pt.w;
-      _vtx_t_cm[pl] = pt.t + (detp->TriggerOffset() * _time2cm);
+      _vtx_t_cm[pl] = pt.t + (trigger_offset(clockData) * _time2cm);
 
-      std::cout << "trigger offset [cm] : " << (detp->TriggerOffset() * _time2cm) << std::endl;
+      std::cout << "trigger offset [cm] : " << (trigger_offset(clockData) * _time2cm) << std::endl;
       std::cout << "Vtx @ pl " << pl << " [" << _vtx_w_cm[pl] << ", " << _vtx_t_cm[pl] << " ]" << std::endl;
 
     }
