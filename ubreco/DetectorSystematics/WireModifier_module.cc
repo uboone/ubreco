@@ -1070,11 +1070,7 @@ void sys::WireModifier::produce(art::Event& e)
 
   }
 
-  std::cout << "nu_t = " << nu_t << " ns." << std::endl;
-
   double offset_ADC = ( nu_t - 3906.5 ) / 500.;
-
-  std::cout << "offset_ADC = " << offset_ADC << " ticks." << std::endl;
 
   //get wires
   art::Handle< std::vector<recob::Wire> > wireHandle;
