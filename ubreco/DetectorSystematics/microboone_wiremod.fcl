@@ -53,10 +53,8 @@ microboone_wiremod:{
 			       "trk_ThetaYZ_hit_Q_spline_Plane1_Run1_CVMC",
                                "trk_ThetaYZ_hit_Q_spline_Plane2_Run1_CVMC"]
  
-  # These are dummy variable names.
-  SplineNames_Sigma_YZAngle: ["trk_ThetaYZ_hit_sigma_spline_Plane0_Run1_CVMC",
-                               "trk_ThetaYZ_hit_sigma_spline_Plane1_Run1_CVMC",
-                               "trk_ThetaYZ_hit_sigma_spline_Plane2_Run1_CVMC"]
+  # This just has to exist so that the code does not break.
+  SplineNames_Sigma_YZAngle: []
 
   SplineNames_Charge_dEdX: ["trk_dEdx_hit_Q_spline_Plane0_Run1_CVMC",
                        	    "trk_dEdx_hit_Q_spline_Plane1_Run1_CVMC",
@@ -64,6 +62,9 @@ microboone_wiremod:{
   SplineNames_Sigma_dEdX:  ["trk_dEdx_hit_sigma_spline_Plane0_Run1_CVMC",
                             "trk_dEdx_hit_sigma_spline_Plane1_Run1_CVMC",
                             "trk_dEdx_hit_sigma_spline_Plane2_Run1_CVMC"]
+
+  # Use this for applying an offset or not.  Default is to not use an offset (the BNB).  Using an offset is for the NuMI systematics.
+  ApplyAdditionalTickOffset: false
     
 }
 
