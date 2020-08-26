@@ -109,6 +109,7 @@ private:
 
   bool fFillScaleCheckTree;
   bool fApplyAdditionalTickOffset;
+  bool fUseTruthInfo;
 
   //useful math things
   //static constexpr double ONE_OVER_SQRT_2PI = 1./std::sqrt(2*util::pi());
@@ -977,7 +978,8 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fSplineNames_Sigma_dEdX(p.get< std::vector<std::string> >("SplineNames_Sigma_dEdX")),
   fOverallScale(p.get< std::vector<double> >("OverallScale",std::vector<double>(3,1.))),
   fFillScaleCheckTree(p.get<bool>("FillScaleCheckTree",false)),
-  fApplyAdditionalTickOffset(p.get<bool>("ApplyAdditionalTickOffset", false))
+  fApplyAdditionalTickOffset(p.get<bool>("ApplyAdditionalTickOffset", false)),
+  fUseTruthInfo(p.get<bool>("UseTruthInfo", false))				 
 {
   produces< std::vector< recob::Wire > >();
     
@@ -1051,26 +1053,30 @@ void sys::WireModifier::produce(art::Event& e)
 
   double nu_t = 0.;
 
-  // Load in the truth products and find the truth neutrino time.                                                                                                                                          
-  art::Handle<std::vector<simb::MCTruth> > neutrino_h;
-  e.getByLabel("generator", neutrino_h);
+  if ( fUseTruthInfo ) {
 
-  // make sure MCTruth info looks good                                                                                                                                                                     
-  if(!neutrino_h.isValid()) {
-    std::cerr<<"\033[93m[ERROR]\033[00m ... could not locate Neutrino!"<<std::endl;
-    throw std::exception();
-  }
+    // Load in the truth products and find the truth neutrino time.                                                                                                                                       
+    art::Handle<std::vector<simb::MCTruth> > neutrino_h;
+    e.getByLabel("generator", neutrino_h);
 
-  std::vector<art::Ptr<simb::MCTruth> >NeutrinoVec;
-  art::fill_ptr_vector(NeutrinoVec, neutrino_h);
+    // make sure MCTruth info looks good                                                                                                                                                                  
+    if(!neutrino_h.isValid()) {
+      std::cerr<<"\033[93m[ERROR]\033[00m ... could not locate Neutrino!"<<std::endl;
+      throw std::exception();
+    }
 
-  for (auto& neutrino : NeutrinoVec ) {
+    std::vector<art::Ptr<simb::MCTruth> >NeutrinoVec;
+    art::fill_ptr_vector(NeutrinoVec, neutrino_h);
 
-    // Unpack the neutrino object to find an MCParticle.                                                                                                                                                   
-    const simb::MCNeutrino& truth_neutrino = neutrino->GetNeutrino();
-    const simb::MCParticle& truth_particle = truth_neutrino.Nu();
+    for (auto& neutrino : NeutrinoVec ) {
 
-    nu_t = truth_particle.T( 0 );
+      // Unpack the neutrino object to find an MCParticle.                                                                                                                                               
+      const simb::MCNeutrino& truth_neutrino = neutrino->GetNeutrino();
+      const simb::MCParticle& truth_particle = truth_neutrino.Nu();
+
+      nu_t = truth_particle.T( 0 );
+
+    }
 
   }
 
