@@ -15,21 +15,77 @@ void DecayFinder::analyze(art::Event const &evt)
   std::cout << "[DecayFinder::analyze]: Run " << fRun << ", Subrun " << fSubrun << ", Event " << fEvent << std::endl;
 
   // Fill the Pandora vectors and maps
-  lar_pandora::LArPandoraHelper::CollectSpacePoints(evt, m_spacepoint_producer, spacepoints, spacepointsToHits, hitsToSpacepoints);
-  lar_pandora::LArPandoraHelper::CollectPFParticles(evt, m_particle_producer, particles, particlesToSpacepoints);
-  lar_pandora::LArPandoraHelper::BuildPFParticleHitMaps(evt, m_particle_producer, m_spacepoint_producer, particlesToHits, hitsToParticles);
-  std::cout << "Recob::SpacePoint objects with producer " << m_spacepoint_producer << " in event: " << spacepoints.size() << std::endl;
-  std::cout << "Recob::PFParticle objects with producer " << m_particle_producer << " in event: " << particles.size() << std::endl;
+  //lar_pandora::LArPandoraHelper::CollectSpacePoints(evt, m_spacepoint_producer, spacepoints, spacepointsToHits, hitsToSpacepoints);
+  //lar_pandora::LArPandoraHelper::CollectPFParticles(evt, m_particle_producer, particles, particlesToSpacepoints);
+  //lar_pandora::LArPandoraHelper::BuildPFParticleHitMaps(evt, m_particle_producer, m_spacepoint_producer, particlesToHits, hitsToParticles);
+  //std::cout << "Recob::SpacePoint objects with producer " << m_spacepoint_producer << " in event: " << spacepoints.size() << std::endl;
+  //std::cout << "Recob::PFParticle objects with producer " << m_particle_producer << " in event: " << particles.size() << std::endl;
 
   if (!m_isData)
   {
     FillTrueDecay(evt);
   }
   FindRecoHits(evt);
+  FindSpacePoints(evt);
   //  std::cout << "[DecayFinder::analyze]: Currently a placeholder, decay found? " << DecayFound << std::endl;
 
   fEventTree->Fill();
   std::cout << "\n\n";
+}
+
+void DecayFinder::FindSpacePoints(art::Event const &evt)
+{
+
+  ClusterHandle clusters_in_event;
+  evt.getByLabel(m_cluster_producer,clusters_in_event);
+
+  if (!clusters_in_event.isValid()) {std::cout << "Error: Couldn't get clusters." << std::endl;}
+  else {std::cout << "Success: Got Clusters." << std::endl;}
+
+  SpacePointHandle spacepoints_in_event;
+  evt.getByLabel(m_spacepoint_producer,spacepoints_in_event);
+
+  if (!spacepoints_in_event.isValid()) {std::cout << "Error: Couldn't get spacepoints." << std::endl;}
+  else {std::cout << "Success: Got Spacepoints." << std::endl;}
+
+  art::FindMany<recob::Cluster> sps_clus_assn_v(spacepoints_in_event, evt, m_spacepoint_producer);
+
+  fNumSpacePoints = spacepoints_in_event->size();
+  for (UInt_t ii = 0; ii < fNumSpacePoints; ii++) {
+
+    auto sps = spacepoints_in_event->at(ii);
+    auto cluster_v = sps_clus_assn_v.at(ii);
+
+    fsps_x.push_back(sps.XYZ()[0]);
+    fsps_y.push_back(sps.XYZ()[1]);
+    fsps_z.push_back(sps.XYZ()[2]);
+
+    double totalintegral = 0;
+
+
+    for (auto const& cluster: cluster_v){
+      auto plane = cluster->View();
+      // std::cout<<"Cluster Vector Hit Size: "<<cluster->NHits()<<std::endl;
+      // std::cout<<"Cluster Vector Summed ADC: "<<cluster->SummedADC()<<std::endl;
+      if (plane==2){
+        totalintegral = cluster->Integral();
+        // std::cout<<"sps_ADC Plane 2: "<<sps_ADC_Y<<std::endl;
+      }
+      /*else if (plane==1){
+        sps_ADC_V = cluster->Integral();
+        // std::cout<<"sps_ADC Plane 1: "<<sps_ADC_V<<std::endl;
+      }
+      else if (plane==0){=
+        sps_ADC_U = cluster->Integral();
+        // std::cout<<"sps_ADC Plane 0: "<<sps_ADC_U<<std::endl;
+      }*/
+    }
+
+    fsps_integral.push_back(totalintegral);
+
+  }
+
+
 }
 
 void DecayFinder::FillTrueDecay(art::Event const &evt)
@@ -107,32 +163,8 @@ void DecayFinder::FindRecoHits(art::Event const &evt)
     {
       const art::Ptr<recob::Hit> this_hit(hits_in_event, i);
 
-      hits_in_particles += (hitsToParticles.find(this_hit)!=hitsToParticles.end());
-      hits_as_spacepoint += (hitsToSpacepoints.find(this_hit)!=hitsToSpacepoints.end());
-
-      // For the first hit in the event, print all information.
-      if (i == fNumHits - 1)
-      {
-        std::cout << "\t--- Summary of last hit in event ---" << std::endl;
-        std::cout << "\tRecob::Hit StartTick " << this_hit->StartTick() << std::endl;
-        std::cout << "\tRecob::Hit EndTick " << this_hit->EndTick() << std::endl;
-        std::cout << "\tRecob::Hit PeakTime " << this_hit->PeakTime() << std::endl;
-        std::cout << "\tRecob::Hit SigmaPeakTime " << this_hit->SigmaPeakTime() << std::endl;
-        std::cout << "\tRecob::Hit RMS " << this_hit->RMS() << std::endl;
-        std::cout << "\tRecob::Hit PeakAmplitude " << this_hit->PeakAmplitude() << std::endl;
-        std::cout << "\tRecob::Hit SigmaPeakAmplitude " << this_hit->SigmaPeakAmplitude() << std::endl;
-        std::cout << "\tRecob::Hit SummedADC  " << this_hit->SummedADC() << std::endl;
-        std::cout << "\tRecob::Hit Integral " << this_hit->Integral() << std::endl;
-        std::cout << "\tRecob::Hit SigmaIntegral " << this_hit->SigmaIntegral() << std::endl;
-        std::cout << "\tRecob::Hit Multiplicity " << this_hit->Multiplicity() << std::endl;
-        std::cout << "\tRecob::Hit LocalIndex " << this_hit->LocalIndex() << std::endl;
-        std::cout << "\tRecob::Hit GoodnessOfFit " << this_hit->GoodnessOfFit() << std::endl;
-        std::cout << "\tRecob::Hit DegreesOfFreedom " << this_hit->DegreesOfFreedom() << std::endl;
-        std::cout << "\tRecob::Hit Channel " << this_hit->Channel() << std::endl;
-        std::cout << "\tRecob::Hit View " << this_hit->View() << std::endl;
-        std::cout << "\tRecob::Hit SignalType " << this_hit->SignalType() << std::endl;
-        std::cout << "\tRecob::Hit WireID " << this_hit->WireID() << std::endl;
-      }
+      //hits_in_particles += (hitsToParticles.find(this_hit)!=hitsToParticles.end());
+      //hits_as_spacepoint += (hitsToSpacepoints.find(this_hit)!=hitsToSpacepoints.end());
 
       vector_of_hits.push_back(this_hit);
 
@@ -166,7 +198,7 @@ void DecayFinder::FindRecoHits(art::Event const &evt)
         fMCHit.push_back(false);
      }
    }
-    
+
 
 } //End FindRecoHits
 
