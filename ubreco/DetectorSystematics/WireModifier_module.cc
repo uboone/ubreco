@@ -109,7 +109,6 @@ private:
 
   bool fFillScaleCheckTree;
   bool fApplyAdditionalTickOffset;
-  bool fUseTruthInfo;
 
   //useful math things
   //static constexpr double ONE_OVER_SQRT_2PI = 1./std::sqrt(2*util::pi());
@@ -978,8 +977,7 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fSplineNames_Sigma_dEdX(p.get< std::vector<std::string> >("SplineNames_Sigma_dEdX")),
   fOverallScale(p.get< std::vector<double> >("OverallScale",std::vector<double>(3,1.))),
   fFillScaleCheckTree(p.get<bool>("FillScaleCheckTree",false)),
-  fApplyAdditionalTickOffset(p.get<bool>("ApplyAdditionalTickOffset", false)),
-  fUseTruthInfo(p.get<bool>("UseTruthInfo", false))				 
+  fApplyAdditionalTickOffset(p.get<bool>("ApplyAdditionalTickOffset", false))
 {
   produces< std::vector< recob::Wire > >();
     
@@ -1051,9 +1049,10 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
 void sys::WireModifier::produce(art::Event& e)
 {
 
-  double nu_t = 0.;
+  double nu_t       = 0.;
+  double offset_ADC = 0.;
 
-  if ( fUseTruthInfo ) {
+  if ( fApplyAdditionalTickOffset ) {
 
     // Load in the truth products and find the truth neutrino time.                                                                                                                                       
     art::Handle<std::vector<simb::MCTruth> > neutrino_h;
@@ -1078,11 +1077,9 @@ void sys::WireModifier::produce(art::Event& e)
 
     }
 
+    offset_ADC = ( nu_t - 3906.5 ) / 500.;
+
   }
-
-  double offset_ADC = ( nu_t - 3906.5 ) / 500.;
-
-  if ( !fApplyAdditionalTickOffset ) offset_ADC = 0.;
 
   //get wires
   art::Handle< std::vector<recob::Wire> > wireHandle;
