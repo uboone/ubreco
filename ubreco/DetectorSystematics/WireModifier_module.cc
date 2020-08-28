@@ -109,6 +109,7 @@ private:
 
   bool fFillScaleCheckTree;
   bool fApplyAdditionalTickOffset;
+  bool fApplyAngleYZSigmaSpline;
 
   //useful math things
   //static constexpr double ONE_OVER_SQRT_2PI = 1./std::sqrt(2*util::pi());
@@ -768,7 +769,7 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     }
     if(fApplyYZAngleScale){    
       scales.r_Q *= fTSplines_Charge_YZAngle[plane]->Eval(ThetaYZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
-      if ( fSplineNames_Sigma_YZAngle.size() > 0 )
+      if ( fApplyAngleYZSigmaSpline )
 	scales.r_sigma *= fTSplines_Sigma_YZAngle[plane]->Eval(ThetaYZ_U(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
     }
     if(fApplydEdXScale){
@@ -802,7 +803,7 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     }
     if(fApplyYZAngleScale){    
       scales.r_Q *= fTSplines_Charge_YZAngle[plane]->Eval(ThetaYZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
-      if ( fSplineNames_Sigma_YZAngle.size() > 0 )
+      if ( fApplyAngleYZSigmaSpline )
 	scales.r_sigma *= fTSplines_Sigma_YZAngle[plane]->Eval(ThetaYZ_V(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
     }
     if(fApplydEdXScale){    
@@ -835,7 +836,7 @@ sys::WireModifier::GetScaleValues(sys::WireModifier::TruthProperties_t const& tr
     }
     if(fApplyYZAngleScale){    
       scales.r_Q *= fTSplines_Charge_YZAngle[plane]->Eval(ThetaYZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
-      if ( fSplineNames_Sigma_YZAngle.size() > 0 )
+      if ( fApplyAngleYZSigmaSpline )
 	scales.r_sigma *= fTSplines_Sigma_YZAngle[plane]->Eval(ThetaYZ_Y(truth_props.dxdr,truth_props.dydr,truth_props.dzdr));
     }
     if(fApplydEdXScale){    
@@ -977,7 +978,8 @@ sys::WireModifier::WireModifier(fhicl::ParameterSet const& p)
   fSplineNames_Sigma_dEdX(p.get< std::vector<std::string> >("SplineNames_Sigma_dEdX")),
   fOverallScale(p.get< std::vector<double> >("OverallScale",std::vector<double>(3,1.))),
   fFillScaleCheckTree(p.get<bool>("FillScaleCheckTree",false)),
-  fApplyAdditionalTickOffset(p.get<bool>("ApplyAdditionalTickOffset", false))
+  fApplyAdditionalTickOffset(p.get<bool>("ApplyAdditionalTickOffset", false)),
+  fApplyAngleYZSigmaSpline(p.get<bool>("ApplyAngleYZSigmaSpline", false))
 {
   produces< std::vector< recob::Wire > >();
     
@@ -1054,29 +1056,30 @@ void sys::WireModifier::produce(art::Event& e)
 
   if ( fApplyAdditionalTickOffset ) {
 
-    // Load in the truth products and find the truth neutrino time.                                                                                                                                       
-    art::Handle<std::vector<simb::MCTruth> > neutrino_h;
-    e.getByLabel("generator", neutrino_h);
+    // Load in the truth products and find their time.                                                                                                                                       
+    art::Handle<std::vector<simb::MCTruth> > mctruth_h;
+    e.getByLabel("generator", mctruth_h);
 
     // make sure MCTruth info looks good                                                                                                                                                                  
-    if(!neutrino_h.isValid()) {
-      std::cerr<<"\033[93m[ERROR]\033[00m ... could not locate Neutrino!"<<std::endl;
+    if(!mctruth_h.isValid()) {
+      std::cerr<<"\033[93m[ERROR]\033[00m ... could not locate MCTruth info!"<<std::endl;
       throw std::exception();
     }
 
-    std::vector<art::Ptr<simb::MCTruth> >NeutrinoVec;
-    art::fill_ptr_vector(NeutrinoVec, neutrino_h);
+    std::vector<art::Ptr<simb::MCTruth> > MCTruthVec;
+    art::fill_ptr_vector(MCTruthVec, mctruth_h);
 
-    for (auto& neutrino : NeutrinoVec ) {
+    for (auto& mctruth : MCTruthVec ) {
 
-      // Unpack the neutrino object to find an MCParticle.                                                                                                                                               
-      const simb::MCNeutrino& truth_neutrino = neutrino->GetNeutrino();
-      const simb::MCParticle& truth_particle = truth_neutrino.Nu();
+      // Unpack the MCTruth object to find an MCParticle.                                                                                                                                               
+      const simb::MCParticle& truth_mcparticle = mctruth->GetParticle(0);
 
-      nu_t = truth_particle.T( 0 );
+      nu_t = truth_mcparticle.T( 0 );
 
     }
-
+    
+    // 3906.5: The time (in ns) wrt to the trigger time that the BNB offset (C_t) is found with respect to.
+    // 500.: The frequency (in ns/ticks) that the TPC ticks are taken at.
     offset_ADC = ( nu_t - 3906.5 ) / 500.;
 
   }
