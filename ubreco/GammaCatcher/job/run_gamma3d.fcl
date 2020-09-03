@@ -109,9 +109,9 @@ producers: {
 # ParameterSets for zero or more producer modules
 gamma3d: {
 module_type: "Gamma3D"
-TwoDcutY: 15.
-TwoDcutUV: 5.
-deltaYcut: 5.
+TwoDcutY: 20.
+TwoDcutUV: 20.
+deltaYcut: 1.
 mctrack_tag:   "mcreco"
 recotrack_tag : "pandora"
 cluster_tag : "gaushitproximity"

@@ -12,6 +12,7 @@ pfparticle_tag: "pandora"
 vertex_tag: "pandora"
 sps_tag: "gamma3d"
 hit_tag : "gaushit"
+match_tag : "gaushitTruthMatch"
 cluster_tag: "gaushitproximity"
 MCTproducer: "generator"
 IsData: false

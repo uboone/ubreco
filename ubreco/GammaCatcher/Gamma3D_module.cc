@@ -178,13 +178,13 @@ private:
 
 
   Double_t Y_cluster_charge;
-  Double_t Y_cluster_energy;
+  // Double_t Y_cluster_energy;
 
   Double_t V_cluster_charge;
-  Double_t V_cluster_energy;
+  // Double_t V_cluster_energy;
 
   Double_t U_cluster_charge;
-  Double_t U_cluster_energy;
+  // Double_t U_cluster_energy;
 
 
   Double_t deltaY_smallest;
@@ -284,6 +284,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
   std::unique_ptr< std::vector< recob::SpacePoint> > SpacePoint_v(new std::vector<recob::SpacePoint>);
   std::unique_ptr< art::Assns <recob::Cluster, recob::SpacePoint> > sps_clus_assn_v(new art::Assns<recob::Cluster,recob::SpacePoint> );
+  // std::unique_ptr< art::Assns <recob::Hit, recob::SpacePoint> > sps_hit_assn_v(new art::Assns<recob::Hit,recob::SpacePoint> );
 
   // cluster pointer maker which we will use to retrieve a cluster art::Ptr given its absolute event index
   //art::PtrMaker<recob::Cluster> ClusPtrMaker(e);
@@ -302,6 +303,8 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
   art::FindMany<recob::Hit> clus_hit_assn_v(cluster_handle, e, fCluster_tag);
 
+
+  // art::FindMany<recob::Hit> sps_hit_assn_v(cluster_handle, e, fCluster_tag);
 
   art::Handle<std::vector<recob::PFParticle> > pfparticle_handle;
   e.getByLabel(fpfparticle_tag,pfparticle_handle);
@@ -363,73 +366,73 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
     // COMMENT OUT FROM HERE TO THE END OF IF CONTINUE STATEMENT BEFORE THE RECO TRACK FOR LOOP IF RUNNING OVER DATA OR MONTE CARLO WITH COSMICS
     //
     // UNCOMMENT IF RUNNING OVER DATA OR MONTE CARLO WITH NO COSMICS
-
-
-
-    auto hits = clus_hit_assn_v.at(i_c);
-
-
-
-    for (auto const& hit : hits) {//START CLUSTER HIT LOOP
-
-      cluster_hit_z = hit->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
-      cluster_hit_x = (hit->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
-
-    }
-
-    std::cout<<"Number of reco tracks: "<<recotrack_handle->size()<<std::endl;
-
-
-
-    if(cluster[i_c].View()==2){
-      std::cout<<"HERE 2 !"<<std::endl;
-      plane=2;
-      Start_Cluster2.push_back((cluster[i_c].StartTick ())-3.0);//added +- 3.0 time tick tolerances
-      End_Cluster2.push_back((cluster[i_c].EndTick ())+3.0);
-      // Start_Cluster2.push_back((cluster[i_c].StartTick ()));//added +- 3.0 time tick tolerances
-      // End_Cluster2.push_back((cluster[i_c].EndTick ()));
-      Y_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
-      Y_index_vector.push_back(i_c); //Y Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
-    }
-
-    if(cluster[i_c].View()==1){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
-      std::cout<<"HERE 1 !"<<std::endl;
-      plane=1;
-      Start_Cluster1.push_back((cluster[i_c].StartTick ())-3.0);
-      End_Cluster1.push_back((cluster[i_c].EndTick ())+3.0);
-      V_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
-      // Start_Cluster1.push_back((cluster[i_c].StartTick ()));
-      // End_Cluster1.push_back((cluster[i_c].EndTick ()));
-      V_index_vector.push_back(i_c);//V Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
-    }
-
-    if(cluster[i_c].View()==0){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
-      std::cout<<"HERE 0 !"<<std::endl;
-      plane=0;
-      //
-      Start_Cluster0.push_back((cluster[i_c].StartTick ())-3.0);
-      End_Cluster0.push_back((cluster[i_c].EndTick ())+3.0);
-      U_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
-      // Start_Cluster0.push_back((cluster[i_c].StartTick ()));
-      // End_Cluster0.push_back((cluster[i_c].EndTick ()));
-      U_index_vector.push_back(i_c);//U Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
-    }
-
-
-
-
-    distance_smallest=1e10; //Variable for 2D distance between a cluster and nearest reco track, initialized to a large number for comparison
-    distance_smallest_nu=1e10;
-
-
-
-
-
-    Clustertree->Fill();
-
-    if (recotrack_handle->size()==0)
-
-    continue;
+    //
+    //
+    //
+    // auto hits = clus_hit_assn_v.at(i_c);
+    //
+    //
+    //
+    // for (auto const& hit : hits) {//START CLUSTER HIT LOOP
+    //
+    //   cluster_hit_z = hit->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
+    //   cluster_hit_x = (hit->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
+    //
+    // }
+    //
+    // // std::cout<<"Number of reco tracks: "<<recotrack_handle->size()<<std::endl;
+    //
+    //
+    //
+    // if(cluster[i_c].View()==2){
+    //   // std::cout<<"HERE 2 !"<<std::endl;
+    //   plane=2;
+    //   Start_Cluster2.push_back((cluster[i_c].StartTick ())-3.0);//added +- 3.0 time tick tolerances
+    //   End_Cluster2.push_back((cluster[i_c].EndTick ())+3.0);
+    //   // Start_Cluster2.push_back((cluster[i_c].StartTick ()));//added +- 3.0 time tick tolerances
+    //   // End_Cluster2.push_back((cluster[i_c].EndTick ()));
+    //   Y_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
+    //   Y_index_vector.push_back(i_c); //Y Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
+    // }
+    //
+    // if(cluster[i_c].View()==1){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+    //   // std::cout<<"HERE 1 !"<<std::endl;
+    //   plane=1;
+    //   Start_Cluster1.push_back((cluster[i_c].StartTick ())-3.0);
+    //   End_Cluster1.push_back((cluster[i_c].EndTick ())+3.0);
+    //   V_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
+    //   // Start_Cluster1.push_back((cluster[i_c].StartTick ()));
+    //   // End_Cluster1.push_back((cluster[i_c].EndTick ()));
+    //   V_index_vector.push_back(i_c);//V Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
+    // }
+    //
+    // if(cluster[i_c].View()==0){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+    //   // std::cout<<"HERE 0 !"<<std::endl;
+    //   plane=0;
+    //   //
+    //   Start_Cluster0.push_back((cluster[i_c].StartTick ())-3.0);
+    //   End_Cluster0.push_back((cluster[i_c].EndTick ())+3.0);
+    //   U_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
+    //   // Start_Cluster0.push_back((cluster[i_c].StartTick ()));
+    //   // End_Cluster0.push_back((cluster[i_c].EndTick ()));
+    //   U_index_vector.push_back(i_c);//U Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
+    // }
+    //
+    //
+    //
+    //
+    // distance_smallest=1e10; //Variable for 2D distance between a cluster and nearest reco track, initialized to a large number for comparison
+    // distance_smallest_nu=1e10;
+    //
+    //
+    //
+    //
+    //
+    // Clustertree->Fill();
+    //
+    // if (recotrack_handle->size()==0)
+    //
+    // continue;
 
 
 
@@ -514,7 +517,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
       }
 
 
-    }//END RECO TRACK FOR LOOP
+      //}//END RECO TRACK FOR LOOP
 
 
 
@@ -522,40 +525,42 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
 
 
-    // if(cluster[i_c].View()==2 && (distance_smallest > f2DcutY || (distance_smallest_nu > 2.0 && track_point_length_smallest>4.0 ) || (distance_smallest_nu > (2.0*track_point_length_smallest/4.0) && track_point_length_smallest<4.0 )  )) {// IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
-    if(cluster[i_c].View()==2 && (distance_smallest > f2DcutY)){
+      // if(cluster[i_c].View()==2 && (distance_smallest > f2DcutY || (distance_smallest_nu > 2.0 && track_point_length_smallest>4.0 ) || (distance_smallest_nu > (2.0*track_point_length_smallest/4.0) && track_point_length_smallest<4.0 )  )) {// IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+      if(cluster[i_c].View()==2 && (distance_smallest > f2DcutY)){
 
 
-      Start_Cluster2.push_back((cluster[i_c].StartTick ())-3.0);//added +- 3.0 time tick tolerances
-      End_Cluster2.push_back((cluster[i_c].EndTick ())+3.0);
-      // Start_Cluster2.push_back((cluster[i_c].StartTick ()));//added +- 3.0 time tick tolerances
-      // End_Cluster2.push_back((cluster[i_c].EndTick ()));
-      Y_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
-      Y_index_vector.push_back(i_c); //Y Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
-    }
+        Start_Cluster2.push_back((cluster[i_c].StartTick ())-3.0);//added +- 3.0 time tick tolerances
+        End_Cluster2.push_back((cluster[i_c].EndTick ())+3.0);
+        // Start_Cluster2.push_back((cluster[i_c].StartTick ()));//added +- 3.0 time tick tolerances
+        // End_Cluster2.push_back((cluster[i_c].EndTick ()));
+        Y_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
+        Y_index_vector.push_back(i_c); //Y Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
+      }
 
-    if(cluster[i_c].View()==1 && (distance_smallest > f2DcutUV )){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+      if(cluster[i_c].View()==1 && (distance_smallest > f2DcutUV )){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
 
 
-      Start_Cluster1.push_back((cluster[i_c].StartTick ())-3.0);
-      End_Cluster1.push_back((cluster[i_c].EndTick ())+3.0);
-      V_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
-      // Start_Cluster1.push_back((cluster[i_c].StartTick ()));
-      // End_Cluster1.push_back((cluster[i_c].EndTick ()));
-      V_index_vector.push_back(i_c);//V Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
-    }
+        Start_Cluster1.push_back((cluster[i_c].StartTick ())-3.0);
+        End_Cluster1.push_back((cluster[i_c].EndTick ())+3.0);
+        V_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
+        // Start_Cluster1.push_back((cluster[i_c].StartTick ()));
+        // End_Cluster1.push_back((cluster[i_c].EndTick ()));
+        V_index_vector.push_back(i_c);//V Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
+      }
 
-    if(cluster[i_c].View()==0 && (distance_smallest > f2DcutUV )){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+      if(cluster[i_c].View()==0 && (distance_smallest > f2DcutUV )){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
 
-      //
-      Start_Cluster0.push_back((cluster[i_c].StartTick ())-3.0);
-      End_Cluster0.push_back((cluster[i_c].EndTick ())+3.0);
-      U_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
-      // Start_Cluster0.push_back((cluster[i_c].StartTick ()));
-      // End_Cluster0.push_back((cluster[i_c].EndTick ()));
-      U_index_vector.push_back(i_c);//U Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
-    }
+        //
+        Start_Cluster0.push_back((cluster[i_c].StartTick ())-3.0);
+        End_Cluster0.push_back((cluster[i_c].EndTick ())+3.0);
+        U_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
+        // Start_Cluster0.push_back((cluster[i_c].StartTick ()));
+        // End_Cluster0.push_back((cluster[i_c].EndTick ()));
+        U_index_vector.push_back(i_c);//U Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
+      }
 
+
+    }//END RECO TRACK FOR LOOP (Thanks to Ivan Lepetic for pointing this out)
 
     Clustertree->Fill();
   }//end cluster FOR loop for calculating 2-D distance
@@ -590,8 +595,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
     distance_smallest3d=1e10;
 
     deltaY=-9999.0;
-    // if (Y_clus_hitSize < 1)
-    // continue;
+
     auto hiti = clus_hit_assn_v.at(Y_index_vector[i]);
 
     Y_Wire=hiti[0]->WireID().Wire;
@@ -602,12 +606,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
     U_cluster_charge=0;
     V_cluster_charge=0;
 
-    // for (auto const& hity : hiti) {//START CLUSTER HIT LOOP
-    //
-    //   Y_cluster_hit_z = hity->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
-    //   Y_cluster_hit_x = (hity->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
-    //
-    // }
+
 
 
 
@@ -630,23 +629,23 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
       V_t_max_abs = 0.0;//variable for largest time of the two clusters
       if ( Start_Cluster2[i] < V_t_min_abs )
       V_t_min_abs = Start_Cluster2[i];
-      // start_tick_cluster21=Start_Cluster2[i]+3.0;
+
 
 
       if ( End_Cluster2[i]   > V_t_max_abs )
       V_t_max_abs = End_Cluster2[i];
-      // end_tick_cluster21=End_Cluster2[i]-3.0;
+
 
 
 
       if ( Start_Cluster1[j] < V_t_min_abs )
       V_t_min_abs = Start_Cluster1[j];
-      // start_tick_cluster1=Start_Cluster1[j]+3.0;
+
 
 
       if ( End_Cluster1[j]   > V_t_max_abs )
       V_t_max_abs = End_Cluster1[j];
-      // end_tick_cluster1=End_Cluster1[j]-3.0;
+
 
 
 
@@ -683,7 +682,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
       }
       if ((V_t_min_common < V_t_max_common)){//OVERLAP
         V_iou = (V_t_max_common - V_t_min_common) / (V_t_max_abs - V_t_min_abs);
-        //  V_match_multiplicity++;
+
 
       }
 
@@ -822,7 +821,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
         //  charge=0;
         U_charge = hitnewU->Integral();
         U_cluster_charge += U_charge;
-        U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
+        // U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
       }//END CLUSTER HIT LOOP
 
 
@@ -854,7 +853,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
         V_charge = hitnewV->Integral();
         V_cluster_charge += V_charge;
-        V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
+        // V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
 
 
       }//END CLUSTER HIT LOOP
@@ -899,7 +898,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
           V_charge = hitnewV->Integral();
           V_cluster_charge += V_charge;
-          V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
+          // V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
 
 
         }//END CLUSTER HIT LOOP
@@ -911,7 +910,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
           U_charge = hitnewU->Integral();
           U_cluster_charge += U_charge;
-          U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
+          // U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
 
 
         }//END CLUSTER HIT LOOP
@@ -931,19 +930,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
       U_clus_hitSize=U_clus_hitsize[Y_U_index[0]];
 
 
-      // if ((V_biggest_iou<0.1 && V_biggest_iou > 0 ) || (U_biggest_iou<0.1 && U_biggest_iou > 0) ){
-      // if (((Y_clus_hitSize==1 && V_clus_hitSize==1) && (abs(start_tick_cluster2-start_tick_cluster1)>2.0 || abs(end_tick_cluster2-end_tick_cluster1)>2.0)) || ((Y_clus_hitSize==1 && U_clus_hitSize==1) && (abs(start_tick_cluster2-start_tick_cluster0)>2.0 || abs(end_tick_cluster2-end_tick_cluster0)>2.0))){
-      //   std::cout<<"Y_clus_hitSize= "<<Y_clus_hitSize<<std::endl;
-      //   std::cout<<"V_clus_hitSize= "<<V_clus_hitSize<<std::endl;
-      //   std::cout<<"start_tick_cluster2= "<<start_tick_cluster2<<std::endl;
-      //   std::cout<<"end_tick_cluster2= "<<end_tick_cluster2<<std::endl;
-      //   std::cout<<"start_tick_cluster1= "<<start_tick_cluster1<<std::endl;
-      //   std::cout<<"end_tick_cluster1= "<<end_tick_cluster1<<std::endl;
-      //   // std::cout<<"start_tick_cluster0= "<<start_tick_cluster0<<std::endl;
-      //   // std::cout<<"end_tick_cluster0= "<<end_tick_cluster0<<std::endl;
-      //   // std::cout<<"V_biggest_iou= "<<V_biggest_iou<<std::endl;
-      //   // std::cout<<"U_biggest_iou= "<<U_biggest_iou<<std::endl;
-      // }
+
 
     }//V=1,U=1 bin
 
@@ -978,7 +965,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
             V_charge = hitnewV->Integral();
             V_cluster_charge += V_charge;
-            V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
+            // V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
 
 
           }//END CLUSTER HIT LOOP
@@ -1024,7 +1011,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
             U_charge = hitnewU->Integral();
             U_cluster_charge += U_charge;
-            U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
+            // U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
 
 
           }//END CLUSTER HIT LOOP
@@ -1083,7 +1070,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
                 U_charge = hitnewU->Integral();
                 U_cluster_charge += U_charge;
-                U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
+                // U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
 
 
               }//END CLUSTER HIT LOOP
@@ -1096,7 +1083,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
                 V_charge = hitnewV->Integral();
                 V_cluster_charge += V_charge;
-                V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
+                // V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
 
 
               }//END CLUSTER HIT LOOP
@@ -1162,7 +1149,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
                 V_charge = hitnewV->Integral();
                 V_cluster_charge += V_charge;
-                V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
+                // V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
 
               }//END CLUSTER HIT LOOP
 
@@ -1175,7 +1162,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
                 U_charge = hitnewU->Integral();
                 U_cluster_charge += U_charge;
-                U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
+                // U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
 
 
               }//END CLUSTER HIT LOOP
@@ -1245,7 +1232,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
                 U_charge = hitnewU->Integral();
                 U_cluster_charge += U_charge;
-                U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
+                // U_cluster_energy += U_charge*240*23.6*1e-6/0.5;
 
 
               }//END CLUSTER HIT LOOP
@@ -1258,7 +1245,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
                 V_charge = hitnewV->Integral();
                 V_cluster_charge += V_charge;
-                V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
+                // V_cluster_energy += V_charge*240*23.6*1e-6/0.5;
 
               }//END CLUSTER HIT LOOP
 
@@ -1278,27 +1265,6 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
     }//V>1,U>1 bin
 
 
-    //********************V>1,U>1 bin End********************//
-
-    // start_tick_cluster21=Start_Cluster2[0]+3.0;
-    // start_tick_cluster1=Start_Cluster1[0]+3.0;
-    // start_tick_cluster0=Start_Cluster0[0]+3.0;
-    // end_tick_cluster21=End_Cluster2[0]-3.0;
-    // end_tick_cluster1=End_Cluster1[0]-3.0;
-    // end_tick_cluster0=End_Cluster0[0]-3.0;
-
-    // if (V_biggest_iou==0 || U_biggest_iou==0 ){
-    //
-    //   std::cout<<"IoU_V.size()"<<IoU_V.size()<<std::endl;
-    //   std::cout<<"IoU_U.size()"<<IoU_U.size()<<std::endl;
-    //   std::cout<<"start_tick_cluster2= "<<start_tick_cluster2<<std::endl;
-    //   std::cout<<"end_tick_cluster2= "<<end_tick_cluster2<<std::endl;
-    //   std::cout<<"start_tick_cluster1= "<<start_tick_cluster1<<std::endl;
-    //   std::cout<<"end_tick_cluster1= "<<end_tick_cluster1<<std::endl;
-    //   std::cout<<"start_tick_cluster0= "<<start_tick_cluster0<<std::endl;
-    //   std::cout<<"end_tick_cluster0= "<<end_tick_cluster0<<std::endl;
-    //
-    // }
 
 
 
@@ -1307,7 +1273,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
       Y_charge = hitnewY->Integral();
       Y_cluster_charge += Y_charge;
-      Y_cluster_energy += Y_charge*240*23.6*1e-6/0.5;
+      // Y_cluster_energy += Y_charge*240*23.6*1e-6/0.5;
 
       Y_cluster_3d_hit_z = hitnewY->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
       Y_cluster_3d_hit_x = (hitnewY->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
@@ -1315,74 +1281,6 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
       Y_cluster_3d_hit_y=cluster_y_new;
 
     }//END Y CLUSTER HIT LOOP
-
-
-
-    // for (size_t i_tr = 0, size_tr = recotrack_handle->size(); i_tr != size_tr; ++i_tr) {//START RECO TRACK FOR LOOP
-    //
-    //   auto const& rtrack = recotrack_handle->at(i_tr);
-    //
-    //
-    //
-    //   Double_t pointdistance_smallest3d=1e10;
-    //
-    //
-    //   for(size_t n=0;n<(rtrack.NumberTrajectoryPoints());n++){//START RECO POINT LOOP
-    //     X_reco3d=rtrack.LocationAtPoint(n).X();
-    //     Y_reco3d=rtrack.LocationAtPoint(n).Y();
-    //     Z_reco3d=rtrack.LocationAtPoint(n).Z();
-    //
-    //
-    //     for (auto const& hitY : hiti) {//START CLUSTER HIT LOOP
-    //       Y_cluster_3d_hit_z = hitY->WireID().Wire * wire2cm;//Also equal to Cluster_hit_wire_cm
-    //       Y_cluster_3d_hit_x = (hitY->PeakTime() * time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
-    //
-    //       Y_cluster_3d_hit_y=cluster_y_new;
-    //
-    //       pointdistance3d=sqrt((pow(Y_cluster_3d_hit_z-Z_reco3d,2))+(pow(Y_cluster_3d_hit_x-X_reco3d,2))+ (pow(Y_cluster_3d_hit_y-Y_reco3d,2)));
-    //
-    //
-    //
-    //       if(pointdistance3d<pointdistance_smallest3d){//comparison IF loop
-    //
-    //         pointdistance_smallest3d=pointdistance3d;
-    //
-    //         X_reco_smallest3d=X_reco3d;
-    //         Z_reco_smallest3d=Z_reco3d;
-    //         Y_reco_smallest3d=Y_reco3d;
-    //
-    //       }
-    //
-    //     }
-    //
-    //   }//END RECO POINT LOOP
-    //
-    //
-    //
-    //   if(pointdistance_smallest3d<distance_smallest3d){
-    //     distance_smallest3d=pointdistance_smallest3d;
-    //
-    //     X_reco_best3d=X_reco_smallest3d;
-    //     Z_reco_best3d=Z_reco_smallest3d;
-    //     Y_reco_best3d=Y_reco_smallest3d;
-    //   }
-    //
-    // }// END RECO TRACK FOR LOOP
-
-
-
-    // std::cout<<"Y_cluster_charge: "<<Y_cluster_charge<<std::endl;
-    // std::cout<<"V_cluster_charge: "<<V_cluster_charge<<std::endl;
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1473,6 +1371,12 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
       art::Ptr<recob::Cluster> ClusPtrU(cluster_handle,U_Match_Ev_Index);
       util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrY, *sps_clus_assn_v);
       util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrU, *sps_clus_assn_v);
+
+      art::Ptr<recob::Hit> HitPtrY(hit_handle,Y_Match_Ev_Index);
+      art::Ptr<recob::Hit> HitPtrU(hit_handle,U_Match_Ev_Index);
+      // util::CreateAssn(*this, e, *SpacePoint_v,HitPtrY, *sps_hit_assn_v);
+      // util::CreateAssn(*this, e, *SpacePoint_v,HitPtrU, *sps_hit_assn_v);
+
     }
 
     if((U_match_multiplicity==0 && V_match_multiplicity==1) || (U_match_multiplicity==0 && V_match_multiplicity>1)){
@@ -1480,6 +1384,11 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
       art::Ptr<recob::Cluster> ClusPtrV(cluster_handle,V_Match_Ev_Index);
       util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrY, *sps_clus_assn_v);
       util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrV, *sps_clus_assn_v);
+
+      art::Ptr<recob::Hit> HitPtrY(hit_handle,Y_Match_Ev_Index);
+      art::Ptr<recob::Hit> HitPtrV(hit_handle,V_Match_Ev_Index);
+      // util::CreateAssn(*this, e, *SpacePoint_v,HitPtrY, *sps_hit_assn_v);
+      // util::CreateAssn(*this, e, *SpacePoint_v,HitPtrV, *sps_hit_assn_v);
     }
 
 
@@ -1490,6 +1399,15 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
       util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrY, *sps_clus_assn_v);
       util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrV, *sps_clus_assn_v);
       util::CreateAssn(*this, e, *SpacePoint_v,ClusPtrU, *sps_clus_assn_v);
+
+      art::Ptr<recob::Hit> HitPtrY(hit_handle,Y_Match_Ev_Index);
+      art::Ptr<recob::Hit> HitPtrU(hit_handle,U_Match_Ev_Index);
+      art::Ptr<recob::Hit> HitPtrV(hit_handle,V_Match_Ev_Index);
+      // util::CreateAssn(*this, e, *SpacePoint_v,HitPtrY, *sps_hit_assn_v);
+      // util::CreateAssn(*this, e, *SpacePoint_v,HitPtrV, *sps_hit_assn_v);
+      // util::CreateAssn(*this, e, *SpacePoint_v,HitPtrU, *sps_hit_assn_v);
+
+
     }
 
 
@@ -1515,7 +1433,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
   e.put(std::move(SpacePoint_v));
   e.put(std::move(sps_clus_assn_v));
-
+  // e.put(std::move(sps_hit_assn_v));
 }//END EVENT LOOP
 
 void Gamma3D::beginJob()
