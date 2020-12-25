@@ -1,0 +1,81 @@
+#include "time_memory_tracker_microboone.fcl"
+#include "services_microboone.fcl"
+#include "wcp_port.fcl"
+
+process_name: PortPF
+
+services:
+{
+  TimeTracker:             @local::microboone_time_tracker
+  MemoryTracker:           @local::microboone_memory_tracker
+  FileCatalogMetadata:     @local::art_file_catalog_data
+  @table::microboone_services_reco
+}
+
+source:
+{
+  module_type: RootInput
+  fileNames:   ["dummy.root"]
+  maxEvents:   -1
+}
+
+physics:
+{
+  producers:
+  {
+    wirecellPF: @local::standard_WireCellPF
+  }
+
+  reco: [ 
+          wirecellPF
+	]
+  trigger_paths: [ reco ]
+
+  stream1: [ out1 ]
+  end_paths: [ stream1 ]
+}
+
+outputs:
+{
+ out1:
+ {
+   module_type: RootOutput
+   dataTier: "reconstructed"
+   compressionLevel: 1
+   saveMemoryObjectThreshold: 0
+   fileName: "%ifb_%tc_WCPF.root"
+ }
+}
+
+microboone_tfile_metadata:
+{
+  JSONFileName:          ["reco_stage_2_hist.root.json"]
+  GenerateTFileMetadata: [true]
+  dataTier:              ["root-tuple"]
+  fileFormat:            ["root"]
+}
+
+#physics.producers.wirecellPF.BDTport: false #default: true
+#physics.producers.wirecellPF.KINEport: false #default: true
+#physics.producers.wirecellPF.PFport: false #default: true
+source.inputCommands: [
+		        "keep *_*_*_*",
+			"drop sim::SimEnergyDeposits_largeant_*_*",
+			"drop sim::SimChannels_largeant_*_*",
+			"drop sim::AuxDetSimChannel_*_*_*",
+			"drop raw::OpDetWaveform_pmtreadoutnonoise_*_OverlayDetsim",
+			"drop crt::CRTSimData_crtdetsim_*_OverlayDetsim",
+			"drop crt::CRTHit_*_*_OverlayDetsim",
+			"drop *_*_mixer_DataOverlay",
+			"drop *_threshold_nfspl1_OverlayStage1a",
+			"drop recob::Wires_*nfspl1_*_*",
+			"drop recob::OpFlash_*_*_OverlayStage1a",
+			"drop recob::OpHit_*_*_OverlayStage1a"
+		      ]
+
+services.DetectorPropertiesService.NumberTimeSamples: 6400
+services.DetectorPropertiesService.ReadOutWindowSize: 6400
+services.DetectorClocksService.TriggerOffsetTPC: -0.400e3
+services.DetectorClocksService.InheritClockConfig:  false
+services.TFileService.fileName: "reco_stage_2_hist.root"
+services.ParticleInventoryService: @local::standard_particleinventoryservice
