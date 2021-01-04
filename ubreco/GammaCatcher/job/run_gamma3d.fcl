@@ -95,7 +95,8 @@ outputs:
 out0:
 { module_type: RootOutput
 fileName:    "output.root"
-dataTier:    "charge"
+dataTier:    "reconstructed"
+fastCloning: false
 streamName:  "all"
 #SelectEvents: [ ]
 compressionLevel: 1

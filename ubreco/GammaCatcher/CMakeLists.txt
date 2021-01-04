@@ -43,6 +43,7 @@ art_make(
 add_subdirectory(Analysis)
 add_subdirectory(HitFinding)
 add_subdirectory(CosmicBackground)
+add_subdirectory(job)
 
 install_headers()
 install_fhicl()

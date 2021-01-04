@@ -93,7 +93,8 @@ out1:
 {
 module_type: RootOutput
 fileName:    "gaushitproximity.root"
-dataTier:    "reco"
+dataTier:    "reconstructed"
+fastCloning: false
 compressionLevel: 1
 #SelectEvents: [reco]
 }
