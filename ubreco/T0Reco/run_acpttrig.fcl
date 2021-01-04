@@ -1,6 +1,8 @@
 #include "services_microboone.fcl"
 #include "triggeralgo_service.fcl"
 #include "acpttrig.fcl"
+#include "calorimetry_microboone.fcl"
+#include "microboone_dlpmtprecuts.fcl"
 
 CRTT0: {
           module_type: "ubcrt/CRT/CRTTzeroProducer"
@@ -101,28 +103,31 @@ source:
 # Modules are grouped by type.
 physics:
 {
-
+    filters:
+  {
+     opfiltercommonext: @local::microboone_common_op_precut_ext
+     acpttrig: @local::ACPTtrig
+  }
     producers:
  {
 
   ### random number saver
   rns:                 { module_type: RandomNumberSaver }
+  
+  pandoracaloN: @local::microboone_calodata
+#  fCaloProducer: @local::microboone_calodata
 
   ### CRT track-tagger
   crtt0:      @local::CRTT0
   crttrack:   @local::CRTTrack
   crttrackt0: @local::CRTTrackT0
 
-
- }
- filters:
- {
   ### ACPT in time with trigger tagger
-  acpttrig: @local::ACPTtrig
+  #acpttrig: @local::ACPTtrig
  }
  analyzers:{}
 
- reco: [ crtt0, crttrack, crttrackt0, acpttrig ]
+ reco: [ opfiltercommonext, pandoracaloN, crtt0, crttrack, crttrackt0, acpttrig ]
  ana: [ ]
 
  #define the output stream, there could be more than one if using filters 
@@ -130,12 +135,12 @@ physics:
 
  #trigger_paths is a keyword and contains the paths that modify the art::event, 
  #ie filters and producers
- trigger_paths: [reco] 
+ #trigger_paths: [reco] 
 
  #end_paths is a keyword and contains the paths that do not modify the art::Event, 
  #ie analyzers and output streams.  these all run simultaneously
- end_paths:     [stream1]
- #end_paths:     [ana]
+ #end_paths:     []#stream1]
+ end_paths:     [ana] #[stream1, ana]
 }
 
 #block to define where the output goes.  if you defined a filter in the physics
@@ -149,11 +154,20 @@ outputs:
    fileName:    "acpttrig.root"
    dataTier:    "reco"
    compressionLevel: 1
-   SelectEvents: [ reco ]
+   SelectEvents: []
    }
 }
 
-physics.filters.acpttrig.CRTTagProducer: ""
-
 ### Here we include the file giving us run/data dependent overrides
 
+physics.producers.pandoracaloN.TrackModuleLabel: "pandoraCosmic"
+physics.producers.pandoracaloN.SpacePointModuleLabel: "pandora"
+physics.producers.pandoracaloN.CaloAlg.CalAreaConstants: [4.31e-3,4.02e-3,4.04e-3]
+physics.filters.opfiltercommonext.OpHitProducer: "ophitBeam"
+#physics.filters.opfiltercommonext.PEThreshold: 0.01
+#physics.filters.opfiltercommonext.PMTMaxFrac: 1.1
+#physics.filters.opfiltercommonext.VetoStartTick: -15
+#physics.filters.opfiltercommonext.VetoEndTick: -14
+
+physics.filters.acpttrig.CaloProducer: "pandoracaloN"
+physics.filters.acpttrig.SaveWF: true

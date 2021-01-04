@@ -7,7 +7,7 @@
 // from cetlib version v3_04_00.
 ////////////////////////////////////////////////////////////////////////
 
-#include "art/Framework/Core/EDProducer.h"
+#include "art/Framework/Core/EDFilter.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/Handle.h"
@@ -49,7 +49,7 @@
 class ACPTtrig;
 
 
-class ACPTtrig : public art::EDProducer {
+class ACPTtrig : public art::EDFilter {
 public:
   explicit ACPTtrig(fhicl::ParameterSet const& p);
   // The compiler-generated destructor is fine for non-base
@@ -62,7 +62,7 @@ public:
   ACPTtrig& operator=(ACPTtrig&&) = delete;
 
   // Required functions.
-  void produce(art::Event& e) override;
+  bool filter(art::Event& e) override;
 
   // Selected optional functions.
   void beginJob() override;
@@ -76,7 +76,6 @@ private:
   double fCathodeMin, fCathodeMax;
   double fAnodeMin, fAnodeMax;
   double fYMin, fYMax;
-  double fFlashMatchZ;
   double fBeamSpillStart, fBeamSpillEnd;
   std::string fTrackProducer, fFlashProducer, fOpDetWfmProducer, fCRTTagProducer, fCaloProducer;
   bool fSaveTree, fSaveWf;
@@ -107,8 +106,6 @@ private:
   int _crttag;
   float _crtt0;
 
-  int _tagged;
-
   float _wfsum100ns, _wfsum3us, _wfsum5us;
   float _wfbaseline, _wfmedian, _wfrms;
 
@@ -133,7 +130,7 @@ private:
 
 
 ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
-  : EDProducer{p}  // ,
+  : EDFilter{p}  // ,
   // More initializers here.
 {
 
@@ -153,7 +150,6 @@ ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
   fAnodeMax         = p.get<double>("AnodeMax");
   fYMin             = p.get<double>("YMin");
   fYMax             = p.get<double>("YMax");
-  fFlashMatchZ      = p.get<double>("FlashMatchZ");
   fBeamSpillStart   = p.get<double>("BeamSpillStart");
   fBeamSpillEnd     = p.get<double>("BeamSpillEnd");
   fSaveTree         = p.get<bool>("SaveTree",false);
@@ -167,8 +163,6 @@ ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
   _tree->Branch("_run",&_run, "run/I");
   _tree->Branch("_subrun",&_subrun, "subrun/I");
   _tree->Branch("_event", &_event, "event/I");
-
-  _tree->Branch("_tagged",&_tagged,"tagged/I");
 
   _tree->Branch("_timelow" ,&_timelow ,"timelow/i" );
   _tree->Branch("_timehigh",&_timehigh,"timehigh/i");
@@ -276,7 +270,7 @@ ACPTtrig::ACPTtrig(fhicl::ParameterSet const& p)
   }
 }
 
-void ACPTtrig::produce(art::Event& e)
+bool ACPTtrig::filter(art::Event& e)
 {
 
   ResetTTree();
@@ -302,7 +296,6 @@ void ACPTtrig::produce(art::Event& e)
     throw std::exception();
   }
 
-  /*
   // load commont-optical-filter output
   art::Handle<uboone::UbooneOpticalFilter> CommonOpticalFilter_h;
   art::InputTag fCommonOpFiltTag("opfiltercommonext");
@@ -312,7 +305,6 @@ void ACPTtrig::produce(art::Event& e)
   _opfilter_pe_beam_tot = CommonOpticalFilter_h->PE_Beam_Total();
   _opfilter_pe_veto     = CommonOpticalFilter_h->PE_Veto();
   _opfilter_pe_veto_tot = CommonOpticalFilter_h->PE_Veto_Total();
-  */
 
   // SCE service
   ///auto const* sce = lar::providerFrom<spacecharge::SpaceChargeService>();
@@ -428,15 +420,6 @@ void ACPTtrig::produce(art::Event& e)
     
     auto const& beg = track->Vertex();
     auto const& end = track->End();
-
-    // if we are to use a flash-matching cut in delta Z
-    if (fFlashMatchZ > 0) {
-      if (flash_ctr == 0) continue; // no flashes -> skip
-      auto const& matchedflash = flash_h->at(flash_idx);
-      auto flashZ = matchedflash.ZCenter();
-      auto deltaZ = fabs( 0.5*(beg.Z()+end.Z()) - flashZ );
-      if (deltaZ > fFlashMatchZ) continue;
-    }// if to use z-position flash-matching
 
     // is this track associated to a CRT hit?
     if (CRThitMap.find(trkctr - 1) != CRThitMap.end()) {
@@ -590,7 +573,6 @@ void ACPTtrig::produce(art::Event& e)
       }// if there is an associated flash
 
       // create T0 object with this information!
-      _tagged = 1;
       anab::T0 t0(time, 0, 0);
       T0_v->emplace_back(t0);
       util::CreateAssn(*this, e, *T0_v, track, *trk_t0_assn_v);
@@ -673,16 +655,19 @@ void ACPTtrig::produce(art::Event& e)
 
   }// for all tracks
 
+  bool selected = false;
+  if (T0_v->size() > 0)
+    selected = true;
+
   e.put(std::move(T0_v));
   e.put(std::move(trk_t0_assn_v));
   e.put(std::move(trk_flash_assn_v));
 
-  return;
+  return selected;
 }
 
 void ACPTtrig::ResetTTree() {
 
-  _tagged = 0;
   _len = 0;
   _trk_beg_x = 0;
   _trk_beg_y = 0;
@@ -742,7 +727,7 @@ void ACPTtrig::AnalyzeWaveform(const std::vector<short>& wfsum, const float flas
   _wfrms = sqrt(_wfrms / (Nbaseline - 1) );
 
   // provided never out of range...
-  if ( ( flashtimetick >= 2) && ( (flashtimetick - 2 + 512) < wfsum.size()) ) {
+  if ( ( (flashtimetick - 2) >= 0) && ( (flashtimetick - 2 + 512) < wfsum.size()) ) {
     
     for (size_t t=0; t < 6; t++) 
       _wfsum100ns += (wfsum[flashtimetick-2+t] - _wfbaseline);
