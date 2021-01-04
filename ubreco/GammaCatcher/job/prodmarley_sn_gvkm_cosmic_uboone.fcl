@@ -79,10 +79,10 @@ outputs:
 
 # Generate muon decay at rest electron neutrinos
 physics.producers.generator.marley_parameters.source: {
-  type: "tgraph",
+  type: "tgraph"
   tfile: "gvkm_flux.root"
-  namecycle: "Graph",
-  neutrino: 12,
+  namecycle: "Graph"
+  neutrino: 12
 }
 
 # Generate the vertices at the right time for the MicroBooNE BNB spill
