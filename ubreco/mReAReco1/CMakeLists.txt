@@ -16,7 +16,6 @@ art_make(
     larpandora_LArPandoraEventBuilding
     SignalShapingServiceMicroBooNE_service
     nusimdata_SimulationBase
-    ubraw_RawData
     ubobj_Trigger
     ubobj_Optical
     ${LARRECO_LIB}
