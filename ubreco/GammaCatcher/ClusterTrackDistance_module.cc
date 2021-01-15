@@ -119,7 +119,7 @@ private:
 
 
   Double_t X_reco_best=0.0;
-  Double_t Y_reco_best=0.0;
+  //Double_t Y_reco_best=0.0;
   Double_t Z_reco_best=0.0;
 
   Double_t X_reco_best3d=0.0;
@@ -140,8 +140,8 @@ private:
   Double_t pointdistance3d=0;
 
 
-  Double_t V_cluster_z;
-  Double_t U_cluster_z;
+  //Double_t V_cluster_z;
+  //Double_t U_cluster_z;
   Double_t cluster_y_new;
   Double_t deltaY;
 
@@ -152,25 +152,25 @@ private:
   Double_t X_reco_smallest=0;
   Double_t Z_reco_smallest=0;
 
-  Double_t X_reco_smallest3dV=0;
-  Double_t Z_reco_smallest3dV=0;
-  Double_t Y_reco_smallest3dV=0;
+  //Double_t X_reco_smallest3dV=0;
+  //Double_t Z_reco_smallest3dV=0;
+  //Double_t Y_reco_smallest3dV=0;
 
-  Double_t X_reco_smallest3dU=0;
-  Double_t Z_reco_smallest3dU=0;
-  Double_t Y_reco_smallest3dU=0;
+  //Double_t X_reco_smallest3dU=0;
+  //Double_t Z_reco_smallest3dU=0;
+  //Double_t Y_reco_smallest3dU=0;
 
   Double_t X_reco_smallest3d=0;
   Double_t Z_reco_smallest3d=0;
   Double_t Y_reco_smallest3d=0;
 
   Double_t pointdistance_smallest;
-  Double_t pointdistance_smallestV;
-  Double_t pointdistance_smallestU;
+  //Double_t pointdistance_smallestV;
+  //Double_t pointdistance_smallestU;
 
   Double_t distance_smallest3d;
-  Double_t distance_smallestV;
-  Double_t distance_smallestU;
+  //Double_t distance_smallestV;
+  //Double_t distance_smallestU;
   Double_t distance_smallest;
 
   Double_t Y_charge;

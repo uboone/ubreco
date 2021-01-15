@@ -120,8 +120,8 @@ private:
   Double_t position_Y_pr=-9999.0;
   Double_t position_Z_pr=-9999.0;
   // Double_t distance_center=-9999.0;
-  Double_t MC_Particle_Energy_MeV=0.0;
-  Double_t Event_Energy_total_MeV=0.0;
+  //Double_t MC_Particle_Energy_MeV=0.0;
+  //Double_t Event_Energy_total_MeV=0.0;
   // Double_t Event_Energy_5_MeV=0.0;
   // Double_t Event_Energy_10_MeV=0.0;
   // Double_t Event_Energy_20_MeV=0.0;
@@ -132,8 +132,8 @@ private:
   Int_t StatusCode=-9999;
   // Double_t distance_true_reco=999999.0;
   // Double_t distance_true_reco_smallest=999999.0;
-  Double_t MC_Particle_Energy_MeV_smallest=99999.0;
-  Double_t sps_ADC_smallest=99999.0;
+  //Double_t MC_Particle_Energy_MeV_smallest=99999.0;
+  //Double_t sps_ADC_smallest=99999.0;
 
   TTree *Eventtree;
   TTree *MCParticletree;
@@ -151,23 +151,25 @@ private:
 
   Int_t evttime=0;
 
-  Double32_t sps_x,sps_y,sps_z,sps_hit_ADC,bktrkd_particle_energy,bktrkd_particle_energy_per_sps,sps_ADC_U,sps_ADC_V,sps_ADC_Y,sps_ADC_match,sps_ADC10,sps_ADC20,sps_ADC50,hit_ADC_U;
+  //Double32_t sps_x,sps_y,sps_z,sps_hit_ADC,bktrkd_particle_energy,bktrkd_particle_energy_per_sps,sps_ADC_U,sps_ADC_V,sps_ADC_Y,sps_ADC_match,sps_ADC10,sps_ADC20,sps_ADC50,hit_ADC_U;
+  Double32_t sps_x,sps_y,sps_z,bktrkd_particle_energy,bktrkd_particle_energy_per_sps,sps_ADC_U,sps_ADC_V,sps_ADC_Y,sps_ADC10,sps_ADC20,sps_ADC50,hit_ADC_U;
 
   Double_t Event_sps_ADC_U,Event_sps_ADC_V,Event_sps_ADC_Y,hit_ADC_U_sum,numElectrons,numElectrons_sum;
 
   TRandom3 rand;
 
-  Int_t neutrinos,N_Event,N_Run,N_SubRun,N_sps, N_total_e,N_total_pr_e, N_total_bktrk_e,N_true_pr_bktrk_e,hit_counter;
+  //Int_t neutrinos,N_Event,N_Run,N_SubRun,N_sps, N_total_e,N_total_pr_e, N_total_bktrk_e,N_true_pr_bktrk_e,hit_counter;
+  Int_t neutrinos,N_Event,N_Run,N_SubRun,N_sps, N_total_e,N_total_pr_e, hit_counter;
 
   float _maxTrkLen;
   int   _neutrinoshowers;
   int   _neutrinotracks;
   float _muon_px, _muon_py, _muon_pz;
-  Double_t tracklength = 0.0,X_reco=0.0,Y_reco=0.0,Z_reco=0.0;
+  //Double_t tracklength = 0.0,X_reco=0.0,Y_reco=0.0,Z_reco=0.0;
 
   Double_t matched_sps_true_energy, matched_sps_reco_ADC;
 
-  TTree *Event_Correlationtree;
+  //TTree *Event_Correlationtree;
   TTree *Sps_Correlationtree;
 
   bool isData,fData;
@@ -179,12 +181,12 @@ private:
   int sr_sub_run = 0;
 
 
-  Double_t fidVolMinX =    0; //Fiducial Volume dimensions for MicroBooNE
-  Double_t fidVolMaxX =  256;
-  Double_t fidVolMinY = -116;
-  Double_t fidVolMaxY =  116;
-  Double_t fidVolMinZ =    0;
-  Double_t fidVolMaxZ = 1030;
+  //Double_t fidVolMinX =    0; //Fiducial Volume dimensions for MicroBooNE
+  //Double_t fidVolMaxX =  256;
+  //Double_t fidVolMinY = -116;
+  //Double_t fidVolMaxY =  116;
+  //Double_t fidVolMinZ =    0;
+  //Double_t fidVolMaxZ = 1030;
 
 
 };

@@ -78,7 +78,8 @@ private:
 
   Int_t evttime=0;
 
-  Double32_t sps_x,sps_y,sps_z,sps_hit_charge,sps_cluster_charge,sps_cluster_charge10,sps_cluster_charge20,sps_cluster_charge50;
+  //Double32_t sps_x,sps_y,sps_z,sps_hit_charge,sps_cluster_charge,sps_cluster_charge10,sps_cluster_charge20,sps_cluster_charge50;
+  Double32_t sps_x,sps_y,sps_z,sps_cluster_charge,sps_cluster_charge10,sps_cluster_charge20,sps_cluster_charge50;
   Double_t distance, distance_smallest,Event_cluster_charge;
   Double_t Vertex_x,Vertex_y,Vertex_z;
   TRandom3 rand;
@@ -99,19 +100,19 @@ private:
   Double_t distance_trk_smallest=0.0;
 
 
-  Double_t pointdistance_smallest_nu;
-  Double_t track_point_length=0.0;
+  //Double_t pointdistance_smallest_nu;
+  //Double_t track_point_length=0.0;
   Double_t track_point_length_smallest=0.0;
   Double_t distance_smallest_nu;
-  Double_t X_reco_nu;
-  Double_t Y_reco_nu;
-  Double_t Z_reco_nu;
-  Double_t X_reco_smallest_nu=0;
-  Double_t Y_reco_smallest_nu=0;
-  Double_t Z_reco_smallest_nu=0;
-  Double_t X_reco_best_nu=0.0;
-  Double_t Y_reco_best_nu=0.0;
-  Double_t Z_reco_best_nu=0.0;
+  //Double_t X_reco_nu;
+  //Double_t Y_reco_nu;
+  //Double_t Z_reco_nu;
+  //Double_t X_reco_smallest_nu=0;
+  //Double_t Y_reco_smallest_nu=0;
+  //Double_t Z_reco_smallest_nu=0;
+  //Double_t X_reco_best_nu=0.0;
+  //Double_t Y_reco_best_nu=0.0;
+  //Double_t Z_reco_best_nu=0.0;
   Double_t R=2.0; //Radius of the cone for a neutrino correlated track
   Double_t H=4.0; //Height of the cone for a neutrino correlated track
 
