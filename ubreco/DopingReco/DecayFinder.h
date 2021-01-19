@@ -29,6 +29,9 @@
 #include "lardataobj/RecoBase/SpacePoint.h"
 #include "lardataobj/AnalysisBase/BackTrackerMatchingData.h"
 
+#include "lardata/Utilities/GeometryUtilities.h"
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
+
 
 #include "larcore/Geometry/Geometry.h"
 #include "nusimdata/SimulationBase/MCParticle.h"
@@ -56,29 +59,6 @@ public:
     void analyze(art::Event const &e) override;
     void reconfigure(fhicl::ParameterSet const &p);
     void clearEvent();
-
-    /**
-     *  @brief  Collect and fill the MC based decay information.
-     *
-     *  @param  e Art event
-     */
-    void FillTrueDecay(art::Event const &e);
-
-    /**
-     *  @brief  Find reconstructed hits
-     *
-     *  @return 1 if succesfully, 0 if not.
-     */
-    void FindRecoHits(art::Event const &e);
-
-    /**
-     *  @brief  Returns if point is inside a fiducial volume
-     *
-     *  @param fiducial volume tolerance: -x,+x,-y,+y,-z,+z
-     *  @return 1 if succesfully, 0 if not.
-     */
-
-     void FindSpacePoints(art::Event const &e);
 
     bool IsContained(float x, float y, float z, const std::vector<float> &borders) const;
 
@@ -123,22 +103,56 @@ private:
     std::vector<double> fStartPointx;
     std::vector<double> fStartPointy;
     std::vector<double> fStartPointz;
+    std::vector<double> fEndPointx;
+    std::vector<double> fEndPointy;
+    std::vector<double> fEndPointz;
+    std::vector<double> fTrueWire;
+    std::vector<double> fTrueTime;
     std::vector<double> fTime;
     std::vector<double> fPx;
     std::vector<double> fPy;
     std::vector<double> fPz;
     std::vector<std::string> fprocess;
+    std::vector<double> falpha_wire_truth;
+    std::vector<double> falpha_time_truth;
+    std::vector<double> falpha_x_truth;
+    std::vector<double> falpha_y_truth;
+    std::vector<double> falpha_z_truth;
+    std::vector<double> falpha_integral_truth;
+    std::vector<double> falpha_RMS_truth;
+    std::vector<double> fbeta_wire_truth;
+    std::vector<double> fbeta_time_truth;
+    std::vector<double> fbeta_x_truth;
+    std::vector<double> fbeta_y_truth;
+    std::vector<double> fbeta_z_truth;
+    std::vector<double> fbeta_integral_truth;
+    std::vector<double> fbeta_RMS_truth;
+    std::vector<double> fbeta_E_truth;
+    std::vector<double> fbeta_EndE_truth;
     float fDecayEnergy;
     float fDecayTime;
     int fDecayType;
 
-    //SpacePoint info
-    UInt_t fNumSpacePoints = 0;
+    //SpacePoint and Cluster info
+    Int_t fNumSpacePoints = 0;
+    Int_t fNumGoodSpacePoints = 0;
     std::vector<double> fsps_x;
     std::vector<double> fsps_y;
     std::vector<double> fsps_z;
-    std::vector<double> fsps_integral;
-
+    std::vector<double> fcluster_integral;
+    std::vector<Int_t> fnumber_cluster_in_spacepoint;
+    std::vector<UInt_t> fnumber_hits;
+    std::vector<Int_t> fcluster_plane;
+    std::vector<float> fstart_wire;
+    std::vector<float> fend_wire;
+    std::vector<float> fstart_time;
+    std::vector<double> fcluster_x;
+    std::vector<double> fcluster_z;
+    std::vector<Int_t> fcandidate_index_one;
+    std::vector<Int_t> fcandidate_index_two;
+    std::vector<double> fcandidate_time_diff;
+    UInt_t fnumber_candidates = 0;
+    Int_t fcorrectly_found = 0;
 
     // RawDigit Info
     UInt_t fNumRawDigits = 0;
@@ -151,8 +165,8 @@ private:
     std::vector<float> fHitCharge;
     std::vector<float> fHitAmplitude;
     std::vector<float> fHitTime;
-    std::vector<uint> fHitPlane;
-    std::vector<uint> fHitWire;
+    std::vector<UInt_t> fHitPlane;
+    std::vector<UInt_t> fHitWire;
     std::vector<bool> fMCHit;
 };
 
@@ -190,8 +204,7 @@ DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
     fEventTree->Branch("run", &fRun, "run/i");
     fEventTree->Branch("subrun", &fSubrun, "subrun/i");
 
-    if (!m_isData)
-    {
+
         fEventTree->Branch("sim_decay_energy", &fDecayEnergy, "sim_decay_energy/F");
         fEventTree->Branch("sim_decay_time", &fDecayTime, "sim_decay_time/F");
         fEventTree->Branch("sim_decay_type", &fDecayType, "sim_decay_type/i");
@@ -200,22 +213,44 @@ DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
         fEventTree->Branch("Mother", "std::vector<Int_t>", &fMother);
         fEventTree->Branch("NumberDaughters", "std::vector<Int_t>", &fNumberDaughters);
         fEventTree->Branch("pdg", "std::vector<Int_t>", &fpdg);
+        fEventTree->Branch("Eng", "std::vector<double>", &fEng);
         fEventTree->Branch("StartPointx", "std::vector<double>", &fStartPointx);
         fEventTree->Branch("StartPointy", "std::vector<double>", &fStartPointy);
         fEventTree->Branch("StartPointz", "std::vector<double>", &fStartPointz);
+        fEventTree->Branch("EndPointx", "std::vector<double>", &fEndPointx);
+        fEventTree->Branch("EndPointy", "std::vector<double>", &fEndPointy);
+        fEventTree->Branch("EndPointz", "std::vector<double>", &fEndPointz);
+        fEventTree->Branch("TrueWire", "std::vector<double>", &fTrueWire);
+        fEventTree->Branch("TrueTime", "std::vector<double>", &fTrueTime);
         fEventTree->Branch("Time", "std::vector<double>", &fTime);
         fEventTree->Branch("Px", "std::vector<double>", &fPx);
         fEventTree->Branch("Py", "std::vector<double>", &fPy);
         fEventTree->Branch("Pz", "std::vector<double>", &fPz);
+        fEventTree->Branch("AlphaTruthWire", "std::vector<double>", &falpha_wire_truth);
+        fEventTree->Branch("AlphaTruthTime", "std::vector<double>", &falpha_time_truth);
+        fEventTree->Branch("AlphaTruthX", "std::vector<double>", &falpha_x_truth);
+        fEventTree->Branch("AlphaTruthY", "std::vector<double>", &falpha_y_truth);
+        fEventTree->Branch("AlphaTruthZ", "std::vector<double>", &falpha_z_truth);
+        fEventTree->Branch("AlphaTruthIntegral", "std::vector<double>", &falpha_integral_truth);
+        fEventTree->Branch("AlphaTruthRMS", "std::vector<double>", &falpha_RMS_truth);
+        fEventTree->Branch("BetaTruthWire", "std::vector<double>", &fbeta_wire_truth);
+        fEventTree->Branch("BetaTruthTime", "std::vector<double>", &fbeta_time_truth);
+        fEventTree->Branch("BetaTruthX", "std::vector<double>", &fbeta_x_truth);
+        fEventTree->Branch("BetaTruthY", "std::vector<double>", &fbeta_y_truth);
+        fEventTree->Branch("BetaTruthZ", "std::vector<double>", &fbeta_z_truth);
+        fEventTree->Branch("BetaTruthIntegral", "std::vector<double>", &fbeta_integral_truth);
+        fEventTree->Branch("BetaTruthRMS", "std::vector<double>", &fbeta_RMS_truth);
+        fEventTree->Branch("BetaTruthE", "std::vector<double>", &fbeta_E_truth);
+        fEventTree->Branch("BetaTruthEndE", "std::vector<double>", &fbeta_EndE_truth);
         fEventTree->Branch("process", "std::vector<std::string>", &fprocess);
-    }
+
 
     fEventTree->Branch("reco_num_hits", &fNumHits, "reco_num_hits/i");
     fEventTree->Branch("reco_hit_charge", "std::vector< float >", &fHitCharge);
     fEventTree->Branch("reco_hit_amplitude", "std::vector< float >", &fHitAmplitude);
     fEventTree->Branch("reco_hit_time", "std::vector< float >", &fHitTime);
-    fEventTree->Branch("reco_hit_plane", "std::vector< uint >", &fHitPlane);
-    fEventTree->Branch("reco_hit_wire", "std::vector< uint >", &fHitWire);
+    fEventTree->Branch("reco_hit_plane", "std::vector< UInt_t >", &fHitPlane);
+    fEventTree->Branch("reco_hit_wire", "std::vector< UInt_t >", &fHitWire);
     fEventTree->Branch("MCHit", "std::vector< bool >", &fMCHit);
 
     fEventTree->Branch("raw_Channel", "std::vector<Int_t>", &fChannel);
@@ -223,11 +258,24 @@ DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
     fEventTree->Branch("raw_Sigma", "std::vector<float>", &fSigma);
 
 
-    fEventTree->Branch("number_spacepoints", &fNumSpacePoints, "number_spacepoints/i");
+    fEventTree->Branch("number_spacepoints", &fNumGoodSpacePoints, "number_spacepoints/i");
     fEventTree->Branch("sps_x", "std::vector<double>", &fsps_x);
     fEventTree->Branch("sps_y", "std::vector<double>", &fsps_y);
     fEventTree->Branch("sps_z", "std::vector<double>", &fsps_z);
-    fEventTree->Branch("sps_integral", "std::vector<double>", &fsps_integral);
+    fEventTree->Branch("cluster_start_wire", "std::vector<float>", &fstart_wire);
+    fEventTree->Branch("cluster_end_wire", "std::vector<float>", &fend_wire);
+    fEventTree->Branch("cluster_x", "std::vector<double>", &fcluster_x);
+    fEventTree->Branch("cluster_z", "std::vector<double>", &fcluster_z);
+    fEventTree->Branch("cluster_time", "std::vector<float>", &fstart_time);
+    fEventTree->Branch("cluster_integral", "std::vector<double>", &fcluster_integral);
+    fEventTree->Branch("cluster_nhits", "std::vector<UInt_t>", &fnumber_hits);
+    fEventTree->Branch("cluster_plane", "std::vector<Int_t>", &fcluster_plane);
+    fEventTree->Branch("number_clusters", "std::vector<int>", &fnumber_cluster_in_spacepoint);
+    fEventTree->Branch("number_candidates", &fnumber_candidates, "number_candidates/i" );
+    fEventTree->Branch("correctly_found", &fcorrectly_found, "correctly_found/I" );
+    fEventTree->Branch("candidate_one_index", "std::vector<Int_t>", &fcandidate_index_one);
+    fEventTree->Branch("candidate_two_index", "std::vector<Int_t>", &fcandidate_index_two);
+    fEventTree->Branch("candidate_time_diff", "std::vector<double>", &fcandidate_time_diff);
 
 
 
@@ -272,17 +320,55 @@ void DecayFinder::clearEvent()
     fStartPointx.clear();
     fStartPointy.clear();
     fStartPointz.clear();
+    fEndPointx.clear();
+    fEndPointy.clear();
+    fEndPointz.clear();
+    fTrueWire.clear();
+    fTrueTime.clear();
     fPx.clear();
     fPy.clear();
     fPz.clear();
+    falpha_time_truth.clear();
+    falpha_wire_truth.clear();
+    falpha_x_truth.clear();
+    falpha_y_truth.clear();
+    falpha_z_truth.clear();
+    falpha_integral_truth.clear();
+    falpha_RMS_truth.clear();
+    fbeta_time_truth.clear();
+    fbeta_wire_truth.clear();
+    fbeta_x_truth.clear();
+    fbeta_y_truth.clear();
+    fbeta_z_truth.clear();
+    fbeta_integral_truth.clear();
+    fbeta_RMS_truth.clear();
+    fbeta_E_truth.clear();
+    fbeta_EndE_truth.clear();
     fTime.clear();
     fprocess.clear();
 
     fNumSpacePoints = 0;
+    fNumGoodSpacePoints = 0;
     fsps_x.clear();
     fsps_y.clear();
     fsps_z.clear();
-    fsps_integral.clear();
+    fstart_wire.clear();
+    fend_wire.clear();
+    fcluster_x.clear();
+    fcluster_z.clear();
+    fstart_time.clear();
+    fcluster_integral.clear();
+    fcluster_plane.clear();
+    fnumber_cluster_in_spacepoint.clear();
+    fnumber_candidates = 0;
+    fcorrectly_found = 0;
+    fcandidate_index_one.clear();
+    fcandidate_index_two.clear();
+    fcandidate_time_diff.clear();
+    fnumber_hits.clear();
+    fstart_wire.clear();
+    fend_wire.clear();
+    fstart_time.clear();
 
 }
 
