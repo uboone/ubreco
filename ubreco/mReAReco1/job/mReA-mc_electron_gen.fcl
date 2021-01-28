@@ -34,7 +34,6 @@ physics:
   {   
     generator:
     {
-      TruthOverride: true
       module_type: "MCElectronProducer"
     }
   }   
@@ -47,7 +46,6 @@ physics:
     }
     MuSampleFilter:
     {
-      ApplyTruthCuts: true
       module_type: "MuSampleFilter"
     }
   }   

@@ -1,6 +1,6 @@
 #include "services_microboone.fcl"
 
-process_name: mRmAuGen
+process_name: mReAeGen
 
 source:
 {
@@ -31,12 +31,13 @@ physics:
   analyzers: {}
 
   producers:
-  {
-    generator: {
-      RunMuonTest: true
+  {   
+    generator:
+    {
+      TruthOverride: true
       module_type: "MCElectronProducer"
     }
-  }
+  }   
         
   filters:
   {   
@@ -46,6 +47,7 @@ physics:
     }
     MuSampleFilter:
     {
+      ApplyTruthCuts: true
       module_type: "MuSampleFilter"
     }
   }   
@@ -62,7 +64,7 @@ outputs:
   out1:
   {
     module_type: RootOutput
-    fileName: "%ifb_%tc_mRmA-uGen.root"
+    fileName: "%ifb_%tc_mReA-eGen.root"
     SelectEvents: [fpath]
     dataTier:    "simulated"
     compressionLevel: 1
