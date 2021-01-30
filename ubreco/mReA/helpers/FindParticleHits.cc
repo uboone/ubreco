@@ -5,7 +5,7 @@
 //////////////////////////////////////////////////////////
 
 
-#include "ubreco/mReAReco2/helpers/FindParticleHits.h"
+#include "ubreco/mReA/helpers/FindParticleHits.h"
 
 #include "art/Framework/Principal/Handle.h"
 #include "canvas/Persistency/Common/FindManyP.h"

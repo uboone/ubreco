@@ -25,7 +25,7 @@
 #include "lardataobj/RecoBase/Slice.h"
 #include "lardataobj/AnalysisBase/T0.h"
 
-#include "ubreco/mReAReco2/helpers/FindParticleHits.h"
+#include "ubreco/mReA/helpers/FindParticleHits.h"
 
 #include "Pandora/PdgTable.h"
 
