@@ -1,0 +1,73 @@
+#include "services_microboone.fcl"
+
+process_name: mRmAuGen
+
+source:
+{
+  module_type: RootInput
+  maxEvents: -1
+}
+
+services:
+{ 
+  ExptGeoHelperInterface: @local::microboone_geometry_helper
+  Geometry: @local::microboone_geo
+  DetectorPropertiesService: @local::microboone_detproperties
+  LArProperties: @local::microboone_properties
+  DetectorClocksService: @local::microboone_detectorclocks
+  SpaceCharge: @local::microboone_spacecharge
+}
+
+services.DetectorClocksService.InheritClockConfig: false
+services.DetectorClocksService.TriggerOffsetTPC: -400
+services.DetectorPropertiesService.NumberTimeSamples: 6400
+services.DetectorPropertiesService.ReadOutWindowSize: 6400
+services.SpaceCharge.EnableCorrSCE:       true
+services.SpaceCharge.EnableSimEfieldSCE:  true
+services.SpaceCharge.EnableSimSpatialSCE: true
+
+physics:
+{
+  analyzers: {}
+
+  producers:
+  {
+    generator: {
+      RunMuonTest: true
+      TruthOverride: true
+      module_type: "MCElectronProducer"
+    }
+  }
+        
+  filters:
+  {   
+    NuCCfilter:
+    {
+        module_type: "NuCCfilter"
+    }
+    MuSampleFilter:
+    {
+      ApplyTruthCuts: true
+      module_type: "MuSampleFilter"
+    }
+  }   
+    
+  prod: [ NuCCfilter, MuSampleFilter, generator ]
+  stream: [ out1 ]
+  fpath: [ NuCCfilter, MuSampleFilter ]
+  trigger_paths: [ fpath, prod ]
+  end_paths: [ stream ]
+}
+
+outputs:
+{
+  out1:
+  {
+    module_type: RootOutput
+    fileName: "%ifb_%tc_mRmA-uGen.root"
+    SelectEvents: [fpath]
+    dataTier:    "simulated"
+    compressionLevel: 1
+  }
+}
+

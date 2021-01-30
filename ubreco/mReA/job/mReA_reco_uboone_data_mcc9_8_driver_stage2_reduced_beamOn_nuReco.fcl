@@ -1,0 +1,52 @@
+#include "reco_uboone_data_mcc9_8_driver_stage2_reduced.fcl"
+
+# flash-matching score preservation module
+physics.producers.flashmatch: @local::FlashMatch_beamOn
+
+process_name: mReARecoStage2
+
+#source.inputCommands: ["keep *_*_*_*", "drop *_*_*_Data*RecoStage2" ]
+source.inputCommands: ["keep *_*_*_*"]
+source.maxEvents: -1
+
+outputs.out1.fileName: "%ifb_reco2.root"
+
+#only run pandora nu reconstruction (no cosmic reco, no slicing)
+physics.producers.pandoraPatRec: @local::microboone_pandoraAllHitsNu
+physics.producers.pandoraAllOutcomesShower.PFParticleLabel: "pandoraPatRec"
+physics.producers.pandoraAllOutcomesTrack.PFParticleLabel: "pandoraPatRec"
+physics.producers.pandora:
+{
+  HitProducerLabel: "mReAHit"
+  InputProducerLabel: "pandoraPatRec"
+  ShouldProduceT0s: false
+  ShowerProducerLabel: "pandoraAllOutcomesShower"
+  TrackProducerLabel: "pandoraAllOutcomesTrack"
+  module_type: "NuRecoLArPandoraEventBuilding"
+}
+
+physics.analyzers.DQMGoodRuns.HitsModuleLabel: "mReAHit" 
+physics.analyzers.DQMHits.HitModuleLabels: ["mReAHit"]
+physics.filters.antibdtfilter.AnalysisTools.default.Hproducer: "mReAHit"
+physics.producers.NuCCproducer.hitfinder_producer: "mReAHit"
+physics.producers.dbcluster3d.HitModuleLabel: "mReAHit"
+physics.producers.opNoiseCreateMask.HitProducer: "mReAHit"
+physics.producers.pandora.SliceIdTool.HitLabel: "mReAHit"
+physics.producers.pandoraKalmanShowerFlashMatch.HitModuleLabel: "mReAHit"
+physics.producers.pandoraKalmanTrackcalipid.ProducerLabels.HitLabel: "mReAHit"
+physics.producers.pandoraKalmanShowercalipid.ProducerLabels.HitLabel: "mReAHit"
+physics.producers.pandoraKalmanTrackpid.ProducerLabels.HitLabel: "mReAHit"
+physics.producers.pandoraKalmanShowerpid.ProducerLabels.HitLabel: "mReAHit"
+physics.producers.pandoraKalmanTrackFlashMatch.HitModuleLabel: "mReAHit"
+physics.producers.pandoraPatRec.HitFinderModuleLabel: "mReAHit"
+physics.producers.pandoraWriter.HitFinderModuleLabel: "mReAHit"
+physics.producers.pandoracalipid.ProducerLabels.HitLabel: "mReAHit"
+physics.producers.pandoracalipidSCE.ProducerLabels.HitLabel: "mReAHit"
+physics.producers.pandorapid.ProducerLabels.HitLabel: "mReAHit"
+physics.producers.pandorapidSCE.ProducerLabels.HitLabel: "mReAHit"
+physics.producers.pmtrackcalipid.ProducerLabels.HitLabel: "mReAHit"
+physics.producers.pmtrackpid.ProducerLabels.HitLabel: "mReAHit"
+physics.producers.sps3d.HitLabel: "mReAHit"
+physics.producers.trajcluster.HitModuleLabel: "mReAHit"
+
+
