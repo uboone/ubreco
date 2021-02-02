@@ -35,6 +35,8 @@ void DecayFinder::analyze(art::Event const &evt)
 
       art::FindManyP<recob::Hit, anab::BackTrackerHitMatchingData> hit_per_part(mcparticles_in_event,evt,"gaushitTruthMatch");
 
+      //Was the hit caused by an alpha or beta?
+
     auto mcparts(*mcparticles_in_event);
     for(UInt_t mcp = 0; mcp < mcparts.size(); mcp++){
       auto hit_vec = hit_per_part.at(mcp);
@@ -110,25 +112,6 @@ void DecayFinder::analyze(art::Event const &evt)
 
     // Here we implement the loop over the reconstructed objects
 
-    RawDigitHandle rawdigits_in_event;
-    evt.getByLabel(m_rawdigits_producer, rawdigits_in_event);
-    if (!rawdigits_in_event.isValid())
-    {
-      std::cout << "Failed to get raw::RawDigits with producer " << m_rawdigits_producer << std::endl;
-    }
-    else
-    {
-      fNumRawDigits = rawdigits_in_event->size();
-      for (UInt_t ii = 0; ii < fNumRawDigits; ii++)
-      {
-        const art::Ptr<raw::RawDigit> this_rawdigit(rawdigits_in_event, ii);
-
-        fChannel.push_back(this_rawdigit->Channel());
-        fPedestal.push_back(this_rawdigit->GetPedestal());
-        fSigma.push_back(this_rawdigit->GetSigma());
-      }
-    }
-
     HitHandle hits_in_event;
     std::vector<art::Ptr<recob::Hit>> vector_of_hits;
     evt.getByLabel(m_hit_producer, hits_in_event);
@@ -140,16 +123,11 @@ void DecayFinder::analyze(art::Event const &evt)
     {
       fNumHits = hits_in_event->size();
       std::cout << "Recob::Hit objects with producer " << m_hit_producer << " in event: " << fNumHits << std::endl;
-      uint hits_in_particles = 0;
-      uint hits_as_spacepoint = 0;
+
 
       for (uint i = 0; i < fNumHits; ++i)
       {
         const art::Ptr<recob::Hit> this_hit(hits_in_event, i);
-
-        //hits_in_particles += (hitsToParticles.find(this_hit)!=hitsToParticles.end());
-        //hits_as_spacepoint += (hitsToSpacepoints.find(this_hit)!=hitsToSpacepoints.end());
-
         vector_of_hits.push_back(this_hit);
 
         // Store information for all hits.
@@ -159,13 +137,7 @@ void DecayFinder::analyze(art::Event const &evt)
         fHitPlane.push_back(this_hit->View());
         fHitWire.push_back(this_hit->WireID().Wire);
       }
-      std::cout << "Fraction of hits that are reconstructed as spacepoint " << hits_as_spacepoint/(float)fNumHits << std::endl;
-      std::cout << "Fraction of hits that belong to a PFParticle " << hits_in_particles/(float)fNumHits << std::endl;
     }
-
-
-
-
 
 
     //Here we look at clusters after Avinay's Gamma3D.
@@ -195,8 +167,8 @@ void DecayFinder::analyze(art::Event const &evt)
         time = this_cluster->StartTick();
         numbhits = this_cluster->NHits();
 
-        cluster_z = start_wire*wire2cm;//Also equal to Cluster_hit_wire_cm
-        cluster_x = (time*time2cm)-44.575 ;//Also equal to Cluster_hit_time_cm
+        cluster_z = start_wire*wire2cm;       //Also equal to Cluster_hit_wire_cm
+        cluster_x = (time*time2cm)-44.575 ;   //Also equal to Cluster_hit_time_cm
 
         if (this_cluster->View() == 2) {
           which_plane = 2;
@@ -213,7 +185,6 @@ void DecayFinder::analyze(art::Event const &evt)
 
         fcluster_plane.push_back(which_plane);
         fcluster_integral.push_back(totalintegral);
-        fnumber_cluster_in_spacepoint.push_back(numberclusters);
         fstart_wire.push_back(start_wire);
         fend_wire.push_back(end_wire);
         fstart_time.push_back(time);
@@ -224,103 +195,9 @@ void DecayFinder::analyze(art::Event const &evt)
 
 
 
-
-
-      //Spacepoints
-      SpacePointHandle spacepoints_in_event;
-      evt.getByLabel(m_spacepoint_producer,spacepoints_in_event);
-
-      if (!spacepoints_in_event.isValid()) {std::cout << "Error: Couldn't get spacepoints." << std::endl;}
-      else {std::cout << "Success: Got Spacepoints." << std::endl;}
-
-      art::FindMany<recob::Cluster> sps_clus_assn_v(spacepoints_in_event, evt, m_spacepoint_producer);
-
-      fNumSpacePoints = spacepoints_in_event->size();
-
-      double current_x = -1000;
-      double current_y = -1000;
-      double current_z = -1000;
-
-
-      for (Int_t ii = 0; ii < fNumSpacePoints; ii++) {
-
-        auto sps = spacepoints_in_event->at(ii);
-        auto cluster_v = sps_clus_assn_v.at(ii);
-
-        if (abs(sps.XYZ()[0] - current_x) < 0.1 && abs(sps.XYZ()[1] - current_y) < 0.1 && abs(sps.XYZ()[2] - current_z) < 0.1) {
-          continue;
-        }
-
-        current_x = sps.XYZ()[0];
-        current_y = sps.XYZ()[1];
-        current_z = sps.XYZ()[2];
-
-        fsps_x.push_back(sps.XYZ()[0]);
-        fsps_y.push_back(sps.XYZ()[1]);
-        fsps_z.push_back(sps.XYZ()[2]);
-
-        std::cout << "Spacepoint: " << ii << "\t" << sps.ID() << "\t" << sps.XYZ()[0] << "\t" << sps.XYZ()[1] << "\t" << sps.XYZ()[2] << std::endl;
-
-
-
-        for (auto const& cluster: cluster_v){
-          auto plane = cluster->View();
-          // std::cout<<"Cluster Vector Hit Size: "<<cluster->NHits()<<std::endl;
-          // std::cout<<"Cluster Vector Summed ADC: "<<cluster->SummedADC()<<std::endl;
-          if (plane==2){
-
-          }
-        }
-
-
-        fNumGoodSpacePoints++;
-
-      }
-
-
-/*      for (Int_t ii = 0; ii < fNumSpacePoints; ii++) {
-        for (Int_t jj = ii + 1; jj < fNumSpacePoints; jj++) {
-          if (abs(fsps_y.at(ii) - fsps_y.at(jj)) < 1.0 && abs(fsps_z.at(ii) - fsps_z.at(jj)) < 1.0) {
-          //if (abs(fstart_wire.at(ii) - fstart_wire.at(jj)) < 1.0 || abs(fend_wire.at(ii) - fstart_wire.at(jj)) < 1.0) {
-            fcandidate_index_one.push_back(ii);
-            fcandidate_index_two.push_back(jj);
-            fnumber_candidates++;
-            fcandidate_time_diff.push_back(abs(fstart_time.at(ii) - fstart_time.at(jj)));
-          }
-        }
-      } */
-
-
-  //  if (!m_isData) {
-    // }
-
      fEventTree->Fill();
 
 
 
 
 } //End analyze function
-
-
-
-
-bool DecayFinder::IsContained(float x, float y, float z, const std::vector<float> &borders) const
-{
-  float fidvolXstart = borders[0];
-  float fidvolYstart = borders[1];
-  float fidvolZstart = borders[2];
-  float fidvolXend = borders[3];
-  float fidvolYend = borders[4];
-  float fidvolZend = borders[5];
-
-  art::ServiceHandle<geo::Geometry> geo;
-  std::vector<double> bnd = {
-      0., 2. * geo->DetHalfWidth(), -geo->DetHalfHeight(), geo->DetHalfHeight(),
-      0., geo->DetLength()};
-
-  bool is_x = x > (bnd[0] + fidvolXstart) && x < (bnd[1] - fidvolXend);
-  bool is_y = y > (bnd[2] + fidvolYstart) && y < (bnd[3] - fidvolYend);
-  bool is_z = z > (bnd[4] + fidvolZstart) && z < (bnd[5] - fidvolZend);
-
-  return is_x && is_y && is_z;
-}

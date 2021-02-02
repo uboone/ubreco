@@ -60,13 +60,11 @@ public:
     void reconfigure(fhicl::ParameterSet const &p);
     void clearEvent();
 
-    bool IsContained(float x, float y, float z, const std::vector<float> &borders) const;
-
     void endSubRun(const art::SubRun &subrun);
 
 private:
     typedef art::Handle<std::vector<recob::Hit>> HitHandle;
-    typedef art::Handle<std::vector<raw::RawDigit>> RawDigitHandle;
+    //typedef art::Handle<std::vector<raw::RawDigit>> RawDigitHandle;
     typedef art::Handle<std::vector<simb::MCParticle>> MCParticleHandle;
     typedef art::Handle<std::vector<recob::SpacePoint> > SpacePointHandle;
     typedef art::Handle<std::vector<recob::Cluster> > ClusterHandle;
@@ -77,17 +75,11 @@ private:
     std::string m_spacepoint_producer;
     std::string m_cluster_producer;
     std::string m_particle_producer;
-    std::string m_rawdigits_producer;
+    //std::string m_rawdigits_producer;
     std::string m_mcparticle_producer;
     bool m_isData;
 
     lar_pandora::PFParticleVector particles;
-    //lar_pandora::SpacePointVector spacepoints;
-    lar_pandora::PFParticlesToHits particlesToHits;
-    lar_pandora::HitsToPFParticles hitsToParticles;
-    //lar_pandora::SpacePointsToHits spacepointsToHits;
-    //lar_pandora::HitsToSpacePoints hitsToSpacepoints;
-    //lar_pandora::PFParticlesToSpacePoints particlesToSpacepoints;
 
     //// Tree for every event
     TTree *fEventTree;
@@ -129,18 +121,11 @@ private:
     std::vector<double> fbeta_RMS_truth;
     std::vector<double> fbeta_E_truth;
     std::vector<double> fbeta_EndE_truth;
-    float fDecayEnergy;
-    float fDecayTime;
-    int fDecayType;
+
 
     //SpacePoint and Cluster info
-    Int_t fNumSpacePoints = 0;
-    Int_t fNumGoodSpacePoints = 0;
-    std::vector<double> fsps_x;
-    std::vector<double> fsps_y;
-    std::vector<double> fsps_z;
     std::vector<double> fcluster_integral;
-    std::vector<Int_t> fnumber_cluster_in_spacepoint;
+  //  std::vector<Int_t> fnumber_cluster_in_spacepoint;
     std::vector<UInt_t> fnumber_hits;
     std::vector<Int_t> fcluster_plane;
     std::vector<float> fstart_wire;
@@ -148,17 +133,19 @@ private:
     std::vector<float> fstart_time;
     std::vector<double> fcluster_x;
     std::vector<double> fcluster_z;
-    std::vector<Int_t> fcandidate_index_one;
-    std::vector<Int_t> fcandidate_index_two;
-    std::vector<double> fcandidate_time_diff;
-    UInt_t fnumber_candidates = 0;
-    Int_t fcorrectly_found = 0;
+//    std::vector<Int_t> fcandidate_index_one;
+//    std::vector<Int_t> fcandidate_index_two;
+//    std::vector<double> fcandidate_time_diff;
+//    UInt_t fnumber_candidates = 0;
+//    Int_t fcorrectly_found = 0;
 
-    // RawDigit Info
+    // RawDigit Info. Not used.
+    /*
     UInt_t fNumRawDigits = 0;
     std::vector<Int_t> fChannel;
     std::vector<float> fPedestal;
     std::vector<float> fSigma;
+    */
 
     // Reco info
     UInt_t fNumHits = 0;
@@ -167,7 +154,6 @@ private:
     std::vector<float> fHitTime;
     std::vector<UInt_t> fHitPlane;
     std::vector<UInt_t> fHitWire;
-    std::vector<bool> fMCHit;
 };
 
 void DecayFinder::reconfigure(fhicl::ParameterSet const &p)
@@ -175,10 +161,9 @@ void DecayFinder::reconfigure(fhicl::ParameterSet const &p)
     m_isData = p.get<bool>("is_data", false);
     m_hit_producer = p.get<std::string>("hit_producer", "gaushit");
     //m_spacepoint_producer = p.get<std::string>("spacepoint_producer", "pandora");
-    m_particle_producer = p.get<std::string>("particle_producer", "pandora");
-    m_rawdigits_producer = p.get<std::string>("rawdigits_producer", "butcher");
+  //  m_particle_producer = p.get<std::string>("particle_producer", "pandora");
+    //m_rawdigits_producer = p.get<std::string>("rawdigits_producer", "butcher");
     m_mcparticle_producer = p.get<std::string>("mcparticle_producer", "largeant");
-    m_spacepoint_producer = p.get<std::string>("spacepoint_producer", "gamma3d");
     m_cluster_producer = p.get<std::string>("cluster_producer", "gaushitproximity");
 }
 
@@ -192,10 +177,10 @@ DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
     std::cout << std::endl;
     std::cout << "[DecayFinder constructor] Checking set-up" << std::endl;
     std::cout << "[DecayFinder constructor] hit_producer: " << m_hit_producer << std::endl;
-    std::cout << "[DecayFinder constructor] spacepoint_producer: " << m_spacepoint_producer << std::endl;
+  //  std::cout << "[DecayFinder constructor] spacepoint_producer: " << m_spacepoint_producer << std::endl;
     std::cout << "[DecayFinder constructor] cluster_producer: " << m_cluster_producer << std::endl;
-    std::cout << "[DecayFinder constructor] particle_producer: " << m_particle_producer << std::endl;
-    std::cout << "[DecayFinder constructor] rawdigits_producer: " << m_rawdigits_producer << std::endl;
+  //  std::cout << "[DecayFinder constructor] particle_producer: " << m_particle_producer << std::endl;
+    //std::cout << "[DecayFinder constructor] rawdigits_producer: " << m_rawdigits_producer << std::endl;
     std::cout << "[DecayFinder constructor] is_data: " << m_isData << std::endl;
 
     //// Tree for every event
@@ -203,11 +188,6 @@ DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
     fEventTree->Branch("event", &fEvent, "event/i");
     fEventTree->Branch("run", &fRun, "run/i");
     fEventTree->Branch("subrun", &fSubrun, "subrun/i");
-
-
-        fEventTree->Branch("sim_decay_energy", &fDecayEnergy, "sim_decay_energy/F");
-        fEventTree->Branch("sim_decay_time", &fDecayTime, "sim_decay_time/F");
-        fEventTree->Branch("sim_decay_type", &fDecayType, "sim_decay_type/i");
 
         fEventTree->Branch("TrackId", "std::vector<Int_t>", &fTrackId);
         fEventTree->Branch("Mother", "std::vector<Int_t>", &fMother);
@@ -251,17 +231,13 @@ DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
     fEventTree->Branch("reco_hit_time", "std::vector< float >", &fHitTime);
     fEventTree->Branch("reco_hit_plane", "std::vector< UInt_t >", &fHitPlane);
     fEventTree->Branch("reco_hit_wire", "std::vector< UInt_t >", &fHitWire);
-    fEventTree->Branch("MCHit", "std::vector< bool >", &fMCHit);
 
+    /*  No longer needed.
     fEventTree->Branch("raw_Channel", "std::vector<Int_t>", &fChannel);
     fEventTree->Branch("raw_Pedestal", "std::vector<float>", &fPedestal);
     fEventTree->Branch("raw_Sigma", "std::vector<float>", &fSigma);
+    */
 
-
-    fEventTree->Branch("number_spacepoints", &fNumGoodSpacePoints, "number_spacepoints/i");
-    fEventTree->Branch("sps_x", "std::vector<double>", &fsps_x);
-    fEventTree->Branch("sps_y", "std::vector<double>", &fsps_y);
-    fEventTree->Branch("sps_z", "std::vector<double>", &fsps_z);
     fEventTree->Branch("cluster_start_wire", "std::vector<float>", &fstart_wire);
     fEventTree->Branch("cluster_end_wire", "std::vector<float>", &fend_wire);
     fEventTree->Branch("cluster_x", "std::vector<double>", &fcluster_x);
@@ -270,32 +246,12 @@ DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
     fEventTree->Branch("cluster_integral", "std::vector<double>", &fcluster_integral);
     fEventTree->Branch("cluster_nhits", "std::vector<UInt_t>", &fnumber_hits);
     fEventTree->Branch("cluster_plane", "std::vector<Int_t>", &fcluster_plane);
-    fEventTree->Branch("number_clusters", "std::vector<int>", &fnumber_cluster_in_spacepoint);
-    fEventTree->Branch("number_candidates", &fnumber_candidates, "number_candidates/i" );
-    fEventTree->Branch("correctly_found", &fcorrectly_found, "correctly_found/I" );
-    fEventTree->Branch("candidate_one_index", "std::vector<Int_t>", &fcandidate_index_one);
-    fEventTree->Branch("candidate_two_index", "std::vector<Int_t>", &fcandidate_index_two);
-    fEventTree->Branch("candidate_time_diff", "std::vector<double>", &fcandidate_time_diff);
-
 
 
 }
 
 void DecayFinder::clearEvent()
 {
-    // Clean object vectors and maps
-/*    particles.clear();
-    spacepoints.clear();
-    particlesToHits.clear();
-    hitsToParticles.clear();
-    spacepointsToHits.clear();
-    hitsToSpacepoints.clear();
-    particlesToSpacepoints.clear();
-*/
-    // MC info
-    fDecayEnergy = 0;
-    fDecayTime = 0;
-    fDecayType = 0;
 
     // Reco info
     fNumHits = 0;
@@ -304,12 +260,6 @@ void DecayFinder::clearEvent()
     fHitTime.clear();
     fHitPlane.clear();
     fHitWire.clear();
-    fMCHit.clear();
-
-    fNumRawDigits = 0;
-    fChannel.clear();
-    fPedestal.clear();
-    fSigma.clear();
 
     fNumMCParticles = 0;
     fTrackId.clear();
@@ -347,11 +297,7 @@ void DecayFinder::clearEvent()
     fTime.clear();
     fprocess.clear();
 
-    fNumSpacePoints = 0;
-    fNumGoodSpacePoints = 0;
-    fsps_x.clear();
-    fsps_y.clear();
-    fsps_z.clear();
+
     fstart_wire.clear();
     fend_wire.clear();
     fcluster_x.clear();
@@ -359,16 +305,8 @@ void DecayFinder::clearEvent()
     fstart_time.clear();
     fcluster_integral.clear();
     fcluster_plane.clear();
-    fnumber_cluster_in_spacepoint.clear();
-    fnumber_candidates = 0;
-    fcorrectly_found = 0;
-    fcandidate_index_one.clear();
-    fcandidate_index_two.clear();
-    fcandidate_time_diff.clear();
     fnumber_hits.clear();
-    fstart_wire.clear();
-    fend_wire.clear();
-    fstart_time.clear();
+
 
 }
 
