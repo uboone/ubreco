@@ -9,7 +9,7 @@ process_name: mReARecoStage2
 source.inputCommands: ["keep *_*_*_*"]
 source.maxEvents: -1
 
-outputs.out1.fileName: "%ifb_reco2.root"
+outputs.out1.fileName: "%ifb_%tc_reco2.root"
 
 #only run pandora nu reconstruction (no cosmic reco, no slicing)
 physics.producers.pandoraPatRec: @local::microboone_pandoraAllHitsNu
