@@ -325,10 +325,10 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
 
 
-
+  
   recob::Vertex nuvtx;
-  size_t neutrinos = 0;
-
+  /*size_t neutrinos = 0;
+  
   for (size_t p=0; p < pfparticle_handle->size(); p++) {
     auto pfp = pfparticle_handle->at(p);
 
@@ -351,7 +351,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
     }
 
   }
-
+  */
 
 
 
