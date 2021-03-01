@@ -5,7 +5,9 @@ add_subdirectory(job)
 add_subdirectory(HitCosmicTag)
 
 
-art_make(	  TOOL_LIBRARIES
+art_make(         EXCLUDE FlashNeutrinoId_tool.cc
+		          StoreFlashMatchChi2_module.cc
+		  TOOL_LIBRARIES
 
 		  	larcorealg_Geometry
                         larcore_Geometry_Geometry_service
@@ -56,7 +58,7 @@ art_make(	  TOOL_LIBRARIES
 			lardataobj_MCBase
 			lardataobj_AnalysisBase
 			lardataobj_Simulation
-			lardata_RecoObjects larreco_Deprecated
+			lardata_RecoObjects
 			larreco_RecoAlg
 			lardata_Utilities
                         larpandora_LArPandoraInterface

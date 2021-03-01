@@ -14,7 +14,7 @@
 #include "art/Framework/Principal/Run.h"
 #include "art/Framework/Principal/SubRun.h"
 #include "canvas/Utilities/InputTag.h"
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
@@ -188,10 +188,11 @@ T0RecoAnodeCathodePiercing::T0RecoAnodeCathodePiercing(fhicl::ParameterSet const
   
   _det_width = geom->DetHalfWidth() * 2;
 
-  auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob();
-  double efield = detProp.Efield();
-  double temp   = detProp.Temperature();
-  fDriftVelocity = detProp.DriftVelocity(efield,temp);
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+  auto const detPropData = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
+  double efield = detPropData.Efield();
+  double temp   = detPropData.Temperature();
+  fDriftVelocity = detPropData.DriftVelocity(efield,temp);
 
 
   art::ServiceHandle<art::TFileService> tfs;

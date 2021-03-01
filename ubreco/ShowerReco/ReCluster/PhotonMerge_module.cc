@@ -129,9 +129,9 @@ PhotonMerge::PhotonMerge(fhicl::ParameterSet const & p)
   // get detector specific properties
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
   auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
-  auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
+  auto const detPropData = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
   _wire2cm = geom->WirePitch(0,0,0);
-  _time2cm = sampling_rate(clockData) / 1000.0 * detProp.DriftVelocity( detProp.Efield(), detProp.Temperature() );
+  _time2cm = sampling_rate(clockData) / 1000.0 * detPropData.DriftVelocity( detPropData.Efield(), detPropData.Temperature() );
   _trigoff = trigger_offset(clockData);
 }
 

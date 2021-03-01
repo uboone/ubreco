@@ -8,6 +8,7 @@ include_directories( $ENV{LARPANDORA_INC} )
 include_directories( $ENV{LARPANDORACONTENT_INC} )
 
 art_make( BASENAME_ONLY
+	  EXCLUDE       MicroBooNEPandora_module.cc
           LIBRARY_NAME  MicroBooNEPandora
           LIB_LIBRARIES larpandora_LArPandoraInterface
                         ${LARPANDORACONTENT}

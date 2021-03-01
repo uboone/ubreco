@@ -29,7 +29,7 @@
 #include "canvas/Persistency/Common/FindManyP.h"
 #include "art/Persistency/Common/PtrMaker.h"
 #include "canvas/Persistency/Common/FindOne.h"
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 #include "larcore/Geometry/Geometry.h"
 #include "lardata/Utilities/GeometryUtilities.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"

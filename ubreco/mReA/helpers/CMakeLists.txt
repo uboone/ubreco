@@ -7,14 +7,13 @@ art_make(
     larcorealg_Geometry
     larcore_Geometry_Geometry_service
     larsim_Simulation
-    nutools_ParticleNavigation
+    nug4_ParticleNavigation
     lardataobj_Simulation
     lardata_Utilities
     larevt_Filters
     lardataobj_RawData
     lardataobj_RecoBase 
     lardata_RecoObjects 
-    larreco_Deprecated
     larreco_RecoAlg
     larpandora_LArPandoraInterface
     SignalShapingServiceMicroBooNE_service

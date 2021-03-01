@@ -227,10 +227,11 @@ void T0RecoAnodeCathodePiercingAna::beginJob()
   _2dhit_tree->Branch("_rc_z_end",&_rc_z_end,"rc_z_end/D");
   _2dhit_tree->Branch("_t0",&_t0,"t0/D");
 
-  auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob();
-  double efield = detProp.Efield();
-  double temp   = detProp.Temperature();
-  fDriftVelocity = detProp.DriftVelocity(efield,temp);
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+  auto const detPropData = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
+  double efield = detPropData.Efield();
+  double temp   = detPropData.Temperature();
+  fDriftVelocity = detPropData.DriftVelocity(efield,temp);
 
 }
 

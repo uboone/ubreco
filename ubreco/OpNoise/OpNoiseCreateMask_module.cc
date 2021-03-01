@@ -40,7 +40,7 @@
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
 
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 
 #include <memory>
 

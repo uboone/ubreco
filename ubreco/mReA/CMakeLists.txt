@@ -1,17 +1,20 @@
 
 art_make(
+  EXCLUDE NuRecoLArPandoraEventBuilding_module.cc
+          MCElectronProducer_module.cc
+	  ElectronEvtHitProducer_module.cc
+	  MuSampleFilter_module.cc
   MODULE_LIBRARIES 
     larcorealg_Geometry
     larcore_Geometry_Geometry_service
     larsim_Simulation
-    nutools_ParticleNavigation
+    nug4_ParticleNavigation
     lardataobj_Simulation
     lardata_Utilities
     larevt_Filters
     lardataobj_RawData
     lardataobj_RecoBase 
     lardata_RecoObjects 
-    larreco_Deprecated
     larreco_RecoAlg
     larpandora_LArPandoraInterface
     larpandora_LArPandoraEventBuilding

@@ -19,11 +19,11 @@ art_make(
 			lardata_RecoObjects
 			larreco_RecoAlg
 			lardata_Utilities
-			larsim_Simulation nutools_ParticleNavigation lardataobj_Simulation
+			larsim_Simulation nug4_ParticleNavigation lardataobj_Simulation
 			larcoreobj_SummaryData
 			larevt_Filters
 			nusimdata_SimulationBase
-			nutools_RandomUtils_NuRandomService_service
+			nurandom_RandomUtils_NuRandomService_service
 			${LARRECO_LIB}
 			${LARDATA_LIB}
                         ${ART_FRAMEWORK_CORE}

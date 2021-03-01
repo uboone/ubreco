@@ -5,7 +5,7 @@
  */
 
 #include "art/Utilities/ToolMacros.h"
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Common/FindMany.h"
 

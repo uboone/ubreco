@@ -34,7 +34,7 @@
 
 #include "lardataobj/RecoBase/OpFlash.h"
 
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 #include "TTree.h"
 #include "TVector3.h"
 
@@ -400,9 +400,12 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   fFillTTree = p.get<bool>("FillTTree",false);
   
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
-  auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+  auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
+  double efield = detProp.Efield();
+  double temp   = detProp.Temperature();
   _wire2cm = geom->WirePitch(0,0,0);
-  _time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
+  _time2cm = sampling_rate(clockData) / 1000.0 * detProp.DriftVelocity(efield, temp);
 
   _tmean.setRadius(10);
 
@@ -991,16 +994,13 @@ void StopMu::shiftTruePosition(double true_point[3], double true_time, double tr
   true_point_shifted[1] = true_point[1];
   true_point_shifted[2] = true_point[2];
 
-  ::detinfo::DetectorProperties const* _detector_properties;
-  ::detinfo::DetectorClocks const* _detector_clocks;
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+  auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
 
-  _detector_properties = lar::providerFrom<detinfo::DetectorPropertiesService>();
-  _detector_clocks = lar::providerFrom<detinfo::DetectorClocksService>();
-
-  double g4Ticks = _detector_clocks->TPCG4Time2Tick(true_time)
-                       + _detector_properties->GetXTicksOffset(0,0,0)
-                       - _detector_properties->TriggerOffset();
-  double xOffset = _detector_properties->ConvertTicksToX(g4Ticks, 0, 0, 0);
+  double g4Ticks = clockData.TPCG4Time2Tick(true_time)
+                       + detProp.GetXTicksOffset(0,0,0)
+                       - trigger_offset(clockData);
+  double xOffset = detProp.ConvertTicksToX(g4Ticks, 0, 0, 0);
 
   true_point_shifted[0] += xOffset;
 

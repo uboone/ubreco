@@ -12,7 +12,7 @@ art_make(
 			    larcorealg_Geometry
 			    lardataobj_AnalysisBase
 			    lardata_Utilities
-			    nutools_MagneticField_MagneticField_service
+			    nug4_MagneticField_MagneticField_service
 			    nusimdata_SimulationBase
 			    ${ART_FRAMEWORK_CORE}
 			    ${ART_FRAMEWORK_PRINCIPAL}

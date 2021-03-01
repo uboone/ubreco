@@ -28,13 +28,13 @@
 #include "lardataobj/RecoBase/Vertex.h"
 #include "lardataobj/RecoBase/PFParticle.h"
 
-
+#include "larcore/Geometry/Geometry.h"
 #include "lardata/Utilities/GeometryUtilities.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 
 
 #include "TTree.h"
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 #include <memory>
 
 class Gamma3D;
@@ -257,7 +257,8 @@ private:
 };
 
 
-Gamma3D::Gamma3D(fhicl::ParameterSet const & p)
+Gamma3D::Gamma3D(fhicl::ParameterSet const & p) :
+  art::EDProducer(p)
 // :
 // Initialize member data here.
 {
@@ -1441,11 +1442,12 @@ void Gamma3D::beginJob()
   // Implementation of optional member function here.
 
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
-  auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-
-
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+  auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
+  double efield = detProp.Efield();
+  double temp   = detProp.Temperature();
   wire2cm = geom->WirePitch(0,0,0);
-  time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
+  time2cm = sampling_rate(clockData) / 1000.0 * detProp.DriftVelocity(efield, temp);
 
 
 

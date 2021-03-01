@@ -26,7 +26,7 @@ art_make(
           MODULE_LIBRARIES 
 		   	#larpandora_LArPandoraInterface	
 			larevt_CalibrationDBI_IOVData
-			larsim_Simulation nutools_ParticleNavigation lardataobj_Simulation
+			larsim_Simulation nug4_ParticleNavigation lardataobj_Simulation
 			larsim_MCCheater_ParticleInventoryService_service
 			larsim_MCCheater_BackTrackerService_service
 			larcorealg_Geometry
@@ -36,12 +36,12 @@ art_make(
 			lardataobj_MCBase
 			lardataobj_Simulation	
 			lardataobj_AnalysisBase	
-			lardata_RecoObjects larreco_Deprecated  
+			lardata_RecoObjects
 			larreco_RecoAlg
 			lardata_Utilities
 			larevt_Filters
 			nusimdata_SimulationBase
-			nutools_RandomUtils_NuRandomService_service
+			nurandom_RandomUtils_NuRandomService_service
 			${LARRECO_LIB}
 			${LARDATA_LIB}
                         ${ART_FRAMEWORK_CORE}

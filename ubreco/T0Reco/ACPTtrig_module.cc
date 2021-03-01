@@ -42,7 +42,7 @@
 #include "ubevt/Utilities/PMTRemapService.h"
 #include "ubevt/Utilities/PMTRemapProvider.h"
 
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 
 #include <TTree.h>
 
@@ -613,18 +613,18 @@ void ACPTtrig::produce(art::Event& e)
 	geo::Point_t endOffsets;
 	auto const* sce = lar::providerFrom<spacecharge::SpaceChargeService>();
 	//	if(sce->EnableCalSpatialSCE()){
-	//  posOffsets = sce->GetCalPosOffsets(beg);
+	//  posOffsets = sce->GetCalPosOffsets(beg, 0);
 	//	}
 	
 	if(sce->EnableCalSpatialSCE()) {
-	  begOffsets = sce->GetCalPosOffsets(beg);
+	  begOffsets = sce->GetCalPosOffsets(beg, 0);
 	  _trk_beg_x_off = _trk_beg_x - begOffsets.X();
 	  _trk_beg_y_off = _trk_beg_y + begOffsets.Y();
 	  _trk_beg_z_off = _trk_beg_z + begOffsets.Z();
 	}
 
 	if(sce->EnableCalSpatialSCE()) {
-	  endOffsets = sce->GetCalPosOffsets(end);
+	  endOffsets = sce->GetCalPosOffsets(end, 0);
 	  _trk_end_x_off = _trk_end_x - endOffsets.X();
 	  _trk_end_y_off = _trk_end_y + endOffsets.Y();
 	  _trk_end_z_off = _trk_end_z + endOffsets.Z();

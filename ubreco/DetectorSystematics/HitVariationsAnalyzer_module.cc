@@ -50,7 +50,7 @@
 #include "TLorentzVector.h"
 
 //include for the TFileService/ROOT
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 
 // These are the larsoft includes that let you
 // have access to data-products and the event 
@@ -63,6 +63,7 @@
 #include "canvas/Persistency/Provenance/Timestamp.h"
 
 //I'll need, calo, tracks, hits, anab::T0
+#include "larcore/CoreUtils/ServiceUtil.h"
 #include "lardataobj/AnalysisBase/T0.h"
 #include "lardataobj/RecoBase/Track.h"
 #include "lardataobj/RecoBase/Hit.h"
