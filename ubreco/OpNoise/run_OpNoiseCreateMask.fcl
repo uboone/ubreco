@@ -1,0 +1,59 @@
+#include "services_microboone.fcl"
+#include "OpNoiseCreateMask.fcl"
+
+process_name: OpNoiseCreateMask
+
+services: {
+  TFileService: {fileName: "OpNoiseCreateMask_ana.root" }
+  @table::microboone_simulation_services
+  @table::microboone_services_reco
+  TimeTracker: { }
+} # services
+services.MemoryPeakReporter: @erase
+
+source:
+{
+  module_type: RootInput
+  firstEvent : 1
+  maxEvents:  -1
+}
+
+#opnoisecreatemask: {
+ # module_type:  OpNoiseCreateMask
+#}
+
+physics: 
+{
+
+   producers: 
+   { 
+   OpNoiseCreateMask : @local::opnoisecreatemask 
+   }  		     
+
+   analyzers: { }
+
+reco: [ OpNoiseCreateMask ]		
+stream1: [ out1 ]
+trigger_paths: [ reco ]
+end_paths: [ stream1 ]
+}
+
+outputs:
+{
+ out1:
+ {
+   module_type: RootOutput
+   fileName:    "%ifb_OpNoise.root"    #default file name, can override from command line with -o or --output
+   dataTier: reco
+   compressionLevel: 1
+ }
+}
+
+services.DetectorPropertiesService.NumberTimeSamples:  6400
+services.DetectorPropertiesService.ReadOutWindowSize:  6400
+services.DetectorClocksService.InheritClockConfig:     false
+services.DetectorClocksService.TriggerOffsetTPC:       -0.400e3
+
+services.SpaceCharge.EnableCorrSCE: true
+services.SpaceCharge.EnableSimEfieldSCE: true
+services.SpaceCharge.EnableSimSpatialSCE: true

@@ -1,0 +1,9 @@
+BEGIN_PROLOG
+
+ophitcorrection: {
+    module_type: "OpHitCorrectionProducer"
+    OpHitsInputTag: ""
+    #OutputProducer: ""
+    }
+
+END_PROLOG

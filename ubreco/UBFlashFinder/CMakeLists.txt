@@ -46,6 +46,7 @@ art_make( BASENAME_ONLY
 		   ubreco_wcopreco_algo
 		   ubreco_wcopreco_app
                    ubevt_Database
+		   ubevt_Utilities
 		   lardataobj_RecoBase
 		   ${UBOONECODE_LIB}
 		   ${LARDATA_LIB}

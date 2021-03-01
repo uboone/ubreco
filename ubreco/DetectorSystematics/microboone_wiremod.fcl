@@ -1,0 +1,134 @@
+BEGIN_PROLOG
+
+microboone_dummyrawdigit: {
+  module_type: "DummyRawDigitCreator"
+}
+
+microboone_wiremod:{
+
+  module_type: "WireModifier"
+
+  WireInputTag: "butcher"
+  SimEdepShiftedInputTag: "ionization"
+  SimEdepOrigInputTag: "largeant:TPCActive"
+  HitInputTag: "gaushit"
+             
+  MakeRawDigitAssn: true
+
+  UseCollectiveEdepsForScales: false
+
+  ApplyXScale: true
+  ApplyYScale: false
+  ApplyZScale: false
+  ApplyYZScale: true
+  ApplyXZAngleScale: true
+  ApplyYZAngleScale: true
+  ApplydEdXScale: true
+  ApplyOverallScale: false
+
+  SplinesFileName: "splines_Run1_CVMC_v3.root"
+  
+  SplineNames_Charge_X: ["trk_x_hit_Q_spline_Plane0_Run1_CVMC",
+                         "trk_x_hit_Q_spline_Plane1_Run1_CVMC",
+                         "trk_x_hit_Q_spline_Plane2_Run1_CVMC"]
+  SplineNames_Sigma_X:  ["trk_x_hit_sigma_spline_Plane0_Run1_CVMC",
+                         "trk_x_hit_sigma_spline_Plane1_Run1_CVMC",
+                         "trk_x_hit_sigma_spline_Plane2_Run1_CVMC"]
+    
+  Graph2DNames_Charge_YZ: ["trk_yz_hit_Q_spline_Plane0_Run1_CVMC",
+                           "trk_yz_hit_Q_spline_Plane1_Run1_CVMC",
+                           "trk_yz_hit_Q_spline_Plane2_Run1_CVMC"]
+  Graph2DNames_Sigma_YZ:  ["trk_yz_hit_sigma_spline_Plane0_Run1_CVMC",
+                           "trk_yz_hit_sigma_spline_Plane1_Run1_CVMC",
+                           "trk_yz_hit_sigma_spline_Plane2_Run1_CVMC"]
+
+  SplineNames_Charge_XZAngle: ["trk_ThetaXZ_hit_Q_spline_Plane0_Run1_CVMC",
+                  	       "trk_ThetaXZ_hit_Q_spline_Plane1_Run1_CVMC",
+                               "trk_ThetaXZ_hit_Q_spline_Plane2_Run1_CVMC"]
+  SplineNames_Sigma_XZAngle:  ["trk_ThetaXZ_hit_sigma_spline_Plane0_Run1_CVMC",
+                               "trk_ThetaXZ_hit_sigma_spline_Plane1_Run1_CVMC",
+                               "trk_ThetaXZ_hit_sigma_spline_Plane2_Run1_CVMC"]
+
+  SplineNames_Charge_YZAngle: ["trk_ThetaYZ_hit_Q_spline_Plane0_Run1_CVMC",
+			       "trk_ThetaYZ_hit_Q_spline_Plane1_Run1_CVMC",
+                               "trk_ThetaYZ_hit_Q_spline_Plane2_Run1_CVMC"]
+ 
+  # This just has to exist so that the code does not break.
+  SplineNames_Sigma_YZAngle: []
+
+  SplineNames_Charge_dEdX: ["trk_dEdx_hit_Q_spline_Plane0_Run1_CVMC",
+                       	    "trk_dEdx_hit_Q_spline_Plane1_Run1_CVMC",
+                            "trk_dEdx_hit_Q_spline_Plane2_Run1_CVMC"]
+  SplineNames_Sigma_dEdX:  ["trk_dEdx_hit_sigma_spline_Plane0_Run1_CVMC",
+                            "trk_dEdx_hit_sigma_spline_Plane1_Run1_CVMC",
+                            "trk_dEdx_hit_sigma_spline_Plane2_Run1_CVMC"]
+
+  # Use this for applying an offset or not.  Default is to not use an offset (the BNB).  Using an offset is for the NuMI systematics.
+  ApplyAdditionalTickOffset: false
+  ApplyAngleYZSigmaSpline: false
+
+}
+
+microboone_hitvaranalyzer:{
+  module_type: "HitVariationsAnalyzer"
+
+  ACPTTriggerTag:   "acpttrigtagger"
+  TrackTag:         "pandora"
+  HitTruthMatchTag: "gaushitTruthMatch"
+  CalorimetryTag:   "pandoracaliSCE"
+}
+
+microboone_wiremod_dL_Down50: @local::microboone_wiremod
+microboone_wiremod_dL_Down50.SplinesFileName: "splines_CrossingMuons_dL_Down50_v0.root"
+microboone_wiremod_dL_Down50.ApplyXScale: true
+microboone_wiremod_dL_Down50.ApplyYScale: false
+microboone_wiremod_dL_Down50.ApplyZScale: false
+microboone_wiremod_dL_Down50.ApplyYZScale: false
+microboone_wiremod_dL_Down50.ApplyXZAngleScale: false
+microboone_wiremod_dL_Down50.ApplyYZAngleScale: false
+microboone_wiremod_dL_Down50.ApplydEdXScale: false
+
+#make a blank slate wiremod config
+microboone_wiremod_NoScale: @local::microboone_wiremod
+microboone_wiremod_NoScale.ApplyXScale: false
+microboone_wiremod_NoScale.ApplyYScale: false
+microboone_wiremod_NoScale.ApplyZScale: false
+microboone_wiremod_NoScale.ApplyYZScale: false
+microboone_wiremod_NoScale.ApplyXZAngleScale: false
+microboone_wiremod_NoScale.ApplyYZAngleScale: false
+microboone_wiremod_NoScale.ApplydEdXScale: false
+
+#X scaling only
+microboone_wiremod_ScaleX: @local::microboone_wiremod_NoScale
+microboone_wiremod_ScaleX.ApplyXScale: true
+
+#Y scaling only
+microboone_wiremod_ScaleY: @local::microboone_wiremod_NoScale
+microboone_wiremod_ScaleY.ApplyYScale: true
+
+#Z scaling only
+microboone_wiremod_ScaleZ: @local::microboone_wiremod_NoScale
+microboone_wiremod_ScaleZ.ApplyZScale: true
+
+#YZ scaling only
+microboone_wiremod_ScaleYZ: @local::microboone_wiremod_NoScale
+microboone_wiremod_ScaleYZ.ApplyYZScale: true
+
+#XZAngle scaling only
+microboone_wiremod_ScaleAngleXZ: @local::microboone_wiremod_NoScale
+microboone_wiremod_ScaleAngleXZ.ApplyXZAngleScale: true
+
+#YZAngle scaling only
+microboone_wiremod_ScaleAngleYZ: @local::microboone_wiremod_NoScale
+microboone_wiremod_ScaleAngleYZ.ApplyYZAngleScale: true
+
+#XZ and YZ angle scaling only
+microboone_wiremod_ScaleAngles: @local::microboone_wiremod_NoScale
+microboone_wiremod_ScaleAngles.ApplyXZAngleScale: true
+microboone_wiremod_ScaleAngles.ApplyYZAngleScale: true
+
+#dE/dx scaling only
+microboone_wiremod_ScaledEdX: @local::microboone_wiremod_NoScale
+microboone_wiremod_ScaledEdX.ApplydEdXScale: true
+
+END_PROLOG

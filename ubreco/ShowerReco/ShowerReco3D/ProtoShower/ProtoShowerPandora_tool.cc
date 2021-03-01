@@ -93,12 +93,18 @@ namespace protoshower {
     // loop through PFParticles
     for (size_t p=0; p < pfp_h->size(); p++) {
 
+      //std::cout << std::endl;
+      //std::cout << "NEW PFP" << std::endl;
 
       const recob::PFParticle pfp = pfp_h->at(p);
 
+      if ( (fabs(pfp.PdgCode()) ==12) || (fabs(pfp.PdgCode()) ==14) ) {
+	continue;
+      }
+	  
       // get metadata for this PFP
       const std::vector< art::Ptr<larpandoraobj::PFParticleMetadata> > &pfParticleMetadataList(pfPartToMetadataAssoc.at(p));
-
+      
       // we need to decide if to skip this particle based on user settings
       bool skip = false;
       
@@ -110,7 +116,7 @@ namespace protoshower {
 	    auto pfParticlePropertiesMap = pfParticleMetadata->GetPropertiesMap();
 	    //const larpandoraobj::PropertiesMap &pfParticlePropertiesMap(pfParticleMetadata->GetPropertiesMap());
 	    if (!pfParticlePropertiesMap.empty())
-	      //std::cout << " Found PFParticle " << pfp.Self() << " with: " << std::endl;
+	      //std::cout << " Found PFParticle " << pfp.Self() << " with PDG code " << pfp.PdgCode() << std::endl;
 	    for (std::map<std::string, float>::const_iterator it = pfParticlePropertiesMap.begin(); it != pfParticlePropertiesMap.end(); ++it) {
 	      //std::cout << "  - " << it->first << " = " << it->second << std::endl;
 	      if ( (it->first == "IsClearCosmic") && (it->second == 1) && (fNeutrino == true) ) {
@@ -121,48 +127,92 @@ namespace protoshower {
 		//std::cout << "\t SKIPPING because TrackScore is  " << it->second << std::endl;
 		skip = true;
 	      }// if this is not a shower
-	    }
-	  }
-      }// if PFP metadata exists!
-      
-      if (skip == true)
-	continue;
-
-      // Find the parent particle
-      auto parentIdx = pfp.Parent();
-      if (parentIdx > pfp_h->size() ) continue;
-
-      auto parent = pfp_h->at( parentIdx );
-
-      // get metadata for parent
-      const std::vector< art::Ptr<larpandoraobj::PFParticleMetadata> > &parentMetadataList(pfPartToMetadataAssoc.at(parent.Self()));
-
-      if (!parentMetadataList.empty()) {
-	//std::cout << "parent metadata!" << std::endl;
-	
-	for (unsigned int j=0; j<parentMetadataList.size(); ++j)
-	  {
-	    const art::Ptr<larpandoraobj::PFParticleMetadata> &parentMetadata(parentMetadataList.at(j));
-	    auto parentPropertiesMap = parentMetadata->GetPropertiesMap();
-	    //const larpandoraobj::PropertiesMap &parentPropertiesMap(parentMetadata->GetPropertiesMap());
-	    if (!parentPropertiesMap.empty())
-	      //std::cout << " Found PFParticle " << parent.Self() << " with: " << std::endl;
-	    for (std::map<std::string, float>::const_iterator it = parentPropertiesMap.begin(); it != parentPropertiesMap.end(); ++it) {
-	      std::cout << "  - " << it->first << " = " << it->second << std::endl;
 	      if ( (it->first == "NuScore") && (it->second <= fNeutrinoScoreMin) && (fNeutrino == true) ) {
 		//std::cout << "\t SKIPPING because IsNeutrino Score is " << it->second << std::endl;
 		skip = true;
-	      }// if this is  not a neutrino
+	      }// if neutrino score too low
 	    }
 	  }
       }// if PFP metadata exists!
       
-      // find vertex defined as the vertex of the primary
+      if (skip == true){
+	//std::cout << "\t SKIPPING after PFP metadata query " << std::endl;
+	continue;
+      }
+      
+      /*
+      // Find the parent particle
+      if (pfp.IsPrimary() == true) {
+	//std::cout << "\t SKIPPING because primary PFP" << std::endl;
+	continue;
+      }
+      */
 
-      const std::vector< art::Ptr<recob::Vertex> >& vtx_v = pfp_vtx_assn_v.at( parentIdx );
+      /*
+      size_t parentIdx = pfp.Parent();
+      if (parentIdx > pfp_h->size() ) {
+	//std::cout << "\t SKIPPING because parent PFP idx is " << parentIdx << std::endl;
+	continue;
+      }
+      */
 
+      // save vertex for PFP
+      std::vector< art::Ptr<recob::Vertex> > vtx_v = pfp_vtx_assn_v.at( p );;
+
+      bool foundParent = false;
+      // find parent based on pfp Self
+      art::Ptr<recob::PFParticle> parent;
+      for (size_t pj=0; pj < pfp_h->size(); pj++) {
+	auto jpfp = art::Ptr<recob::PFParticle>(pfp_h,pj);
+	if (jpfp->Self()==pfp.Parent()) {
+	  foundParent = true;
+	  parent = jpfp;
+	  break;
+	}
+      }
+
+      // if there is a parent, check if neutrino-like
+      if (foundParent == true) {
+	
+	// get metadata for parent
+	const std::vector< art::Ptr<larpandoraobj::PFParticleMetadata> > &parentMetadataList(pfPartToMetadataAssoc.at(parent.key()));
+	
+	if (!parentMetadataList.empty()) {
+
+	  //vtx_v = pfp_vtx_assn_v.at( parent.key() );
+	  
+	  for (unsigned int j=0; j<parentMetadataList.size(); ++j)
+	    {
+	      const art::Ptr<larpandoraobj::PFParticleMetadata> &parentMetadata(parentMetadataList.at(j));
+	      auto parentPropertiesMap = parentMetadata->GetPropertiesMap();
+	      //const larpandoraobj::PropertiesMap &parentPropertiesMap(parentMetadata->GetPropertiesMap());
+	      if (!parentPropertiesMap.empty())
+		//std::cout << " Found PFParticle " << parent->Self() << " with: " << std::endl;
+	      for (std::map<std::string, float>::const_iterator it = parentPropertiesMap.begin(); it != parentPropertiesMap.end(); ++it) {
+		//std::cout << "  - " << it->first << " = " << it->second << std::endl;
+		if ( (it->first == "NuScore") && (it->second <= fNeutrinoScoreMin) && (fNeutrino == true) ) {
+		  //std::cout << "\t SKIPPING because IsNeutrino Score is " << it->second << std::endl;
+		  skip = true;
+		}// if this is  not a neutrino
+	      }
+	    }
+	}// if PFP metadata exists!
+
+      }// if there is a parent
+      /*
+      else {
+      }// if there is no parent
+      */
+      if (vtx_v.size() == 0) {
+	std::cout << "\t SKIPPING because no vertex was found" << std::endl;
+	continue;
+      }
+
+      //std::cout << "\t\t RECO THIS PFP" << std::endl;
+      
       ::protoshower::ProtoShower proto_shower;
       proto_shower.Reset();
+      proto_shower.SetIndex(p);
       
       // require a single vertex!
       if (vtx_v.size() == 1) {
@@ -204,11 +254,11 @@ namespace protoshower {
 	proto_shower.hasCluster2D(true);
 
       }// for all clusters
-      
+
       proto_shower_v.push_back( proto_shower );
       
     }// for all PFParticles
-    
+
   }// GenerateProtoShower end
 
 

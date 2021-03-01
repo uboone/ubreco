@@ -30,7 +30,7 @@ services.DetectorClocksService.InheritClockConfig:           false
 services.DetectorClocksService.TriggerOffsetTPC:             -0.400e3
 services.DetectorClocksService.TrigModuleName:               "daq"
 
-services.PmtGainService.PmtGainProvider.UseDB:				     true
+services.PmtGainService.PmtGainProvider.UseDB:		     true
 
 
 services.TimeTracker.printSummary: false
@@ -69,6 +69,9 @@ physics:
 
  end_paths:     [stream1]
 }
+
+physics.producers.wcopreco.usePmtGainDB:	true
+#physics.producers.wcopreco.SaveAnaTree:		true
 
 outputs:
 {

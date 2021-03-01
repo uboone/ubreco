@@ -1,0 +1,49 @@
+
+#include "services_microboone.fcl"
+
+process_name: mReAHitProd
+
+source:
+{
+  module_type: RootInput
+  maxEvents: -1
+}
+
+physics:
+{
+  analyzers: {}
+
+  producers:
+  {   
+    mReAHit:
+    {
+      DataReco1Process: "OverlayStage1a"
+      module_type: "ElectronEvtHitProducer"
+    }   
+  }   
+        
+  filters: {}   
+    
+  prod: [ mReAHit ]
+  stream: [ out1 ]
+  trigger_paths: [ prod ]
+  end_paths: [ stream ]
+}
+
+outputs:
+{
+  out1:
+  {
+    module_type: RootOutput
+    fileName: "%ifb_%tc_mReA-hitProd.root"
+    SelectEvents: []
+    dataTier:    "reconstructed"
+    compressionLevel: 1
+    outputCommands: ["keep *_*_*_*",
+       "drop *_pmtreadoutnonoise_*_mReADetsim",
+       "drop *_simpleFlash*_*_mReARecoStage1a",
+       "drop *_ophit*_*_mReARecoStage1a",
+       "drop *_saturation_*_mReARecoStage1a"]
+  }
+}
+

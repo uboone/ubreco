@@ -11,6 +11,7 @@ UBFlashBeam:
   OpFlashProducer : "simpleFlashBeam"
   PECalib         : @local::SPECalib
   BeamFlash       : true
+  DoCalibration   : false   
 }
 
 UBFlashCosmic:
@@ -22,6 +23,7 @@ UBFlashCosmic:
   OpFlashProducer : "simpleFlashCosmic"
   PECalib         : @local::RecoPECalib
   BeamFlash       : false
+  DoCalibration   : false   
 }
 
 UBFlashBeamMC: @local::UBFlashBeam

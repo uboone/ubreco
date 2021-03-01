@@ -239,8 +239,8 @@ namespace wcopreco {
       _cfg_opflash._PE_err_cosmic = err ;
   }
 
-  void Config_Params::set_PE_subtract(double sub) {
-      _cfg_opflash._PE_subtract = sub ;
+  void Config_Params::set_rnd_noise_cosmic(double sub) {
+      _cfg_opflash._rnd_noise_cosmic = sub ;
   }
 
   void Config_Params::set_flash_low_time_cushion(int bin) {
@@ -263,8 +263,8 @@ namespace wcopreco {
       _cfg_opflash._mult_required = req ;
   }
 
-  void Config_Params::set_PE_err_stat_beam(double err) {
-      _cfg_opflash._PE_err_stat_beam = err ;
+  void Config_Params::set_rnd_noise_beam(double err) {
+      _cfg_opflash._rnd_noise_beam = err ;
   }
 
   void Config_Params::set_PE_err_unc_beam(double err) {

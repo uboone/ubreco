@@ -36,7 +36,7 @@ namespace wcopreco{
     std::vector<double> mult_v =hits_found_beam.get_mult_v();
     std::vector<double> l1_totPE_v =hits_found_beam.get_l1_totPE_v();
     std::vector<double> l1_mult_v = hits_found_beam.get_l1_mult_v();
-    std::vector< std::vector<double> > decon_vv = hits_found_beam.get_decon_vv();
+    decon_vv = hits_found_beam.get_decon_vv();
     double beam_start_time =merged_beam.at(0).get_time_from_trigger();
     
     wcopreco::Flashes_beam flashfinder_beam( &totPE_v,
@@ -72,26 +72,28 @@ namespace wcopreco{
   
   wcopreco::UBAlgo::~UBAlgo(){
     for (auto it = flashes_beam.begin(); it!=flashes_beam.end(); it++){
-        delete (*it);
-      }
-      for (auto it=flashes_cosmic.begin(); it!= flashes_cosmic.end(); it++){
-        delete (*it);
-      }
-      flashes_beam.clear();
-      flashes_cosmic.clear();
-      flashes.clear();
+      delete (*it);
+    }
+    for (auto it=flashes_cosmic.begin(); it!= flashes_cosmic.end(); it++){
+      delete (*it);
+    }
+    flashes_beam.clear();
+    flashes_cosmic.clear();
+    flashes.clear();
+    decon_vv.clear();
   }
 
-   void wcopreco::UBAlgo::clear_flashes(){
-   for (auto it = flashes_beam.begin(); it!=flashes_beam.end(); it++){
-       delete (*it);
-     }
-     for (auto it=flashes_cosmic.begin(); it!= flashes_cosmic.end(); it++){
-       delete (*it);
-     }
-     flashes_beam.clear();
-     flashes_cosmic.clear();
-     flashes.clear();
+  void wcopreco::UBAlgo::clear_flashes(){
+    for (auto it = flashes_beam.begin(); it!=flashes_beam.end(); it++){
+      delete (*it);
+    }
+    for (auto it=flashes_cosmic.begin(); it!= flashes_cosmic.end(); it++){
+      delete (*it);
+    }
+    flashes_beam.clear();
+    flashes_cosmic.clear();
+    flashes.clear();
+    decon_vv.clear();
  }
 
 

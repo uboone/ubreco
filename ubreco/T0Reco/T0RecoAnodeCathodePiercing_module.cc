@@ -14,6 +14,7 @@
 #include "art/Framework/Principal/Run.h"
 #include "art/Framework/Principal/SubRun.h"
 #include "canvas/Utilities/InputTag.h"
+#include "art/Framework/Services/Optional/TFileService.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
@@ -28,6 +29,7 @@
 #include "lardata/Utilities/AssociationUtil.h"
 
 // ROOT
+#include <TTree.h>
 #include "TVector3.h"
 
 // C++
@@ -78,6 +80,9 @@ private:
 
   // debug (verbose) mode?
   bool _debug;
+  
+  // fill TTree?
+  bool fFillTTree;
 
   // define top, bottom, front and back boundaries of TPC
   double _TOP, _BOTTOM, _FRONT, _BACK;
@@ -102,6 +107,22 @@ private:
   double fT0negMin, fT0negMax;
   // (positive pek)
   double fT0posMin, fT0posMax;
+
+  // TTree variables
+  TTree* _tree;
+  double _rc_time;
+  double _t_match;
+  double _dt_flash;
+  double _pe_flash;
+  double _flash_z;
+  double _length;
+  double _rc_x_start, _rc_x_end;
+  double _rc_y_start, _rc_y_end;
+  double _rc_z_start, _rc_z_end;
+  int    _matched;
+  int    _anode;
+  int    _cathode;
+  int    _run, _subrun, _event;
 
   // functions to be used throughout module
   bool   TrackEntersTop     (const std::vector<TVector3>& sorted_trk);
@@ -154,7 +175,8 @@ T0RecoAnodeCathodePiercing::T0RecoAnodeCathodePiercing(fhicl::ParameterSet const
   side2bottom        = p.get<bool>       ("side2bottom");
   side2front         = p.get<bool>       ("side2front");
   side2back          = p.get<bool>       ("side2back");
-  _debug             = p.get<bool>       ("debug");
+  _debug             = p.get<bool>       ("debug",false);
+  fFillTTree         = p.get<bool>       ("FillTTree",false);
   
   // get boundaries based on detector bounds
   auto const* geom = lar::providerFrom<geo::Geometry>();
@@ -170,6 +192,30 @@ T0RecoAnodeCathodePiercing::T0RecoAnodeCathodePiercing(fhicl::ParameterSet const
   double efield = detProp.Efield();
   double temp   = detProp.Temperature();
   fDriftVelocity = detProp.DriftVelocity(efield,temp);
+
+
+  art::ServiceHandle<art::TFileService> tfs;
+  _tree = tfs->make<TTree>("_tree","T0 reco performance");
+  _tree->Branch("_rc_time",&_rc_time,"rc_time/D");
+  _tree->Branch("_t_match",&_t_match,"t_match/D");
+  _tree->Branch("_dt_flash",&_dt_flash,"dt_flash/D");
+  _tree->Branch("_pe_flash",&_pe_flash,"pe_flash/D");
+  _tree->Branch("_flash_z",&_flash_z,"flash_zh/D");
+  _tree->Branch("_length", &_length, "length/D");
+  _tree->Branch("_matched",&_matched,"matched/I");
+  // Add branches for the first and last x, y, and z coordinates of the rc tracks and the mc tracks
+  _tree->Branch("_rc_x_start",&_rc_x_start,"rc_x_start/D");
+  _tree->Branch("_rc_y_start",&_rc_y_start,"rc_y_start/D");
+  _tree->Branch("_rc_z_start",&_rc_z_start,"rc_z_start/D");
+  _tree->Branch("_rc_x_end",&_rc_x_end,"rc_x_end/D");
+  _tree->Branch("_rc_y_end",&_rc_y_end,"rc_y_end/D");
+  _tree->Branch("_rc_z_end",&_rc_z_end,"rc_z_end/D");
+  // information on whether track enters/exits which sides
+  _tree->Branch("_anode"  ,&_anode  ,"anode/I"  );
+  _tree->Branch("_cathode",&_cathode,"cathode/I");
+  _tree->Branch("_run",&_run,"run/I");
+  _tree->Branch("_subrun",&_subrun,"subrun/I");
+  _tree->Branch("_event",&_event,"event/I");
 
 }
 
@@ -236,6 +282,11 @@ void T0RecoAnodeCathodePiercing::produce(art::Event & e)
     // get sorted points for the track object [assuming downwards going]
     std::vector<TVector3> sorted_trk;
     SortTrackPoints(*track,sorted_trk);
+
+    float trkLen = track->Length();
+
+    // remove all tracks reco'd to be less then 20 cm -> not reliable
+    if (trkLen < 20) continue;
 
     // Declare the variable 'trkT' up here so that I can continue and not fill the t0 object if trkT is still equal to 0
     double trkT = 0.;
@@ -362,20 +413,52 @@ void T0RecoAnodeCathodePiercing::produce(art::Event & e)
     // DON'T CREATE the t0 object unless the reconstructed t0 is some value other than 0
 
     if (trkT != 0.0) {
-    // create T0 object with this information!
-    anab::T0 t0(trkT, 0, flash_match_result.first);
-    
-    T0_v->emplace_back(t0);
-    util::CreateAssn(*this, e, *T0_v, track, *trk_t0_assn_v);
+      // create T0 object with this information!
+      anab::T0 t0(trkT, 0, flash_match_result.first);
+      
+      T0_v->emplace_back(t0);
+      util::CreateAssn(*this, e, *T0_v, track, *trk_t0_assn_v);
+      
+      // get pointer to individual track
+      // TMP const art::Ptr<recob::Track>   trk_ptr(track_h,trk_ctr-1);
+      const art::Ptr<recob::OpFlash> flash_ptr(flash_h, flash_match_result.second );
+      if (_debug)
+	std::cout << "\t mathed to flash w/ index " << flash_match_result.second << " w/ PE " << flash_ptr->TotalPE() << " and time " << flash_ptr->Time() << " vs reco time " << trkT << std::endl;
+      trk_flash_assn_v->addSingle( track, flash_ptr );
 
-    // get pointer to individual track
-    // TMP const art::Ptr<recob::Track>   trk_ptr(track_h,trk_ctr-1);
-    const art::Ptr<recob::OpFlash> flash_ptr(flash_h, flash_match_result.second );
-    if (_debug)
-    std::cout << "\t mathed to flash w/ index " << flash_match_result.second << " w/ PE " << flash_ptr->TotalPE() << " and time " << flash_ptr->Time() << " vs reco time " << trkT << std::endl;
-    trk_flash_assn_v->addSingle( track, flash_ptr );
 
-    }
+      // TTree
+      if (fFillTTree) {
+
+	_rc_time = trkT;
+
+	_length = trkLen;
+
+	_run    = e.run();
+	_subrun = e.subRun();
+	_event  = e.event();
+
+	_pe_flash = flash_ptr->TotalPE();
+	_flash_z  = flash_ptr->ZCenter();
+	_dt_flash = trkT - flash_ptr->Time();
+
+	_anode = 0;
+	_cathode = 0;
+	if (anode == 1) 
+	  _anode = 1;
+	else
+	  _cathode = 1;
+
+	_rc_x_start = sorted_trk.at( 0 ).X();
+	_rc_y_start = sorted_trk.at( 0 ).Y();
+	_rc_z_start = sorted_trk.at( 0 ).Z();
+	_rc_x_end = sorted_trk.at( sorted_trk.size() - 1).X();
+	_rc_y_end = sorted_trk.at( sorted_trk.size() - 1).Y();
+	_rc_z_end = sorted_trk.at( sorted_trk.size() - 1).Z();
+	_tree->Fill();
+      }// if we are filling the TTree
+      
+    }// if we found a match!
 
   }// for all reconstructed tracks
   
@@ -621,22 +704,26 @@ void   T0RecoAnodeCathodePiercing::SortTrackPoints(const recob::Track& track, st
   // going, sort points so that                                                                                                              
   // the track starts at the top                                                                                                     
   // which point is further up in Y coord?                                                                                                                  
-  // start or end?                                                                                                                 
-  auto const&N = track.NumberTrajectoryPoints();
-  auto const&start = track.LocationAtPoint(0);
-  auto const&end   = track.LocationAtPoint( N - 1 );
+  // start or end?                                                                                  
 
-  // if points are ordered correctly                                                                                                                                       
-  if (start.Y() > end.Y()){
-    for (size_t i=0; i < N; i++)
-      sorted_trk.push_back( track.LocationAtPoint<TVector3>(i) );
-  }
+  auto const &N = track.CountValidPoints();
+  auto const &start = track.Vertex();
+  auto const &end = track.End();
+
+  // if points are ordered correctly
+  if (start.Y() > end.Y())
+    {
+      for (size_t i = 0; i < N; i++)
+	sorted_trk.push_back(track.LocationAtPoint<TVector3>(track.NextValidPoint(i)));
+    }
   
-  // otherwise flip order                                                                                                                                                 
-  else {
-    for (size_t i=0; i < N; i++)
-      sorted_trk.push_back( track.LocationAtPoint<TVector3>( N - i - 1) );
-  }
+  // otherwise flip order
+  else
+    {
+      for (size_t i = 0; i < N; i++)
+	sorted_trk.push_back(track.LocationAtPoint<TVector3>(track.NextValidPoint(N - i - 1)));
+    }
+  
 }
 
 

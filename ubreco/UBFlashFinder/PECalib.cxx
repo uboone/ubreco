@@ -25,6 +25,13 @@ namespace pmtana {
       throw std::exception();
     }
 
+    _ly_scale_v = pset.get<std::vector<double> >("LYScale");
+    if(_ly_scale_v.size() != NOpDets()) {
+      std::cerr << "LYScale array size (" << _ly_scale_v.size()
+		<< ") != NOpDets (" << NOpDets() << ")..." << std::endl;
+      throw std::exception();
+    }
+
     _cosmic_ophit_correction_v = pset.get<std::vector<double> >("RecoPECorrection");
     _cosmic_ophit_ratio_mean_v = pset.get<std::vector<double> >("RecoPERatioMean");
     _cosmic_ophit_ratio_std_v  = pset.get<std::vector<double> >("RecoPERatioStd");
@@ -65,6 +72,34 @@ namespace pmtana {
     }
   }
 
+  void PECalib::Calibrate(const std::vector<float> area_gains, const std::vector<float> amp_gains,const std::vector<float> ly)
+  {
+    _spe_area_gain_v.clear();
+    for(size_t ch=0; ch<32; ch++) _spe_area_gain_v.push_back(area_gains.at(ch));
+    if(_spe_area_gain_v.size() != NOpDets()) {
+      std::cerr << "SPEAreaGain array size (" << _spe_area_gain_v.size()
+		<< ") != NOpDets (" << NOpDets() << ")..." << std::endl;
+      throw std::exception();
+    }
+
+    _spe_amp_gain_v.clear();
+    for(size_t ch=0; ch<32; ch++) _spe_amp_gain_v.push_back(amp_gains.at(ch));
+    if(_spe_amp_gain_v.size() != NOpDets()) {
+      std::cerr << "SPEAmpGain array size (" << _spe_amp_gain_v.size()
+		<< ") != NOpDets (" << NOpDets() << ")..." << std::endl;
+      throw std::exception();
+    }
+
+    _ly_scale_v.clear();
+    for(size_t ch=0; ch<32; ch++) _ly_scale_v.push_back(ly.at(ch));
+    if(_ly_scale_v.size() != NOpDets()) {
+      std::cerr << "LYScale array size (" << _ly_scale_v.size()
+		<< ") != NOpDets (" << NOpDets() << ")..." << std::endl;
+      throw std::exception();
+    }
+
+  }
+
   double PECalib::CosmicPE(const size_t opdet, const double area, const double amp) const
   {
     if( opdet > NOpDets() ) {
@@ -72,8 +107,8 @@ namespace pmtana {
       throw std::exception();
     }
 
-    double area_pe = area / _spe_area_gain_v[opdet];
-    double amp_pe = amp / _spe_amp_gain_v[opdet];
+    double area_pe = area / _spe_area_gain_v[opdet] / _ly_scale_v[opdet];
+    double amp_pe = amp / _spe_amp_gain_v[opdet] / _ly_scale_v[opdet];
 
     double ratio_thresh = _cosmic_ophit_ratio_mean_v[opdet] - 2 * _cosmic_ophit_ratio_std_v[opdet] ;
     if( (area_pe > _cosmic_ophit_areape_cut_v[opdet])
@@ -94,7 +129,7 @@ namespace pmtana {
       throw std::exception();
     }
 
-    double area_pe = area / _spe_area_gain_v[opdet] * _relative_qe_v[opdet];
+    double area_pe = area / _spe_area_gain_v[opdet] * _relative_qe_v[opdet] / _ly_scale_v[opdet];
 
     return area_pe;
 

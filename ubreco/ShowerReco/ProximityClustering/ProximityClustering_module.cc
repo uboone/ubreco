@@ -130,17 +130,17 @@ void ProximityClustering::produce(art::Event & e)
   // load hits
   auto const& hit_h = e.getValidHandle<std::vector<recob::Hit> >(fHitProducer);
 
-  // load vertices
-  auto const& vtx_h = e.getValidHandle<std::vector<recob::Vertex> >(fVtxProducer);
-
   // Art Pointer maker
   //lar::PtrMaker<recob::Hit>     makeHitPtr (e, *this);
   art::PtrMaker<recob::Cluster> makeClusPtr(e);
 
-  // load vertex into algorithm
-  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataFor(e);
-  auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataFor(e, clockData);
-  _ProximityClusterer->loadVertex(clockData, detProp, vtx_h,fROI);
+  if (fVtxProducer != "") {
+    // load vertices
+    auto const& vtx_h = e.getValidHandle<std::vector<recob::Vertex> >(fVtxProducer);
+    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataFor(e);
+    auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataFor(e, clockData);
+    _ProximityClusterer->loadVertex(clockData, detProp, vtx_h,fROI);
+  }
 
   // cluster index vectors will be stored here
   std::vector<std::vector<unsigned int> > cluster_v;

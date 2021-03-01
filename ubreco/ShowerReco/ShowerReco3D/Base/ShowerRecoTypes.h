@@ -66,6 +66,9 @@ struct Shower_t {
 
   std::vector< double > fShoweringLength;     ///< Calculates the distance from start to shower points [in cm]
 
+  // index of shower
+  size_t fIndex;
+
 
   ::geo::PlaneID fBestPlane;         ///< "Best" plane used for geometrical interpretation
 
@@ -116,6 +119,9 @@ struct Shower_t {
 
     fBestPlane = ::geo::PlaneID();
     fPlaneIDs.clear();
+
+    fIndex = kSIZE_MAX;
+
   }
 }; // end of shower struct
 

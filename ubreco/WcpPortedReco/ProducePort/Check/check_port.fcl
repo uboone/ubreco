@@ -1,0 +1,28 @@
+BEGIN_PROLOG
+standard_checkwires:
+{
+ module_type:  "CheckWires"
+ ScLabel:      "driftWC:simpleSC"
+ SigprocLabel: "butcher"
+ WireLabel:    "portedThresholdhit"
+ TickOffset:   2400
+}
+
+standard_checkhits:
+{
+ module_type: "CheckHits"
+ ScLabel:     "driftWC:simpleSC"
+ HitLabel:    "combinationGaushit"
+}
+
+standard_checkmetrics:
+{
+ module_type:      "CheckMetrics"
+ ContainmentLabel: "nuselMetricsData"
+ ChargeLabel:      "nuselMetricsData"
+ TruthLabel:       "nuselMetricsMC"
+ MatchLabel:       "nuselMetricsMC"
+ MC:               false
+}
+
+END_PROLOG

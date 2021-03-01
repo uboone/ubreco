@@ -1,0 +1,89 @@
+#include "time_memory_tracker_microboone.fcl"
+#include "services_microboone.fcl"
+process_name: WCPselection
+
+services:
+{
+  TFileService: { fileName: "WCP_selection.root" }
+  TimeTracker:             @local::microboone_time_tracker
+  MemoryTracker:           @local::microboone_memory_tracker
+  #FileCatalogMetadata:     @local::art_file_catalog_mc
+  @table::microboone_services
+}
+
+source:
+{
+  module_type: RootInput
+  fileNames:   ["dummy.root"]
+  maxEvents:   -1
+}
+
+physics:
+{
+  analyzers:
+  {
+    wcpselection:
+    {
+      module_type:      "WCPselection"
+      ContainmentLabel: "nuselMetrics"
+      ChargeLabel:      "nuselMetrics"
+      TruthLabel:       "nuselMetrics"
+      MatchLabel:       "nuselMetrics"
+      STMLabel:       	"nuselMetricsSTM"
+      
+      Hist_nbins: 	34   #60MeV/bin
+      Hist_binlow:	0
+      Hist_binup:	2040 #MeV
+      Cut_lowE:		60 #MeV	
+      Cut_completeness: 0.1
+      Cut_clusterlength: 15
+
+      MC:               true
+      SaveWeights:	false
+
+      POT_counting:	true
+      POT_inputTag:	"generator" #this if for overlay. For data e.g. "beamdata:bnbETOR875"
+
+      ## Wire-Cell particle flow
+      wirecellPF:	false
+      BDTvars:		false
+      PF_validation: 	true
+      PF_inputtag:	"wirecellPF"
+      PFtruth_inputtag: "largeant"
+      Threshold_showerKE: 0.070 # units: GeV
+
+    }
+  }
+
+  ana: [ wcpselection ]
+  end_paths: [ ana ]
+}
+
+outputs:
+{
+ out1:
+ {
+   module_type: RootOutput
+   dataTier: "reconstructed"
+   compressionLevel: 1
+   saveMemoryObjectThreshold: 0
+   fileName: "%ifb_%tc_WCPsl.root"
+ }
+}
+
+services.SpaceCharge.CalibrationInputFilename: "SpaceCharge/SCEoffsets_dataDriven_combined_bkwd_Jan18.root"
+services.SpaceCharge.EnableCalEfieldSCE: true
+services.SpaceCharge.EnableCalSpatialSCE: true
+services.SpaceCharge.EnableCorrSCE: true
+services.SpaceCharge.EnableSimSpatialSCE: true
+services.SpaceCharge.EnableSimEfieldSCE: true
+services.SpaceCharge.InputFilename: "SpaceCharge/SCEoffsets_dataDriven_combined_fwd_Jan18.root"
+services.SpaceCharge.ResponseType: "Voxelized_TH3"
+services.SpaceCharge.service_provider: "SpaceChargeServiceMicroBooNE"
+services.DetectorPropertiesService.NumberTimeSamples: 6400
+services.DetectorPropertiesService.ReadOutWindowSize: 6400
+services.DetectorClocksService.TriggerOffsetTPC: -0.400e3
+services.DetectorClocksService.InheritClockConfig:  false
+#services.BackTrackerService:  @local::microboone_backtrackerservice
+#services.ParticleInventoryService: @local::standard_particleinventoryservice
+

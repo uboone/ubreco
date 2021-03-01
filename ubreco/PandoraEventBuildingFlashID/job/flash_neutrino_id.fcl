@@ -1,0 +1,154 @@
+#include "flashmatchalg.fcl"
+#include "external_event_building.fcl"
+#include "mcsfitproducer.fcl"
+#include "cosmictagalgo.fcl"
+
+BEGIN_PROLOG
+
+flash_neutrino_id_tool :
+{
+    tool_type: "FlashNeutrinoId"
+
+    # Input producers
+    FlashLabel:              "simpleFlashBeam"
+    PandoraAllOutcomesLabel: "pandoraPatRec:allOutcomes"
+    PandoraTrackLabel:       "pandoraAllOutcomesTrack"
+
+    # These fields are only needed for CRT-slice tagging
+    HasCRT: false
+    CRTTrackMatchLabel:      "trackmatch"
+
+    # PMT channel correction factors
+    PMTChannelCorrection: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+
+    # Beam flash conditions
+    BeamWindowStartTime:      3.2
+    BeamWindowEndTime:        4.8
+    BeamFlashPEThreshold:     50.0
+
+
+    # Coefficient linking the charge-light-ratio and the x-dependence
+    CoefXCL:                  270
+
+    DOWN: 20
+    UP: 20
+    anodeTime: 5.3e-1
+    cathodeTime: 2321
+    dt_resolution_ophit: 10
+    min_track_length: 20
+    nOphit: 2
+    ophitLabel: "ophitCosmic"
+    ophitPE: 20
+    ophit_pos_res: 180
+    ophit_time_res: 50.
+    verbose: false
+
+    # Pre-selection cut values
+    MaxDeltaY:                95.0
+    MaxDeltaZ:                115.0
+    MaxDeltaYSigma:           2.3
+    MaxDeltaZSigma:           1.0
+    MinChargeToLightRatio:    100
+    MaxChargeToLightRatio:    400
+
+    # Flash matching congifuration
+    ChargeToNPhotonsTrack:    164. # 240 e-/ADC x 23.6/1e6 MeV/e- x 29,000 gamma/MeV = 164. (not including recombination)
+    ChargeToNPhotonsShower:   164. # Not tuned! higher mainly beacause we need to account for missing charge contributions
+    FlashMatchConfig:         @local::flashmatch_config
+
+    # Obvious cosmic matchign cut
+    ObviousCosmicRatio:       5.0
+
+    mcsfitter: @local::mcsfitproducer.fitter
+
+    CosmicTagManager: @local::cosmictag_config_mc
+
+
+    # Debug
+    ShouldWriteToFile:        true
+    HasMCNeutrino:            true
+    MCTruthLabel:             "generator"
+    MCParticleLabel:          "largeant"
+    HitLabel:                 "gaushit"
+    BacktrackerLabel:         "gaushitTruthMatch"
+}
+
+flash_neutrino_id_tool.FlashMatchConfig.FlashMatchManager.AllowReuseFlash: true
+#flash_neutrino_id_tool.FlashMatchConfig.QLLMatch.NormalizeHypothesis:      false
+flash_neutrino_id_tool.FlashMatchConfig.FlashMatchManager.MatchAlgo: "Chi2Match"
+flash_neutrino_id_tool.FlashMatchConfig.Chi2Match:
+{
+  PEPenaltyThreshold: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+}
+
+
+pandora_flash_event_building: @local::pandora_event_building
+pandora_flash_event_building.SliceIdTool: @local::flash_neutrino_id_tool
+
+
+flash_neutrino_id_tool_data:  @local::flash_neutrino_id_tool
+flash_neutrino_id_tool_data.HasCRT:        false
+flash_neutrino_id_tool_data.HasMCNeutrino: false
+flash_neutrino_id_tool_data.FlashMatchConfig.PhotonLibHypothesis.CCVCorrection: [0.536,0.546,0.621,0.483,0.477,0.503,0.679,0.526,0.546,0.485,0.678,0.645,0.715,0.592,0.494,0.631,0.691,0.560,0.622,0.598,0.603,0.557,0.650,0.514,0.589,0.574,0.505,0.608,0.494,0.547,0.428,0.476]
+
+flash_neutrino_id_tool_beamOff: @local::flash_neutrino_id_tool_data
+flash_neutrino_id_tool_beamOff.BeamWindowStartTime: 3.570
+flash_neutrino_id_tool_beamOff.BeamWindowEndTime:   5.250
+
+flash_neutrino_id_tool_beamOn: @local::flash_neutrino_id_tool_data
+flash_neutrino_id_tool_beamOn.BeamWindowStartTime: 3.195
+flash_neutrino_id_tool_beamOn.BeamWindowEndTime:   4.875
+
+flash_neutrino_id_tool_overlay:  @local::flash_neutrino_id_tool
+flash_neutrino_id_tool_overlay.HasCRT:        false
+flash_neutrino_id_tool_overlay.HasMCNeutrino: true
+flash_neutrino_id_tool_overlay.BeamWindowStartTime: 3.57
+flash_neutrino_id_tool_overlay.BeamWindowEndTime:   5.25
+flash_neutrino_id_tool_overlay.FlashMatchConfig.PhotonLibHypothesis.CCVCorrection: [0.328,0.335,0.320,0.321,0.318,0.295,0.329,0.316,0.312,0.310,0.310,0.312,0.324,0.318,0.319,0.315,0.318,0.321,0.285,0.304,0.324,0.294,0.317,0.303,0.297,0.290,0.284,0.283,0.273,0.281,0.273,0.29]
+
+flash_neutrino_id_tool_fullmc: @local::flash_neutrino_id_tool_overlay
+flash_neutrino_id_tool_fullmc.BeamWindowStartTime: 3.16
+flash_neutrino_id_tool_fullmc.BeamWindowEndTime:   4.84
+#flash_neutrino_id_tool_fullmc.ShouldWriteToFile:   false
+
+# flash-matching storing
+
+FlashMatch: {
+
+    module_type: "StoreFlashMatchChi2"
+    FlashProducer: @local::flash_neutrino_id_tool.FlashLabel
+    PandoraProducer: "pandora"
+    SpacePointProducer: "pandora"
+    T0Producer: "acpttrigtagger"
+    BeamWindowStart: @local::flash_neutrino_id_tool.BeamWindowStartTime
+    BeamWindowEnd: @local::flash_neutrino_id_tool.BeamWindowEndTime
+    MaxTotalPE: @local::flash_neutrino_id_tool.BeamFlashPEThreshold
+    ChargeToNPhotonsTrack: @local::flash_neutrino_id_tool.ChargeToNPhotonsTrack
+    ChargeToNPhotonsShower: @local::flash_neutrino_id_tool.ChargeToNPhotonsShower
+    PMTChannelCorrection: @local::flash_neutrino_id_tool.PMTChannelCorrection
+
+    FlashMatchConfig:         @local::flash_neutrino_id_tool.FlashMatchConfig
+
+}
+
+FlashMatch_data:    @local::FlashMatch
+FlashMatch_data.FlashMatchConfig: @local::flash_neutrino_id_tool_data.FlashMatchConfig
+
+FlashMatch_beamOn: @local::FlashMatch_data
+FlashMatch_beamOn.BeamWindowStart: @local::flash_neutrino_id_tool_beamOn.BeamWindowStartTime
+FlashMatch_beamOn.BeamWindowEnd:   @local::flash_neutrino_id_tool_beamOn.BeamWindowEndTime
+
+FlashMatch_beamOff: @local::FlashMatch_data
+FlashMatch_beamOff.BeamWindowStart: @local::flash_neutrino_id_tool_beamOff.BeamWindowStartTime
+FlashMatch_beamOff.BeamWindowEnd:   @local::flash_neutrino_id_tool_beamOff.BeamWindowEndTime
+
+FlashMatch_overlay: @local::FlashMatch
+FlashMatch_overlay.FlashMatchConfig: @local::flash_neutrino_id_tool_overlay.FlashMatchConfig
+FlashMatch_overlay.BeamWindowStart:  @local::flash_neutrino_id_tool_overlay.BeamWindowStartTime
+FlashMatch_overlay.BeamWindowEnd:    @local::flash_neutrino_id_tool_overlay.BeamWindowEndTime
+
+FlashMatch_fullmc: @local::FlashMatch_overlay
+FlashMatch_fullmc.BeamWindowStart:  @local::flash_neutrino_id_tool_fullmc.BeamWindowStartTime
+FlashMatch_fullmc.BeamWindowEnd:    @local::flash_neutrino_id_tool_fullmc.BeamWindowEndTime
+
+END_PROLOG
