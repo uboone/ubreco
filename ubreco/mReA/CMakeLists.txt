@@ -1,9 +1,5 @@
 
 art_make(
-  EXCLUDE NuRecoLArPandoraEventBuilding_module.cc
-          MCElectronProducer_module.cc
-	  ElectronEvtHitProducer_module.cc
-	  MuSampleFilter_module.cc
   MODULE_LIBRARIES 
     larcorealg_Geometry
     larcore_Geometry_Geometry_service

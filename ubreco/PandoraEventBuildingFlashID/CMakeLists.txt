@@ -5,9 +5,7 @@ add_subdirectory(job)
 add_subdirectory(HitCosmicTag)
 
 
-art_make(         EXCLUDE FlashNeutrinoId_tool.cc
-		          StoreFlashMatchChi2_module.cc
-		  TOOL_LIBRARIES
+art_make(         TOOL_LIBRARIES
 
 		  	larcorealg_Geometry
                         larcore_Geometry_Geometry_service
