@@ -60,6 +60,34 @@ standard_selectWires:
  WireProducer: "butcher"
 }
 
+standard_wcphybrid:
+{
+ module_type:  "WCPHybrid"
+ HitProducer:  "portedThresholdhit"
+ WireProducer: "butcher"
+ ChargeSupplement: "true"
+ Unbin: "true"
+}
+
+standard_nuselectionplus:
+{
+ module_type: 	"NuSelectionPlus"
+ PortInput:  	"WCP_STM.log"
+}
+
+standard_WireCellPF:
+{
+ module_type: "WireCellPF"
+ PFInput_prefix: "nue"
+ PFInput_tree: "TMC" 
+ PFInput_tree2: "T_match"
+ PFInput_BDT: "T_tagger"
+ PFInput_KINE: "T_kine"
+ PFport: true
+ BDTport: true
+ KINEport: true
+}
+
 END_PROLOG
 
 

@@ -1,0 +1,54 @@
+#include "time_memory_tracker_microboone.fcl"
+#include "services_microboone.fcl"
+process_name: PortCheck
+
+services:
+{
+  TimeTracker:             @local::microboone_time_tracker
+  MemoryTracker:           @local::microboone_memory_tracker
+  FileCatalogMetadata:     @local::art_file_catalog_mc
+  @table::microboone_services_reco
+}
+
+source:
+{
+  module_type: RootInput
+  fileNames:   ["dummy.root"]
+  maxEvents:   -1
+}
+
+physics:
+{
+  analyzers:
+  {
+    dataMetrics:
+    {
+      module_type:    "CheckMetricsPlus"
+      STMLabel:       "nuselMetricsSTM"
+    }
+  }
+
+  ana: [ dataMetrics ]
+  end_paths: [ ana ]
+}
+
+outputs:
+{
+ out1:
+ {
+   module_type: RootOutput
+   dataTier: "reconstructed"
+   compressionLevel: 1
+   saveMemoryObjectThreshold: 0
+   fileName: "%ifb_%tc_check.root"
+ }
+}
+
+services.DetectorPropertiesService.NumberTimeSamples: 6400
+services.DetectorPropertiesService.ReadOutWindowSize: 6400
+services.DetectorClocksService.TriggerOffsetTPC: -0.400e3
+services.DetectorClocksService.InheritClockConfig:  false
+services.TFileService.fileName: "reco_stage_2_hist.root"
+services.BackTrackerService:  @local::microboone_backtrackerservice
+services.ParticleInventoryService: @local::standard_particleinventoryservice
+
