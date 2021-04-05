@@ -92,7 +92,7 @@ outputs:
 out1:
 {
 module_type: RootOutput
-fileName:    "gaushitproximity.root"
+fileName:    "/pnfs/uboone/persistent/users/ohanabr/2021/Apr/avinays_proximityclustering_out/gaushitproximity_%r_%s_%tc.root"
 dataTier:    "reco"
 compressionLevel: 1
 #SelectEvents: [reco]

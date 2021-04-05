@@ -94,7 +94,7 @@ outputs:
 {
 out0:
 { module_type: RootOutput
-fileName:    "output.root"
+fileName:    "/pnfs/uboone/persistent/users/ohanabr/2021/Apr/avinays_gamma3D_out/gamma3d_%r_%s_%tc.root"
 dataTier:    "charge"
 streamName:  "all"
 #SelectEvents: [ ]
@@ -134,7 +134,8 @@ filters: {
 # analyzeIt:[
 #
 #           ]
-reco: [ gamma3d ]#ClusterTrackDistance ]
+reco: [ gamma3d ]
+#ClusterTrackDistance ]
 stream1: [ out0 ]
 #path1 : [  comma separated list of module labels of producer or filter modules  ]
 #path2 : [  comma separated list of module labels of analyzer or output modules  ]
