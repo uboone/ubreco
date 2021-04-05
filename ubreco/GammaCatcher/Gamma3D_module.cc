@@ -367,7 +367,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
     //
     // UNCOMMENT IF RUNNING OVER DATA OR MONTE CARLO WITH NO COSMICS
     //
-    //
+
     //
     // auto hits = clus_hit_assn_v.at(i_c);
     //
@@ -517,7 +517,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
       }
 
 
-      //}//END RECO TRACK FOR LOOP
+    }//END RECO TRACK FOR LOOP
 
 
 
@@ -525,42 +525,42 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
 
 
-      // if(cluster[i_c].View()==2 && (distance_smallest > f2DcutY || (distance_smallest_nu > 2.0 && track_point_length_smallest>4.0 ) || (distance_smallest_nu > (2.0*track_point_length_smallest/4.0) && track_point_length_smallest<4.0 )  )) {// IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
-      if(cluster[i_c].View()==2 && (distance_smallest > f2DcutY)){
+    // if(cluster[i_c].View()==2 && (distance_smallest > f2DcutY || (distance_smallest_nu > 2.0 && track_point_length_smallest>4.0 ) || (distance_smallest_nu > (2.0*track_point_length_smallest/4.0) && track_point_length_smallest<4.0 )  )) {// IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+    if(cluster[i_c].View()==2 && (distance_smallest > f2DcutY)){
 
 
-        Start_Cluster2.push_back((cluster[i_c].StartTick ())-3.0);//added +- 3.0 time tick tolerances
-        End_Cluster2.push_back((cluster[i_c].EndTick ())+3.0);
-        // Start_Cluster2.push_back((cluster[i_c].StartTick ()));//added +- 3.0 time tick tolerances
-        // End_Cluster2.push_back((cluster[i_c].EndTick ()));
-        Y_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
-        Y_index_vector.push_back(i_c); //Y Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
-      }
+      Start_Cluster2.push_back((cluster[i_c].StartTick ())-3.0);//added +- 3.0 time tick tolerances
+      End_Cluster2.push_back((cluster[i_c].EndTick ())+3.0);
+      // Start_Cluster2.push_back((cluster[i_c].StartTick ()));//added +- 3.0 time tick tolerances
+      // End_Cluster2.push_back((cluster[i_c].EndTick ()));
+      Y_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
+      Y_index_vector.push_back(i_c); //Y Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
+    }
 
-      if(cluster[i_c].View()==1 && (distance_smallest > f2DcutUV )){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
-
-
-        Start_Cluster1.push_back((cluster[i_c].StartTick ())-3.0);
-        End_Cluster1.push_back((cluster[i_c].EndTick ())+3.0);
-        V_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
-        // Start_Cluster1.push_back((cluster[i_c].StartTick ()));
-        // End_Cluster1.push_back((cluster[i_c].EndTick ()));
-        V_index_vector.push_back(i_c);//V Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
-      }
-
-      if(cluster[i_c].View()==0 && (distance_smallest > f2DcutUV )){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
-
-        //
-        Start_Cluster0.push_back((cluster[i_c].StartTick ())-3.0);
-        End_Cluster0.push_back((cluster[i_c].EndTick ())+3.0);
-        U_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
-        // Start_Cluster0.push_back((cluster[i_c].StartTick ()));
-        // End_Cluster0.push_back((cluster[i_c].EndTick ()));
-        U_index_vector.push_back(i_c);//U Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
-      }
+    if(cluster[i_c].View()==1 && (distance_smallest > f2DcutUV )){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
 
 
-    }//END RECO TRACK FOR LOOP (Thanks to Ivan Lepetic for pointing this out)
+      Start_Cluster1.push_back((cluster[i_c].StartTick ())-3.0);
+      End_Cluster1.push_back((cluster[i_c].EndTick ())+3.0);
+      V_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
+      // Start_Cluster1.push_back((cluster[i_c].StartTick ()));
+      // End_Cluster1.push_back((cluster[i_c].EndTick ()));
+      V_index_vector.push_back(i_c);//V Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
+    }
+
+    if(cluster[i_c].View()==0 && (distance_smallest > f2DcutUV )){//IF LOOP TO CHECK WHAT PLANE A CLUSTER BELONGS TO
+
+      //
+      Start_Cluster0.push_back((cluster[i_c].StartTick ())-3.0);
+      End_Cluster0.push_back((cluster[i_c].EndTick ())+3.0);
+      U_clus_hitsize.push_back(clus_hit_assn_v.at(i_c).size());
+      // Start_Cluster0.push_back((cluster[i_c].StartTick ()));
+      // End_Cluster0.push_back((cluster[i_c].EndTick ()));
+      U_index_vector.push_back(i_c);//U Index vector to store the event index for a given cluster. Very important variable for getting cluster-hit associaton
+    }
+
+
+    // }//END RECO TRACK FOR LOOP (Thanks to Ivan Lepetic for pointing this out)
 
     Clustertree->Fill();
   }//end cluster FOR loop for calculating 2-D distance

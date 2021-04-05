@@ -32,6 +32,8 @@
 #include "lardataobj/RecoBase/PFParticle.h"
 #include "larcoreobj/SummaryData/POTSummary.h"
 #include "canvas/Persistency/Provenance/BranchType.h"
+#include "nusimdata/SimulationBase/MCParticle.h"
+#include "nusimdata/SimulationBase/MCTruth.h"
 
 
 
@@ -74,24 +76,24 @@ private:
   // a map linking the PFP Self() attribute used for hierarchy building to the PFP index in the event record
   std::map<unsigned int, unsigned int> _pfpmap;
 
-  std::string fHit_tag,fpfparticle_tag,fvertex_tag,fsps_tag,fcluster_tag,fReco_track_tag;
+  std::string fHit_tag,fpfparticle_tag,fvertex_tag,fsps_tag,fcluster_tag,fReco_track_tag,fMCProducer_tag;
 
   Int_t evttime=0;
 
-  Double32_t sps_x,sps_y,sps_z,sps_hit_charge,sps_cluster_charge,sps_cluster_charge10,sps_cluster_charge20,sps_cluster_charge50;
-  Double_t distance, distance_smallest,Event_cluster_charge;
+  Double32_t sps_x,sps_y,sps_z,sps_hit_charge,sps_cluster_charge,sps_cluster_charge10,sps_cluster_charge20,sps_cluster_charge50,sps_cluster_charge75,sps_cluster_charge100,sps_cluster_charge150,sps_cluster_charge200;
+  Double_t distance, distance_smallest,Event_cluster_charge;//distance_smallest is the distance between a spacepoint and the vertex
   Double_t Vertex_x,Vertex_y,Vertex_z;
   TRandom3 rand;
   Double_t _rand_vtx_x, _rand_vtx_y, _rand_vtx_z, distance_rand_vtx, distance_smallest_rand_vtx;
-  Int_t neutrinos,N_sps,N_Event,N_Run,N_SubRun,N_sps10,N_sps20,N_sps50;
+  Int_t neutrinos,N_sps,N_Event,N_Run,N_SubRun,N_sps10,N_sps20,N_sps50,N_sps75,N_sps100,N_sps150,N_sps200;
   float _maxTrkLen;
   int   _neutrinoshowers;
   int   _neutrinotracks;
   float _muon_px, _muon_py, _muon_pz;
   Double_t tracklength = 0.0,X_reco=0.0,Y_reco=0.0,Z_reco=0.0;
   Double_t pointdistance_nu=0.0;
-  Double_t pointdistance_nu_smallest=0.0;
-  Double_t distance_nu_smallest=0.0;
+  Double_t pointdistance_nu_cosmic_smallest=0.0;
+  Double_t distance_nu_cosmic_smallest=0.0;
 
 
   Double_t pointdistance_trk=0.0;
@@ -102,7 +104,7 @@ private:
   Double_t pointdistance_smallest_nu;
   Double_t track_point_length=0.0;
   Double_t track_point_length_smallest=0.0;
-  Double_t distance_smallest_nu;
+  Double_t distance_smallest_nu; //distance between a neutrino correlated track and a spacepoint
   Double_t X_reco_nu;
   Double_t Y_reco_nu;
   Double_t Z_reco_nu;
@@ -150,7 +152,7 @@ gammacorrelation::gammacorrelation(fhicl::ParameterSet const& p)
   // Call appropriate consumes<>() for any products to be retrieved by this module.
   //All tags get filled in the run_gammacorrelation.fcl file
 
-
+  fMCProducer_tag = p.get<std::string>("MCProducer_tag");
   fHit_tag = p.get<std::string>("hit_tag"  );
   fpfparticle_tag=p.get<std::string>("pfparticle_tag");
   fvertex_tag=p.get<std::string>("vertex_tag");
@@ -217,6 +219,7 @@ void gammacorrelation::analyze(art::Event const& e)
   e.getByLabel(fsps_tag,spacepoint_handle);
 
   art::FindMany<recob::Cluster> sps_clus_assn_v(spacepoint_handle, e, fsps_tag);
+  art::FindManyP<recob::Hit> clus_hit_assn_v(cluster_handle, e, fcluster_tag);
 
   // build PFParticle map  for this event
   _pfpmap.clear();
@@ -227,12 +230,13 @@ void gammacorrelation::analyze(art::Event const& e)
   _maxTrkLen = 0;
 
 
+  // auto const &mcp_h = e.getValidHandle<std::vector<simb::MCParticle>>(fMCProducer_tag);
 
 
   recob::Vertex nuvtx;
   TVector3 rndvtx;
   neutrinos = 0;
-  Event_cluster_charge=0,sps_cluster_charge50=0,sps_cluster_charge20=0,sps_cluster_charge10=0;
+  Event_cluster_charge=0,sps_cluster_charge50=0,sps_cluster_charge20=0,sps_cluster_charge10=0,sps_cluster_charge75=0,sps_cluster_charge100=0,sps_cluster_charge150=0,sps_cluster_charge200=0;
   for (size_t p=0; p < pfparticle_handle->size(); p++) {
     auto pfp = pfparticle_handle->at(p);
 
@@ -285,7 +289,7 @@ void gammacorrelation::analyze(art::Event const& e)
   distance_smallest=1e10;
 
   distance_smallest_rand_vtx=1e10;
-  N_sps=0,N_sps10=0,N_sps20=0,N_sps50=0;
+  N_sps=0,N_sps10=0,N_sps20=0,N_sps50=0,N_sps75=0,N_sps100=0,N_sps150=0,N_sps200=0;
   Vertex_x=-9999.0;
   Vertex_y=-9999.0;
   Vertex_z=-9999.0;
@@ -297,10 +301,12 @@ void gammacorrelation::analyze(art::Event const& e)
   _rand_vtx_z = rand.Uniform(fidVolMinZ,fidVolMaxZ);
 
   rndvtx = TVector3(_rand_vtx_x,_rand_vtx_y,_rand_vtx_z);
-  distance_nu_smallest=1e10;
+  distance_nu_cosmic_smallest=1e10;
   cosmic_trk_50=0;
 
-  for (size_t i_t = 0, size_track = recotrack_handle->size(); i_t != size_track; ++i_t) {//START RECO TRACK FOR LOOP
+
+
+  for (size_t i_t = 0, size_track = recotrack_handle->size(); i_t != size_track; ++i_t) {//START RECO TRACK FOR LOOP (This is to determine if there is a cosmic muon track close to the neutrino vertex)
 
     auto const& track = recotrack_handle->at(i_t);
 
@@ -310,10 +316,10 @@ void gammacorrelation::analyze(art::Event const& e)
     if ( (sqrt((pow(nuvtx.position().x()-track.Start().X(),2))+(pow(nuvtx.position().y()-track.Start().Y(),2))+ (pow(nuvtx.position().z()-track.Start().Z(),2))) <5.0) ||  (sqrt((pow(nuvtx.position().x()-track.End().X(),2))+(pow(nuvtx.position().y()-track.End().Y(),2))+ (pow(nuvtx.position().z()-track.End().Z(),2)))<5.0))
     continue;
 
-    if (track.Length()<20.0)
+    if (track.Length()<20.0) //Targeting long cosmic muon tracks and ignoring the small tracks
     continue;
 
-    pointdistance_nu_smallest=1e10;
+    pointdistance_nu_cosmic_smallest=1e10;
 
 
 
@@ -325,36 +331,35 @@ void gammacorrelation::analyze(art::Event const& e)
 
       pointdistance_nu=sqrt((pow(nuvtx.position().x()-X_reco,2))+(pow(nuvtx.position().y()-Y_reco,2))+ (pow(nuvtx.position().z()-Z_reco,2)));
 
-      if(pointdistance_nu<pointdistance_nu_smallest){
-        pointdistance_nu_smallest=pointdistance_nu;
+      if(pointdistance_nu<pointdistance_nu_cosmic_smallest){
+        pointdistance_nu_cosmic_smallest=pointdistance_nu;
 
       }
 
     }
-    // std::cout<<"pointdistance_nu_smallest: "<<pointdistance_nu_smallest<<std::endl;
+    // std::cout<<"pointdistance_nu_cosmic_smallest: "<<pointdistance_nu_cosmic_smallest<<std::endl;
 
-    if (pointdistance_nu_smallest<50.0){
+    if (pointdistance_nu_cosmic_smallest<50.0){
       cosmic_trk_50++;
 
     }
 
-    if(pointdistance_nu_smallest<distance_nu_smallest){
-      distance_nu_smallest=pointdistance_nu_smallest;
+    if(pointdistance_nu_cosmic_smallest<distance_nu_cosmic_smallest){
+      distance_nu_cosmic_smallest=pointdistance_nu_cosmic_smallest;
       tracklength= track.Length();
 
     }
-    // std::cout<<"distance_nu_smallest: "<<distance_nu_smallest<<std::endl;
+    // std::cout<<"distance_nu_cosmic_smallest: "<<distance_nu_cosmic_smallest<<std::endl;
     // std::cout<<"tracklength: "<<tracklength<<std::endl;
     // std::cout<<"cosmic_trk_50: "<<cosmic_trk_50<<std::endl;
   }
 
+  // std::cout<<"SpacePoint Vector Size: "<<spacepoint_handle->size()<<std::endl;
 
   for(size_t s=0;s<spacepoint_handle->size();s++){ //START SPACEPOINT LOOP
     N_sps++;
     // std::cout<<"SpacePoint_Number: "<<s<<std::endl;
 
-
-    // std::cout<<"SpacePoint_Number: "<<s<<std::endl;
 
     auto sps = spacepoint_handle->at(s);
     auto cluster_v = sps_clus_assn_v.at(s);
@@ -363,6 +368,9 @@ void gammacorrelation::analyze(art::Event const& e)
     sps_x=sps.XYZ()[0];
     sps_y=sps.XYZ()[1];
     sps_z=sps.XYZ()[2];
+
+    if (sps_y < -90.0 || sps_y > 90.0 || sps_z < 20 || sps_z > 1000)
+    continue;
 
 
 
@@ -379,8 +387,8 @@ void gammacorrelation::analyze(art::Event const& e)
 
       auto const& track = recotrack_handle->at(i_t);
 
-      /*
 
+      //The following IF loop is only meant for tracks coming out of the neutrino vertex
 
       if ( (sqrt((pow(nuvtx.position().x()-track.Start().X(),2))+(pow(nuvtx.position().y()-track.Start().Y(),2))+ (pow(nuvtx.position().z()-track.Start().Z(),2))) <5.0) ||  (sqrt((pow(nuvtx.position().x()-track.End().X(),2))+(pow(nuvtx.position().y()-track.End().Y(),2))+ (pow(nuvtx.position().z()-track.End().Z(),2)))<5.0)){
 
@@ -437,7 +445,7 @@ void gammacorrelation::analyze(art::Event const& e)
 
       }//END IF LOOP
 
-      */
+
 
       // std::cout<<"Track Number: "<<i_t<<std::endl;
 
@@ -468,6 +476,7 @@ void gammacorrelation::analyze(art::Event const& e)
     // std::cout<<"track_point_length_smallest: "<<track_point_length_smallest<<std::endl;
 
 
+    //The following IF CONTINUE condiditon is only meant for both neutrino correlated tracks and also cosmic tracks
 
     if ((distance_smallest_nu<((R/H)*(track_point_length_smallest)) && (track_point_length_smallest<H))||((distance_smallest_nu>R) && (track_point_length_smallest>H)))
     continue;
@@ -500,7 +509,7 @@ void gammacorrelation::analyze(art::Event const& e)
       if (plane==2){
         sps_cluster_charge = cluster->Integral();
         Event_cluster_charge += sps_cluster_charge;
-         // std::cout<<"sps_cluster_charge: "<<sps_cluster_charge<<std::endl;
+        // std::cout<<"sps_cluster_charge: "<<sps_cluster_charge<<std::endl;
       }
     }
 
@@ -526,7 +535,7 @@ void gammacorrelation::analyze(art::Event const& e)
         auto plane = cluster->View();
         if (plane==2){// && (cluster->Integral()>20)){
           sps_cluster_charge10 += cluster->Integral();
-          // N_sps10++;
+
         }
       }
     }
@@ -537,7 +546,7 @@ void gammacorrelation::analyze(art::Event const& e)
         auto plane = cluster->View();
         if (plane==2){// && (cluster->Integral()>20)){
           sps_cluster_charge20 += cluster->Integral();
-          // N_sps20++;
+
         }
       }
     }
@@ -548,11 +557,54 @@ void gammacorrelation::analyze(art::Event const& e)
         auto plane = cluster->View();
         if (plane==2){// && (cluster->Integral()>20)){
           sps_cluster_charge50 += cluster->Integral();
-          // N_sps50++;
+
         }
       }
     }
 
+    if (distance<75.0){
+      N_sps75++;
+      for (auto const& cluster: cluster_v){
+        auto plane = cluster->View();
+        if (plane==2){// && (cluster->Integral()>20)){
+          sps_cluster_charge75 += cluster->Integral();
+
+        }
+      }
+    }
+
+    if (distance<100.0){
+      N_sps100++;
+      for (auto const& cluster: cluster_v){
+        auto plane = cluster->View();
+        if (plane==2){// && (cluster->Integral()>20)){
+          sps_cluster_charge100 += cluster->Integral();
+
+        }
+      }
+    }
+
+    if (distance<150.0){
+      N_sps150++;
+      for (auto const& cluster: cluster_v){
+        auto plane = cluster->View();
+        if (plane==2){// && (cluster->Integral()>20)){
+          sps_cluster_charge150 += cluster->Integral();
+
+        }
+      }
+    }
+
+    if (distance<200.0){
+      N_sps200++;
+      for (auto const& cluster: cluster_v){
+        auto plane = cluster->View();
+        if (plane==2){// && (cluster->Integral()>20)){
+          sps_cluster_charge200 += cluster->Integral();
+
+        }
+      }
+    }
 
     distance_rand_vtx= sqrt((pow(_rand_vtx_x-sps_x,2))+(pow(_rand_vtx_y-sps_y,2))+ (pow(_rand_vtx_z-sps_z,2)));
     if (distance_rand_vtx<distance_smallest_rand_vtx){
@@ -565,10 +617,12 @@ void gammacorrelation::analyze(art::Event const& e)
     Sps_Correlationtree->Fill();
   }//END SPACEPOINT LOOP
 
-
+  // std::cout<<"Total spacepoints in the event: "<<N_sps<<std::endl;
   // std::cout<<"distance_smallest: "<<distance_smallest<<std::endl;
   // std::cout<<"Event_cluster_charge: "<<Event_cluster_charge<<std::endl;
   Event_Correlationtree->Fill();//Filled per event
+
+
 }
 
 void gammacorrelation::beginJob()
@@ -583,16 +637,25 @@ void gammacorrelation::beginJob()
   Event_Correlationtree->Branch("_rand_vtx_x",&_rand_vtx_x,"_rand_vtx_x/D");
   Event_Correlationtree->Branch("_rand_vtx_y",&_rand_vtx_y,"_rand_vtx_y/D");
   Event_Correlationtree->Branch("_rand_vtx_z",&_rand_vtx_z,"_rand_vtx_z/D");
-  Event_Correlationtree->Branch("distance_smallest",&distance_smallest,"distance_smallest/D");
+  Event_Correlationtree->Branch("distance_smallest",&distance_smallest,"distance_smallest/D");// //distance_smallest is the distance between a spacepoint and the vertex
+  Event_Correlationtree->Branch("distance_smallest_nu",&distance_smallest_nu,"distance_smallest_nu/D");//distance between a neutrino correlated track and a spacepoint
   Event_Correlationtree->Branch("N_sps",&N_sps,"N_sps/I");
   Event_Correlationtree->Branch("Event_cluster_charge",&Event_cluster_charge,"Event_cluster_charge/D");
   Event_Correlationtree->Branch("distance_smallest_rand_vtx",&distance_smallest_rand_vtx,"distance_smallest_rand_vtx/D");
   Event_Correlationtree->Branch("N_sps10",&N_sps10,"N_sps10/I");
   Event_Correlationtree->Branch("N_sps20",&N_sps20,"N_sps20/I");
   Event_Correlationtree->Branch("N_sps50",&N_sps50,"N_sps50/I");
+  Event_Correlationtree->Branch("N_sps75",&N_sps75,"N_sps75/I");
+  Event_Correlationtree->Branch("N_sps100",&N_sps100,"N_sps100/I");
+  Event_Correlationtree->Branch("N_sps150",&N_sps150,"N_sps150/I");
+  Event_Correlationtree->Branch("N_sps200",&N_sps200,"N_sps200/I");
   Event_Correlationtree->Branch("sps_cluster_charge10",&sps_cluster_charge10,"sps_cluster_charge10/D");
   Event_Correlationtree->Branch("sps_cluster_charge20",&sps_cluster_charge20,"sps_cluster_charge20/D");
   Event_Correlationtree->Branch("sps_cluster_charge50",&sps_cluster_charge50,"sps_cluster_charge50/D");
+  Event_Correlationtree->Branch("sps_cluster_charge75",&sps_cluster_charge75,"sps_cluster_charge75/D");
+  Event_Correlationtree->Branch("sps_cluster_charge100",&sps_cluster_charge100,"sps_cluster_charge100/D");
+  Event_Correlationtree->Branch("sps_cluster_charge150",&sps_cluster_charge150,"sps_cluster_charge150/D");
+  Event_Correlationtree->Branch("sps_cluster_charge200",&sps_cluster_charge200,"sps_cluster_charge200/D");
   Event_Correlationtree->Branch("neutrinos",&neutrinos,"neutrinos/I");
   Event_Correlationtree->Branch("neutrinoshowers",&_neutrinoshowers,"neutrinoshowers/I");
   Event_Correlationtree->Branch("neutrinotracks" ,&_neutrinotracks ,"neutrinotracks/I" );
@@ -601,7 +664,7 @@ void gammacorrelation::beginJob()
   Event_Correlationtree->Branch("muon_pz" ,&_muon_pz ,"muon_pz/F" );
   Event_Correlationtree->Branch("maxTrkLen" ,&_maxTrkLen ,"maxTrkLen/F" );
   Event_Correlationtree->Branch("tracklength" ,&tracklength ,"tracklength/D" );
-  Event_Correlationtree->Branch("distance_nu_smallest" ,&distance_nu_smallest ,"distance_nu_smallest/D" );
+  Event_Correlationtree->Branch("distance_nu_cosmic_smallest" ,&distance_nu_cosmic_smallest ,"distance_nu_cosmic_smallest/D" );
   Event_Correlationtree->Branch("cosmic_trk_50" ,&cosmic_trk_50 ,"cosmic_trk_50/I" );
   Event_Correlationtree->Branch("N_Run" ,&N_Run ,"N_Run/I" );
   Event_Correlationtree->Branch("N_SubRun" ,&N_SubRun ,"N_SubRun/I" );
@@ -612,6 +675,7 @@ void gammacorrelation::beginJob()
   Sps_Correlationtree->Branch("sps_y",&sps_y,"sps_y/D");
   Sps_Correlationtree->Branch("sps_z",&sps_z,"sps_z/D");
   Sps_Correlationtree->Branch("distance",&distance,"distance/D");
+  Sps_Correlationtree->Branch("distance_smallest_nu",&distance_smallest_nu,"distance_smallest_nu/D");//distance between a neutrino correlated track and a spacepoint
   Sps_Correlationtree->Branch("sps_cluster_charge",&sps_cluster_charge,"sps_cluster_charge/D");
   Sps_Correlationtree->Branch("N_Event",&N_Event,"N_Event/I");
   Sps_Correlationtree->Branch("N_Run",&N_Run,"N_Run/I");
@@ -631,7 +695,7 @@ void gammacorrelation::beginJob()
   Sps_Correlationtree->Branch("muon_pz" ,&_muon_pz ,"muon_pz/F" );
   Sps_Correlationtree->Branch("maxTrkLen" ,&_maxTrkLen ,"maxTrkLen/F" );
   Sps_Correlationtree->Branch("tracklength" ,&tracklength ,"tracklength/D" );
-  Sps_Correlationtree->Branch("distance_nu_smallest" ,&distance_nu_smallest ,"distance_nu_smallest/D" );
+  Sps_Correlationtree->Branch("distance_nu_cosmic_smallest" ,&distance_nu_cosmic_smallest ,"distance_nu_cosmic_smallest/D" );
   Sps_Correlationtree->Branch("cosmic_trk_50" ,&cosmic_trk_50 ,"cosmic_trk_50/I" );
   Sps_Correlationtree->Branch("pointdistance_trk_smallest" ,&pointdistance_trk_smallest ,"pointdistance_trk_smallest/D" );
   Sps_Correlationtree->Branch("distance_trk_smallest" ,&distance_trk_smallest ,"distance_trk_smallest/D" );
