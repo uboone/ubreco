@@ -12,15 +12,23 @@ art_make(
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
 			lardataobj_RecoBase
+			nutools_ParticleNavigation
+			lardataobj_Simulation
+			lardataobj_RawData
+			larsim_Simulation
 			lardataobj_AnalysisBase	
-			lardata_RecoObjects larreco_Deprecated  
+			lardata_RecoObjects 
+			larreco_Deprecated  
 			larreco_RecoAlg
 			lardata_Utilities
 			larevt_Filters
 			nusimdata_SimulationBase
+			SignalShapingServiceMicroBooNE_service
+			ubobj_Trigger
+			ubobj_Optical
 			${LARRECO_LIB}
 			${LARDATA_LIB}
-                        ${ART_FRAMEWORK_CORE}
+            ${ART_FRAMEWORK_CORE}
 			${ART_FRAMEWORK_PRINCIPAL}
 			${ART_FRAMEWORK_SERVICES_REGISTRY}
 			${ART_FRAMEWORK_SERVICES_OPTIONAL}
@@ -30,13 +38,13 @@ art_make(
 			art_Persistency_Provenance canvas
 			art_Utilities canvas
 			${MF_MESSAGELOGGER}
-			
-	                ${FHICLCPP}
+			${FHICLCPP}
 			cetlib cetlib_except
+			cetlib 
 			${CLHEP}
-                        ${ROOT_GEOM}
-                        ${ROOT_XMLIO}
-                        ${ROOT_GDML}
+            ${ROOT_GEOM}
+            ${ROOT_XMLIO}
+            ${ROOT_GDML}
 			${ROOT_BASIC_LIB_LIST}
         )
 

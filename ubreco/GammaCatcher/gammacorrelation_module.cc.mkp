@@ -1,4 +1,4 @@
-////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
 // Class:       gammacorrelation
 // Plugin Type: analyzer (art v3_01_02)
 // File:        gammacorrelation_module.cc
@@ -6,8 +6,7 @@
 // Generated at Wed Mar 20 10:42:52 2019 by Avinay Bhat using cetskelgen
 // from cetlib version v3_05_01.
 // Avinay Bhat (avbhat@syr.edu)
-// This version  was modified by Ohana Benevides (obenevid@syr.edu) on May 2021 
-////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////
 
 #include "art/Framework/Core/EDAnalyzer.h"
 #include "art/Framework/Core/ModuleMacros.h"
@@ -18,29 +17,29 @@
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
-#include "lardata/Utilities/FindManyInChainP.h"
+#include "canvas/Persistency/Provenance/EventAuxiliary.h"
 #include "canvas/Persistency/Provenance/EventID.h"
 #include "canvas/Persistency/Provenance/Timestamp.h"
 #include "canvas/Persistency/Provenance/ProcessHistoryID.h"
 #include "lardata/Utilities/FindManyInChainP.h"
 
-// data-products
-#include "lardataobj/RecoBase/Track.h"
+//data-products 
 #include "lardataobj/RecoBase/OpFlash.h"
-#include "lardataobj/RecoBase/Hit.h"
-#include "lardataobj/RecoBase/PFParticle.h"
 #include "lardataobj/RecoBase/Cluster.h"
-#include "lardataobj/AnalysisBase/T0.h"
-#include "lardataobj/AnalysisBase/Calorimetry.h"
-#include "lardata/Utilities/AssociationUtil.h"
-#include "lardataobj/RawData/OpDetWaveform.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
+#include "lardataobj/RecoBase/Hit.h"
+#include "lardata/Utilities/AssociationUtil.h"
+#include "lardataobj/RecoBase/Track.h"
 #include "lardataobj/RecoBase/Shower.h"
 #include "lardataobj/RecoBase/Vertex.h"
+#include "lardataobj/RecoBase/PFParticle.h"
+#include "lardataobj/AnalysisBase/T0.h"
 #include "larcoreobj/SummaryData/POTSummary.h"
 #include "canvas/Persistency/Provenance/BranchType.h"
 #include "nusimdata/SimulationBase/MCParticle.h"
 #include "nusimdata/SimulationBase/MCTruth.h"
+#include "lardataobj/AnalysisBase/Calorimetry.h"
+#include "lardataobj/RawData/OpDetWaveform.h"
 
 // save info associated to common optical filter
 #include "ubobj/Optical/UbooneOpticalFilter.h"
@@ -67,6 +66,7 @@
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
+
 #include "nusimdata/SimulationBase/MCTruth.h"
 #include "lardataobj/Simulation/GeneratedParticleInfo.h"
 
@@ -81,15 +81,15 @@
 #include "art/Framework/Services/Optional/TFileService.h"
 #include <memory>
 
-class gammacorrelation : public art::EDAnalyzer {
+class gammacorrelation;
 
+class gammacorrelation : public art::EDAnalyzer {
 public:
   explicit gammacorrelation(fhicl::ParameterSet const& p);
   // The compiler-generated destructor is fine for non-base
   // classes without bare pointers or other resource use.
 
   // Plugins should not be copied or assigned.
-  
   gammacorrelation(gammacorrelation const&) = delete;
   gammacorrelation(gammacorrelation&&) = delete;
   gammacorrelation& operator=(gammacorrelation const&) = delete;
@@ -98,24 +98,13 @@ public:
   // Required functions.
   void analyze(art::Event const& e) override;
 
+
   void beginJob() override;
+  void endJob() override;
   void endSubRun(art::SubRun const& sr) override;
 
-  //-------------------------------------------------//
-
-public:
-
-	void mudar_analyze(art::Event const& e);
-  void gammacorrelation_analyze(art::Event const& e);
-
-  void mudar_beginJob();
-  void gammacorrelation_beginJob();
-
-  void mudar_endSubRun(art::SubRun const& sr);
-  void gammacorrelation_endSubRun(art::SubRun const& sr);
-
-
 private:
+
   // Declare member data here.
 
   // a map linking the PFP Self() attribute used for hierarchy building to the PFP index in the event record
@@ -140,9 +129,11 @@ private:
   Double_t pointdistance_nu_cosmic_smallest=0.0;
   Double_t distance_nu_cosmic_smallest=0.0;
 
+
   Double_t pointdistance_trk=0.0;
   Double_t pointdistance_trk_smallest=0.0;
   Double_t distance_trk_smallest=0.0;
+
 
   Double_t pointdistance_smallest_nu;
   Double_t track_point_length=0.0;
@@ -160,6 +151,7 @@ private:
   Double_t R=2.0; //Radius of the cone for a neutrino correlated track
   Double_t H=4.0; //Height of the cone for a neutrino correlated track
 
+
   Int_t cosmic_trk_50=0;
 
   TTree *Event_Correlationtree;
@@ -173,6 +165,7 @@ private:
   int sr_run = 0;
   int sr_sub_run = 0;
 
+
   Double_t fidVolMinX =    0; //Fiducial Volume dimensions for MicroBooNE
   Double_t fidVolMaxX =  256;
   Double_t fidVolMinY = -116;
@@ -180,30 +173,11 @@ private:
   Double_t fidVolMinZ =    0;
   Double_t fidVolMaxZ = 1030;
 
-private:
-  //*********************** From muDAR_feasibility ***********************
-  //Truth information variabels
-	TTree* _tree_Events;
-	double _neutrino_E; //The neutrino energy 
-	double _lepton_E; //The son lepton energy
-	double _vertex_X; //The X position of the vertex 
-	double _vertex_Y; //The Y position of the vertex   
-	double _vertex_Z; //The Z position of the vertex 
-	
-	// POT information variabels  
-	TTree *_subrun_tree;
-  int _run_sr; // The run number
-	int _sub_sr; // The subRun number
-  float _pot;  // The total amount of POT for the current sub run
-	
-	// Trigger (common optical filtervariables)                                                        
-  float  _opfilter_pe_beam, _opfilter_pe_beam_tot, _opfilter_pe_veto, _opfilter_pe_veto_tot;
 
-	// NuMI Trigger (common optical filtervariables)
-	bool _swtrig_pre_ext, _swtrig_pre, _swtrig_post_ext, _swtrig_post;
+  // art::InputTag fMCTproducer;
 
-  //***********************************************************************
 };
+
 
 gammacorrelation::gammacorrelation(fhicl::ParameterSet const& p)
 : EDAnalyzer{p}  // ,
@@ -222,19 +196,27 @@ gammacorrelation::gammacorrelation(fhicl::ParameterSet const& p)
   fReco_track_tag = p.get<std::string>("recotrack_tag"  );
 }
 
-void gammacorrelation::analyze(art::Event const& e){
 
-mudar_analyze(e);
-gammacorrelation_analyze(e);
-}
 
-void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
-// art::EventAuxiliary const& ev_aux;
+
+void gammacorrelation::analyze(art::Event const& e)
+{
+  // art::EventAuxiliary const& ev_aux;
 
   std::cout << "****************Event Number: " << e.event() << " Run Number: " << e.run() << " SubRun Number: " << e.subRun() <<"**********************"<< std::endl;
 
   art::Timestamp ts = e.time();
+  //uint64_t evttime = ts.timeHigh();
   evttime = ts.timeHigh();
+  // std::cout<<"Time: "<<evttime<<std::endl;
+
+
+  //   <art::EventAuxiliary> const& ev_aux;
+  //   std::cout<<"Time: "<<ev_aux.time()<<std::endl;
+  // art::ServiceHandle<art::TFileService> tfs;
+
+
+
 
   // create list of tracks and showers associated to neutrino candidate
   std::vector<recob::Track  > sliceTracks;
@@ -261,6 +243,7 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
   art::FindMany<recob::Track> pfp_track_assn_v  (pfparticle_handle, e, fpfparticle_tag);
   art::FindMany<recob::Shower> pfp_shower_assn_v(pfparticle_handle, e, fpfparticle_tag);
 
+
   art::Handle<std::vector<recob::Vertex> > vertex_handle;
   e.getByLabel(fvertex_tag,vertex_handle);
 
@@ -279,6 +262,10 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
   _neutrinoshowers = 0;
   _neutrinotracks = 0;
   _maxTrkLen = 0;
+
+
+  // auto const &mcp_h = e.getValidHandle<std::vector<simb::MCParticle>>(fMCProducer_tag);
+
 
   recob::Vertex nuvtx;
   TVector3 rndvtx;
@@ -328,7 +315,10 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
       _neutrinoshowers = sliceShowers.size();
       _neutrinotracks  = sliceTracks.size();
 
+      // std::cout<<V_xyz.x()<<std::endl;
+
     }
+
   }
   distance_smallest=1e10;
 
@@ -337,6 +327,7 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
   Vertex_x=-9999.0;
   Vertex_y=-9999.0;
   Vertex_z=-9999.0;
+
 
   // random generated "neutrino" vtx in the fiducial volume
   _rand_vtx_x = rand.Uniform(fidVolMinX,fidVolMaxX);
@@ -347,9 +338,14 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
   distance_nu_cosmic_smallest=1e10;
   cosmic_trk_50=0;
 
+
+
   for (size_t i_t = 0, size_track = recotrack_handle->size(); i_t != size_track; ++i_t) {//START RECO TRACK FOR LOOP (This is to determine if there is a cosmic muon track close to the neutrino vertex)
 
     auto const& track = recotrack_handle->at(i_t);
+
+
+
 
     if ( (sqrt((pow(nuvtx.position().x()-track.Start().X(),2))+(pow(nuvtx.position().y()-track.Start().Y(),2))+ (pow(nuvtx.position().z()-track.Start().Z(),2))) <5.0) ||  (sqrt((pow(nuvtx.position().x()-track.End().X(),2))+(pow(nuvtx.position().y()-track.End().Y(),2))+ (pow(nuvtx.position().z()-track.End().Z(),2)))<5.0))
     continue;
@@ -359,10 +355,13 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
 
     pointdistance_nu_cosmic_smallest=1e10;
 
+
+
     for(size_t m=0;m<(track.NumberTrajectoryPoints());m++){//START RECO POINT LOOP
       X_reco=track.LocationAtPoint(m).X();
       Y_reco=track.LocationAtPoint(m).Y();
       Z_reco=track.LocationAtPoint(m).Z();
+
 
       pointdistance_nu=sqrt((pow(nuvtx.position().x()-X_reco,2))+(pow(nuvtx.position().y()-Y_reco,2))+ (pow(nuvtx.position().z()-Z_reco,2)));
 
@@ -372,7 +371,8 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
       }
 
     }
- 
+    // std::cout<<"pointdistance_nu_cosmic_smallest: "<<pointdistance_nu_cosmic_smallest<<std::endl;
+
     if (pointdistance_nu_cosmic_smallest<50.0){
       cosmic_trk_50++;
 
@@ -383,14 +383,21 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
       tracklength= track.Length();
 
     }
-   
+    // std::cout<<"distance_nu_cosmic_smallest: "<<distance_nu_cosmic_smallest<<std::endl;
+    // std::cout<<"tracklength: "<<tracklength<<std::endl;
+    // std::cout<<"cosmic_trk_50: "<<cosmic_trk_50<<std::endl;
   }
+
+  // std::cout<<"SpacePoint Vector Size: "<<spacepoint_handle->size()<<std::endl;
 
   for(size_t s=0;s<spacepoint_handle->size();s++){ //START SPACEPOINT LOOP
     N_sps++;
-  
+    // std::cout<<"SpacePoint_Number: "<<s<<std::endl;
+
+
     auto sps = spacepoint_handle->at(s);
     auto cluster_v = sps_clus_assn_v.at(s);
+
 
     sps_x=sps.XYZ()[0];
     sps_y=sps.XYZ()[1];
@@ -399,15 +406,29 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
     if (sps_y < -90.0 || sps_y > 90.0 || sps_z < 20 || sps_z > 1000)
     continue;
 
+
+
+
     distance_trk_smallest=1e10;
+
     distance_smallest_nu=1e10;
+
 
     for (size_t i_t = 0, size_track = recotrack_handle->size(); i_t != size_track; ++i_t) {//START RECO TRACK FOR LOOP
 
+
+
+
       auto const& track = recotrack_handle->at(i_t);
 
+
       //The following IF loop is only meant for tracks coming out of the neutrino vertex
+
       if ( (sqrt((pow(nuvtx.position().x()-track.Start().X(),2))+(pow(nuvtx.position().y()-track.Start().Y(),2))+ (pow(nuvtx.position().z()-track.Start().Z(),2))) <5.0) ||  (sqrt((pow(nuvtx.position().x()-track.End().X(),2))+(pow(nuvtx.position().y()-track.End().Y(),2))+ (pow(nuvtx.position().z()-track.End().Z(),2)))<5.0)){
+
+        // std::cout<<"************************Nu Track # "<<i_t<<" *************************"<<std::endl;
+        // std::cout<<"************************Tracklength # "<<track.Length()<<" *************************"<<std::endl;
+
 
         pointdistance_smallest_nu=1e10;
 
@@ -418,7 +439,11 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
           Y_reco_nu=track.LocationAtPoint(m).Y();
           Z_reco_nu=track.LocationAtPoint(m).Z();
 
+
+
           pointdistance_nu=sqrt((pow(sps_x-X_reco_nu,2))+(pow(sps_y-Y_reco_nu,2))+(pow(sps_z-Z_reco_nu,2)));
+          // std::cout<<"pointdistance_nu: "<<pointdistance_nu<<std::endl;
+          // std::cout<<"trackpointlength: "<<sqrt((pow(X_reco_nu-nuvtx.position().x(),2))+(pow(Y_reco_nu-nuvtx.position().y(),2))+ (pow(Z_reco_nu-nuvtx.position().z(),2)))<<std::endl;
 
           if(pointdistance_nu<pointdistance_smallest_nu){//comparison IF loop
 
@@ -430,7 +455,13 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
             track_point_length= sqrt((pow(X_reco_nu-nuvtx.position().x(),2))+(pow(Y_reco_nu-nuvtx.position().y(),2))+ (pow(Z_reco_nu-nuvtx.position().z(),2)));
 
           }
+
         }//END RECO POINT LOOP
+
+        // std::cout<<"pointdistance_smallest_nu: "<<pointdistance_smallest_nu<<std::endl;
+        // std::cout<<"track_point_length: "<<track_point_length<<std::endl;
+
+
 
         if(pointdistance_smallest_nu<distance_smallest_nu){
           distance_smallest_nu=pointdistance_smallest_nu;
@@ -438,8 +469,19 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
           X_reco_best_nu=X_reco_smallest_nu; //variables for the coordinates of the nearest reco track
           Z_reco_best_nu=Z_reco_smallest_nu; //variables for the coordinates of the nearest reco track
         }
+
+        // std::cout<<"distance_smallest_nu: "<<distance_smallest_nu<<std::endl;
+        // std::cout<<"track_point_length_smallest: "<<track_point_length_smallest<<std::endl;
+
+
+
+
+
       }//END IF LOOP
 
+
+
+      // std::cout<<"Track Number: "<<i_t<<std::endl;
 
       pointdistance_trk_smallest=1e10;
 
@@ -453,6 +495,8 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
 
       }
 
+      // std::cout<<"Distance to track: "<<pointdistance_trk_smallest<<std::endl;
+
       if (pointdistance_trk_smallest<distance_trk_smallest){
         distance_trk_smallest=pointdistance_trk_smallest;
 
@@ -460,17 +504,37 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
 
     }
 
-    //The following IF CONTINUE condition is only meant for both neutrino correlated tracks and also cosmic tracks
+    // std::cout<<"pointdistance_smallest_nu_here: "<<pointdistance_smallest_nu<<std::endl;
+    // std::cout<<"distance_smallest_nu_here: "<<distance_smallest_nu<<std::endl;
+    // std::cout<<"track_point_length_here: "<<track_point_length<<std::endl;
+    // std::cout<<"track_point_length_smallest: "<<track_point_length_smallest<<std::endl;
+
+
+    //The following IF CONTINUE condiditon is only meant for both neutrino correlated tracks and also cosmic tracks
 
     if ((distance_smallest_nu<((R/H)*(track_point_length_smallest)) && (track_point_length_smallest<H))||((distance_smallest_nu>R) && (track_point_length_smallest>H)))
     continue;
+
+
+
+
+
+
+
+    // if (neutrinos==0){
+    //   Sps_Correlationtree->Fill();
+    //   continue;
+    // }
 
     Vertex_x=nuvtx.position().x();
     Vertex_y=nuvtx.position().y();
     Vertex_z=nuvtx.position().z();
 
-    distance = sqrt((pow(nuvtx.position().x()-sps_x,2))+(pow(nuvtx.position().y()-sps_y,2))+ (pow(nuvtx.position().z()-sps_z,2)));
- 
+    // std::cout<<"Vertex X: "<<nuvtx.position().x()<<"****Vertex Y: "<<nuvtx.position().y()<<"****Vertex Z: "<<nuvtx.position().z()<<std::endl;
+    //
+    // std::cout<<"sps_x: "<<sps_x<<"****sps_y: "<<sps_y<<"****sps_z: "<<sps_z<<std::endl;
+    distance= sqrt((pow(nuvtx.position().x()-sps_x,2))+(pow(nuvtx.position().y()-sps_y,2))+ (pow(nuvtx.position().z()-sps_z,2)));
+    // std::cout<<"Distance: "<<distance<<std::endl;
     sps_cluster_charge =0;
 
     for (auto const& cluster: cluster_v){
@@ -479,19 +543,33 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
       if (plane==2){
         sps_cluster_charge = cluster->Integral();
         Event_cluster_charge += sps_cluster_charge;
+        // std::cout<<"sps_cluster_charge: "<<sps_cluster_charge<<std::endl;
       }
     }
 
     if (distance<distance_smallest){
       distance_smallest=distance;
+      // for (auto const& cluster: cluster_v){
+      //   auto plane = cluster->View();
+      //
+      //   if (plane==2){
+      //     Event_cluster_charge += cluster->Integral();
+      //   }
+      // }
+
     }
+
+    // std::cout<<"distance: "<<distance<<std::endl;
+    // std::cout<<"distance_smallest: "<<distance_smallest<<std::endl;
+
 
     if (distance<10.0){
       N_sps10++;
       for (auto const& cluster: cluster_v){
         auto plane = cluster->View();
-        if (plane==2){
+        if (plane==2){// && (cluster->Integral()>20)){
           sps_cluster_charge10 += cluster->Integral();
+
         }
       }
     }
@@ -500,8 +578,9 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
       N_sps20++;
       for (auto const& cluster: cluster_v){
         auto plane = cluster->View();
-        if (plane==2){
+        if (plane==2){// && (cluster->Integral()>20)){
           sps_cluster_charge20 += cluster->Integral();
+
         }
       }
     }
@@ -510,7 +589,7 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
       N_sps50++;
       for (auto const& cluster: cluster_v){
         auto plane = cluster->View();
-        if (plane==2){
+        if (plane==2){// && (cluster->Integral()>20)){
           sps_cluster_charge50 += cluster->Integral();
 
         }
@@ -521,8 +600,9 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
       N_sps75++;
       for (auto const& cluster: cluster_v){
         auto plane = cluster->View();
-        if (plane==2){
+        if (plane==2){// && (cluster->Integral()>20)){
           sps_cluster_charge75 += cluster->Integral();
+
         }
       }
     }
@@ -531,8 +611,9 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
       N_sps100++;
       for (auto const& cluster: cluster_v){
         auto plane = cluster->View();
-        if (plane==2){
+        if (plane==2){// && (cluster->Integral()>20)){
           sps_cluster_charge100 += cluster->Integral();
+
         }
       }
     }
@@ -541,8 +622,9 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
       N_sps150++;
       for (auto const& cluster: cluster_v){
         auto plane = cluster->View();
-        if (plane==2){
+        if (plane==2){// && (cluster->Integral()>20)){
           sps_cluster_charge150 += cluster->Integral();
+
         }
       }
     }
@@ -551,7 +633,7 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
       N_sps200++;
       for (auto const& cluster: cluster_v){
         auto plane = cluster->View();
-        if (plane==2){
+        if (plane==2){// && (cluster->Integral()>20)){
           sps_cluster_charge200 += cluster->Integral();
 
         }
@@ -562,173 +644,24 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
     if (distance_rand_vtx<distance_smallest_rand_vtx){
       distance_smallest_rand_vtx=distance_rand_vtx;
     }
-   
+    // std::cout<<"distance_rand_vtx: "<<distance_rand_vtx<<std::endl;
+
+
+    // std::cout<<"sps_cluster_charge: "<<sps_cluster_charge<<std::endl;
     Sps_Correlationtree->Fill();
   }//END SPACEPOINT LOOP
 
+  // std::cout<<"Total spacepoints in the event: "<<N_sps<<std::endl;
+  // std::cout<<"distance_smallest: "<<distance_smallest<<std::endl;
+  // std::cout<<"Event_cluster_charge: "<<Event_cluster_charge<<std::endl;
   Event_Correlationtree->Fill();//Filled per event
 
+
 }
 
-void gammacorrelation::mudar_analyze(art::Event const& e){
-
-	// ************************************************************************
-	// *********************** Load MC truth info *****************************
-	// ************************************************************************
-
-	art::Handle<art::Assns<simb::MCTruth,simb::MCParticle,
-	sim::GeneratedParticleInfo>> MCTruthHandle;
-	art::InputTag fMCTruthTag("largeant");
-	std::cout << "Is true getbylabel: " << 
-	e.getByLabel(fMCTruthTag, MCTruthHandle) << std::endl;
-	std::cout << "Size: " << MCTruthHandle->size() << std::endl;
-	const art::Ptr<simb::MCTruth> mctruth = MCTruthHandle->at(0).first;
-	std::cout << "mctruth nparticles  " << mctruth->NParticles() << std::endl;
-
-	//Retrieving the neutrino information
-	auto neutrino = mctruth->GetNeutrino();
-    const simb::MCParticle nu = neutrino.Nu();
-	_neutrino_E = nu.E();
-	
-	//Retrieving the lepton information
-    const simb::MCParticle lepton = neutrino.Lepton();
-	_lepton_E = lepton.E();
-
-	//For the vertex...
-	const TLorentzVector vertex = lepton.Position(); 
-	_vertex_X = vertex.X(); 
- 	_vertex_Y = vertex.Y(); 
-	_vertex_Z = vertex.Z(); 
-    
-  // ***********************************************************************
-  // ************************************************************************
-  // ******** Trigger result output for NuMI software trigger *************** 
-  // ******** Thanks to Owen who gave the code snippet for this! ************
-  // ************************************************************************
-  
-	art::InputTag triggerTag ("swtrigger", "", "DataOverlayOpticalNuMI" );
-  	const auto& triggerHandle = e.getValidHandle< raw::ubdaqSoftwareTriggerData >(triggerTag);
-  	std::vector<std::string> triggerName = triggerHandle->getListOfAlgorithms();
-
-  for (int j=0; j!=triggerHandle->getNumberOfAlgorithms(); j++){
-
-	if (triggerName[j] == "EXT_NUMIwin_FEMBeamTriggerAlgo"){
-    	bool _swtrig_pre_ext = triggerHandle->passedAlgo(triggerName[j]);
-		std::cout << "_swtrig_pre_ext: " << _swtrig_pre_ext << std::endl;
-    }
-
-    else if (triggerName[j] == "EXT_NUMIwin_2018May_FEMBeamTriggerAlgo"){
-    	bool _swtrig_post_ext = triggerHandle->passedAlgo(triggerName[j]);
-		std::cout << "_swtrig_post_ext: " << _swtrig_post_ext << std::endl;
-    }
-
-    else if (triggerName[j] == "NUMI_FEMBeamTriggerAlgo"){
-    	bool  _swtrig_pre = triggerHandle->passedAlgo(triggerName[j]);
-		std::cout << "_swtrig_pre: " << _swtrig_pre << std::endl;
-    }
-
-    else if (triggerName[j] == "NUMI_2018May_FEMBeamTriggerAlgo"){
-    	bool _swtrig_post = triggerHandle->passedAlgo(triggerName[j]);
-		std::cout << "_swtrig_post: " << _swtrig_post << std::endl;
-    }
-
-    else continue;
-
-    // Print the trigger and the result
-    std::cout<<triggerName[j]<<": ";
-    std::cout<<triggerHandle->passedAlgo(triggerName[j])<<std::endl;
-  }
-
-	// ************************************************************************
-	// *************** Load common-optical-filter output **********************
-	// ************************************************************************
-	art::Handle<uboone::UbooneOpticalFilter> CommonOpticalFilter_h;
-	art::InputTag fCommonOpFiltTag("opfiltercommon");
-
-	e.getByLabel(fCommonOpFiltTag, CommonOpticalFilter_h);
-
-	_opfilter_pe_beam     = CommonOpticalFilter_h->PE_Beam();
-	_opfilter_pe_beam_tot = CommonOpticalFilter_h->PE_Beam_Total();
-	_opfilter_pe_veto     = CommonOpticalFilter_h->PE_Veto();
-	_opfilter_pe_veto_tot = CommonOpticalFilter_h->PE_Veto_Total();
-
-	// Implementation of required member function here.
-	// Software Trigger
-	art::Handle<raw::ubdaqSoftwareTriggerData> softwareTriggerHandle;
-    std::string fSoftwareTriggerModuleLabel = "swtrigger"; 
-	
-	if (e.getByLabel(fSoftwareTriggerModuleLabel, softwareTriggerHandle)){
-		
-		std::vector<std::string> algoNames = softwareTriggerHandle->getListOfAlgorithms();
-		
-		for (int i = 0; i < int(algoNames.size()); i++){
-
-			if (algoNames[i] == "BNB_FEMBeamTriggerAlgo"){ 
-			
-				auto EventPassedSwTrigger = softwareTriggerHandle->passedAlgo(algoNames[i]); 
-
-				std::cout << "EventPassedSwTrigger: " << EventPassedSwTrigger << std::endl;
-
-				std::cout << "Found BNB_FEMBeamTrigger" << std::endl; 
-			}
-		}
-	}
-	else if (e.getByLabel("daq", softwareTriggerHandle)){
-
-		std::vector<std::string> algoNames = softwareTriggerHandle->getListOfAlgorithms();
-
-		for (int i = 0; i < int(algoNames.size()); i++){
-			
-			if (algoNames[i] == "EXT_BNBwin_FEMBeamTriggerAlgo"||algoNames[i] == "BNB_FEMBeamTriggerAlgo"){
-		 		
-				auto EventPassedSwTrigger = softwareTriggerHandle->passedAlgo(algoNames[i]); 
-
-				std::cout << "EventPassedSwTrigger: " << EventPassedSwTrigger << std::endl;
-
-				std::cout << "Found EXT_BNBwin_FEMBeamTrigger and BNB_FEMBeamTrigger" << std::endl; 
-			}
-		}
-	}
-
-	_tree_Events->Fill();
-}
-
-
-void gammacorrelation::mudar_beginJob(){
-
-
-	art::ServiceHandle<art::TFileService> tfs;
-
-	_tree_Events = tfs->make<TTree>("Events", "Events");
-	_subrun_tree = tfs->make<TTree>("SubRun", "SubRun");
-
-	//trigger branches
-	_tree_Events -> Branch("_opfilter_pe_beam", &_opfilter_pe_beam, "_opfilter_pe_beam/F");
-	_tree_Events -> Branch("_opfilter_pe_beam_tot", &_opfilter_pe_beam_tot, "_opfilter_pe_beam_tot/F");
-	_tree_Events -> Branch("_opfilter_pe_veto", &_opfilter_pe_veto, "_opfilter_pe_veto/F");
-	_tree_Events -> Branch("_opfilter_pe_veto_tot", &_opfilter_pe_veto_tot, "_opfilter_pe_veto_tot/F");
-	
-	//NuMI trigger branches
-	_tree_Events->Branch("_swtrig_pre", &_swtrig_pre, "_swtrig_pre/O");
-	_tree_Events->Branch("_swtrig_pre_ext", &_swtrig_pre_ext, "_swtrig_pre_ext/O");
-	_tree_Events->Branch("_swtrig_post_ext", &_swtrig_post_ext, "_swtrig_post_ext/O");
-	_tree_Events->Branch("_swtrig_post", &_swtrig_post, "_swtrig_post/O");
-
-	//truth info particles branches
-	_tree_Events -> Branch("neutrino_E", &_neutrino_E, "neutrino_E/D");
-	_tree_Events -> Branch("lepton_E", &_lepton_E, "lepton_E/D");
-	_tree_Events -> Branch("vertex_X", &_vertex_X, "vertex_X/D");
-	_tree_Events -> Branch("vertex_Y", &_vertex_Y, "vertex_Y/D");
-	_tree_Events -> Branch("vertex_Z", &_vertex_Z, "vertex_Z/D");
-
-	//POT counting info 
-  	_subrun_tree->Branch("run", &_run_sr, "run/I");
-  	_subrun_tree->Branch("subRun", &_sub_sr, "subRun/I");
-	_subrun_tree->Branch("pot", &_pot, "pot/F");
-}
-void gammacorrelation::gammacorrelation_beginJob(){
-
-   art::ServiceHandle<art::TFileService> tfs;
+void gammacorrelation::beginJob()
+{
+  art::ServiceHandle<art::TFileService> tfs;
 
   Event_Correlationtree = tfs->make<TTree>("Event_Correlationtree",    "Event_Correlationtree");
   Event_Correlationtree->Branch("evttime",&evttime,"evttime/I");
@@ -801,35 +734,17 @@ void gammacorrelation::gammacorrelation_beginJob(){
   Sps_Correlationtree->Branch("pointdistance_trk_smallest" ,&pointdistance_trk_smallest ,"pointdistance_trk_smallest/D" );
   Sps_Correlationtree->Branch("distance_trk_smallest" ,&distance_trk_smallest ,"distance_trk_smallest/D" );
 
+
+
   potTree = tfs->make<TTree>("potTree","potTree");
   potTree->Branch("sr_pot", &sr_pot, "sr_pot/D");
   potTree->Branch("sr_run", &sr_run, "sr_run/I");
   potTree->Branch("sr_sub_run", &sr_sub_run, "sr_sub_run/I");
 }
-void gammacorrelation::beginJob(){
 
-  mudar_beginJob(); 
-  gammacorrelation_beginJob();
-}
+void gammacorrelation::endJob(){}
 
-void gammacorrelation::mudar_endSubRun(art::SubRun const &sr){
-
-  art::InputTag MCTproducer("generator");
-  _pot=0; 
-
-  art::Handle<sumdata::POTSummary> potSummaryHandle;
-  _pot = sr.getByLabel(MCTproducer, potSummaryHandle) ? static_cast<float>(potSummaryHandle->totpot) : 0.;
-  std::cout << "[muDARfeasibility::endSubRun] Storing POT info!" << std::endl;
-
-  _run_sr = sr.run();
-  _sub_sr = sr.subRun();
-  _subrun_tree->Fill();
-
-}
-
-void gammacorrelation::gammacorrelation_endSubRun(art::SubRun const &sr){
-
-
+void gammacorrelation::endSubRun(art::SubRun const &sr) {
   // Note: the entire subrun's POT is recorded in the tree for every event.
   // You must only add it once per subrun to get the correct number.
 
@@ -847,12 +762,8 @@ sr_run = sr.run();
 sr_sub_run = sr.subRun();
 
 potTree->Fill();
+
 }
 
-void gammacorrelation::endSubRun(art::SubRun const &sr) {
-
-mudar_endSubRun(sr);
-gammacorrelation_endSubRun(sr);
-}
 
 DEFINE_ART_MODULE(gammacorrelation)

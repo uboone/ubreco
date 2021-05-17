@@ -1428,9 +1428,6 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
   V_index_vector.clear();
   U_index_vector.clear();
 
-
-
-
   e.put(std::move(SpacePoint_v));
   e.put(std::move(sps_clus_assn_v));
   // e.put(std::move(sps_hit_assn_v));
@@ -1447,8 +1444,6 @@ void Gamma3D::beginJob()
   wire2cm = geom->WirePitch(0,0,0);
   time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
 
-
-
   art::ServiceHandle<art::TFileService> tfs;
 
   Clustertree = tfs->make<TTree>("Clustertree",    "Clustertree");
@@ -1460,7 +1455,6 @@ void Gamma3D::beginJob()
   Clustertree->Branch("X_reco_best",&X_reco_best,"X_reco_best/D");
   Clustertree->Branch("distance_smallest",&distance_smallest,"distance_smallest/D");
   Clustertree->Branch("plane",&plane,"plane/I");
-
 
   Matchingtree->Branch("V_biggest_iou",&V_biggest_iou,"V_biggest_iou/D");
   Matchingtree->Branch("V_match_multiplicity",&V_match_multiplicity,"V_match_multiplicity/I");
