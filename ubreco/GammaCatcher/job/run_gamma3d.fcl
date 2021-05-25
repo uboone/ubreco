@@ -94,8 +94,8 @@ outputs:
 {
 out0:
 { module_type: RootOutput
-fileName:    "/pnfs/uboone/persistent/users/ohanabr/2021/Apr/avinays_gamma3D_out/gamma3d_%r_%s_%tc.root"
-#fileName:    "gamma3d_%r_%s_%tc.root"
+#fileName:    "/pnfs/uboone/persistent/users/ohanabr/2021/Apr/avinays_gamma3D_out/gamma3d_%r_%s_%tc.root"
+fileName:    "gamma3d_%r_%s_%tc.root"
 dataTier:    "charge"
 streamName:  "all"
 #SelectEvents: [ ]

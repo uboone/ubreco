@@ -11,7 +11,8 @@ vertex_tag: "pandora"
 sps_tag: "gamma3d"
 hit_tag : "gaushit"
 cluster_tag: "gaushitproximity"
-MCTproducer: "generator"
+#MCTproducer: "generator"
+MCproducer: "generator"
 IsData: false
 recotrack_tag: "pandora"
 }

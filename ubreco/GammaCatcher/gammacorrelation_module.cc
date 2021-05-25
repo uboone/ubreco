@@ -99,6 +99,7 @@ public:
   void analyze(art::Event const& e) override;
 
   void beginJob() override;
+  void endJob() override;
   void endSubRun(art::SubRun const& sr) override;
 
   //-------------------------------------------------//
@@ -121,7 +122,9 @@ private:
   // a map linking the PFP Self() attribute used for hierarchy building to the PFP index in the event record
   std::map<unsigned int, unsigned int> _pfpmap;
 
-  std::string fHit_tag,fpfparticle_tag,fvertex_tag,fsps_tag,fcluster_tag,fReco_track_tag,fMCProducer_tag;
+  std::string fHit_tag,fpfparticle_tag,fvertex_tag,fsps_tag,fcluster_tag,fReco_track_tag;
+
+  //std::string fMCProducer_tag;
 
   Int_t evttime=0;
 
@@ -212,7 +215,7 @@ gammacorrelation::gammacorrelation(fhicl::ParameterSet const& p)
   // Call appropriate consumes<>() for any products to be retrieved by this module.
   //All tags get filled in the run_gammacorrelation.fcl file
 
-  fMCProducer_tag = p.get<std::string>("MCProducer_tag");
+  //fMCProducer_tag = p.get<std::string>("MCProducer_tag");
   fHit_tag = p.get<std::string>("hit_tag"  );
   fpfparticle_tag=p.get<std::string>("pfparticle_tag");
   fvertex_tag=p.get<std::string>("vertex_tag");
@@ -847,6 +850,9 @@ sr_run = sr.run();
 sr_sub_run = sr.subRun();
 
 potTree->Fill();
+}
+
+void gammacorrelation::endJob(){
 }
 
 void gammacorrelation::endSubRun(art::SubRun const &sr) {
