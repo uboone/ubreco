@@ -20,7 +20,7 @@
 #include "art/Framework/Principal/SubRun.h"
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "lardataobj/RawData/raw.h"
@@ -172,6 +172,13 @@ private:
     double matchedSimChanCharge_plane0;
     double matchedSimChanCharge_plane1;
     double matchedSimChanCharge_plane2;
+
+    std::vector<float> fidex;
+    std::vector<float> fidey;
+    std::vector<float> fidez;
+    std::vector<float> fideelectrons;
+    std::vector<float> fideenergy;
+    std::vector<Int_t> fidetrackid;
 };
 
 void DecayFinder::reconfigure(fhicl::ParameterSet const &p)
@@ -260,7 +267,7 @@ DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
     fEventTree->Branch("cluster_end_wire", "std::vector<float>", &fend_wire);
     fEventTree->Branch("cluster_x", "std::vector<double>", &fcluster_x);
     fEventTree->Branch("cluster_z", "std::vector<double>", &fcluster_z);
-    fEventTree->Branch("cluster_time", "std::vector<double>", &fstart_time);
+    fEventTree->Branch("cluster_time", "std::vector<float>", &fstart_time);
     fEventTree->Branch("cluster_integral", "std::vector<double>", &fcluster_integral);
     fEventTree->Branch("cluster_nhits", "std::vector<UInt_t>", &fnumber_hits);
     fEventTree->Branch("cluster_plane", "std::vector<Int_t>", &fcluster_plane);
@@ -271,6 +278,14 @@ DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
     fEventTree->Branch("matchedSimChanCharge_plane0",&matchedSimChanCharge_plane0);
     fEventTree->Branch("matchedSimChanCharge_plane1",&matchedSimChanCharge_plane1);
     fEventTree->Branch("matchedSimChanCharge_plane2",&matchedSimChanCharge_plane2);
+
+    fEventTree->Branch("IDEx",&fidex);
+    fEventTree->Branch("IDEy",&fidey);
+    fEventTree->Branch("IDEz",&fidez);
+    fEventTree->Branch("IDEelectrons",&fideelectrons);
+    fEventTree->Branch("IDEenergy",&fideenergy);
+    fEventTree->Branch("IDEtrackid",&fidetrackid);
+
 
 }
 
@@ -330,6 +345,13 @@ void DecayFinder::clearEvent()
     fcluster_integral.clear();
     fcluster_plane.clear();
     fnumber_hits.clear();
+
+    fidex.clear();
+    fidey.clear();
+    fidez.clear();
+    fideenergy.clear();
+    fideelectrons.clear();
+    fidetrackid.clear();
 
 
 }

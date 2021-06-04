@@ -40,77 +40,79 @@ void DecayFinder::analyze(art::Event const &evt)
     MCParticleHandle mcparticles_in_event;
     evt.getByLabel(m_mcparticle_producer, mcparticles_in_event);
 
-      art::FindManyP<recob::Hit, anab::BackTrackerHitMatchingData> hit_per_part(mcparticles_in_event,evt,"gaushitTruthMatch");
+    if (!m_isData) {
+        art::FindManyP<recob::Hit, anab::BackTrackerHitMatchingData> hit_per_part(mcparticles_in_event,evt,"gaushitTruthMatch");
 
-      //Was the hit caused by an alpha or beta?
+        //Was the hit caused by an alpha or beta?
 
-    auto mcparts(*mcparticles_in_event);
-    for(UInt_t mcp = 0; mcp < mcparts.size(); mcp++){
-      auto hit_vec = hit_per_part.at(mcp);
-      auto mcpart = mcparts.at(mcp);
-      if(mcpart.PdgCode() == 1000020040) {
-        for(auto hit : hit_vec){
-          if (hit->WireID().Plane == 2) {
-            falpha_time_truth.push_back(hit->PeakTime());
-            falpha_wire_truth.push_back(hit->WireID().Wire);
-            falpha_integral_truth.push_back(hit->Integral());
-            falpha_RMS_truth.push_back(hit->RMS());
-            falpha_x_truth.push_back(mcpart.Vx());
-            falpha_y_truth.push_back(mcpart.Vy());
-            falpha_z_truth.push_back(mcpart.Vz());
+      auto mcparts(*mcparticles_in_event);
+      for(UInt_t mcp = 0; mcp < mcparts.size(); mcp++){
+        auto hit_vec = hit_per_part.at(mcp);
+        auto mcpart = mcparts.at(mcp);
+        if(mcpart.PdgCode() == 1000020040) {
+          for(auto hit : hit_vec){
+            if (hit->WireID().Plane == 2) {
+              falpha_time_truth.push_back(hit->PeakTime());
+              falpha_wire_truth.push_back(hit->WireID().Wire);
+              falpha_integral_truth.push_back(hit->Integral());
+              falpha_RMS_truth.push_back(hit->RMS());
+              falpha_x_truth.push_back(mcpart.Vx());
+              falpha_y_truth.push_back(mcpart.Vy());
+              falpha_z_truth.push_back(mcpart.Vz());
+            }
           }
         }
-      }
-      else if (mcpart.PdgCode() == 11) {
-        for(auto hit : hit_vec){
-          if (hit->WireID().Plane == 2) {
-            if (mcpart.Process() == "primary") {
-              fbeta_time_truth.push_back(hit->PeakTime());
-              fbeta_wire_truth.push_back(hit->WireID().Wire);
-              fbeta_integral_truth.push_back(hit->Integral());
-              fbeta_RMS_truth.push_back(hit->RMS());
-              fbeta_x_truth.push_back(mcpart.Vx());
-              fbeta_y_truth.push_back(mcpart.Vy());
-              fbeta_z_truth.push_back(mcpart.Vz());
-              fbeta_E_truth.push_back(mcpart.E());
-              fbeta_EndE_truth.push_back(mcpart.EndE());
+        else if (mcpart.PdgCode() == 11) {
+          for(auto hit : hit_vec){
+            if (hit->WireID().Plane == 2) {
+              if (mcpart.Process() == "primary") {
+                fbeta_time_truth.push_back(hit->PeakTime());
+                fbeta_wire_truth.push_back(hit->WireID().Wire);
+                fbeta_integral_truth.push_back(hit->Integral());
+                fbeta_RMS_truth.push_back(hit->RMS());
+                fbeta_x_truth.push_back(mcpart.Vx());
+                fbeta_y_truth.push_back(mcpart.Vy());
+                fbeta_z_truth.push_back(mcpart.Vz());
+                fbeta_E_truth.push_back(mcpart.E());
+                fbeta_EndE_truth.push_back(mcpart.EndE());
+              }
             }
           }
         }
       }
-    }
 
-    if (!mcparticles_in_event.isValid())
-    {
-      std::cout << "Failed to get simb::MCParticles with producer " << m_mcparticle_producer << std::endl;
-    }
-    else
-    {
-      fNumMCParticles = mcparticles_in_event->size();
-      for (UInt_t ii = 0; ii < fNumMCParticles; ii++)
+      if (!mcparticles_in_event.isValid())
       {
-        const art::Ptr<simb::MCParticle> this_mcparticle(mcparticles_in_event, ii);
+        std::cout << "Failed to get simb::MCParticles with producer " << m_mcparticle_producer << std::endl;
+      }
+      else
+      {
+        fNumMCParticles = mcparticles_in_event->size();
+        for (UInt_t ii = 0; ii < fNumMCParticles; ii++)
+        {
+          const art::Ptr<simb::MCParticle> this_mcparticle(mcparticles_in_event, ii);
 
 
-        fTrackId.push_back(this_mcparticle->TrackId());
-        fMother.push_back(this_mcparticle->Mother());
-        fNumberDaughters.push_back(this_mcparticle->NumberDaughters());
-        fpdg.push_back(this_mcparticle->PdgCode());
-        fEng.push_back(this_mcparticle->E());
-        fStartPointx.push_back(this_mcparticle->Vx());
-        fStartPointy.push_back(this_mcparticle->Vy());
-        fStartPointz.push_back(this_mcparticle->Vz());
-        fEndPointx.push_back(this_mcparticle->EndX());
-        fEndPointy.push_back(this_mcparticle->EndY());
-        fEndPointz.push_back(this_mcparticle->EndZ());
-        fTrueWire.push_back(this_mcparticle->Vz()/0.3);
-        double temp_time = (this_mcparticle->Vx()+44.575)/(time2cm) + (this_mcparticle->T())/(detp->SamplingRate());
-        fTrueTime.push_back(temp_time);
-        fPx.push_back(this_mcparticle->Px());
-        fPy.push_back(this_mcparticle->Py());
-        fPz.push_back(this_mcparticle->Pz());
-        fTime.push_back(this_mcparticle->T());
-        fprocess.push_back(this_mcparticle->Process());
+          fTrackId.push_back(this_mcparticle->TrackId());
+          fMother.push_back(this_mcparticle->Mother());
+          fNumberDaughters.push_back(this_mcparticle->NumberDaughters());
+          fpdg.push_back(this_mcparticle->PdgCode());
+          fEng.push_back(this_mcparticle->E());
+          fStartPointx.push_back(this_mcparticle->Vx());
+          fStartPointy.push_back(this_mcparticle->Vy());
+          fStartPointz.push_back(this_mcparticle->Vz());
+          fEndPointx.push_back(this_mcparticle->EndX());
+          fEndPointy.push_back(this_mcparticle->EndY());
+          fEndPointz.push_back(this_mcparticle->EndZ());
+          fTrueWire.push_back(this_mcparticle->Vz()/0.3);
+          double temp_time = (this_mcparticle->Vx()+44.575)/(time2cm) + (this_mcparticle->T())/(detp->SamplingRate());
+          fTrueTime.push_back(temp_time);
+          fPx.push_back(this_mcparticle->Px());
+          fPy.push_back(this_mcparticle->Py());
+          fPz.push_back(this_mcparticle->Pz());
+          fTime.push_back(this_mcparticle->T());
+          fprocess.push_back(this_mcparticle->Process());
+        }
       }
     }
 
@@ -126,92 +128,101 @@ void DecayFinder::analyze(art::Event const &evt)
       std::cout << "Loaded Wires " << std::endl;
     auto wires(*wire_handle);
 
-    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataFor(evt);
+    art::ServiceHandle<detinfo::DetectorClocksService> detClocks;
+    detinfo::DetectorClocks const* clockData = detClocks->provider();
 
-    auto const& simchans = *evt.getValidHandle<std::vector<sim::SimChannel> >("largeant");
-    for (auto simchan : simchans) {
-      if(simchan.Channel() < 0) continue;
+    if (!m_isData) {
+      auto const& simchans = *evt.getValidHandle<std::vector<sim::SimChannel> >("largeant");
+      for (auto simchan : simchans) {
+        if(simchan.Channel() < 0) continue;
 
-      for(int wr = 0; wr < int(wires.size()); wr++){
+        for(int wr = 0; wr < int(wires.size()); wr++){
 
-          if(simchan.Channel() != wires[wr].Channel()) continue;
-          if(wires[wr].NSignal() ==0) continue;
+            if(simchan.Channel() != wires[wr].Channel()) continue;
+            if(wires[wr].NSignal() ==0) continue;
 
-          auto const& tdcidemap = simchan.TDCIDEMap();
+            auto const& tdcidemap = simchan.TDCIDEMap();
 
-          for (auto const& mapitr : tdcidemap) {
+            for (auto const& mapitr : tdcidemap) {
 
-            unsigned short tick =  clockData.TPCTDC2Tick(mapitr.first);
-            if(tick > 7500) continue;
-            //	  mat = false;
-            tot_simticks++;
-            const std::vector<sim::IDE> idevec = mapitr.second;
-            //	  std::cout << "size of IDE vec " << idevec.size() << std::endl;
+              unsigned short tick =  clockData->TPCTDC2Tick(mapitr.first);
+              if(tick > 7500) continue;
+              //	  mat = false;
+              tot_simticks++;
+              const std::vector<sim::IDE> idevec = mapitr.second;
+              //	  std::cout << "size of IDE vec " << idevec.size() << std::endl;
 
-            for (auto const& ide : idevec) {
-              int index = 0;
-              if(std::find(TrackIDtoIndex.begin(), TrackIDtoIndex.end(), ide.trackID) != TrackIDtoIndex.end()) {
-                index = find(TrackIDtoIndex.begin(), TrackIDtoIndex.end(), ide.trackID) - TrackIDtoIndex.begin();
-              }
-              else {
-                TrackIDtoIndex.push_back(ide.trackID);
-                index = find(TrackIDtoIndex.begin(), TrackIDtoIndex.end(), ide.trackID) - TrackIDtoIndex.begin();
-                std::vector< std::pair<int,int> > temp;
-                temp.resize(3);
-                temp[0] = std::make_pair(0,0);
-                temp[1] = std::make_pair(0,0);
-                temp[2] = std::make_pair(0,0);
-                IndexToPlaneToPair.push_back(temp);
-                eDeptoIndex.push_back(0);
-              }
+              for (auto const& ide : idevec) {
+                int index = 0;
+                if(std::find(TrackIDtoIndex.begin(), TrackIDtoIndex.end(), ide.trackID) != TrackIDtoIndex.end()) {
+                  index = find(TrackIDtoIndex.begin(), TrackIDtoIndex.end(), ide.trackID) - TrackIDtoIndex.begin();
+                }
+                else {
+                  TrackIDtoIndex.push_back(ide.trackID);
+                  index = find(TrackIDtoIndex.begin(), TrackIDtoIndex.end(), ide.trackID) - TrackIDtoIndex.begin();
+                  std::vector< std::pair<int,int> > temp;
+                  temp.resize(3);
+                  temp[0] = std::make_pair(0,0);
+                  temp[1] = std::make_pair(0,0);
+                  temp[2] = std::make_pair(0,0);
+                  IndexToPlaneToPair.push_back(temp);
+                  eDeptoIndex.push_back(0);
+                }
 
-              const recob::Wire::RegionsOfInterest_t& signalROI = wires[wr].SignalROI();
-              //	    std::cout << " N elec " << ide.numElectrons << " x " << ide.x << " y " << ide.y << " z " << ide.z << std::endl;
-              if(wires[wr].View() == 0){
-                TotalSimChanCharge_plane0 += ide.numElectrons;  // Total electrons
-                IndexToPlaneToPair[index][0].second += ide.numElectrons;
-              }
-              if(wires[wr].View() == 1){
-                TotalSimChanCharge_plane1 += ide.numElectrons;  // Total electrons
-                IndexToPlaneToPair[index][1].second += ide.numElectrons;
-              }
-              if(wires[wr].View() == 2){
-                TotalSimChanCharge_plane2 += ide.numElectrons;  // Total electrons
-                IndexToPlaneToPair[index][2].second += ide.numElectrons;
-              }
+                const recob::Wire::RegionsOfInterest_t& signalROI = wires[wr].SignalROI();
+                //	    std::cout << " N elec " << ide.numElectrons << " x " << ide.x << " y " << ide.y << " z " << ide.z << std::endl;
+                if(wires[wr].View() == 0){
+                  TotalSimChanCharge_plane0 += ide.numElectrons;  // Total electrons
+                  IndexToPlaneToPair[index][0].second += ide.numElectrons;
+                }
+                if(wires[wr].View() == 1){
+                  TotalSimChanCharge_plane1 += ide.numElectrons;  // Total electrons
+                  IndexToPlaneToPair[index][1].second += ide.numElectrons;
+                }
+                if(wires[wr].View() == 2){
+                  fidex.push_back(ide.x);
+                  fidey.push_back(ide.y);
+                  fidez.push_back(ide.z);
+                  fideelectrons.push_back(ide.numElectrons);
+                  fideenergy.push_back(ide.energy);
+                  fidetrackid.push_back(ide.trackID);
+                  TotalSimChanCharge_plane2 += ide.numElectrons;  // Total electrons
+                  IndexToPlaneToPair[index][2].second += ide.numElectrons;
+                }
 
-              eDeptoIndex[index] += ide.energy;
+                eDeptoIndex[index] += ide.energy;
 
-              for (const auto& range : signalROI.get_ranges()) {
-                const std::vector<float>& signal          = range.data();
-                raw::TDCtick_t            roiFirstBinTick = range.begin_index();
-                raw::TDCtick_t            roiLastBinTick  = roiFirstBinTick + signal.size();
-                unsigned short startTick = roiFirstBinTick;
-                unsigned short stopTick = roiLastBinTick;
-                //std::cout << "Plane " << wires[wr].View() << " and sim tick " << tick << " in range : " << startTick << " to " << stopTick << " on channel " << simchan.Channel() << std::endl;
+                for (const auto& range : signalROI.get_ranges()) {
+                  const std::vector<float>& signal          = range.data();
+                  raw::TDCtick_t            roiFirstBinTick = range.begin_index();
+                  raw::TDCtick_t            roiLastBinTick  = roiFirstBinTick + signal.size();
+                  unsigned short startTick = roiFirstBinTick;
+                  unsigned short stopTick = roiLastBinTick;
+                  //std::cout << "Plane " << wires[wr].View() << " and sim tick " << tick << " in range : " << startTick << " to " << stopTick << " on channel " << simchan.Channel() << std::endl;
 
-                if(tick <= stopTick && tick >= startTick){
-                  mat_simticks++;
-                  //mat = true;
-                  if(wires[wr].View() == 0){
-                    matchedSimChanCharge_plane0 += ide.numElectrons;  // collected electrons
-                    IndexToPlaneToPair[index][0].first += ide.numElectrons;
+                  if(tick <= stopTick && tick >= startTick){
+                    mat_simticks++;
+                    //mat = true;
+                    if(wires[wr].View() == 0){
+                      matchedSimChanCharge_plane0 += ide.numElectrons;  // collected electrons
+                      IndexToPlaneToPair[index][0].first += ide.numElectrons;
+                    }
+                    if(wires[wr].View() == 1){
+                      matchedSimChanCharge_plane1 += ide.numElectrons;  // collected electrons
+                      IndexToPlaneToPair[index][1].first += ide.numElectrons;
+                    }
+                    if(wires[wr].View() == 2){
+                      matchedSimChanCharge_plane2 += ide.numElectrons;  // collected electrons
+                      IndexToPlaneToPair[index][2].first += ide.numElectrons;
+                    }
+                    //std::cout << "Matched! " << std::endl;
+                    break;
                   }
-                  if(wires[wr].View() == 1){
-                    matchedSimChanCharge_plane1 += ide.numElectrons;  // collected electrons
-                    IndexToPlaneToPair[index][1].first += ide.numElectrons;
-                  }
-                  if(wires[wr].View() == 2){
-                    matchedSimChanCharge_plane2 += ide.numElectrons;  // collected electrons
-                    IndexToPlaneToPair[index][2].first += ide.numElectrons;
-                  }
-                  //std::cout << "Matched! " << std::endl;
-                  break;
                 }
               }
-            }
-          }//Loop over wires
-        }//Loop over SimChannels
+            }//Loop over wires
+          }//Loop over SimChannels
+        }
       }
 
     // Here we implement the loop over the reconstructed objects
