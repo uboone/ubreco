@@ -117,21 +117,21 @@ void DecayFinder::analyze(art::Event const &evt)
     }
 
 
-    int tot_simticks = 0;
-    int mat_simticks = 0;
+  //  int tot_simticks = 0;
+  //  int mat_simticks = 0;
 
     std::vector<int> TrackIDtoIndex;
     std::vector<double> eDeptoIndex;
     std::vector < std::vector< std::pair<int,int> > > IndexToPlaneToPair;
 
-    auto const& wire_handle = evt.getValidHandle< std::vector<recob::Wire> >("caldata");
+    auto const& wire_handle = evt.getValidHandle< std::vector<recob::Wire> >("butcher");
       std::cout << "Loaded Wires " << std::endl;
     auto wires(*wire_handle);
 
-    art::ServiceHandle<detinfo::DetectorClocksService> detClocks;
-    detinfo::DetectorClocks const* clockData = detClocks->provider();
+  //  art::ServiceHandle<detinfo::DetectorClocksService> detClocks;
+  //  detinfo::DetectorClocks const* clockData = detClocks->provider();
 
-    if (!m_isData) {
+  /*  if (!m_isData) {
       auto const& simchans = *evt.getValidHandle<std::vector<sim::SimChannel> >("largeant");
       for (auto simchan : simchans) {
         if(simchan.Channel() < 0) continue;
@@ -223,7 +223,7 @@ void DecayFinder::analyze(art::Event const &evt)
             }//Loop over wires
           }//Loop over SimChannels
         }
-      }
+      }*/
 
     // Here we implement the loop over the reconstructed objects
 
@@ -261,6 +261,22 @@ void DecayFinder::analyze(art::Event const &evt)
 
       if (!clusters_in_event.isValid()) {std::cout << "Error: Couldn't get clusters." << std::endl;}
       else {std::cout << "Success: Got Clusters." << std::endl;}
+
+      art::FindManyP<recob::Hit, recob::Cluster> hit_per_cluster(clusters_in_event,evt,"gaushitproximity");
+
+      auto clusters(*clusters_in_event);
+      for(UInt_t clus = 0; clus < clusters.size(); clus++){
+        auto hit_vec = hit_per_cluster.at(clus);
+        auto clusteri = clusters.at(clus);
+        int number_hits_in_this_cluster = 0;
+        for(auto hit : hit_vec){
+          if (hit->WireID().Plane == 2) {
+            number_hits_in_this_cluster++;
+          }
+        }
+        fnew_num_hits.push_back(number_hits_in_this_cluster);
+      }
+
 
       for (UInt_t ii = 0; ii < clusters_in_event->size(); ii++) {
         const art::Ptr<recob::Cluster> this_cluster(clusters_in_event, ii);

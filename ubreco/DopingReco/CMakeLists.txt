@@ -3,8 +3,9 @@ art_make(
 
 	  LIB_LIBRARIES          
 	  ${ART_FRAMEWORK_SERVICES_REGISTRY}
-	  ${ART_ROOT_IO_TFILE_SUPPORT}
-	  ${ART_ROOT_IO_TFILESERVICE_SERVICE}
+	  ${ART_FRAMEWORK_SERVICES_OPTIONAL}
+	  ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
+
 
           # Needed for the main module          
           MODULE_LIBRARIES
@@ -24,9 +25,8 @@ art_make(
 			            ${ART_FRAMEWORK_PRINCIPAL}
 			            ${ART_FRAMEWORK_SERVICES_REGISTRY}
 			            ${ART_FRAMEWORK_SERVICES_BASIC}
-				    ${ART_ROOT_IO_TFILE_SUPPORT}
 			            ${ART_FRAMEWORK_SERVICES_OPTIONAL}
-			            ${ART_ROOT_IO_TFILESERVICE_SERVICE}
+				    ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
 			            art_Framework_Services_Registry
 			            art_Persistency_Common
 			            art_Persistency_Provenance

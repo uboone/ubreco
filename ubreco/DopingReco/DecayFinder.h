@@ -20,7 +20,7 @@
 #include "art/Framework/Principal/SubRun.h"
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
-#include "art_root_io/TFileService.h"
+#include "art/Framework/Services/Optional/TFileService.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "lardataobj/RawData/raw.h"
@@ -115,6 +115,7 @@ private:
     std::vector<double> fPy;
     std::vector<double> fPz;
     std::vector<std::string> fprocess;
+    std::vector<int> fnew_num_hits;
     std::vector<double> falpha_wire_truth;
     std::vector<double> falpha_time_truth;
     std::vector<double> falpha_x_truth;
@@ -248,6 +249,7 @@ DecayFinder::DecayFinder(fhicl::ParameterSet const &p)
         fEventTree->Branch("BetaTruthE", "std::vector<double>", &fbeta_E_truth);
         fEventTree->Branch("BetaTruthEndE", "std::vector<double>", &fbeta_EndE_truth);
         fEventTree->Branch("process", "std::vector<std::string>", &fprocess);
+        fEventTree->Branch("NewNumberHits", "std::vector<int>", &fnew_num_hits);
 
 
     fEventTree->Branch("reco_num_hits", &fNumHits, "reco_num_hits/i");
@@ -335,6 +337,7 @@ void DecayFinder::clearEvent()
     fbeta_EndE_truth.clear();
     fTime.clear();
     fprocess.clear();
+    fnew_num_hits.clear();
 
 
     fstart_wire.clear();
