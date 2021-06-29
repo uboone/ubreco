@@ -1,0 +1,108 @@
+#include "time_memory_tracker_microboone.fcl"
+#include "services_microboone.fcl"
+#include "triggeralgo_service.fcl"
+#include "mctrutht0matching.fcl"
+#include "hitfindermodules_microboone.fcl"
+#include "pandoramodules_microboone.fcl"
+#include "wcp_port.fcl"
+process_name: Select
+
+services:
+{
+  TimeTracker:             @local::microboone_time_tracker
+  MemoryTracker:           @local::microboone_memory_tracker
+  FileCatalogMetadata:     @local::art_file_catalog_mc
+  @table::microboone_services_reco
+}
+
+source:
+{
+  module_type: RootInput
+  fileNames:   ["dummy.root"]
+  maxEvents:   -1
+}
+
+physics:
+{
+  producers:
+  {
+    selectWires:   @local::standard_selectWires
+    selectGaushit: @local::microboone_gaushitfinder
+    selectTruthMatch:        @local::standard_mcparticlehitmatching
+    selectNu: @local::microboone_pandoraAllHitsNu
+    selectTrack: @local::microboone_pandoraTrackCreation
+    selectShower: @local::microboone_pandoraShowerCreation
+  }
+
+  reco: [
+  	  selectWires,
+	  selectGaushit,
+	  selectTruthMatch,
+	  selectNu,
+	  selectTrack,
+	  selectShower
+        ]
+  trigger_paths: [ reco ]
+
+  stream1: [ out1 ]
+  end_paths: [ stream1 ]
+}
+
+outputs:
+{
+ out1:
+ {
+   module_type: RootOutput
+   dataTier: "reconstructed"
+   compressionLevel: 1
+   saveMemoryObjectThreshold: 0
+   fileName: "%ifb_%tc_originalGaushit.root"
+ }
+}
+
+microboone_tfile_metadata:
+{
+  JSONFileName:          ["reco_stage_2_hist.root.json"]
+  GenerateTFileMetadata: [true]
+  dataTier:              ["root-tuple"]
+  fileFormat:            ["root"]
+}
+
+services.SpaceCharge.CalibrationInputFilename: "SpaceCharge/SCEoffsets_dataDriven_combined_bkwd_Jan18.root"
+services.SpaceCharge.EnableCalEfieldSCE: true
+services.SpaceCharge.EnableCalSpatialSCE: true
+services.SpaceCharge.EnableCorrSCE: true
+services.SpaceCharge.EnableSimSpatialSCE: true
+services.SpaceCharge.EnableSimEfieldSCE: true
+services.SpaceCharge.InputFilename: "SpaceCharge/SCEoffsets_dataDriven_combined_fwd_Jan18.root"
+services.SpaceCharge.ResponseType: "Voxelized_TH3"
+services.SpaceCharge.service_provider: "SpaceChargeServiceMicroBooNE"
+services.DetectorPropertiesService.NumberTimeSamples: 6400
+services.DetectorPropertiesService.ReadOutWindowSize: 6400
+services.DetectorClocksService.TriggerOffsetTPC: -0.400e3
+services.DetectorClocksService.InheritClockConfig:  false
+services.TFileService.fileName: "reco_stage_2_hist.root"
+services.BackTrackerService:  @local::microboone_backtrackerservice
+services.ParticleInventoryService: @local::standard_particleinventoryservice
+
+physics.producers.selectGaushit.CalDataModuleLabel:                                "selectWires"
+physics.producers.selectGaushit.LongMaxHits:                                       [ 25, 25, 25]
+physics.producers.selectGaushit.MaxMultiHit:                                       4
+physics.producers.selectGaushit.TryNplus1Fits:                                     false
+physics.producers.selectGaushit.Chi2NDF:                                           50.
+physics.producers.selectGaushit.HitFinderToolVec.CandidateHitsPlane0.RoiThreshold: 2.9
+physics.producers.selectGaushit.HitFinderToolVec.CandidateHitsPlane1.RoiThreshold: 2.6
+physics.producers.selectGaushit.HitFinderToolVec.CandidateHitsPlane2.RoiThreshold: 3.5
+
+physics.producers.selectTruthMatch.HitParticleAssociations:                       @local::IndirectHitParticleAssnsTool
+physics.producers.selectTruthMatch.HitParticleAssociations.HitPartAssnsLabel:     "gaushitTruthMatch"
+physics.producers.selectTruthMatch.HitParticleAssociations.HitModuleLabel:        "selectGaushit"
+physics.producers.selectTruthMatch.HitParticleAssociations.MCParticleModuleLabel: "largeant"
+physics.producers.selectTruthMatch.OverrideRealData: true
+
+physics.producers.selectNu.HitFinderModuleLabel:  "selectGaushit"
+physics.producers.selectNu.SimChannelModuleLabel: "driftWC:simpleSC"
+
+physics.producers.selectTrack.PFParticleLabel:     "selectNu"
+
+physics.producers.selectShower.PFParticleLabel:     "selectNu"

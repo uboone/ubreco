@@ -2,14 +2,14 @@ BEGIN_PROLOG
 
 T0RecoAnodeCathodePiercing: {
  module_type       : "T0RecoAnodeCathodePiercing"  
- TrackProducer     : "pandoraCosmic"
+ TrackProducer     : "pandora"
  FlashProducer     : "simpleFlashCosmic"
- Resolution        : 10    # centimeters
- PEmin             : 50    # PE
- TimeResA          : 1     # microseconds
- TimeResC          : 1     # microseconds
+ Resolution        : 20    # centimeters
+ PEmin             : 10    # PE
+ TimeResA          : 10    # microseconds
+ TimeResC          : 10    # microseconds
  RecoT0TimeOffsetA : 0     # microseconds
- RecoT0TimeOffsetC : 0     # microseconds
+ RecoT0TimeOffsetC : +14.  # microseconds
  T0negMin          : -406. # microseconds
  T0negMax          : -400. # microseconds
  T0posMin          :  500. # microseconds

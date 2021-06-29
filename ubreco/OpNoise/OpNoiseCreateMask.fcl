@@ -1,0 +1,17 @@
+BEGIN_PROLOG
+opnoisecreatemask: {
+ module_type     : "OpNoiseCreateMask"
+ PEThresh : 450
+ FlagFrac : 0.02
+ FlagWireHigh : 15
+ FlagWireLow : -15
+ FlagTimeHigh : 0.5
+ FlagTimeLow : -1
+ NoiseWireHigh : 50
+ NoiseWireLow : -50
+ NoiseTimeHigh : 2
+ NoiseTimeLow : -2
+ ApplyOpNoiseMask : false
+ HitProducer     : "gaushit"
+}
+END_PROLOG

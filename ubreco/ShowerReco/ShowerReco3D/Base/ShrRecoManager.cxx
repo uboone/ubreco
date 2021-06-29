@@ -1,15 +1,21 @@
-#ifndef SHOWERRECO_SHOWERRECOMANAGER_CXX
-#define SHOWERRECO_SHOWERRECOMANAGER_CXX
+#ifndef SHOWERRECO_SHRRECOMANAGER_CXX
+#define SHOWERRECO_SHRRECOMANAGER_CXX
 
-#include "ShowerRecoManager.h"
+#include "ShrRecoManager.h"
 #include <iomanip>
 
 namespace showerreco {
   
-  ShowerRecoManager::ShowerRecoManager()
-  { }
+  ShrRecoManager::ShrRecoManager()
+  { 
+    _alg_v.clear();
+    _ana_v.clear();
+    _proto_showers.clear();
+    _alg_time_v.clear();
+    _alg_ctr_v.clear();
+}
   
-  void ShowerRecoManager::Initialize()
+  void ShrRecoManager::Initialize()
   {
     for (auto & alg : _alg_v) {
       alg->initialize();
@@ -20,15 +26,15 @@ namespace showerreco {
     return;
   }
   
-  void ShowerRecoManager::Reset()
+  void ShrRecoManager::Reset()
   {
     _proto_showers.clear();
     
     return;
   }
   
-  void ShowerRecoManager::Reconstruct(util::GeometryUtilities const& gser,
-                                      std::vector<showerreco::Shower_t>& showers)
+  void ShrRecoManager::Reconstruct(util::GeometryUtilities const& gser,
+				   std::vector<showerreco::Shower_t>& showers)
   {
     
     showers.clear();
@@ -46,8 +52,8 @@ namespace showerreco {
     return;
   }
 
-  ::showerreco::Shower_t ShowerRecoManager::RecoOneShower(util::GeometryUtilities const& gser,
-                                                          const ::protoshower::ProtoShower& proto_shower)
+  ::showerreco::Shower_t ShrRecoManager::RecoOneShower(util::GeometryUtilities const& gser,
+						       const ::protoshower::ProtoShower& proto_shower)
   {
     
     // reset product shoer
@@ -57,12 +63,13 @@ namespace showerreco {
     // make a local copy of the shower to track differences
     Shower_t localCopy = result;
 
+    result.fIndex = proto_shower._index;
 
     // loop through reconstruction modules
     for (size_t n = 0; n < _alg_v.size(); n++) {
       
       _watch.Start();
-      
+
       try {
         _alg_v[n] -> do_reconstruction(gser, proto_shower, result);
       }// if reco succeeds
@@ -79,14 +86,14 @@ namespace showerreco {
 	localCopy = result;
       }// if verbose
     }// for all reconstruction modules
-  
+
     // if we made it this far, the shower is good!
     result.fPassedReconstruction = true;    
 
     return result;
   }
   
-  void ShowerRecoManager::Reset(Shower_t& result) {
+  void ShrRecoManager::Reset(Shower_t& result) {
     
     size_t nPlanes = 3;
     
@@ -109,7 +116,7 @@ namespace showerreco {
     return;
   }
 
-void ShowerRecoManager::PrintModuleList() {
+void ShrRecoManager::PrintModuleList() {
   
   std::cout << "Print the list of modules to run in Shower Reco Alg Modular:\n";
   int i = 0;
@@ -120,7 +127,7 @@ void ShowerRecoManager::PrintModuleList() {
   
 }
 
-  void ShowerRecoManager::printChanges(const Shower_t & localCopy,
+  void ShrRecoManager::printChanges(const Shower_t & localCopy,
 				     const Shower_t result,
 				     std::string moduleName) {
   
@@ -433,7 +440,7 @@ void ShowerRecoManager::PrintModuleList() {
 
 
 // finalize function
-void ShowerRecoManager::Finalize(TFile* fout)
+void ShrRecoManager::Finalize(TFile* fout)
 {
 
   // loop through algos and evaluate time-performance

@@ -40,6 +40,11 @@ public:
 
   // 3D vertex associated to this protoshower
   TVector3  _vertex;
+
+  // index of PFParticle which generated this shower [index of event record vector]
+  size_t _index;
+  void SetIndex(size_t idx) { _index = idx; }
+  size_t Index() { return _index; }
   
   // list 2D clusters
   std::vector<::cluster2d::Cluster2D> _clusters;

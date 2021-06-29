@@ -30,16 +30,14 @@ table_fragment_end
 
 product                 version
 ubsim                   v09_25_00
-larreco                 v09_06_07
+larpandora              v09_06_03
 swtrigger               v02_03_00b
 cetbuildtools	        v7_17_01	-	only_for_build
 end_product_list
 
-qualifier      ubsim          larreco        swtrigger      
+qualifier      ubsim          larpandora     swtrigger      
 c7:debug       c7:debug       c7:debug       c7:debug       
 c7:prof        c7:prof        c7:prof        c7:prof        
-e19:debug      e19:debug      e19:debug      e19:debug
-e19:prof       e19:prof       e19:prof       e19:prof
 e20:debug      e20:debug      e20:debug      e20:debug
 e20:prof       e20:prof       e20:prof       e20:prof
 end_qualifier_list

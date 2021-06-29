@@ -21,7 +21,7 @@ std::vector<double> wcopreco::UB_spe::Get_wfm(int nbins, float tick_width_ns)
 
     for (int i=0; i<size; i++) {
       X = (double(i)+0.5);
-      value = 1./_cfgSPE._spe_p0*pow(X/_cfgSPE._spe_p1,4)*exp(-X/_cfgSPE._spe_p1)*gain;
+      value = _cfgSPE._spe_p0*pow(X/_cfgSPE._spe_p1,4)*exp(-X/_cfgSPE._spe_p1)*gain;
       wfm[i] = value;
     }
 

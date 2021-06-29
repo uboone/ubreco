@@ -1,0 +1,25 @@
+BEGIN_PROLOG
+
+StopMu: {
+
+    module_type: "StopMu"
+    TrkProducer: "pandora"
+    CaloProducer: "pandoracali"
+    MCProducer: "generator"
+    MCParticleLabel: "largeant"
+    GeoCuts: true
+    MinLen: 150
+    dT: 10
+    MinX: -40
+    MaxX: 290
+    MinY: -95
+    MinZ: 30
+    MaxZ: 1000
+    ZdeadStart: 697
+    ZdeadEnd:   745
+    AbsXspan: 150
+    UseTruth: false
+    FillTTree: false
+}
+
+END_PROLOG

@@ -18,7 +18,6 @@ namespace wcopreco {
   OpWaveformCollection wcopreco::Deconvolver::Deconvolve_Collection(OpWaveformCollection & merged_beam)
 
     {
-
       //Process the Beam:
       //Note that the following code is supposed to only deal with beam waveforms, 32 channels and 1500 bin wfms.
       OpWaveform wfm(0,0,0,0);
@@ -26,16 +25,25 @@ namespace wcopreco {
       for (int ch=0; ch<_cfg._num_channels; ch++){
         wfm = merged_beam.at(ch);
         nbins = wfm.size();
+	
+	//get the gain for this ch: need to decide whether to do deconvolution
+	float chgain = merged_beam.get_op_gain().at(ch);
+	
+	//remove baselines (baseline here are determined by the start of the waveform)
+	Remove_Baseline_Leading_Edge(wfm);
 
-        //remove baselines (baseline here are determined by the start of the waveform)
-        Remove_Baseline_Leading_Edge(wfm);
-        Remove_Baseline_Secondary(wfm);
-
-        //Do deconvolution (need to add a way to incorporate kernels)
-        deconvolved_collection.add_waveform(Deconvolve_One_Wfm(wfm, kernel_container_v->at(wfm.get_ChannelNum())));
+	Remove_Baseline_Secondary(wfm);
+	
+	if(chgain>0){	  
+	  //Do deconvolution (need to add a way to incorporate kernels)
+	  deconvolved_collection.add_waveform(Deconvolve_One_Wfm(wfm, kernel_container_v->at(wfm.get_ChannelNum())));
+	}
+	else{
+	  deconvolved_collection.add_waveform(wfm);
+	}
       }
-
-    return deconvolved_collection;
+      
+      return deconvolved_collection;
     }//End of Deconvolve_Collection
 
 
@@ -109,16 +117,19 @@ namespace wcopreco {
 
         double arg = _cfg._xq;
         double par[3];
-        h4->GetQuantiles(1,&par[1],&arg);
-        arg = _cfg._xq - _cfg._xq_diff;
 
-        h4->GetQuantiles(1,&par[0],&arg);
-        arg = _cfg._xq + _cfg._xq_diff;
-
-        h4->GetQuantiles(1,&par[2],&arg);
-
-        rms = sqrt((pow(par[0]-par[1],2)+pow(par[2]-par[1],2))/2.);
-
+	if(h4->Integral() !=0.){
+	  h4->GetQuantiles(1,&par[1],&arg);
+	  arg = _cfg._xq - _cfg._xq_diff;
+	  
+	  h4->GetQuantiles(1,&par[0],&arg);
+	  arg = _cfg._xq + _cfg._xq_diff;
+	  
+	  h4->GetQuantiles(1,&par[2],&arg);
+	  
+	  rms = sqrt((pow(par[0]-par[1],2)+pow(par[2]-par[1],2))/2.);
+	}
+	else{mean = rms = 0;}
         delete h4;
         return std::make_pair(mean,rms);
      }
@@ -212,6 +223,7 @@ namespace wcopreco {
         kernel_container_v->at(channel).at(n)->Get_pow_spec(nbins, bin_width, &mag_kernel.at(n), &phase_kernel.at(n));
       }
 
+
        for (int i=0;i<nbins;i++){
          double freq;
          if (i<=nbins/2){
@@ -266,7 +278,7 @@ namespace wcopreco {
        };
        delete ifft;
 
-       // calcumate rms and mean
+       // calculate rms and mean
        std::pair<double,double> results = cal_mean_rms(inverse_res, nbins);
        std::vector<double> hflag;
        hflag.resize(nbins);

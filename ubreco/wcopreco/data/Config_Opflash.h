@@ -17,7 +17,7 @@ namespace wcopreco{
     //  pe error for cosmic, default: 11/sqrt(3.)
     double  _PE_err_cosmic;
     //// 250 kHz at 0.6 us - subtract from each bin
-    double  _PE_subtract;
+    double  _rnd_noise_cosmic;
     // used in setting the low time
     int     _flash_low_time_cushion;
     //used in setting the high time
@@ -29,7 +29,7 @@ namespace wcopreco{
     //mult required to save beam
     int     _mult_required;
     //stat error in beam flashes :  7.5 us * random noise ...
-    double  _PE_err_stat_beam;
+    double  _rnd_noise_beam;
     //used in calcluating pe error for beam
     double  _PE_err_unc_beam;
     //threshold to add l1 pe
@@ -49,8 +49,8 @@ namespace wcopreco{
     void _set_PE_err_cosmic(double value) {_PE_err_cosmic = value;}
     double _get_PE_err_cosmic() {return _PE_err_cosmic;}
 
-    void _set_PE_subtract(double value) {_PE_subtract = value;}
-    double _get_PE_subtract() {return _PE_subtract;}
+    void _set_rnd_noise_cosmic(double value) {_rnd_noise_cosmic = value;}
+    double _get_rnd_noise_cosmic() {return _rnd_noise_cosmic;}
 
     void _set_flash_low_time_cushion(int value) {_flash_low_time_cushion = value;}
     int _get_flash_low_time_cushion() {return _flash_low_time_cushion;}
@@ -67,8 +67,8 @@ namespace wcopreco{
     void _set_mult_required(int value) {_mult_required = value;}
     int _get_mult_required() {return _mult_required;}
 
-    void _set_PE_err_stat_beam(double value) {_PE_err_stat_beam = value;}
-    double _get_PE_err_stat_beam() {return _PE_err_stat_beam;}
+    void _set_rnd_noise_beam(double value) {_rnd_noise_beam = value;}
+    double _get_rnd_noise_beam() {return _rnd_noise_beam;}
 
     void _set_PE_err_unc_beam(double value) {_PE_err_unc_beam = value;}
     double _get_PE_err_unc_beam() {return _PE_err_unc_beam;}

@@ -35,13 +35,14 @@ namespace wcopreco{
     ~HitFinder_beam() {};
 
     void Perform_L1(std::vector<double> inverse_res1,
-                       std::vector< std::vector<double> > &decon_vv,
-                       std::vector<double> &totPE_v,
-                       std::vector<double> &mult_v,
-                       std::vector<double> &l1_totPE_v,
-                       std::vector<double> &l1_mult_v,
-                       int ch
-                     );
+		    std::vector< std::vector<double> > &decon_vv,
+		    std::vector<double> &totPE_v,
+		    std::vector<double> &mult_v,
+		    std::vector<double> &l1_totPE_v,
+		    std::vector<double> &l1_mult_v,
+		    int ch,
+		    float gain
+		    );
 
      std::vector<double> get_totPE_v(){return totPE_v;}
      std::vector<double> get_mult_v(){return mult_v;}

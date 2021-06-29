@@ -1,9 +1,9 @@
 /**
- * \file ShowerRecoManager.h
+ * \file ShrRecoManager.h
  *
  * \ingroup ShowerReco3D
  *
- * \brief Class def header for a class ShowerRecoManager
+ * \brief Class def header for a class ShrRecoManager
  *
  * @author kazuhiro
  */
@@ -11,8 +11,8 @@
 /** \addtogroup ShowerReco3D
 
     @{*/
-#ifndef SHOWERRECO_SHOWERRECOMANAGER_H
-#define SHOWERRECO_SHOWERRECOMANAGER_H
+#ifndef SHOWERRECO_SHRRECOMANAGER_H
+#define SHOWERRECO_SHRRECOMANAGER_H
 
 #include <iostream>
 #include <TFile.h>
@@ -31,19 +31,19 @@ typedef std::vector<std::vector<unsigned int> > ClusterAss_t;
 //typedef std::vector< larutil::Hit2D> PxHitSet_t;
 
 /**
-   \class ShowerRecoManager
-   User defined class ShowerRecoManager ... these comments are used to generate
+   \class ShrRecoManager
+   User defined class ShrRecoManager ... these comments are used to generate
    doxygen documentation!
 */
-class ShowerRecoManager {
+class ShrRecoManager {
 
 public:
 
   /// Default constructor
-  ShowerRecoManager();
+  ShrRecoManager();
 
   /// Default destructor
-  ~ShowerRecoManager() {}
+  ~ShrRecoManager() {}
 
   /// Add shower reconstruction algorithm
   void AddAlgo(std::unique_ptr<showerreco::ShowerRecoModuleBase> alg) { _alg_v.push_back(std::move(alg)); }
@@ -99,7 +99,10 @@ public:
      */
     void SetVerbose(bool b = true) { _verbose = b; }
 
-
+    
+    /**
+     */
+    void Clear() { _alg_v.clear(); }
 
  private:
     

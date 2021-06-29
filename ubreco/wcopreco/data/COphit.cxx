@@ -33,20 +33,31 @@ wcopreco::COphit::COphit(int ch_no, OpWaveform *wfm, double time, double gain, d
   if (!good_baseline) integral = cal_integral(peak);
 
   if (good_baseline){
-    PE = integral / gain * _cfg._pe_factor;
-    // take care of PE ...
-    if (PE < 0) PE = 0;
-
-    PE_err = sqrt(pow(PE * gain_err/gain ,2) // gain uncertainties
-		  + 2 * PE // statistical term ...
-		  + pow(_cfg._nbins_cosmic/sqrt(3.)/gain * 2,2)  // basline (1/sqrt(3.) ADC with 40 time tics ...)
-		  + pow(PE*_cfg._Baseline_uncertainty,2) // 3% relative uncertainties (Baseline guess) ...
-		  );
+    if(gain > 0){ 
+      PE = integral / gain * _cfg._pe_factor;
+      // take care of PE ...
+      if (PE < 0) PE = 0.;
+      PE_err = sqrt(pow(PE * gain_err/gain ,2) // gain uncertainties
+		    + 2 * PE // statistical term ...
+		    + pow(_cfg._nbins_cosmic/sqrt(3.)/gain * 2,2)  // basline (1/sqrt(3.) ADC with 40 time tics ...)
+		    + pow(PE*_cfg._Baseline_uncertainty,2) // 3% relative uncertainties (Baseline guess) ...
+		    );
+    }
+    else if(gain <= 0){
+      PE=0.;
+      PE_err=0.;
+    }
 
   }else{
-    PE = integral/gain * 2;
-    if (PE < 0) PE = 0;
-    PE_err = _cfg._Baseline_unc_bad_baseline* PE;
+    if(gain > 0){
+      PE = integral/gain * 2;
+      if (PE < 0) PE = 0.;
+      PE_err = _cfg._Baseline_unc_bad_baseline* PE;
+    }
+    else if(gain <= 0){
+      PE=0.;
+      PE_err=0.;
+    }
   }
 
 }
