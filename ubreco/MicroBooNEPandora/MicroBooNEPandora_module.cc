@@ -136,6 +136,7 @@ DEFINE_ART_MODULE(MicroBooNEPandora)
 #include "larpandoracontent/LArContent.h"
 #include "larpandoracontent/LArControlFlow/MultiPandoraApi.h"
 #include "larpandoracontent/LArControlFlow/MasterAlgorithm.h"
+#include "larpandoracontent/LArHelpers/LArPfoHelper.h"
 #include "larpandoracontent/LArObjects/LArCaloHit.h"
 #include "larpandoracontent/LArPlugins/LArPseudoLayerPlugin.h"
 #include "larpandoracontent/LArPlugins/LArRotationalTransformationPlugin.h"
@@ -351,7 +352,7 @@ void MicroBooNEPandora::ReprocessSlices(const art::Event &evt, const SliceVector
             LArPandoraHelper::CollectSimChannels(evt, m_simChannelModuleLabel, artSimChannels, areSimChannelsValid);
             if (!artSimChannels.empty())
             {
-                LArPandoraHelper::BuildMCParticleHitMaps(artHits, artSimChannels, artHitsToTrackIDEs);
+                LArPandoraHelper::BuildMCParticleHitMaps(evt, artHits, artSimChannels, artHitsToTrackIDEs);
             }
             else if (!areSimChannelsValid)
             {
@@ -367,7 +368,7 @@ void MicroBooNEPandora::ReprocessSlices(const art::Event &evt, const SliceVector
             }
         }
 
-        LArPandoraInput::CreatePandoraHits2D(m_inputSettings, m_driftVolumeMap, artHits, idToHitMap);
+        LArPandoraInput::CreatePandoraHits2D(evt, m_inputSettings, m_driftVolumeMap, artHits, idToHitMap);
         m_inputSettings.m_hitCounterOffset += artHits.size();
 
         if (m_enableMCParticles && !evt.isRealData())
@@ -452,7 +453,7 @@ void MicroBooNEPandora::ProduceReprocessedSlicesOutput(art::Event &evt, const pa
 
     // Using the input pfo vector
     LArPandoraOutput::IdToIdVectorMap pfoToVerticesMap;
-    const pandora::VertexVector vertexVector(LArPandoraOutput::CollectVertices(pfoVector, pfoToVerticesMap));
+    const pandora::VertexVector vertexVector(LArPandoraOutput::CollectVertices(pfoVector, pfoToVerticesMap, lar_content::LArPfoHelper::GetVertex));
 
     LArPandoraOutput::IdToIdVectorMap pfoToClustersMap;
     const pandora::ClusterList clusterList(LArPandoraOutput::CollectClusters(pfoVector, pfoToClustersMap));
@@ -466,14 +467,14 @@ void MicroBooNEPandora::ProduceReprocessedSlicesOutput(art::Event &evt, const pa
 
     // Build the ART outputs from the pandora objects
     LArPandoraOutput::BuildVertices(vertexVector, outputVertices);
-    LArPandoraOutput::BuildSpacePoints(evt, m_outputSettings.m_pProducer, instanceLabel, threeDHitList, pandoraHitToArtHitMap, outputSpacePoints, outputSpacePointsToHits);
+    LArPandoraOutput::BuildSpacePoints(evt, instanceLabel, threeDHitList, pandoraHitToArtHitMap, outputSpacePoints, outputSpacePointsToHits);
 
     LArPandoraOutput::IdToIdVectorMap pfoToArtClustersMap;
-    LArPandoraOutput::BuildClusters(evt, m_outputSettings.m_pProducer, instanceLabel, clusterList, pandoraHitToArtHitMap, pfoToClustersMap, outputClusters, outputClustersToHits, pfoToArtClustersMap);
+    LArPandoraOutput::BuildClusters(evt, instanceLabel, clusterList, pandoraHitToArtHitMap, pfoToClustersMap, outputClusters, outputClustersToHits, pfoToArtClustersMap);
 
-    LArPandoraOutput::BuildPFParticles(evt, m_outputSettings.m_pProducer, instanceLabel, pfoVector, pfoToVerticesMap, pfoToThreeDHitsMap, pfoToArtClustersMap, outputParticles, outputParticlesToVertices, outputParticlesToSpacePoints, outputParticlesToClusters);
+    LArPandoraOutput::BuildPFParticles(evt, instanceLabel, pfoVector, pfoToVerticesMap, pfoToThreeDHitsMap, pfoToArtClustersMap, outputParticles, outputParticlesToVertices, outputParticlesToSpacePoints, outputParticlesToClusters);
 
-    LArPandoraOutput::BuildParticleMetadata(evt, m_outputSettings.m_pProducer, instanceLabel, pfoVector, outputParticleMetadata, outputParticlesToMetadata);
+    LArPandoraOutput::BuildParticleMetadata(evt, instanceLabel, pfoVector, outputParticleMetadata, outputParticlesToMetadata);
 
     // Add the outputs to the event
     evt.put(std::move(outputParticles), instanceLabel);
@@ -496,13 +497,13 @@ void MicroBooNEPandora::ProduceReprocessedSlicesOutput(art::Event &evt, const pa
             const art::Ptr<recob::Slice> pSlice(sliceVector.at(sliceIndex));
             outputSlices->emplace_back(pSlice->ID(), pSlice->Center(), pSlice->Direction(), pSlice->End0Pos(), pSlice->End1Pos(), pSlice->AspectRatio(), pSlice->Charge());
 
-            LArPandoraOutput::AddAssociation(evt, this, instanceLabel, sliceIndex, slicesToHits.at(pSlice), outputSlicesToHits);
+            LArPandoraOutput::AddAssociation(evt, instanceLabel, sliceIndex, slicesToHits.at(pSlice), outputSlicesToHits);
 
             // ATTN Here rely on knowing the index system in use in LArPandoraOutput::BuildPFParticles...
             for (unsigned int particleIndex = 0; particleIndex < pfoVector.size(); ++particleIndex)
             {
                 if (sliceIndex == pfoToSliceIdMap.at(pfoVector.at(particleIndex)))
-                    LArPandoraOutput::AddAssociation(evt, this, instanceLabel, particleIndex, sliceIndex, outputParticlesToSlices);
+                    LArPandoraOutput::AddAssociation(evt, instanceLabel, particleIndex, sliceIndex, outputParticlesToSlices);
             }
         }
 
