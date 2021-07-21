@@ -30,7 +30,7 @@ table_fragment_end
 
 product                 version
 ubsim                   v09_26_01
-larreco                 v09_06_09
+larpandora              v09_07_00
 swtrigger               v02_03_00c
 cetbuildtools	        v7_17_01	-	only_for_build
 end_product_list
