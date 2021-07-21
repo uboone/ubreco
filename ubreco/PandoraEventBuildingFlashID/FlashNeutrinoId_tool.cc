@@ -1697,8 +1697,7 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
     _ct_manager.Configure(cosmictagmanager);
 
     // Detector properties
-    ::detinfo::DetectorProperties const *fDetectorProperties;
-    fDetectorProperties = lar::providerFrom<detinfo::DetectorPropertiesService>();
+    auto const fDetectorProperties = art::ServiceHandle<detinfo::DetectorPropertiesService const>()->DataFor(event);
 
     // These three are needed for later
     art::Ptr<recob::PFParticle> primary_pfp;
@@ -1861,10 +1860,10 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
 
     // Create an approximate start hit on plane 0
     int highest_w = geo->NearestWire(highest_point, 0);
-    double highest_t = fDetectorProperties->ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 0)) / 4.;
+    double highest_t = fDetectorProperties.ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 0)) / 4.;
     if (mm_verbose)
         std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWire(highest_point, 0)
-                  << ", time: " << fDetectorProperties->ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 0))
+                  << ", time: " << fDetectorProperties.ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 0))
                   << std::endl;
 
     cosmictag::SimpleHit start_highest_plane0;
@@ -1874,10 +1873,10 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
 
     // Create an approximate start hit on plane 1
     highest_w = geo->NearestWire(highest_point, 1);
-    highest_t = fDetectorProperties->ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 1)) / 4.;
+    highest_t = fDetectorProperties.ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 1)) / 4.;
     if (mm_verbose)
         std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWire(highest_point, 1)
-                  << ", time: " << fDetectorProperties->ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 1))
+                  << ", time: " << fDetectorProperties.ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 1))
                   << std::endl;
 
     cosmictag::SimpleHit start_highest_plane1;
@@ -1887,10 +1886,10 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
 
     // Create an approximate start hit on plane 2
     highest_w = geo->NearestWire(highest_point, 2);
-    highest_t = fDetectorProperties->ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 2)) / 4.;
+    highest_t = fDetectorProperties.ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 2)) / 4.;
     if (mm_verbose)
         std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWire(highest_point, 2)
-                  << ", time: " << fDetectorProperties->ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 2))
+                  << ", time: " << fDetectorProperties.ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 2))
                   << std::endl;
 
     cosmictag::SimpleHit start_highest_plane2;
@@ -1912,7 +1911,7 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
 
         cosmictag::SimpleHit sh;
 
-        sh.t = fDetectorProperties->ConvertTicksToX(h->PeakTime(), geo::PlaneID(0, 0, h->View()));
+        sh.t = fDetectorProperties.ConvertTicksToX(h->PeakTime(), geo::PlaneID(0, 0, h->View()));
         sh.w = h->WireID().Wire * geo->WirePitch(geo::PlaneID(0, 0, h->View()));
 
         sh.plane = h->View();
