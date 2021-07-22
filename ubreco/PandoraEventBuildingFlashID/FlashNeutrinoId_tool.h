@@ -27,7 +27,7 @@
 
 #include "larpandora/LArPandoraInterface/LArPandoraHelper.h"
 #include "larpandora/LArPandoraEventBuilding/LArPandoraSliceIdHelper.h"
-#include "larpandora/LArPandoraEventBuilding/SliceIdBaseTool.h"
+#include "larpandora/LArPandoraEventBuilding/NeutrinoIdBaseTool.h"
 #include "larpandora/LArPandoraEventBuilding/Slice.h"
 
 #include "larreco/RecoAlg/TrajectoryMCSFitter.h"
@@ -52,7 +52,7 @@ namespace lar_pandora
 /**
  *  @brief  Neutrino ID tool that selects the most likely neutrino slice using PMT information
  */
-class FlashNeutrinoId : SliceIdBaseTool
+class FlashNeutrinoId : NeutrinoIdBaseTool
 {
 public:
   /**

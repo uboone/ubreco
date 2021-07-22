@@ -23,7 +23,6 @@
 
 #include "larpandora/LArPandoraInterface/LArPandoraHelper.h"
 #include "larpandora/LArPandoraEventBuilding/LArPandoraSliceIdHelper.h"
-#include "larpandora/LArPandoraEventBuilding/SliceIdBaseTool.h"
 #include "larpandora/LArPandoraEventBuilding/Slice.h"
 
 #include "lardataobj/RecoBase/PFParticle.h"

@@ -51,7 +51,7 @@ void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
                 sliceCandidates.at(bestSliceIndex).m_isTaggedAsTarget = false;
                 throw FailureMode("An obvious cosmic matches a lot better with the flash");
             }
-            slices.at(bestSliceIndex).TagAsTarget();
+            slices.at(bestSliceIndex).TagAsNeutrino();
         }
         else
         {
@@ -636,7 +636,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
       m_isTaggedAsTarget(false),
       m_targetMethod(-std::numeric_limits<int>::max()),
       m_isConsideredByFlashId(false),
-      m_topologicalNeutrinoScore(slice.GetTopologicalScore()),
+      m_topologicalNeutrinoScore(slice.GetNeutrinoScore()),
       m_hasBestTopologicalScore(false),
       m_hasBestFlashMatchScore(false),
       m_chargeToNPhotonsTrack(-std::numeric_limits<float>::max()),
@@ -704,7 +704,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
       m_isTaggedAsTarget(false),
       m_targetMethod(-std::numeric_limits<int>::max()),
       m_isConsideredByFlashId(true),
-      m_topologicalNeutrinoScore(slice.GetTopologicalScore()),
+      m_topologicalNeutrinoScore(slice.GetNeutrinoScore()),
       m_hasBestTopologicalScore(false),
       m_hasBestFlashMatchScore(false),
       m_chargeToNPhotonsTrack(chargeToNPhotonsTrack),
@@ -801,7 +801,7 @@ FlashNeutrinoId::SliceCandidate::DepositionVector FlashNeutrinoId::SliceCandidat
     // Collect all PFParticles in the slice, including those downstream of the primaries
     // ATTN here we only use the neutrino hypothesis, in theory this should work with either (or indeed both with some thought)
     PFParticleVector allParticlesInSlice;
-    this->CollectDownstreamPFParticles(pfParticleMap, slice.GetTargetHypothesis(), allParticlesInSlice);
+    this->CollectDownstreamPFParticles(pfParticleMap, slice.GetNeutrinoHypothesis(), allParticlesInSlice);
 
     DepositionVector depositionVector;
     for (const auto &particle : allParticlesInSlice)
