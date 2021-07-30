@@ -1,11 +1,11 @@
+include_directories($ENV{EIGEN_INC})
 
 art_make(
-	  LIB_LIBRARIES
-			${ROOT_BASIC_LIB_LIST}
+          LIB_LIBRARIES
+
         )
 
 
 install_headers()
 #install_fhicl()
 install_source()
-

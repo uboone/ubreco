@@ -9,7 +9,7 @@ include_directories ( $ENV{CRYHOME}/src )
 include_directories( $ENV{IFDHC_FQ_DIR}/inc )
 
 art_make( BASENAME_ONLY
-      MODULE_LIBRARIES  
+      MODULE_LIBRARIES
 			larevt_CalibrationDBI_IOVData
       			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
@@ -47,7 +47,7 @@ art_make( BASENAME_ONLY
       			${ROOT_GEOM}
       			${ROOT_XMLIO}
       			${ROOT_GDML}
-			${ROOT_BASIC_LIB_LIST}
+
 			${ROOT_CORE}
 			${ROOT_EG}
 			${SQLITE3}

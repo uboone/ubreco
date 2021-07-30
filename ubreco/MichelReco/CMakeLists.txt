@@ -1,15 +1,14 @@
 
-art_make(	
+art_make(
 	  LIB_LIBRARIES
 
 			${ART_FRAMEWORK_CORE}
 			art_Utilities canvas
 			${MF_MESSAGELOGGER}
-			
+
 			cetlib cetlib_except
-                        ${Boost_SYSTEM_LIBRARY}
-			${ROOT_BASIC_LIB_LIST}
-          MODULE_LIBRARIES 
+
+          MODULE_LIBRARIES
 			ubreco_MichelReco_Fmwk
 			ubreco_MichelReco_Algo
                         lardataalg_DetectorInfo
@@ -19,7 +18,7 @@ art_make(
 			larsim_MCCheater_BackTrackerService_service
 			larsim_Simulation nug4_ParticleNavigation lardataobj_Simulation
 			lardataobj_RecoBase
-			lardataobj_AnalysisBase	
+			lardataobj_AnalysisBase
 			lardata_RecoObjects
 			larreco_RecoAlg
 			lardata_Utilities
@@ -38,14 +37,14 @@ art_make(
 			art_Utilities
                         canvas
 			${MF_MESSAGELOGGER}
-			
+
 	                ${FHICLCPP}
 			cetlib cetlib_except
 			${CLHEP}
                         ${ROOT_GEOM}
                         ${ROOT_XMLIO}
                         ${ROOT_GDML}
-			${ROOT_BASIC_LIB_LIST}
+
         )
 
 add_subdirectory(Fmwk)
