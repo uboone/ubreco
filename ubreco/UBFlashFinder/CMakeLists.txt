@@ -16,7 +16,7 @@ art_make( BASENAME_ONLY
                    ${LARDATA_LIB}
                    ${ART_FRAMEWORK_CORE}
                    ${ART_FRAMEWORK_PRINCIPAL}
-                   ${ART_FRAMEWORK_BASIC}
+
                    ${ART_FRAMEWORK_SERVICES_REGISTRY}
                    ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
                    ${ART_ROOT_IO_TFILESERVICE_SERVICE}
