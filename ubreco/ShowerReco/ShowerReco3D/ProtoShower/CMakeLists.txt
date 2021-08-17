@@ -14,7 +14,7 @@ art_make(
 			#larpandora_LArPandoraObjects
                         #LArPandoraContent
                         #larpandoraobj
-            		${PANDORASDK}
+            		PANDORASDK
 			larcore_Geometry_Geometry_service
 			art_Utilities canvas
                         ${MF_MESSAGELOGGER}
@@ -39,7 +39,7 @@ art_make(
 			#larpandora_LArPandoraObjects
                         #LArPandoraContent
                         #larpandoraobj
-            		${PANDORASDK}
+            		PANDORASDK
 			  nurandom_RandomUtils_NuRandomService_service
   			  ${ART_FRAMEWORK_CORE}
 			  ${ART_FRAMEWORK_PRINCIPAL}

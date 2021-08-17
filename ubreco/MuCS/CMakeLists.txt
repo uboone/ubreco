@@ -51,8 +51,8 @@ art_make( BASENAME_ONLY
 			${ROOT_CORE}
 			${ROOT_EG}
 			${SQLITE3}
-			${CRY}
-			${IFDH}
+			CRY
+			IFDH
 )
 
 install_fhicl()
