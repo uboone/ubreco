@@ -1,6 +1,8 @@
 include_directories( $ENV{PANDORA_INC} )
 include_directories( $ENV{LARPANDORACONTENT_INC} )
 
+cet_find_library( PANDORASDK NAMES PandoraSDK PATHS ENV PANDORA_LIB NO_DEFAULT_PATH)
+
 art_make(
           LIB_LIBRARIES
 			art_Framework_Core
@@ -20,7 +22,6 @@ art_make(
                         ${MF_MESSAGELOGGER}
                         ${MF_UTILITIES}
                         ${CETLIB} cetlib_except
-
 		   	${ART_FRAMEWORK_SERVICES_REGISTRY}
 		   	${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
 
@@ -59,8 +60,6 @@ art_make(
 			  ${ROOT_GEOM}
 			  ${Boost_FILESYSTEM_LIBRARY}
                           ${CLHEP}
-
-
 	MODULE_LIBRARIES larpandora_LArPandoraInterface
         )
 
