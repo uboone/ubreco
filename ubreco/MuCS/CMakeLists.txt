@@ -24,7 +24,7 @@ art_make( BASENAME_ONLY
 			lardata_RecoObjects
 			larreco_RecoAlg
 			ubobj_MuCS
-			SignalShapingServiceMicroBooNE_service
+			ubevt::SignalShapingServiceMicroBooNE_service
 			lardataobj_AnalysisBase
       			nusimdata_SimulationBase
       			${LARRECO_LIB}

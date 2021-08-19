@@ -10,7 +10,7 @@ art_make( BASENAME_ONLY
           LIB_LIBRARIES
                    larcorealg_Geometry
                    larcore_Geometry_Geometry_service
-                   UBOpReadoutMap_service
+                   ubcore::UBOpReadoutMap_service
                    lardataobj_RecoBase
                    ${UBOONECODE_LIB}
                    ${LARDATA_LIB}

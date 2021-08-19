@@ -21,7 +21,7 @@ art_make(
           TOOL_LIBRARIES
 	  		  ubreco_ShowerReco_ClusterMerging_CMToolBase
 			  ubreco_ShowerReco_TwoDimTools
-			  SignalShapingServiceMicroBooNE_service
+			  ubevt::SignalShapingServiceMicroBooNE_service
                           lardata_Utilities_LArFFT_service
                           larcorealg_Geometry
 			  larevt_CalibrationDBI_IOVData

@@ -18,7 +18,7 @@ art_make(
 
 		   	${ART_FRAMEWORK_SERVICES_REGISTRY}
 		   	${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
-          TOOL_LIBRARIES  SignalShapingServiceMicroBooNE_service
+          TOOL_LIBRARIES  ubevt::SignalShapingServiceMicroBooNE_service
                           lardata_Utilities_LArFFT_service
                           larcorealg_Geometry
 			  larevt_CalibrationDBI_IOVData
