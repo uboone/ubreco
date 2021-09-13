@@ -1,0 +1,38 @@
+#include "services_microboone.fcl"
+
+process_name: OneTrackFilter
+
+source:
+{
+  module_type: RootInput
+  maxEvents: -1
+}
+
+physics:
+{
+  analyzers: {}
+  filters: { OneTrackFilter: { module_type: "OneTrackFilter" } }   
+           
+  filter: [ OneTrackFilter ]
+  stream: [ out1 ]
+  trigger_paths: [ filter ]
+  end_paths: [ stream ]
+}
+
+outputs:
+{
+  out1:
+  {
+    module_type: RootOutput
+    fileName: "%ifb_%tc_cthorpe-hitProd.root"
+    dataTier:    "reconstructed"
+    compressionLevel: 1
+    outputCommands: ["keep *_*_*_*",
+       "drop *_pmtreadoutnonoise_*_mReADetsim",
+       "drop *_simpleFlash*_*_mReARecoStage1a",
+       "drop *_ophit*_*_mReARecoStage1a",
+       "drop *_saturation_*_mReARecoStage1a"]
+    SelectEvents: [ filter ]
+  }
+}
+

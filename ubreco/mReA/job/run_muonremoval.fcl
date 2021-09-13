@@ -1,0 +1,39 @@
+#include "services_microboone.fcl"
+
+process_name: MuonRemoval
+
+source:
+{
+  module_type: RootInput
+  maxEvents: -1
+}
+
+physics:
+{
+  filters: { OneTrackFilter: { module_type: "OneTrackFilter" } }   
+  producers: { MuonRemoval: { module_type: "MuonRemoval" } }   
+  analyzers: {}
+         
+  prod: [ OneTrackFilter , MuonRemoval ]
+  stream: [ out1 ]
+  trigger_paths: [ prod ]
+  end_paths: [ stream ]
+}
+
+outputs:
+{
+  out1:
+  {
+    module_type: RootOutput
+    fileName: "%ifb_%tc_cthorpe-hitProd.root"
+    SelectEvents: []
+    dataTier:    "reconstructed"
+    compressionLevel: 1
+    outputCommands: ["keep *_*_*_*",
+       "drop *_pmtreadoutnonoise_*_mReADetsim",
+       "drop *_simpleFlash*_*_mReARecoStage1a",
+       "drop *_ophit*_*_mReARecoStage1a",
+       "drop *_saturation_*_mReARecoStage1a"]
+  }
+}
+

@@ -1,0 +1,88 @@
+#include "mchitmodules.fcl"
+#include "mctrutht0matching.fcl"
+#include "reco_uboone_data_mcc9_8_driver_common.fcl"
+#include "reco_uboone_mcc9_8_reducer_stage2.fcl"
+
+process_name: mReARecoStage2
+
+services.DetectorClocksService.InheritClockConfig:  false
+services.TFileService.fileName: "reco_stage_2_hist.root"
+services.DetectorClocksService.InheritClockConfig:  false
+
+physics.producers.trajcluster.TrajClusterAlg.MatchTruth: [ -1, -1, -1, -1 ]
+physics.producers.trajcluster.DoRawDigitAssns: false
+
+physics.producers.trajclusterTruthMatch: @local::standard_mcparticlehitmatching
+physics.producers.trajclusterTruthMatch.OverrideRealData: true
+physics.producers.trajclusterTruthMatch.HitParticleAssociations:                    @local::IndirectHitParticleAssnsTool
+physics.producers.trajclusterTruthMatch.HitParticleAssociations.HitPartAssnsLabel:  "gaushitTruthMatch"
+physics.producers.trajclusterTruthMatch.HitParticleAssociations.HitModuleLabel:     "trajcluster"
+
+physics.producers.wcopflash.OpDataProducerBeam:                                     "mixer"
+
+#physics.reco:                   [ @sequence::microboone_reco_ovrl_stage2,trajclusterTruthMatch ]
+physics.reco:                   [ @sequence::microboone_reco_ovrl_stage2_nocc ]
+physics.ana:                    [ ]
+physics.trigger_paths:          [ reco ]
+physics.end_paths:              [ stream1 ]
+outputs.out1.fileName:          "%ifb_%tc_reco2.root"
+outputs.out1.dataTier:          "reconstructed"
+outputs.out1.outputCommands:    @local::stage2ReducedOutputCommands
+#source.inputCommands:           ["keep *_*_*_*", "drop *_*_*_Data*RecoStage2", "drop *_*_*_MC*RecoStage2"]
+source.inputCommands:           ["keep *_*_*_*"]
+source.maxEvents: -1
+
+microboone_tfile_metadata:
+{
+  JSONFileName:          ["reco_stage_2_hist.root.json", "Pandora_Events.pndr.json"]
+  GenerateTFileMetadata: [true, true]
+  dataTier:              ["root-tuple", "pandora_debug"]
+  fileFormat:            ["root", "pndr"]
+}
+
+# flash-matching score preservation module
+physics.producers.flashmatch: @local::FlashMatch_overlay
+
+physics.filters.crtveto: @local::UBCRTCosmicFilterBNBOFF
+physics.producers.crthitcorrFirstPass.IsOverlay: true
+physics.producers.crthitcorr.CrtHitsIn_Label1: "crthitcorrFirstPass"
+
+#only run pandora nu reconstruction (no cosmic reco, no slicing)
+physics.producers.pandoraPatRec: @local::microboone_pandoraAllHitsNu
+physics.producers.pandoraAllOutcomesShower.PFParticleLabel: "pandoraPatRec"
+physics.producers.pandoraAllOutcomesTrack.PFParticleLabel: "pandoraPatRec"
+physics.producers.pandora:
+{
+  HitProducerLabel: "MuonRemoval"
+  InputProducerLabel: "pandoraPatRec"
+  ShouldProduceT0s: false
+  ShowerProducerLabel: "pandoraAllOutcomesShower"
+  TrackProducerLabel: "pandoraAllOutcomesTrack"
+  module_type: "NuRecoLArPandoraEventBuilding"
+}
+
+physics.analyzers.DQMGoodRuns.HitsModuleLabel: "MuonRemoval" 
+physics.analyzers.DQMHits.HitModuleLabels: ["MuonRemoval"]
+physics.filters.antibdtfilter.AnalysisTools.default.Hproducer: "MuonRemoval"
+physics.producers.NuCCproducer.hitfinder_producer: "MuonRemoval"
+physics.producers.dbcluster3d.HitModuleLabel: "MuonRemoval"
+physics.producers.opNoiseCreateMask.HitProducer: "MuonRemoval"
+physics.producers.pandora.HitProducerLabel: "MuonRemoval"
+physics.producers.pandora.SliceIdTool.HitLabel: "MuonRemoval"
+physics.producers.pandoraKalmanShowerFlashMatch.HitModuleLabel: "MuonRemoval"
+physics.producers.pandoraKalmanTrackcalipid.ProducerLabels.HitLabel: "MuonRemoval"
+physics.producers.pandoraKalmanShowercalipid.ProducerLabels.HitLabel: "MuonRemoval"
+physics.producers.pandoraKalmanTrackpid.ProducerLabels.HitLabel: "MuonRemoval"
+physics.producers.pandoraKalmanShowerpid.ProducerLabels.HitLabel: "MuonRemoval"
+physics.producers.pandoraKalmanTrackFlashMatch.HitModuleLabel: "MuonRemoval"
+physics.producers.pandoraPatRec.HitFinderModuleLabel: "MuonRemoval"
+physics.producers.pandoraWriter.HitFinderModuleLabel: "MuonRemoval"
+physics.producers.pandoracalipid.ProducerLabels.HitLabel: "MuonRemoval"
+physics.producers.pandoracalipidSCE.ProducerLabels.HitLabel: "MuonRemoval"
+physics.producers.pandorapid.ProducerLabels.HitLabel: "MuonRemoval"
+physics.producers.pandorapidSCE.ProducerLabels.HitLabel: "MuonRemoval"
+physics.producers.pmtrackcalipid.ProducerLabels.HitLabel: "MuonRemoval"
+physics.producers.pmtrackpid.ProducerLabels.HitLabel: "MuonRemoval"
+physics.producers.sps3d.HitLabel: "MuonRemoval"
+physics.producers.trajcluster.HitModuleLabel: "MuonRemoval"
+
