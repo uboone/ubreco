@@ -1,3 +1,4 @@
+add_subdirectory(AllOutcomesReco)
 add_subdirectory(MichelReco)
 add_subdirectory(MicroBooNEPandora)
 add_subdirectory(MuCS)

@@ -1,0 +1,14 @@
+#include "reco_uboone_mcc9_8_driver_stage2_numi_fullMC.fcl"
+
+# change process name
+
+process_name: McRecoStage2Again
+
+source.inputCommands: [
+  "keep *",
+    "drop *_*_*_McRecoStage2" 
+    ]
+
+
+physics.producers.pandoraAllOutcomesTrack.UseAllParticles: true
+physics.producers.pandoraAllOutcomesShower.UseAllParticles: true

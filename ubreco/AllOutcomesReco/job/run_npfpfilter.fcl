@@ -1,0 +1,40 @@
+#include "services_microboone.fcl"
+
+process_name: NPFPFilter
+
+source:
+{
+  module_type: RootInput
+  maxEvents: -1
+}
+
+physics:
+{
+  analyzers: {}
+  filters: { NPFPFilter: { module_type: "NPFPFilter" } }   
+           
+  filter: [ NPFPFilter ]
+  stream: [ out1 ]
+  trigger_paths: [ filter ]
+  end_paths: [ stream ]
+}
+
+outputs:
+{
+  out1:
+  {
+    module_type: RootOutput
+    fileName: "%ifb_%tc_cthorpe-npfpfilter.root"
+    dataTier:    "reconstructed"
+    compressionLevel: 1
+#    outputCommands: ["keep *_*_*_*",
+#       "drop *_pmtreadoutnonoise_*_mReADetsim",
+#       "drop *_simpleFlash*_*_mReARecoStage1a",
+#       "drop *_ophit*_*_mReARecoStage1a",
+#       "drop *_saturation_*_mReARecoStage1a"]
+    SelectEvents: [ filter ]
+  }
+}
+
+physics.filters.NPFPFilter.PFPLabel: "pandora"
+physics.filters.NPFPFilter.MinPFPs: 3
