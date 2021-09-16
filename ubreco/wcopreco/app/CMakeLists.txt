@@ -1,3 +1,4 @@
+include_directories( $ENV{EIGEN_INC} )
 include_directories(../data)
 include_directories(../deconv)
 include_directories(../algo)

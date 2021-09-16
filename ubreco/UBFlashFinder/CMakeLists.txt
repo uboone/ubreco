@@ -1,3 +1,4 @@
+include_directories( $ENV{EIGEN_INC} )
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
 include_directories(../wcopreco/data)
 include_directories(../wcopreco/deconv)

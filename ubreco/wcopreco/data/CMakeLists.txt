@@ -1,3 +1,4 @@
+include_directories( $ENV{EIGEN_INC} )
 
 art_make(
 	  LIB_LIBRARIES
