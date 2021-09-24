@@ -1,0 +1,173 @@
+#include "services_microboone.fcl"
+#include "triggeralgo_service.fcl"
+#include "acpttrig.fcl"
+#include "calorimetry_microboone.fcl"
+#include "microboone_dlpmtprecuts.fcl"
+
+CRTT0: {
+          module_type: "ubcrt/CRT/CRTTzeroProducer"
+           data_label: "merger"
+           max_time_difference: 100.
+           store_tzero: 1
+           verbose: 0
+      }
+
+CRTTrack:
+     {
+      module_type: "ubcrt/CRT/CRTTrackProducer"
+      data_label_hits: "merger"
+      data_label_tzeros: "crtt0"
+      track_method_type: 2
+      store_track: 1
+      verbose: 0
+    }
+
+
+CRTTrackT0:  {
+   module_type: T0recoCRTHit
+   data_label_TPCtrack: "pandoraCosmic"
+   data_label_CRTtzero: "crtt0"
+   data_label_CRThit: "merger"
+   data_label_flash: "simpleFlashCosmic"
+   data_label_DAQHeader: "daq"
+   HardDelay: 40000   #BNB data is 35520, for TimeSelect=1
+   TimeZeroOffset: 69200   #used for TimeSelect=0
+   verbose: false
+   # set =0 for GPS ref and =1 to use trigger time
+   TimeSelect: 0
+   # distance squared in cm^2 from track extrapolation to CRT hit 
+   #   must be less than this to be considered a match
+   MatchCut: 40
+   DriftVel: 0.11436  # in cm/us, should be 0.1098 eventually
+   # alignment offsets for CRT planes in cm, default is 0.0 for all
+   AlignBotX:    -4.4
+   AlignBotY:     0.0
+   AlignBotZ:    30.2
+   AlignAnodeX:   0.0
+   AlignAnodeY:  20.0
+   AlignAnodeZ:   5.7
+   AlignCathX:    0.0
+   AlignCathY:   -9.8
+   AlignCathZ:    0.4
+   AlignTopX:    20.8
+   AlignTopY:     0.0
+   AlignTopZ:   -28.1
+}
+
+process_name: ACPTtrig
+
+services:
+{
+  scheduler:               { defaultExceptions: false }    # Make all uncaught exceptions fatal.
+  # Load the service that manages root files for histograms.
+  TFileService:            { fileName: "acpttrig_ana.root" }
+  TimeTracker:             {}
+  ExptGeoHelperInterface:         @local::microboone_geometry_helper
+  Geometry:                       @local::microboone_geo
+  DetectorPropertiesService:             @local::microboone_detproperties
+  LArProperties:                  @local::microboone_properties
+  DetectorClocksService:          @local::microboone_detectorclocks
+  #MemoryTracker:           { ignoreTotal: 1 } # default is one
+  RandomNumberGenerator:   {} #ART native random number generator
+  message:                 @local::microboone_message_services_prod_debug
+  FileCatalogMetadata:     @local::art_file_catalog_mc
+                              @table::microboone_services_reco
+}
+
+services.DetectorPropertiesService.NumberTimeSamples: 6400
+services.DetectorPropertiesService.ReadOutWindowSize: 6400
+services.DetectorClocksService.InheritClockConfig:       false
+services.DetectorClocksService.TriggerOffsetTPC:         -0.400e3
+
+#services.SpaceCharge.EnableCorrSCE: true
+#services.SpaceCharge.EnableSimEFieldSCE: true
+#services.SpaceCharge.EnableSimSpatialSCE: true
+
+services.SpaceCharge.EnableCalSpatialSCE: true
+services.SpaceCharge.RepresentationType: "Voxelized_TH3"
+services.SpaceCharge.CalibrationInputFilename: "SpaceCharge/SCEoffsets_dataDriven_combined_bkwd_Jan18.root"
+
+#source is now a root file
+source:
+{
+  module_type: RootInput
+  maxEvents:   -1        # Number of events to create
+  #inputCommands: ["keep *_*_*_*","drop *_*_*_DetSim", "drop *_*_*_G4"]#, "keep sim::MCTrack_*_*_*", "keep recob::Track_*_pandoraCosmic_*" ]
+
+}
+
+#source.inputCommands: ["keep *_*_*_*", "drop anab::T0_*_*_*" ]
+
+# Define and configure some modules to do work on each event.
+# First modules are defined; they are scheduled later.
+# Modules are grouped by type.
+physics:
+{
+    filters:
+  {
+     opfiltercommonext: @local::microboone_common_op_precut_ext
+     acpttrig: @local::ACPTtrig
+  }
+    producers:
+ {
+
+  ### random number saver
+  rns:                 { module_type: RandomNumberSaver }
+  
+  pandoracaloN: @local::microboone_calodata
+#  fCaloProducer: @local::microboone_calodata
+
+  ### CRT track-tagger
+  crtt0:      @local::CRTT0
+  crttrack:   @local::CRTTrack
+  crttrackt0: @local::CRTTrackT0
+
+  ### ACPT in time with trigger tagger
+  #acpttrig: @local::ACPTtrig
+ }
+ analyzers:{}
+
+ reco: [ opfiltercommonext, pandoracaloN, crtt0, crttrack, crttrackt0, acpttrig ]
+ ana: [ ]
+
+ #define the output stream, there could be more than one if using filters 
+ stream1:  [ out1 ]
+
+ #trigger_paths is a keyword and contains the paths that modify the art::event, 
+ #ie filters and producers
+ #trigger_paths: [reco] 
+
+ #end_paths is a keyword and contains the paths that do not modify the art::Event, 
+ #ie analyzers and output streams.  these all run simultaneously
+ #end_paths:     []#stream1]
+ end_paths:    [stream1, ana] #[ana] #[stream1, ana]
+}
+
+#block to define where the output goes.  if you defined a filter in the physics
+#block and put it in the trigger_paths then you need to put a SelectEvents: {SelectEvents: [XXX]}
+#entry in the output stream you want those to go to, where XXX is the label of the filter module(s)
+outputs:
+{
+ out1:
+ {
+   module_type: RootOutput
+   fileName:    "acpttrig.root"
+   dataTier:    "reco"
+   compressionLevel: 1
+   SelectEvents: []
+   }
+}
+
+### Here we include the file giving us run/data dependent overrides
+
+physics.producers.pandoracaloN.TrackModuleLabel: "pandoraCosmic"
+physics.producers.pandoracaloN.SpacePointModuleLabel: "pandora"
+physics.producers.pandoracaloN.CaloAlg.CalAreaConstants: [4.31e-3,4.02e-3,4.26e-3]
+physics.filters.opfiltercommonext.OpHitProducer: "ophitBeam"
+physics.filters.opfiltercommonext.PEThreshold: 5.0
+#physics.filters.opfiltercommonext.PMTMaxFrac: 1.1
+#physics.filters.opfiltercommonext.VetoStartTick: -15
+#physics.filters.opfiltercommonext.VetoEndTick: -14
+
+physics.filters.acpttrig.CaloProducer: "pandoracaloN"
+physics.filters.acpttrig.SaveWf: true
