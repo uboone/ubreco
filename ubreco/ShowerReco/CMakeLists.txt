@@ -1,21 +1,20 @@
 
-art_make(	
+art_make(
 	  LIB_LIBRARIES
 			${ART_FRAMEWORK_CORE}
 			art_Utilities canvas
 			${MF_MESSAGELOGGER}
 			${MF_UTILITIES}
 			cetlib cetlib_except
-                   	#larpandora_LArPandoraInterface	
-                        ${Boost_SYSTEM_LIBRARY}
-			${ROOT_BASIC_LIB_LIST}
-          MODULE_LIBRARIES 
-		   	#larpandora_LArPandoraInterface	
+                   	#larpandora_LArPandoraInterface
+
+          MODULE_LIBRARIES
+		   	#larpandora_LArPandoraInterface
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
 			lardataobj_RecoBase
 			lardataobj_MCBase
-			lardataobj_AnalysisBase	
+			lardataobj_AnalysisBase
 			lardata_RecoObjects
 			larreco_RecoAlg
 			lardata_Utilities
@@ -40,7 +39,7 @@ art_make(
                         ${ROOT_GEOM}
                         ${ROOT_XMLIO}
                         ${ROOT_GDML}
-			${ROOT_BASIC_LIB_LIST}
+
         )
 
 add_subdirectory(TwoDimTools)
