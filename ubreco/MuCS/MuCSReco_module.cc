@@ -1,4 +1,3 @@
-
 ////////////////////////////////////////////////////////////////////////
 // Class:       MuCSReco
 // Module Type: producer
@@ -6,7 +5,7 @@
 
 ////////////////////////////////////////////////////////////////////////
 //
-//    trivia : Reco stage of the MuCSMerger process. 
+//    trivia : Reco stage of the MuCSMerger process.
 //             Adds angle and position info to hit patterns based on MC.
 //    author : Matt Bass
 //    e-mail : Matthew.Bass@physics.ox.ac.uk
@@ -14,7 +13,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #ifndef MUCSRECO_H
-#define MUCSRECO_H 
+#define MUCSRECO_H
 
 #include "art/Framework/Core/EDProducer.h"
 #include "art/Framework/Core/ModuleMacros.h"
@@ -37,7 +36,7 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "TMath.h"
-#include <sqlite3.h> 
+#include <sqlite3.h>
 #include "ubobj/MuCS/MuCSData.h"
 #include "ubobj/MuCS/MuCSRecoData.h"
 
@@ -49,10 +48,10 @@ class MuCSReco : public art::EDProducer {
 public:
   explicit MuCSReco( fhicl::ParameterSet const &pset );
   virtual ~MuCSReco();
-  
+
   void reconfigure( fhicl::ParameterSet const &pset ); // override;
   void produce( art::Event &evt ) override;
-      
+
 private:
   void openDB();
   template<typename ... Args> string string_format( const std::string& format, Args ... args );
@@ -82,9 +81,9 @@ void MuCSReco::reconfigure( fhicl::ParameterSet const &p ){
 MuCSReco::MuCSReco( fhicl::ParameterSet const &pset )
 : EDProducer(pset) {
   this->reconfigure( pset );
-  
-  produces< std::vector<MuCS::MuCSRecoData> >();  
-  
+
+  produces< std::vector<MuCS::MuCSRecoData> >();
+
   openDB();
 }
 
@@ -96,7 +95,7 @@ void MuCSReco::openDB(){
   else
     mf::LogInfo("MuCSReco")<<"Opened db "<< fInputDB<<"\n";
 }
-  
+
 MuCSReco::~MuCSReco(){
   sqlite3_close(db);
 }
@@ -104,7 +103,7 @@ MuCSReco::~MuCSReco(){
 //string version of sprintf for query formatting
 template<typename ... Args> string MuCSReco::string_format( const std::string& format, Args ... args ){
     size_t size = snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
-    unique_ptr<char[]> buf( new char[ size ] ); 
+    unique_ptr<char[]> buf( new char[ size ] );
     snprintf( buf.get(), size, format.c_str(), args ... );
     return string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
 }
@@ -133,22 +132,22 @@ void MuCSReco::execFill(const std::vector<int> hitsa, const std::vector<int> hit
   mf::LogInfo("MuCSReco")<<"Executing: "<<kthisStatement1<<"\n";
   if (sqlite3_prepare(db, kthisStatement1.c_str(), -1, &statement1, 0 )!= SQLITE_OK)
     throw cet::exception("MuCSReco") << "Error preparing statement!: " << sqlite3_errmsg(db) << "\n";
-  if(sqlite3_step(statement1)!=SQLITE_DONE) 
+  if(sqlite3_step(statement1)!=SQLITE_DONE)
     throw cet::exception("MuCSReco") << "Error stepping statement!: " << sqlite3_errmsg(db) << "\n";
-  if(sqlite3_finalize(statement1)!=SQLITE_OK) 
+  if(sqlite3_finalize(statement1)!=SQLITE_OK)
     throw cet::exception("MuCSReco") << "Error finalizing statement!: " << sqlite3_errmsg(db) << "\n";
-    
+
   std::string kStatement2("select count(nentries) as matches,"
     "sum(nentries) as nentries,"
     "sum(nentries*p/(select sum(nentries) from hitsel)) as p,"
     "sum(nentries*q/(select sum(nentries) from hitsel)) as q,"
     "case when (SELECT COUNT(*) from hitsel)>1 then sum(nentries*(p-(select sum(nentries*p/(select sum(nentries) from hitsel)) from hitsel))*(p-(select sum(nentries*p/(select sum(nentries) from hitsel)) from hitsel))/(select sum(nentries) from hitsel)) else p_rms*p_rms end as p_rms_squared,"
     "case when (SELECT COUNT(*) from hitsel)>1 then sum(nentries*(q-(select sum(nentries*q/(select sum(nentries) from hitsel)) from hitsel))*(q-(select sum(nentries*q/(select sum(nentries) from hitsel)) from hitsel))/(select sum(nentries) from hitsel)) else q_rms*q_rms end as q_rms_squared "
-    "from hitsel;"); 
+    "from hitsel;");
   sqlite3_stmt *statement2;
   mf::LogInfo("MuCSReco")<<"Executing: "<<kStatement2<<"\n";
   if ( sqlite3_prepare(db, kStatement2.c_str(), -1, &statement2, 0 )== SQLITE_OK   ){
-    
+
     res = sqlite3_step(statement2);
     if ( res == SQLITE_ROW ){
       ldbfields.matches=sqlite3_column_int(statement2,0);
@@ -169,18 +168,18 @@ void MuCSReco::execFill(const std::vector<int> hitsa, const std::vector<int> hit
   }else{
     throw cet::exception("MuCSReco") << "Error preparing statement!: " << sqlite3_errmsg(db) << "\n";
   }
-  if(sqlite3_finalize(statement2)!=SQLITE_OK) 
+  if(sqlite3_finalize(statement2)!=SQLITE_OK)
     throw cet::exception("MuCSReco") << "Error finalizing statement!: " << sqlite3_errmsg(db) << "\n";
 
-  std::string kStatement3("DROP TABLE hitsel;");   
+  std::string kStatement3("DROP TABLE hitsel;");
   sqlite3_stmt *statement3;
   mf::LogInfo("MuCSReco")<<"Executing: "<<kStatement3<<"\n";
   if (sqlite3_prepare(db, kStatement3.c_str(), -1, &statement3, 0 )!= SQLITE_OK){
     throw cet::exception("MuCSReco") << "Error preparing statement!: " << sqlite3_errmsg(db) << "\n";
   }
-  if(sqlite3_step(statement3)!=SQLITE_DONE) 
+  if(sqlite3_step(statement3)!=SQLITE_DONE)
     throw cet::exception("MuCSReco") << "Error stepping statement!: " << sqlite3_errmsg(db) << "\n";
-  if(sqlite3_finalize(statement3)!=SQLITE_OK) 
+  if(sqlite3_finalize(statement3)!=SQLITE_OK)
     throw cet::exception("MuCSReco") << "Error finalizing statement!: " << sqlite3_errmsg(db) << "\n";
 }
 
@@ -190,18 +189,17 @@ void MuCSReco::produce( art::Event &evt ){
   //art::Handle< std::vector<MuCS::MuCSData> > mucsdatahandle;
   //evt.getByLabel("merger",mucsdatahandle);
   //std::vector<MuCS::MuCSData> const& mucsdata = *mucsdatahandle;
-  std::vector< art::Handle< std::vector<MuCS::MuCSData> > > mucslist;
-  evt.getManyByType( mucslist );
-  art::Handle< std::vector<MuCS::MuCSData> > mucs = mucslist[0]; 
-  
+  auto mucslist = evt.getMany<std::vector<MuCS::MuCSData>>();
+  art::Handle< std::vector<MuCS::MuCSData> > mucs = mucslist[0];
+
   //cout<<"mucsdata size:"<<mucs[0].size()<<"\n";
-  
+
   //for now, only concerned with the first entry in mucsdata
-  /*cout<<"hits1 size:"<<mucs->at(0).Hits1().size()<<"\n"; 
-  cout<<"hits2 size:"<<mucs->at(0).Hits2().size()<<"\n"; 
-  cout<<"hits3 size:"<<mucs->at(0).Hits3().size()<<"\n"; 
+  /*cout<<"hits1 size:"<<mucs->at(0).Hits1().size()<<"\n";
+  cout<<"hits2 size:"<<mucs->at(0).Hits2().size()<<"\n";
+  cout<<"hits3 size:"<<mucs->at(0).Hits3().size()<<"\n";
   cout<<"hits7 size:"<<mucs->at(0).Hits7().size()<<"\n"; */
-  
+
   dbfields xfields, zfields;
   Float_t xq=0.,xq_rms=0.,x=0.,x_rms=0.,zq=0.,zq_rms=0.,z=0.,z_rms=0.,y=0.;
   Int_t xmatches=0,zmatches=0;
@@ -228,7 +226,7 @@ void MuCSReco::produce( art::Event &evt ){
   MuCS::MuCSRecoData mucsrecoevt( xq, xq_rms, x, x_rms, zq, zq_rms, z, z_rms, y, xmatches, zmatches );
   mucsrecocol->push_back( mucsrecoevt );
   evt.put( std::move( mucsrecocol ) );
-  
+
 }
 
 DEFINE_ART_MODULE( MuCSReco )

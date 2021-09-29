@@ -1,4 +1,3 @@
-
 ////////////////////////////////////////////////////////////////////////
 //
 //    trivia : A simple analyser to read merged data, September 2015
@@ -41,13 +40,13 @@
 
 #include "lardataobj/RecoBase/Track.h"
 
-#include "lardataobj/RecoBase/PFParticle.h"  
+#include "lardataobj/RecoBase/PFParticle.h"
 
-#include "lardataobj/RecoBase/SpacePoint.h"  
+#include "lardataobj/RecoBase/SpacePoint.h"
 
-#include "lardataobj/RecoBase/OpHit.h"  
+#include "lardataobj/RecoBase/OpHit.h"
 
-#include "lardataobj/RecoBase/OpFlash.h"  
+#include "lardataobj/RecoBase/OpFlash.h"
 
 
 #include "larreco/RecoAlg/TrackMomentumCalculator.h"
@@ -62,7 +61,7 @@
 #include "art/Framework/Principal/Handle.h"
 
 #include "art/Framework/Services/Registry/ServiceHandle.h"
- 
+
 #include "art_root_io/TFileService.h"
 
 #include "art/Framework/Core/ModuleMacros.h"
@@ -109,73 +108,73 @@
 using namespace std;
 
 
-namespace MuCSReader 
+namespace MuCSReader
 {
-  class MuCSReader : public art::EDAnalyzer 
+  class MuCSReader : public art::EDAnalyzer
   {
   public:
-    
+
     explicit MuCSReader( fhicl::ParameterSet const& pset );
-    
+
     virtual ~MuCSReader();
-    
+
     void beginJob();
-        
+
     void beginRun( const art::Run& run );
-        
+
     void reconfigure( fhicl::ParameterSet const& pset );
-        
-    void analyze ( const art::Event& evt ); 
-    
+
+    void analyze ( const art::Event& evt );
+
     void endJob();
-    
+
   private:
-    
-    std::string fMergerProducerLabel; 
+
+    std::string fMergerProducerLabel;
     //Int_t group = 0;
     Int_t trigID = 0;
     Int_t run0;
     Int_t srun0;
-    
-  }; 
-  
+
+  };
+
   MuCSReader::MuCSReader( fhicl::ParameterSet const& parameterSet )
     : EDAnalyzer(parameterSet)
   {
     this->reconfigure(parameterSet);
-  
+
   }
-  
-  MuCSReader::~MuCSReader() 
+
+  MuCSReader::~MuCSReader()
   {}
-    
+
   void MuCSReader::beginJob()
   {}
-  
+
   void MuCSReader::beginRun( const art::Run& run )
   {}
-  
+
   void MuCSReader::reconfigure( fhicl::ParameterSet const& p )
   {
     fMergerProducerLabel = p.get< std::string >( "MergerProducerLabel" );
-        
+
     return;
-    
+
   }
-    
-  void MuCSReader::analyze( const art::Event& evt ) 
+
+  void MuCSReader::analyze( const art::Event& evt )
   {
     if ( trigID==0 )
       {
-	cout << "" << endl;
-	cout << " starting ... " << endl;
-	cout << "" << endl;
-		
-	run0 = evt.run();
-	srun0 = evt.subRun();
-		
+        cout << "" << endl;
+        cout << " starting ... " << endl;
+        cout << "" << endl;
+
+        run0 = evt.run();
+        srun0 = evt.subRun();
+
       }
-    
+
     Int_t event = evt.id().event();
     cout << "" << endl;
     cout << " - run : " << run0 << ", sub. run : " << srun0 << ", event : " << event << endl;
@@ -186,81 +185,80 @@ namespace MuCSReader
     std::vector< art::Ptr<MuCS::MuCSData> > mucs;
     art::fill_ptr_vector( mucs, mucsHandle );
     */
-    std::vector< art::Handle< std::vector<MuCS::MuCSData> > > mucslist;
-    evt.getManyByType( mucslist );
-    art::Handle< std::vector<MuCS::MuCSData> > mucs = mucslist[0]; 
+    auto mucslist = evt.getMany< std::vector<MuCS::MuCSData> >();
+    art::Handle< std::vector<MuCS::MuCSData> > mucs = mucslist[0];
     cout << mucs->size() << endl;
-    
+
     Float_t time0 = mucs->at(0).T0();
     cout << time0 << endl;
-    
+
     Int_t tot1 = mucs->at(0).Hits1().size();
     cout <<  tot1 << endl; cout << " hits 1 : ";
     for ( Int_t j=0; j<tot1; j++ ) cout << mucs->at(0).Hits1().at(j) << ", ";
     cout << "" << endl;
-    
+
     Int_t tot2 = mucs->at(0).Hits2().size();
     cout <<  tot2 << endl;  cout << " hits 2 : ";
     for ( Int_t j=0; j<tot2; j++ ) cout << mucs->at(0).Hits2().at(j) << ", ";
     cout << "" << endl;
-    
+
     Int_t tot3 = mucs->at(0).Hits3().size();
     cout <<  tot3 << endl;  cout << " hits 3 : ";
     for ( Int_t j=0; j<tot3; j++ ) cout << mucs->at(0).Hits3().at(j) << ", ";
     cout << "" << endl;
-    
+
     Int_t tot7 = mucs->at(0).Hits7().size();
     cout <<  tot7 << endl;  cout << " hits 7 : ";
     for ( Int_t j=0; j<tot7; j++ ) cout << mucs->at(0).Hits7().at(j) << ", ";
     cout << "" << endl;
-    
+
     cout << "*" << endl;
     cout << "" << endl;
     cout << "" << endl;
-    
+
     cout << " ADC1 : ";
     for ( Int_t j=0; j<24; j++ ) cout << mucs->at(0).ADC1().at(j) << ", ";
     cout << "" << endl;
-    
+
     cout << " ADC2 : ";
     for ( Int_t j=0; j<24; j++ ) cout << mucs->at(0).ADC2().at(j) << ", ";
     cout << "" << endl;
-    
+
     cout << " ADC3 : ";
     for ( Int_t j=0; j<24; j++ ) cout << mucs->at(0).ADC3().at(j) << ", ";
     cout << "" << endl;
-    
+
     cout << " ADC7 : ";
     for ( Int_t j=0; j<24; j++ ) cout << mucs->at(0).ADC7().at(j) << ", ";
     cout << "" << endl;
-    
+
     getchar();
     cout << "*" << endl;
     cout << "" << endl;
     cout << "" << endl;
-    
-    
-    
+
+
+
     trigID++;
     return;
-    
+
   }
-  
+
   void MuCSReader::endJob()
   {
-    cout << "" << endl; 
+    cout << "" << endl;
     cout << " - events processed : " << trigID << endl;
     cout << "" << endl;
     cout << " ... ending ! " << endl;
     cout << "" << endl;
-    
-  }
-  
-  DEFINE_ART_MODULE( MuCSReader )
-  
-} 
 
-#endif 
+  }
+
+  DEFINE_ART_MODULE( MuCSReader )
+
+}
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 //
