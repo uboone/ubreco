@@ -6,20 +6,19 @@ art_make(
 			art_Framework_Principal
 			lardataobj_RecoBase
 			${ART_FRAMEWORK_CORE}
-			larcorealg_Geometry	
+			larcorealg_Geometry
 			lardata_Utilities # added now
-		   	#uboone_Geometry		
-			larcore_Geometry_Geometry_service	
+		   	#uboone_Geometry
+			larcore_Geometry_Geometry_service
 			art_Utilities canvas
                         ${MF_MESSAGELOGGER}
                         ${MF_UTILITIES}
                         ${CETLIB}
 			${Boost_FILESYSTEM_LIBRARY}
-                        ${Boost_SYSTEM_LIBRARY}
-                        ${ROOT_BASIC_LIB_LIST}
+
 		   	${ART_FRAMEWORK_SERVICES_REGISTRY}
 		   	${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
-          TOOL_LIBRARIES  SignalShapingServiceMicroBooNE_service
+          TOOL_LIBRARIES  ubevt::SignalShapingServiceMicroBooNE_service
                           lardata_Utilities_LArFFT_service
                           larcorealg_Geometry
 			  larevt_CalibrationDBI_IOVData
@@ -33,7 +32,6 @@ art_make(
 			  ${ART_FRAMEWORK_SERVICES_REGISTRY}
 			  art_Persistency_Common
 			  art_Persistency_Provenance
-			  ${ART_FRAMEWORK_SERVICES_BASIC}
 			  ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
                           ${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
 			  ${ART_ROOT_IO_TFILESERVICE_SERVICE}
@@ -45,9 +43,8 @@ art_make(
 			  ${FHICLCPP}
 			  ${CETLIB}
 			  ${Boost_FILESYSTEM_LIBRARY}
-			  ${Boost_SYSTEM_LIBRARY}
                           ${CLHEP}
-			  ${ROOT_BASIC_LIB_LIST}
+
         )
 
 

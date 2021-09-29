@@ -39,9 +39,9 @@
 class MuCSRecoToMC : public art::EDProducer {
 public:
   explicit MuCSRecoToMC(fhicl::ParameterSet const& pset);
-  virtual ~MuCSRecoToMC();                        
+  virtual ~MuCSRecoToMC();
 
-  void produce(art::Event& evt);  
+  void produce(art::Event& evt);
   //void beginJob();
   //void beginRun(art::Run& run);
   void reconfigure(fhicl::ParameterSet const& p);
@@ -58,18 +58,18 @@ MuCSRecoToMC::MuCSRecoToMC(fhicl::ParameterSet const& pset)
 : EDProducer(pset)
 {
   this->reconfigure(pset);
-  
+
   produces< std::vector<simb::MCTruth> >();
 }
 
 MuCSRecoToMC::~MuCSRecoToMC(){
 }
 
-  
+
 void MuCSRecoToMC::reconfigure(fhicl::ParameterSet const& p){
   fSampleTime=p.get<double>("SampleTime",0.);
   fMuonKE=p.get<double>("MuonKE",10.);
-  
+
   return;
 }
 
@@ -79,9 +79,8 @@ void MuCSRecoToMC::produce(art::Event& evt)
   simb::MCTruth mctruth;
 
   //get MuCSRecoData object
-  std::vector< art::Handle< std::vector<MuCS::MuCSRecoData> > > colMuCSRecoData;
-  evt.getManyByType( colMuCSRecoData );
-  
+  auto colMuCSRecoData = evt.getMany<std::vector<MuCS::MuCSRecoData>>();
+
   //if (recodata->at(0).y()!=0){
   if(colMuCSRecoData.size()==0){
     mf::LogInfo("MuCRecoToMC") << "No MuCSRecoData found; skipping event";
@@ -93,26 +92,26 @@ void MuCSRecoToMC::produce(art::Event& evt)
     static TDatabasePDG*  pdgt = TDatabasePDG::Instance();
     TParticlePDG* pdgp = pdgt->GetParticle(pdg);
     if (pdgp) m = pdgp->Mass();
-    
+
     double etot = fMuonKE + m;
     double ptot = etot*etot-m*m;
     if (ptot>0.0) ptot=sqrt(ptot);
     else ptot=0.0;
-    
-    
+
+
     //particle start momentum
     double theta=recodata->at(0).theta();
     double phi=recodata->at(0).phi();
     double px = ptot*(cos(theta))*cos(phi);
     double py = ptot*sin(theta);
     double pz = ptot*(cos(theta))*sin(phi);
-    
+
     //particle start position
     double vx = recodata->at(0).x();
     double vy = recodata->at(0).y();
     double vz = recodata->at(0).z();
     double t  = fSampleTime; // seconds
-    
+
     int istatus    =  1;
     int imother1   = evgb::kCosmicRayGenerator;
     std::string primary("primary");
@@ -120,10 +119,10 @@ void MuCSRecoToMC::produce(art::Event& evt)
     TLorentzVector pos(vx,vy,vz,t);// time needs to be in ns to match GENIE, etc
     TLorentzVector mom(px,py,pz,etot);
     p.AddTrajectoryPoint(pos,mom);
-    
+
     mctruth.Add(p);
   }
-    
+
   mctruth.SetOrigin(simb::kCosmicRay);
 
   truthcol->push_back(mctruth);
@@ -134,4 +133,3 @@ void MuCSRecoToMC::produce(art::Event& evt)
 
 
 DEFINE_ART_MODULE(MuCSRecoToMC)
-

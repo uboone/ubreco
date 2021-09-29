@@ -12,9 +12,9 @@
 #  make package (builds distribution tarfile)
 # ======================================================================
 
-cmake_minimum_required (VERSION 3.12...3.18 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
 
-project(ubreco LANGUAGES CXX)
+project(ubreco VERSION 09.31.00 LANGUAGES CXX)
 
 # cetbuildtools contains our cmake modules
 find_package(cetbuildtools REQUIRED)
@@ -40,6 +40,7 @@ find_ups_product( lardataalg )
 find_ups_boost( v1_53_0 )
 find_ups_product( canvas )
 find_ups_product( ubsim v1_00_00 )
+find_ups_product( ubcore )
 find_ups_product( larreco v1_00_00 )
 find_ups_product( swtrigger v1_00_00 )
 find_ups_product( art v1_00_00 )
@@ -48,6 +49,8 @@ find_ups_product( larsim )
 find_ups_product( larevt )
 find_ups_product( lardata )
 find_ups_product( larcore )
+find_ups_product( pandora )
+find_ups_product( larpandora )
 find_ups_product( nutools )
 find_ups_product( nug4 )
 find_ups_product( nurandom )

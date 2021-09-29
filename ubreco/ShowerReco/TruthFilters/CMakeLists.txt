@@ -1,30 +1,29 @@
 
-art_make(	
+art_make(
 	  LIB_LIBRARIES
 			${ART_FRAMEWORK_CORE}
 			art_Utilities canvas
 			${MF_MESSAGELOGGER}
 			${MF_UTILITIES}
 			cetlib cetlib_except
-                   	#larpandora_LArPandoraInterface	
-                        ${Boost_SYSTEM_LIBRARY}
-			${ROOT_BASIC_LIB_LIST}
+                   	#larpandora_LArPandoraInterface
+
 			larcorealg_Geometry
 			lardata_Utilities
 			lardataobj_RecoBase
 			lardataobj_MCBase
-			lardataobj_Simulation	
+			lardataobj_Simulation
 			lardataobj_MCBase
 			larcore_Geometry_Geometry_service
-          MODULE_LIBRARIES 
+          MODULE_LIBRARIES
 	  		ubreco_ShowerReco_Pi0Ana_Selection
-		   	#larpandora_LArPandoraInterface	
+		   	#larpandora_LArPandoraInterface
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
 			lardataobj_RecoBase
 			lardataobj_MCBase
-			lardataobj_Simulation	
-			lardataobj_AnalysisBase	
+			lardataobj_Simulation
+			lardataobj_AnalysisBase
 			lardata_RecoObjects
 			larreco_RecoAlg
 			lardata_Utilities
@@ -49,7 +48,7 @@ art_make(
                         ${ROOT_GEOM}
                         ${ROOT_XMLIO}
                         ${ROOT_GDML}
-			${ROOT_BASIC_LIB_LIST}
+
         )
 
 install_headers()
