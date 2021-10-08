@@ -1,8 +1,8 @@
-# This @product_deps@ file defines dependencies for this package. 
+# This @product_deps@ file defines dependencies for this package.
 
 # The *parent* line must the first non-commented line and defines this product and version
 # The version must be of the form vxx_yy_zz (e.g. v01_02_03)
-parent ubreco v09_26_01
+parent ubreco
 
 defaultqual e20
 
@@ -10,7 +10,7 @@ defaultqual e20
 # be used only if your product does not conform to the defaults.
 # Format: directory_type directory_path directory_name
 #   where directory_type is one of incdir, libdir, or bindir
-#   where directory_path is one of product_dir, fq_dir and - 
+#   where directory_path is one of product_dir, fq_dir and -
 # Defaults:
 # incdir  product_dir  include
 # fcldir  product_dir  fcl
@@ -29,17 +29,18 @@ table_fragment_end
 # Add the dependent product and version
 
 product                 version
-ubsim                   v09_26_01
-larpandora              v09_07_00
-swtrigger               v02_03_00c
-cetbuildtools	        v7_17_01	-	only_for_build
+ubsim                   v09_32_00
+larreco                 v09_07_01
+larpandora              v09_09_01
+swtrigger               v02_03_00d
+cetbuildtools	        v8_18_04	-	only_for_build
 end_product_list
 
-qualifier      ubsim          larpandora     swtrigger      
-c7:debug       c7:debug       c7:debug       c7:debug       
-c7:prof        c7:prof        c7:prof        c7:prof        
-e20:debug      e20:debug      e20:debug      e20:debug
-e20:prof       e20:prof       e20:prof       e20:prof
+qualifier      ubsim          larreco        larpandora     swtrigger
+c7:debug       c7:debug       c7:debug       c7:debug       c7:debug
+c7:prof        c7:prof        c7:prof        c7:prof        c7:prof
+e20:debug      e20:debug      e20:debug      e20:debug      e20:debug
+e20:prof       e20:prof       e20:prof       e20:prof       e20:prof
 end_qualifier_list
 
 # Preserve tabs and formatting in emacs and vi / vim:

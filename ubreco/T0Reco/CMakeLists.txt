@@ -1,21 +1,20 @@
 cet_find_library( CRY NAMES CRY PATHS ENV CRY_LIB NO_DEFAULT_PATH ) 
 include_directories ( $ENV{CRYHOME}/src )
 
-art_make(	
+art_make(
 	  LIB_LIBRARIES
 			${ART_FRAMEWORK_CORE}
 			art_Utilities canvas
 			${MF_MESSAGELOGGER}
-			
+
 			cetlib cetlib_except
-                        ${Boost_SYSTEM_LIBRARY}
-			${ROOT_BASIC_LIB_LIST}
-          MODULE_LIBRARIES 
+
+          MODULE_LIBRARIES
                         lardataalg_DetectorInfo
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
 			lardataobj_RecoBase
-			lardataobj_AnalysisBase	
+			lardataobj_AnalysisBase
 			lardata_RecoObjects
 			larreco_RecoAlg
 			lardata_Utilities

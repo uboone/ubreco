@@ -9,7 +9,7 @@ include_directories ( $ENV{CRYHOME}/src )
 include_directories( $ENV{IFDHC_FQ_DIR}/inc )
 
 art_make( BASENAME_ONLY
-      MODULE_LIBRARIES  
+      MODULE_LIBRARIES
 			larevt_CalibrationDBI_IOVData
       			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
@@ -24,7 +24,7 @@ art_make( BASENAME_ONLY
 			lardata_RecoObjects
 			larreco_RecoAlg
 			ubobj_MuCS
-			SignalShapingServiceMicroBooNE_service
+			ubevt::SignalShapingServiceMicroBooNE_service
 			lardataobj_AnalysisBase
       			nusimdata_SimulationBase
       			${LARRECO_LIB}
@@ -47,12 +47,12 @@ art_make( BASENAME_ONLY
       			${ROOT_GEOM}
       			${ROOT_XMLIO}
       			${ROOT_GDML}
-			${ROOT_BASIC_LIB_LIST}
+
 			${ROOT_CORE}
 			${ROOT_EG}
 			${SQLITE3}
-			${CRY}
-			${IFDH}
+			CRY
+			IFDH
 )
 
 install_fhicl()
