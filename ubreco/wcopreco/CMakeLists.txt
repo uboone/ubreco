@@ -14,7 +14,7 @@ art_make(
 			ubreco_wcopreco_algo
 			ubreco_wcopreco_app
 			cetlib cetlib_except
-			${CLHEP}
+			CLHEP::CLHEP
                         ${ROOT_GEOM}
                         ${ROOT_XMLIO}
                         ${ROOT_GDML}

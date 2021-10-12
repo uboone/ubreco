@@ -41,7 +41,7 @@ art_make(LIB_LIBRARIES
            cetlib::cetlib
            ${ROOT_GEOM}
            ${Boost_FILESYSTEM_LIBRARY}
-           ${CLHEP}
+           CLHEP::CLHEP
            ROOT::Tree
         )
 

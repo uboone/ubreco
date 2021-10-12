@@ -38,7 +38,7 @@ art_make(
                         ${MF_UTILITIES}
                         ${FHICLCPP}
                         cetlib::cetlib
-                        ${CLHEP}
+                        CLHEP::CLHEP
                         ${ROOT_GEOM}
                         ${ROOT_XMLIO}
                         ${ROOT_GDML}

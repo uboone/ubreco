@@ -57,7 +57,7 @@ art_make(
 			${MF_UTILITIES}
 	                ${FHICLCPP}
 			cetlib cetlib_except
-			${CLHEP}
+			CLHEP::CLHEP
 			${ROOT_PHYSICS}
       			${ROOT_GEOM}
       			${ROOT_XMLIO}

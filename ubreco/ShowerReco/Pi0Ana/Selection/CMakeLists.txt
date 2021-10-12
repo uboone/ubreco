@@ -43,7 +43,7 @@ art_make(
 			  ${FHICLCPP}
 			  ${CETLIB}
 			  ${Boost_FILESYSTEM_LIBRARY}
-                          ${CLHEP}
+                          CLHEP::CLHEP
 
         )
 

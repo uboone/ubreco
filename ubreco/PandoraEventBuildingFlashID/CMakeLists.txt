@@ -78,7 +78,7 @@ art_make(         TOOL_LIBRARIES
 			${MF_UTILITIES}
 	                ${FHICLCPP}
 			cetlib cetlib_except
-			${CLHEP}
+			CLHEP::CLHEP
                         ${ROOT_GEOM}
                         ${ROOT_XMLIO}
                         ${ROOT_GDML}

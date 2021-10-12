@@ -26,7 +26,7 @@ art_make(
 			    ${MF_MESSAGELOGGER}
 			    ${MF_UTILITIES}
 			    ${FHICLCPP}
-			    ${CLHEP}
+			    CLHEP::CLHEP
 			    ${ROOT_BASIC_LIB_LIST}
 			    ${G4_LIB_LIST}
 			    larreco_RecoAlg

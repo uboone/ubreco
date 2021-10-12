@@ -42,7 +42,7 @@ art_make( BASENAME_ONLY
 			${MF_MESSAGELOGGER}
 			${FHICLCPP}
 			cetlib cetlib_except
-			${CLHEP}
+			CLHEP::CLHEP
 			${ROOT_PHYSICS}
       			${ROOT_GEOM}
       			${ROOT_XMLIO}

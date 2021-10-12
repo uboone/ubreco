@@ -45,7 +45,7 @@ art_make(
                           ${FHICLCPP}
                           ${CETLIB} cetlib_except
                           ${Boost_FILESYSTEM_LIBRARY}
-                          ${CLHEP}
+                          CLHEP::CLHEP
 
         )
 
