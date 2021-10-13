@@ -11,8 +11,8 @@ art_make( BASENAME_ONLY
           LIBRARY_NAME  MicroBooNEPandora
           LIB_LIBRARIES larpandora_LArPandoraInterface
                         ${LARPANDORACONTENT}
-                        ${PANDORASDK}
-                        ${PANDORAMONITORING}
+                        PandoraSDK
+                        PandoraMonitoring
                         ${ART_FRAMEWORK_CORE}
                         ${ART_FRAMEWORK_PRINCIPAL}
                         ${ART_FRAMEWORK_SERVICES_REGISTRY}

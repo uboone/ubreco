@@ -1,4 +1,4 @@
-cet_find_library( CRY NAMES CRY PATHS ENV CRY_LIB NO_DEFAULT_PATH ) 
+#cet_find_library( CRY NAMES CRY PATHS ENV CRY_LIB NO_DEFAULT_PATH ) 
 include_directories ( $ENV{CRYHOME}/src )
 
 art_make(
@@ -46,7 +46,7 @@ art_make(
 			${ROOT_BASIC_LIB_LIST}
 			${ROOT_CORE}
 			${ROOT_EG}
-			${CRY}
+			CRY
         )
 
 install_headers()

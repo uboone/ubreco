@@ -21,8 +21,8 @@ art_make(         TOOL_LIBRARIES
                         larreco_Calorimetry
                         ubreco_PandoraEventBuildingFlashID_HitCosmicTag_Base
                         ubreco_PandoraEventBuildingFlashID_HitCosmicTag_Algorithms
-                        ${PANDORASDK}
-                        ${PANDORAMONITORING}
+			PandoraSDK
+                        PandoraMonitoring
                         larpandora_LArPandoraInterface
                         larpandora_LArPandoraEventBuilding
                         nusimdata_SimulationBase

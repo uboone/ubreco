@@ -1,7 +1,7 @@
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
 include_directories( $ENV{NUTOOLS_INC} )
 cet_find_library( SQLITE3 NAMES sqlite3 PATHS ENV NO_DEFAULT_PATH )
-cet_find_library( CRY NAMES CRY PATHS ENV CRY_LIB NO_DEFAULT_PATH )
+#cet_find_library( CRY NAMES CRY PATHS ENV CRY_LIB NO_DEFAULT_PATH )
 cet_find_library( IFDH NAMES ifdh PATHS ENV IFDHC_LIB NO_DEFAULT_PATH )
 include_directories ( $ENV{CRYHOME}/src )
 include_directories( $ENV{IFDHC_FQ_DIR}/inc )
@@ -65,7 +65,7 @@ art_make(
 			${ROOT_BASIC_LIB_LIST}
 			${ROOT_CORE}
 			${ROOT_EG}
-			${CRY}
+			CRY
         )
 
 
