@@ -5,13 +5,13 @@ art_make(
 			larcore_Geometry_Geometry_service
                         lardataalg_DetectorInfo
 			lardataobj_RecoBase
-			art_Utilities canvas
-                        ${MF_MESSAGELOGGER}
-                        ${MF_UTILITIES}
-                        ${CETLIB} cetlib_except
+			art::Utilities canvas::canvas
+                        messagefacility::MF_MessageLogger
+                        
+                        cetlib::cetlib cetlib_except::cetlib_except
 
-		   	${ART_FRAMEWORK_SERVICES_REGISTRY}
-		   	${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
+		   	art::Framework_Services_Registry
+		   	art_root_io::tfile_support ROOT::Core
 
         )
 

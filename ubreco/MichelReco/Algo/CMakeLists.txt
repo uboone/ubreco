@@ -1,9 +1,9 @@
 art_make(
           LIB_LIBRARIES
                         ubreco_MichelReco_Fmwk
-                        #${MF_MESSAGELOGGER}
+                        #messagefacility::MF_MessageLogger
                         #
-                        #${CETLIB}
+                        #cetlib::cetlib
                         ROOT::Graf
                         ${ROOT_SPECTRUM}
         )

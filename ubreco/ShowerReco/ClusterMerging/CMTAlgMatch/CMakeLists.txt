@@ -1,18 +1,18 @@
 art_make(LIB_LIBRARIES
            ubreco_ShowerReco_ClusterMerging_CMToolBase
            ubreco_ShowerReco_TwoDimTools
-           ${ART_FRAMEWORK_CORE}
-           art_Framework_Services_Registry
+           art::Framework_Core
+           art::Framework_Services_Registry
            larcorealg_Geometry
            uboone_Geometry
            larcore_Geometry_Geometry_service
            lardata_Utilities
            larreco_Calorimetry
-           art_Utilities canvas
-           ${MF_MESSAGELOGGER}
-           ${MF_UTILITIES}
+           art::Utilities canvas::canvas
+           messagefacility::MF_MessageLogger
+           
            cetlib::cetlib
-           ${ART_FRAMEWORK_SERVICES_REGISTRY}
+           art::Framework_Services_Registry
          TOOL_LIBRARIES
            ubreco_ShowerReco_ClusterMerging_CMToolBase
            ubreco_ShowerReco_TwoDimTools
@@ -24,24 +24,24 @@ art_make(LIB_LIBRARIES
            lardataobj_RecoBase
            larcore_Geometry_Geometry_service
            lardata_Utilities
-           nurandom_RandomUtils_NuRandomService_service
-           ${ART_FRAMEWORK_CORE}
-           ${ART_FRAMEWORK_PRINCIPAL}
-           ${ART_FRAMEWORK_SERVICES_REGISTRY}
-           art_Persistency_Common
-           art_Persistency_Provenance
-           ${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
+           nurandom::RandomUtils_NuRandomService_service
+           art::Framework_Core
+           art::Framework_Principal
+           art::Framework_Services_Registry
+           art::Persistency_Common
+           art::Persistency_Provenance
+           art::Framework_Services_Optional_RandomNumberGenerator_service
            art_root_io::TFileService_service
            ${ART_FRAMEWORK_SERVICES_SYSTEM_FILECATALOGMETADATA_SERVICE}
-           art_Utilities
-           canvas
-           ${MF_MESSAGELOGGER}
-           ${MF_UTILITIES}
-           ${FHICLCPP}
+           art::Utilities
+           canvas::canvas
+           messagefacility::MF_MessageLogger
+           
+           fhiclcpp::fhiclcpp
            cetlib::cetlib
-           ${ROOT_GEOM}
-           ${Boost_FILESYSTEM_LIBRARY}
-           ${CLHEP}
+           ROOT::Geom
+           Boost::filesystem
+           CLHEP::CLHEP
            ROOT::Tree
         )
 
