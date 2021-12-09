@@ -1,9 +1,9 @@
 art_make(
           LIB_LIBRARIES
-                        ${ART_FRAMEWORK_CORE}
-                        art_Utilities canvas
-                        ${MF_MESSAGELOGGER}
-                        ${MF_UTILITIES}
+                        art::Framework_Core
+                        art::Utilities canvas::canvas
+                        messagefacility::MF_MessageLogger
+                        
                         cetlib::cetlib
                         larcorealg_Geometry
                         lardata_Utilities
@@ -22,26 +22,26 @@ art_make(
                         larreco_RecoAlg
                         lardata_Utilities
                         larevt_Filters
-                        nusimdata_SimulationBase
+                        nusimdata::SimulationBase
                         ${LARRECO_LIB}
                         ${LARDATA_LIB}
-                        ${ART_FRAMEWORK_CORE}
-                        ${ART_FRAMEWORK_PRINCIPAL}
-                        ${ART_FRAMEWORK_SERVICES_REGISTRY}
-                        ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
-                        ${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
-                        ${ART_ROOT_IO_TFILESERVICE_SERVICE}
-                        art_Persistency_Common
-                        art_Persistency_Provenance
-                        art_Utilities canvas
-                        ${MF_MESSAGELOGGER}
-                        ${MF_UTILITIES}
-                        ${FHICLCPP}
+                        art::Framework_Core
+                        art::Framework_Principal
+                        art::Framework_Services_Registry
+                        art_root_io::tfile_support ROOT::Core
+                        art::Framework_Services_Optional_RandomNumberGenerator_service
+                        art_root_io::TFileService_service
+                        art::Persistency_Common
+                        art::Persistency_Provenance
+                        art::Utilities canvas::canvas
+                        messagefacility::MF_MessageLogger
+                        
+                        fhiclcpp::fhiclcpp
                         cetlib::cetlib
-                        ${CLHEP}
-                        ${ROOT_GEOM}
-                        ${ROOT_XMLIO}
-                        ${ROOT_GDML}
+                        CLHEP::CLHEP
+                        ROOT::Geom
+                        ROOT::XMLIO
+                        ROOT::Gdml
            DICT_LIBRARIES nusimdata::SimulationBase
         )
 
