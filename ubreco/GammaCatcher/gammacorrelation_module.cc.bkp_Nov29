@@ -68,7 +68,6 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "nusimdata/SimulationBase/MCTruth.h"
-#include "nusimdata/SimulationBase/MCFlux.h"
 #include "lardataobj/Simulation/GeneratedParticleInfo.h"
 
 // For the NuMI trigger objects
@@ -81,15 +80,6 @@
 #include "TRandom3.h"
 #include "art/Framework/Services/Optional/TFileService.h"
 #include <memory>
-/*
-#include "larreco/RecoAlg/TrackMomentumCalculator.h" // Momentum from range
-#include "larreco/RecoAlg/TrajectoryMCSFitter.h" // Multiple Coulomb Scattering (MCS)
-
-#include "larsim/MCCheater/BackTrackerService.h"
-#include "larsim/MCCheater/ParticleInventoryService.h"
-#include "larsim/EventWeight/Base/MCEventWeight.h"
-
-*/
 
 class gammacorrelation : public art::EDAnalyzer {
 
@@ -124,6 +114,7 @@ public:
 
   void mudar_endSubRun(art::SubRun const& sr);
   void gammacorrelation_endSubRun(art::SubRun const& sr);
+
 
 private:
   // Declare member data here.
@@ -198,15 +189,9 @@ private:
 	TTree* _tree_Events;
 	double _neutrino_E; //The neutrino energy 
 	double _lepton_E; //The son lepton energy
-  int _neutrino_mother_PDG; //The mother particle PDG (hopefully all muons)
-
-	double _vertex_X_outgoing_lepton; //The X position of the lepton vertex 
-	double _vertex_Y_outgoing_lepton; //The Y position of the lepton vertex   
-	double _vertex_Z_outgoing_lepton; //The Z position of the lepton vertex 
-
-  double _vertex_X_incoming_nu; //The X position of the incoming nu vertex 
-	double _vertex_Y_incoming_nu; //The Y position of the incoming nu vertex   
-	double _vertex_Z_incoming_nu; //The Z position of the incoming nu vertex 
+	double _vertex_X; //The X position of the vertex 
+	double _vertex_Y; //The Y position of the vertex   
+	double _vertex_Z; //The Z position of the vertex 
 	
 	// POT information variabels  
 	TTree *_subrun_tree;
@@ -594,58 +579,29 @@ void gammacorrelation::mudar_analyze(art::Event const& e){
 	// *********************** Load MC truth info *****************************
 	// ************************************************************************
 
-  art::Handle<art::Assns<simb::MCTruth,simb::MCParticle,sim::GeneratedParticleInfo>> MCTruthHandle;
+	art::Handle<art::Assns<simb::MCTruth,simb::MCParticle,
+	sim::GeneratedParticleInfo>> MCTruthHandle;
 	art::InputTag fMCTruthTag("largeant");
 	std::cout << "Is true getbylabel: " << 
 	e.getByLabel(fMCTruthTag, MCTruthHandle) << std::endl;
 	std::cout << "Size: " << MCTruthHandle->size() << std::endl;
 	const art::Ptr<simb::MCTruth> mctruth = MCTruthHandle->at(0).first;
 	std::cout << "mctruth nparticles  " << mctruth->NParticles() << std::endl;
-/*
-  art::Handle<art::Assns<simb::MCTruth, simb::MCFlux, sim::GeneratedParticleInfo>> MCTruthFluxHandle;
-  e.getByLabel(fMCTruthTag, MCTruthFluxHandle);
-  const art::Ptr<simb::MCFlux> mcflux = MCTruthFluxHandle->at(0).second;
-
-  //Retrieving the neutrino information
-  auto decay = mcflux->fndecay; 
-
-  std::cout << "Decay code: " << decay << std::endl; 
-  */
-
-  art::Handle< std::vector<simb::MCFlux> > mcFluxHandle;
-  e.getByLabel("generator", mcFluxHandle);
-  std::vector< art::Ptr<simb::MCFlux> > mcFluxVec;
-  art::fill_ptr_vector(mcFluxVec, mcFluxHandle);
-
-  std::cout << "mcfluxvec size: " << mcFluxVec.size() << std::endl;  
-  std::cout << "x decay code: " <<  mcFluxVec.at(0)->fvx << std::endl;  
-  std::cout << "y decay code: " <<  mcFluxVec.at(0)->fvy << std::endl;  
-  std::cout << "z decay code: " <<  mcFluxVec.at(0)->fvz << std::endl;  
-  std::cout << "decay code: " <<  mcFluxVec.at(0)->fndecay << std::endl;  
 
 	//Retrieving the neutrino information
 	auto neutrino = mctruth->GetNeutrino();
-  const simb::MCParticle nu = neutrino.Nu();
+    const simb::MCParticle nu = neutrino.Nu();
 	_neutrino_E = nu.E();
-
-  //Checking the PDG of the neutrino mother particle
-  _neutrino_mother_PDG = nu.Mother();
-
-  //For the nu vertex...
-  const TLorentzVector vertex_nu = nu.Position(); 
-	_vertex_X_incoming_nu = vertex_nu.X(); 
- 	_vertex_Y_incoming_nu = vertex_nu.Y(); 
-	_vertex_Z_incoming_nu = vertex_nu.Z(); 
 	
 	//Retrieving the lepton information
-  const simb::MCParticle lepton = neutrino.Lepton();
+    const simb::MCParticle lepton = neutrino.Lepton();
 	_lepton_E = lepton.E();
 
-	//For the lepton vertex...
-	const TLorentzVector vertex_lepton = lepton.Position(); 
-	_vertex_X_outgoing_lepton = vertex_lepton.X(); 
- 	_vertex_Y_outgoing_lepton = vertex_lepton.Y(); 
-	_vertex_Z_outgoing_lepton = vertex_lepton.Z(); 
+	//For the vertex...
+	const TLorentzVector vertex = lepton.Position(); 
+	_vertex_X = vertex.X(); 
+ 	_vertex_Y = vertex.Y(); 
+	_vertex_Z = vertex.Z(); 
     
   // ***********************************************************************
   // ************************************************************************
@@ -764,20 +720,15 @@ void gammacorrelation::mudar_beginJob(){
 	//truth info particles branches
 	_tree_Events -> Branch("neutrino_E", &_neutrino_E, "neutrino_E/D");
 	_tree_Events -> Branch("lepton_E", &_lepton_E, "lepton_E/D");
-  _tree_Events -> Branch("neutrino_mother_pdg", &_neutrino_mother_PDG, "neutrino_mother_pdg/I"); 
-	_tree_Events -> Branch("vertex_X_lepton", &_vertex_X_outgoing_lepton, "vertex_X/D");
-	_tree_Events -> Branch("vertex_Y_lepton", &_vertex_Y_outgoing_lepton, "vertex_Y/D");
-	_tree_Events -> Branch("vertex_Z_lepton", &_vertex_Z_outgoing_lepton, "vertex_Z/D");
-  _tree_Events -> Branch("vertex_X_nu", &_vertex_X_incoming_nu, "vertex_X/D");
-	_tree_Events -> Branch("vertex_Y_nu", &_vertex_Y_incoming_nu, "vertex_Y/D");
-	_tree_Events -> Branch("vertex_Z_nu", &_vertex_Z_incoming_nu, "vertex_Z/D");
+	_tree_Events -> Branch("vertex_X", &_vertex_X, "vertex_X/D");
+	_tree_Events -> Branch("vertex_Y", &_vertex_Y, "vertex_Y/D");
+	_tree_Events -> Branch("vertex_Z", &_vertex_Z, "vertex_Z/D");
 
 	//POT counting info 
   	_subrun_tree->Branch("run", &_run_sr, "run/I");
   	_subrun_tree->Branch("subRun", &_sub_sr, "subRun/I");
 	_subrun_tree->Branch("pot", &_pot, "pot/F");
 }
-
 void gammacorrelation::gammacorrelation_beginJob(){
 
    art::ServiceHandle<art::TFileService> tfs;

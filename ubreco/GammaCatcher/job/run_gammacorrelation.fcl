@@ -32,7 +32,7 @@ maxEvents:   -1
 services: {
 
 scheduler:               { defaultExceptions: false }    # Make all uncaught exceptions fatal.
-TFileService: { fileName: "gammacorrelation_hist.root" }
+TFileService: { fileName: "gammacorrelation_for_muDAR_%r_%s_%tc.root" }
 @table::microboone_services_reco
 #@table::microboone_simulation_services
 #TPCEnergyCalibService:         @local::microboone_tpcenergycalib_service
