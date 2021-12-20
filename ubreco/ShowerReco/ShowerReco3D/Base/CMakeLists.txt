@@ -1,16 +1,16 @@
 art_make(
           LIB_LIBRARIES
-			${ART_FRAMEWORK_CORE}
+			art::Framework_Core
 			larcorealg_Geometry
 		   	larcorealg_Geometry
 			larcore_Geometry_Geometry_service
-			art_Utilities canvas
-                        ${MF_MESSAGELOGGER}
-                        ${MF_UTILITIES}
-                        ${CETLIB} cetlib_except
+			art::Utilities canvas::canvas
+                        messagefacility::MF_MessageLogger
+                        
+                        cetlib::cetlib cetlib_except::cetlib_except
 
-		   	${ART_FRAMEWORK_SERVICES_REGISTRY}
-		   	${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
+		   	art::Framework_Services_Registry
+		   	art_root_io::tfile_support ROOT::Core
           TOOL_LIBRARIES
 	  		  ubreco_ShowerReco_ClusterMerging_CMToolBase
 			  ubreco_ShowerReco_TwoDimTools
@@ -22,23 +22,23 @@ art_make(
 			  lardataobj_RecoBase
 			  larcore_Geometry_Geometry_service
 			  lardata_Utilities
-			  nurandom_RandomUtils_NuRandomService_service
-  			  ${ART_FRAMEWORK_CORE}
-			  ${ART_FRAMEWORK_PRINCIPAL}
-			  ${ART_FRAMEWORK_SERVICES_REGISTRY}
-			  art_Persistency_Common
-			  art_Persistency_Provenance
-			  ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
-                          ${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
-			  ${ART_ROOT_IO_TFILESERVICE_SERVICE}
+			  nurandom::RandomUtils_NuRandomService_service
+  			  art::Framework_Core
+			  art::Framework_Principal
+			  art::Framework_Services_Registry
+			  art::Persistency_Common
+			  art::Persistency_Provenance
+			  art_root_io::tfile_support ROOT::Core
+                          art::Framework_Services_Optional_RandomNumberGenerator_service
+			  art_root_io::TFileService_service
 			  ${ART_FRAMEWORK_SERVICES_SYSTEM_FILECATALOGMETADATA_SERVICE}
-			  art_Utilities
-			  canvas
-			  ${MF_MESSAGELOGGER}
-			  ${MF_UTILITIES}
-			  ${FHICLCPP}
-			  ${CETLIB} cetlib_except
-			  ${Boost_FILESYSTEM_LIBRARY}
+			  art::Utilities
+			  canvas::canvas
+			  messagefacility::MF_MessageLogger
+			  
+			  fhiclcpp::fhiclcpp
+			  cetlib::cetlib cetlib_except::cetlib_except
+			  Boost::filesystem
                           CLHEP::CLHEP
 
         )

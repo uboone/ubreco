@@ -6,10 +6,10 @@ cet_find_library( PANDORASDK NAMES PandoraSDK PATHS ENV PANDORA_LIB NO_DEFAULT_P
 art_make(
           LIB_LIBRARIES
 			art_Framework_Core
-			art_Framework_Services_Registry
-			art_Framework_Principal
-			art_Persistency_Provenance
-			${ART_FRAMEWORK_CORE}
+			art::Framework_Services_Registry
+			art::Framework_Principal
+			art::Persistency_Provenance
+			art::Framework_Core
 			larcorealg_Geometry
 			lardataobj_RecoBase
 		   	larcorealg_Geometry
@@ -18,12 +18,12 @@ art_make(
                         #larpandoraobj
             		PANDORASDK
 			larcore_Geometry_Geometry_service
-			art_Utilities canvas
-                        ${MF_MESSAGELOGGER}
-                        ${MF_UTILITIES}
-                        ${CETLIB} cetlib_except
-		   	${ART_FRAMEWORK_SERVICES_REGISTRY}
-		   	${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
+			art::Utilities canvas::canvas
+                        messagefacility::MF_MessageLogger
+                        
+                        cetlib::cetlib cetlib_except::cetlib_except
+		   	art::Framework_Services_Registry
+		   	art_root_io::tfile_support ROOT::Core
 
           TOOL_LIBRARIES
 	  		  ubreco_ShowerReco_ClusterMerging_CMToolBase
@@ -41,24 +41,24 @@ art_make(
                         #LArPandoraContent
                         #larpandoraobj
             		PANDORASDK
-			  nurandom_RandomUtils_NuRandomService_service
-  			  ${ART_FRAMEWORK_CORE}
-			  ${ART_FRAMEWORK_PRINCIPAL}
-			  ${ART_FRAMEWORK_SERVICES_REGISTRY}
-			  art_Persistency_Common
-			  art_Persistency_Provenance
-			  ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
-                          ${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
-			  ${ART_ROOT_IO_TFILESERVICE_SERVICE}
+			  nurandom::RandomUtils_NuRandomService_service
+  			  art::Framework_Core
+			  art::Framework_Principal
+			  art::Framework_Services_Registry
+			  art::Persistency_Common
+			  art::Persistency_Provenance
+			  art_root_io::tfile_support ROOT::Core
+                          art::Framework_Services_Optional_RandomNumberGenerator_service
+			  art_root_io::TFileService_service
 			  ${ART_FRAMEWORK_SERVICES_SYSTEM_FILECATALOGMETADATA_SERVICE}
-			  art_Utilities
-			  canvas
-			  ${MF_MESSAGELOGGER}
-			  ${MF_UTILITIES}
-			  ${FHICLCPP}
-			  ${CETLIB} cetlib_except
-			  ${ROOT_GEOM}
-			  ${Boost_FILESYSTEM_LIBRARY}
+			  art::Utilities
+			  canvas::canvas
+			  messagefacility::MF_MessageLogger
+			  
+			  fhiclcpp::fhiclcpp
+			  cetlib::cetlib cetlib_except::cetlib_except
+			  ROOT::Geom
+			  Boost::filesystem
                           CLHEP::CLHEP
 	MODULE_LIBRARIES larpandora_LArPandoraInterface
         )

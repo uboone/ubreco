@@ -3,11 +3,11 @@ include_directories ( $ENV{CRYHOME}/src )
 
 art_make(
 	  LIB_LIBRARIES
-			${ART_FRAMEWORK_CORE}
-			art_Utilities canvas
-			${MF_MESSAGELOGGER}
+			art::Framework_Core
+			art::Utilities canvas::canvas
+			messagefacility::MF_MessageLogger
 
-			cetlib cetlib_except
+			cetlib::cetlib cetlib_except
 
           MODULE_LIBRARIES
                         lardataalg_DetectorInfo
@@ -21,32 +21,27 @@ art_make(
 			larsim_Simulation nug4_ParticleNavigation lardataobj_Simulation
 			larcoreobj_SummaryData
 			larevt_Filters
-			nusimdata_SimulationBase
-			nurandom_RandomUtils_NuRandomService_service
+			nusimdata::SimulationBase
 			${LARRECO_LIB}
 			${LARDATA_LIB}
-                        ${ART_FRAMEWORK_CORE}
-			${ART_FRAMEWORK_PRINCIPAL}
-			${ART_FRAMEWORK_SERVICES_REGISTRY}
-			${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
-			${ART_ROOT_IO_TFILESERVICE_SERVICE}
-			art_Persistency_Common canvas
-			art_Persistency_Provenance canvas
-			art_Utilities canvas
-			${MF_MESSAGELOGGER}
-                        ubevt_Utilities						
-	                ${FHICLCPP}
-			cetlib cetlib_except
+                        art::Framework_Core
+			art::Framework_Principal
+			art::Framework_Services_Registry
+			art_root_io::tfile_support ROOT::Core
+			art::Framework_Services_Optional_RandomNumberGenerator_service
+			art_root_io::TFileService_service
+			art::Persistency_Common canvas::canvas
+			art::Persistency_Provenance canvas::canvas
+			art::Utilities canvas::canvas
+			messagefacility::MF_MessageLogger
+
+	                fhiclcpp::fhiclcpp
+			cetlib::cetlib cetlib_except
 			CLHEP::CLHEP
-			${ROOT_PHYSICS}
-                        ${ROOT_GEOM}
-                        ${ROOT_XMLIO}
-                        ${ROOT_GDML}
-			${ROOT_BASIC_LIB_LIST}
-			${ROOT_CORE}
-			${ROOT_EG}
-			CRY
+                        ROOT::Geom
+                        ROOT::XMLIO
+                        ROOT::Gdml
+
         )
 
 install_headers()

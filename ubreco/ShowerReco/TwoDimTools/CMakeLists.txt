@@ -1,19 +1,19 @@
 art_make(
 	  LIB_LIBRARIES
 			art_Framework_Core
-			art_Framework_Services_Registry
-			art_Framework_Principal ${ART_FRAMEWORK_CORE}
+			art::Framework_Services_Registry
+			art::Framework_Principal art::Framework_Core
 			larcorealg_Geometry lardataobj_RecoBase
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
                         lardataalg_DetectorInfo
-			art_Utilities canvas ${MF_MESSAGELOGGER}
-			${MF_UTILITIES} ${CETLIB}
+			art::Utilities canvas messagefacility::MF_MessageLogger
+			 cetlib::cetlib
 
-			${ART_FRAMEWORK_SERVICES_REGISTRY}
-			${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
-			${MF_MESSAGELOGGER}
-			cetlib cetlib_except
+			art::Framework_Services_Registry
+			art_root_io::tfile_support ROOT::Core
+			messagefacility::MF_MessageLogger
+			cetlib::cetlib cetlib_except
 
         )
 

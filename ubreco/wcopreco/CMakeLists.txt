@@ -2,22 +2,22 @@
 art_make(
 	  LIB_LIBRARIES
 
-			${ART_FRAMEWORK_CORE}
-			art_Utilities canvas
-			${MF_MESSAGELOGGER}
+			art::Framework_Core
+			art::Utilities canvas::canvas
+			messagefacility::MF_MessageLogger
 
-			cetlib cetlib_except
+			cetlib::cetlib cetlib_except
 
           MODULE_LIBRARIES
 			ubreco_wcopreco_data
 			ubreco_wcopreco_deconv
 			ubreco_wcopreco_algo
 			ubreco_wcopreco_app
-			cetlib cetlib_except
+			cetlib::cetlib cetlib_except
 			CLHEP::CLHEP
-                        ${ROOT_GEOM}
-                        ${ROOT_XMLIO}
-                        ${ROOT_GDML}
+                        ROOT::Geom
+                        ROOT::XMLIO
+                        ROOT::Gdml
 
         )
 
