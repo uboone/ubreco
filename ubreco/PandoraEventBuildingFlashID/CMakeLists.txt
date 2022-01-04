@@ -1,12 +1,13 @@
 include_directories( $ENV{PANDORA_INC} )
 include_directories( $ENV{LARPANDORACONTENT_INC} )
 
+link_libraries( -L$ENV{LARRECO_LIB} larreco_RecoAlg -L$ENV{LARPANDORA_LIB} larpandora_LArPandoraEventBuilding )
+
 add_subdirectory(job)
 add_subdirectory(HitCosmicTag)
 
 
 art_make(         TOOL_LIBRARIES
-
 		  	larcorealg_Geometry
                         larcore_Geometry_Geometry_service
                         larsim_Simulation lardataobj_Simulation

@@ -10,6 +10,7 @@ art_make(
 			cetlib::cetlib cetlib_except
 
           MODULE_LIBRARIES
+                        ubevt_Utilities
                         lardataalg_DetectorInfo
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
@@ -21,6 +22,7 @@ art_make(
 			larsim_Simulation nug4_ParticleNavigation lardataobj_Simulation
 			larcoreobj_SummaryData
 			larevt_Filters
+                        nurandom::RandomUtils_NuRandomService_service
 			nusimdata::SimulationBase
 			${LARRECO_LIB}
 			${LARDATA_LIB}
@@ -41,6 +43,8 @@ art_make(
                         ROOT::Geom
                         ROOT::XMLIO
                         ROOT::Gdml
+                        ROOT::EG
+                        CRY::CRY
 
         )
 

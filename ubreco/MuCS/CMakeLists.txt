@@ -51,7 +51,7 @@ art_make( BASENAME_ONLY
 			ROOT::Core
 			ROOT::EG
 			SQLite::SQLite3
-			CRY
+			CRY::CRY
 			IFDH
 )
 

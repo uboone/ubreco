@@ -65,7 +65,7 @@ art_make(
 			${ROOT_BASIC_LIB_LIST}
 			${ROOT_CORE}
 			${ROOT_EG}
-			CRY
+			CRY::CRY
         )
 
 
