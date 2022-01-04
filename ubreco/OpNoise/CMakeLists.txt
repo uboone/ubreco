@@ -1,6 +1,4 @@
 
-include_directories ( $ENV{G4INCLUDE} )
-
 art_make(  
           MODULE_LIBRARIES  larsim_Simulation 
 			    lardataobj_Simulation
@@ -12,27 +10,23 @@ art_make(
 			    larcorealg_Geometry
 			    lardataobj_AnalysisBase
 			    lardata_Utilities
-			    nusimdata_SimulationBase
-			    ${ART_FRAMEWORK_CORE}
-			    ${ART_FRAMEWORK_PRINCIPAL}
-			    ${ART_FRAMEWORK_SERVICES_REGISTRY}
-			    ${ART_FRAMEWORK_SERVICES_BASIC}
-			    ${ART_FRAMEWORK_SERVICES_OPTIONAL}
-			    ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-			    ${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
-			    art_Persistency_Common canvas
-			    art_Persistency_Provenance canvas
-			    art_Utilities
-			    ${MF_MESSAGELOGGER}
-			    ${MF_UTILITIES}
-			    ${FHICLCPP}
+			    nusimdata::SimulationBase
+			    art::Framework_Core
+			    art::Framework_Principal
+			    art::Framework_Services_Registry
+			    art::Framework_Services_Optional_RandomNumberGenerator_service
+			    art::Persistency_Common canvas
+			    art::Persistency_Provenance canvas
+			    art::Utilities
+			    messagefacility::MF_MessageLogger
+			    fhiclcpp::fhiclcpp
 			    CLHEP::CLHEP
 			    ${ROOT_BASIC_LIB_LIST}
 			    ${G4_LIB_LIST}
 			    larreco_RecoAlg
 			    larreco_RecoAlg_ClusterRecoUtil
 			    larreco_ClusterFinder
-			    ${ROOT_GENVECTOR}
+			    ROOT::GenVector
          )
 
 install_headers()

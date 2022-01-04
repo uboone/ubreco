@@ -1,12 +1,5 @@
 
 # for classes_def.xml!!
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
-include_directories( $ENV{NUTOOLS_INC} )
-cet_find_library( SQLITE3 NAMES sqlite3 PATHS ENV NO_DEFAULT_PATH )
-#cet_find_library( CRY NAMES CRY PATHS ENV CRY_LIB NO_DEFAULT_PATH )
-cet_find_library( IFDH NAMES ifdh PATHS ENV IFDHC_LIB NO_DEFAULT_PATH )
-include_directories ( $ENV{CRYHOME}/src )
-include_directories( $ENV{IFDHC_FQ_DIR}/inc )
 
 art_make( BASENAME_ONLY
       MODULE_LIBRARIES
@@ -27,8 +20,6 @@ art_make( BASENAME_ONLY
 			ubevt::SignalShapingServiceMicroBooNE_service
 			lardataobj_AnalysisBase
       			nusimdata::SimulationBase
-      			${LARRECO_LIB}
-      			${LARDATA_LIB}
       			art::Framework_Core
 			art::Framework_Principal
 			art::Framework_Services_Registry
@@ -41,18 +32,18 @@ art_make( BASENAME_ONLY
 			nurandom::RandomUtils_NuRandomService_service
 			messagefacility::MF_MessageLogger
 			fhiclcpp::fhiclcpp
-			cetlib::cetlib cetlib_except
+			cetlib::cetlib
+                        cetlib_except::cetlib_except
 			CLHEP::CLHEP
 			ROOT::Physics
       			ROOT::Geom
       			ROOT::XMLIO
       			ROOT::Gdml
-
 			ROOT::Core
 			ROOT::EG
 			SQLite::SQLite3
 			CRY::CRY
-			IFDH
+			ifdh::ifdh
 )
 
 install_fhicl()

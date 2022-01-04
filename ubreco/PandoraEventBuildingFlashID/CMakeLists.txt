@@ -1,7 +1,3 @@
-include_directories( $ENV{PANDORA_INC} )
-include_directories( $ENV{LARPANDORACONTENT_INC} )
-
-link_libraries( -L$ENV{LARRECO_LIB} larreco_RecoAlg -L$ENV{LARPANDORA_LIB} larpandora_LArPandoraEventBuilding )
 
 add_subdirectory(job)
 add_subdirectory(HitCosmicTag)
@@ -26,25 +22,22 @@ art_make(         TOOL_LIBRARIES
                         PandoraMonitoring
                         larpandora_LArPandoraInterface
                         larpandora_LArPandoraEventBuilding
-                        nusimdata_SimulationBase
-                        ${ART_FRAMEWORK_CORE}
-                        ${ART_FRAMEWORK_PRINCIPAL}
-                        ${ART_FRAMEWORK_SERVICES_REGISTRY}
-                        ${ART_FRAMEWORK_SERVICES_BASIC}
-                        ${ART_FRAMEWORK_SERVICES_OPTIONAL}
-                        ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-                        art_Persistency_Common
-                        art_Persistency_Provenance
-                        art_Utilities
-                        canvas
-                        ${MF_MESSAGELOGGER}
-                        ${FHICLCPP}
-                        cetlib cetlib_except
-                        ${Boost_SYSTEM_LIBRARY}
-                        ${Boost_FILESYSTEM_LIBRARY}
-                        ${ROOT_GEOM}
+                        nusimdata::SimulationBase
+                        art::Framework_Core
+                        art::Framework_Principal
+                        art::Framework_Services_Registry
+                        art::Persistency_Common
+                        art::Persistency_Provenance
+                        art::Utilities
+                        canvas::canvas
+                        messagefacility::MF_MessageLogger
+                        fhiclcpp::fhiclcpp
+                        cetlib::cetlib
+                        cetlib_except::cetlib_except
+                        Boost::filesystem
+                        ROOT::Geom
                         ${ROOT_BASIC_LIB_LIST}
-                        ${ROOT_GENVECTOR}
+                        ROOT::GenVector
                         ubreco_SelectionTool_OpT0FinderBase
                         ubreco_SelectionTool_OpT0FinderAlgorithms
                         ubevt_Utilities
@@ -63,26 +56,22 @@ art_make(         TOOL_LIBRARIES
                         larpandora_LArPandoraInterface
                         larpandora_LArPandoraEventBuilding
 			larevt_Filters
-			nusimdata_SimulationBase
-			${LARRECO_LIB}
-			${LARDATA_LIB}
-                        ${ART_FRAMEWORK_CORE}
-			${ART_FRAMEWORK_PRINCIPAL}
-			${ART_FRAMEWORK_SERVICES_REGISTRY}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-			art_Persistency_Common canvas
-			art_Persistency_Provenance canvas
-			art_Utilities canvas
-			${MF_MESSAGELOGGER}
-			${MF_UTILITIES}
-	                ${FHICLCPP}
-			cetlib cetlib_except
+			nusimdata::SimulationBase
+                        art::Framework_Core
+			art::Framework_Principal
+			art::Framework_Services_Registry
+			art::Framework_Services_Optional_RandomNumberGenerator_service
+			art::Persistency_Common canvas
+			art::Persistency_Provenance canvas
+			art::Utilities canvas
+			messagefacility::MF_MessageLogger
+	                fhiclcpp::fhiclcpp
+                        cetlib::cetlib
+                        cetlib_except::cetlib_except
 			CLHEP::CLHEP
-                        ${ROOT_GEOM}
-                        ${ROOT_XMLIO}
-                        ${ROOT_GDML}
+                        ROOT::Geom
+                        ROOT::XMLIO
+                        ROOT::Gdml
 			${ROOT_BASIC_LIB_LIST}
                         ubreco_SelectionTool_OpT0FinderBase
                         ubreco_SelectionTool_OpT0FinderAlgorithms
