@@ -4,10 +4,9 @@ art_make(
 			art::Framework_Core
 			art::Utilities canvas::canvas
 			messagefacility::MF_MessageLogger
-			
-			cetlib::cetlib cetlib_except
+			cetlib::cetlib
+                        cetlib_except::cetlib_except
                    	#larpandora_LArPandoraInterface
-
 			larcorealg_Geometry
 			lardata_Utilities
 			lardataobj_RecoBase
@@ -29,8 +28,6 @@ art_make(
 			lardata_Utilities
 			larevt_Filters
 			nusimdata::SimulationBase
-			${LARRECO_LIB}
-			${LARDATA_LIB}
                         art::Framework_Core
 			art::Framework_Principal
 			art::Framework_Services_Registry
@@ -41,9 +38,9 @@ art_make(
 			art::Persistency_Provenance canvas::canvas
 			art::Utilities canvas::canvas
 			messagefacility::MF_MessageLogger
-			
 	                fhiclcpp::fhiclcpp
-			cetlib::cetlib cetlib_except
+			cetlib::cetlib
+                        cetlib_except::cetlib_except
 			CLHEP::CLHEP
                         ROOT::Geom
                         ROOT::XMLIO
