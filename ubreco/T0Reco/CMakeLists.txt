@@ -6,8 +6,8 @@ art_make(
 			art::Framework_Core
 			art::Utilities canvas::canvas
 			messagefacility::MF_MessageLogger
-
-			cetlib::cetlib cetlib_except
+	                cetlib::cetlib
+                        cetlib_except::cetlib_except
 
           MODULE_LIBRARIES
                         ubevt_Utilities
@@ -19,13 +19,11 @@ art_make(
 			lardata_RecoObjects
 			larreco_RecoAlg
 			lardata_Utilities
-			larsim_Simulation nug4_ParticleNavigation lardataobj_Simulation
+			larsim_Simulation nug4::ParticleNavigation lardataobj_Simulation
 			larcoreobj_SummaryData
 			larevt_Filters
                         nurandom::RandomUtils_NuRandomService_service
 			nusimdata::SimulationBase
-			${LARRECO_LIB}
-			${LARDATA_LIB}
                         art::Framework_Core
 			art::Framework_Principal
 			art::Framework_Services_Registry
@@ -36,9 +34,9 @@ art_make(
 			art::Persistency_Provenance canvas::canvas
 			art::Utilities canvas::canvas
 			messagefacility::MF_MessageLogger
-
 	                fhiclcpp::fhiclcpp
-			cetlib::cetlib cetlib_except
+	                cetlib::cetlib
+                        cetlib_except::cetlib_except
 			CLHEP::CLHEP
                         ROOT::Geom
                         ROOT::XMLIO
