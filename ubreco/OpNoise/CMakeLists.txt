@@ -25,12 +25,10 @@ art_make(
 			    
 			    fhiclcpp::fhiclcpp
 			    CLHEP::CLHEP
-			    ${ROOT_BASIC_LIB_LIST}
 			    ${G4_LIB_LIST}
 			    larreco_RecoAlg
 			    larreco_RecoAlg_ClusterRecoUtil
 			    larreco_ClusterFinder
-			    ${ROOT_GENVECTOR}
          )
 
 install_headers()

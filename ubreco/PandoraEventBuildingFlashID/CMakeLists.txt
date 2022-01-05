@@ -39,8 +39,6 @@ art_make(         TOOL_LIBRARIES
                         
                         Boost::filesystem
                         ROOT::Geom
-                        ${ROOT_BASIC_LIB_LIST}
-                        ${ROOT_GENVECTOR}
                         ubreco_SelectionTool_OpT0FinderBase
                         ubreco_SelectionTool_OpT0FinderAlgorithms
                         ubevt_Utilities
@@ -76,7 +74,6 @@ art_make(         TOOL_LIBRARIES
                         ROOT::Geom
                         ROOT::XMLIO
                         ROOT::Gdml
-			${ROOT_BASIC_LIB_LIST}
                         ubreco_SelectionTool_OpT0FinderBase
                         ubreco_SelectionTool_OpT0FinderAlgorithms
                         ubevt_Utilities

@@ -7,7 +7,6 @@ art_make(
 			
 			cetlib::cetlib cetlib_except
                         
-			${ROOT_BASIC_LIB_LIST}
 			ROOT::Hist
           MODULE_LIBRARIES 
 			larcorealg_Geometry
@@ -36,7 +35,6 @@ art_make(
                         ROOT::Geom
                         ROOT::XMLIO
                         ROOT::Gdml
-			${ROOT_BASIC_LIB_LIST}
 			ROOT::Hist
         )
 

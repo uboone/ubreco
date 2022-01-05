@@ -7,7 +7,6 @@ art_make(
 			
 			cetlib::cetlib cetlib_except
                         
-			${ROOT_BASIC_LIB_LIST}
           MODULE_LIBRARIES 
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
@@ -35,7 +34,6 @@ art_make(
                         ROOT::Geom
                         ROOT::XMLIO
                         ROOT::Gdml
-			${ROOT_BASIC_LIB_LIST}
         )
 
 add_subdirectory(ProducePort)

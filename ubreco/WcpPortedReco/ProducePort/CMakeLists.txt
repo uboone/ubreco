@@ -27,8 +27,6 @@ MODULE_LIBRARIES
 	ROOT::XMLIO
 	ROOT::Gdml
 	ROOT::EG
-	${ROOT_BASIC_LIB_LIST}
-
 )
 
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )

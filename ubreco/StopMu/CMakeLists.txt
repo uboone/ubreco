@@ -15,7 +15,6 @@ art_make(
 			cetlib::cetlib cetlib_except
                    	#larpandora_LArPandoraInterface	
                         
-			${ROOT_BASIC_LIB_LIST}
 			larcorealg_Geometry
 			lardata_Utilities
 			lardataobj_RecoBase
@@ -59,7 +58,6 @@ art_make(
       			ROOT::Geom
       			ROOT::XMLIO
       			ROOT::Gdml
-			${ROOT_BASIC_LIB_LIST}
 			ROOT::Core
 			ROOT::EG
 			CRY::CRY

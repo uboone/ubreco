@@ -33,8 +33,6 @@ art_make(
     ROOT::Geom
     ROOT::XMLIO
     ROOT::Gdml
-    ${ROOT_BASIC_LIB_LIST}
-    
   )
 
 add_subdirectory(helpers)

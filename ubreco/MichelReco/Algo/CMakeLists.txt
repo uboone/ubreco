@@ -5,7 +5,6 @@ art_make(
                         #
                         #cetlib::cetlib
                         ROOT::Graf
-                        ${ROOT_SPECTRUM}
         )
 
 

@@ -1,8 +1,3 @@
-# define ROOTLIB
-set( ROOTLIB -L$ENV{ROOTSYS}/lib -lCore -lRIO -lNet -lHist -lGraf -lGraf3d -lGpad -lTree -lRint -lPostscript -lMatrix -lPhysics -lMathCore -lThread -lMinuit -pthread -lm -ldl)
-
-link_libraries( ${LIB_NAME} ${ROOTLIB} )
-
 art_make( BASENAME_ONLY
     	  LIBRARY_NAME     ubreco_SelectionTool_OpT0FinderAlgorithms
 	  LIB_LIBRARIES
@@ -20,7 +15,6 @@ art_make( BASENAME_ONLY
 			  art::Persistency_Common canvas
 			  art::Persistency_Provenance canvas
 			  art::Utilities canvas
-                          ${ROOT_BASIC_LIB_LIST}
                           fhiclcpp::fhiclcpp
                           cetlib::cetlib cetlib_except
 	)

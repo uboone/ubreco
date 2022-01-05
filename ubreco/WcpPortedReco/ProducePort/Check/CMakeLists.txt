@@ -27,7 +27,6 @@ MODULE_LIBRARIES
 	ROOT::XMLIO
 	ROOT::Gdml
 	ROOT::EG
-	${ROOT_BASIC_LIB_LIST}
 )
 
 install_fhicl()
