@@ -13,8 +13,6 @@ art_make( BASENAME_ONLY
                    larcore_Geometry_Geometry_service
                    ubcore::UBOpReadoutMap_service
                    lardataobj_RecoBase
-                   ${UBOONECODE_LIB}
-                   ${LARDATA_LIB}
                    art::Framework_Core
                    art::Framework_Principal
 
@@ -43,8 +41,6 @@ art_make( BASENAME_ONLY
                    ubevt_Database
                    ubevt_Utilities
                    lardataobj_RecoBase
-                   ${UBOONECODE_LIB}
-                   ${LARDATA_LIB}
                    art::Framework_Core
                    art::Framework_Principal
                    art::Framework_Services_Registry

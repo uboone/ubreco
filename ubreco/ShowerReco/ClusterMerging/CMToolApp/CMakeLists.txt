@@ -1,7 +1,7 @@
 art_make(
           LIB_LIBRARIES
 			ubreco_ShowerReco_ClusterMerging_CMToolBase
-			art_Framework_Core
+			art::Framework_Core
 			art::Framework_Services_Registry
 			art::Framework_Principal
 			lardataobj_RecoBase

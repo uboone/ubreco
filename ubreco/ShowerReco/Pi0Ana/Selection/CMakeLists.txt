@@ -1,7 +1,7 @@
 art_make(
           LIB_LIBRARIES
 			ubreco_ShowerReco_TwoDimTools
-			art_Framework_Core
+			art::Framework_Core
 			art::Framework_Services_Registry
 			art::Framework_Principal
 			lardataobj_RecoBase
@@ -35,7 +35,6 @@ art_make(
 			  art_root_io::tfile_support ROOT::Core
                           art::Framework_Services_Optional_RandomNumberGenerator_service
 			  art_root_io::TFileService_service
-			  ${ART_FRAMEWORK_SERVICES_SYSTEM_FILECATALOGMETADATA_SERVICE}
 			  art::Utilities
 			  canvas::canvas
 			  messagefacility::MF_MessageLogger

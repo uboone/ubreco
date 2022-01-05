@@ -7,27 +7,26 @@ MODULE_LIBRARIES
 	lardataobj_RawData
 	lardataobj_RecoBase
 	lardataobj_MCBase
-	nusimdata_SimulationBase
+	nusimdata::SimulationBase
 	lardata_Utilities
 	lardataalg_DetectorInfo
 	larreco_RecoAlg
-	${ART_FRAMEWORK_CORE}
-	${ART_FRAMEWORK_PRINCIPAL}
-	${ART_FRAMEWORK_SERVICES_REGISTRY}
-	${ART_FRAMEWORK_SERVICES_OPTIONAL}
-	${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-	art_Persistency_Common
-	art_Persistency_Provenance
-	art_Utilities
-	canvas
-	${MF_MESSAGELOGGER}
+	art::Framework_Core
+	art::Framework_Principal
+	art::Framework_Services_Registry
+	
+	art::Persistency_Common
+	art::Persistency_Provenance
+	art::Utilities
+	canvas::canvas
+	messagefacility::MF_MessageLogger
 
-	${FHICLCPP}
-	cetlib cetlib_except
-	${ROOT_GEOM}
-	${ROOT_XMLIO}
-	${ROOT_GDML}
-	${ROOT_EG}
+	fhiclcpp::fhiclcpp
+	cetlib::cetlib cetlib_except
+	ROOT::Geom
+	ROOT::XMLIO
+	ROOT::Gdml
+	ROOT::EG
 	${ROOT_BASIC_LIB_LIST}
 )
 

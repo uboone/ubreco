@@ -4,8 +4,8 @@ art_make( BASENAME_ONLY
    	      LIBRARY_NAME     ubreco_PandoraEventBuildingFlashID_HitCosmicTag_Base
 	      LIB_LIBRARIES
 	      ${ROOT_BASIC_LIB_LIST}
-	      ${FHICLCPP}
-              cetlib cetlib_except
+	      fhiclcpp::fhiclcpp
+              cetlib::cetlib cetlib_except
 	    )
 install_headers()
 install_source()

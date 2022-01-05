@@ -27,8 +27,6 @@ art_make( BASENAME_ONLY
 			ubevt::SignalShapingServiceMicroBooNE_service
 			lardataobj_AnalysisBase
       			nusimdata::SimulationBase
-      			${LARRECO_LIB}
-      			${LARDATA_LIB}
       			art::Framework_Core
 			art::Framework_Principal
 			art::Framework_Services_Registry
@@ -52,7 +50,7 @@ art_make( BASENAME_ONLY
 			ROOT::EG
 			SQLite::SQLite3
 			CRY::CRY
-			IFDH
+			ifdh::ifdh
 )
 
 install_fhicl()

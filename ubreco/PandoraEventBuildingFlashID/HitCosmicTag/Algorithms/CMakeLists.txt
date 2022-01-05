@@ -7,18 +7,16 @@ art_make( BASENAME_ONLY
     	    LIBRARY_NAME     ubreco_PandoraEventBuildingFlashID_HitCosmicTag_Algorithms
 	        LIB_LIBRARIES
                            ubreco_PandoraEventBuildingFlashID_HitCosmicTag_Base
-			   ${ART_FRAMEWORK_CORE}
-   		           ${ART_FRAMEWORK_PRINCIPAL}
-		           ${ART_FRAMEWORK_BASIC}
-                           ${ART_FRAMEWORK_SERVICES_REGISTRY}
-   		           ${ART_FRAMEWORK_SERVICES_OPTIONAL}
-     		           ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-     		           ${ART_PERSISTENCY_COMMON}
-                           ${ART_PERSISTENCY_PROVENANCE}
-                           ${ART_UTILITIES}
+			   art::Framework_Core
+   		           art::Framework_Principal
+                           art::Framework_Services_Registry
+     		           
+     		           art::Persistency_Common
+                           art::Persistency_Provenance
+                           art::Utilities
                            ${ROOT_BASIC_LIB_LIST}
-                           ${FHICLCPP}
-                           cetlib cetlib_except
+                           fhiclcpp::fhiclcpp
+                           cetlib::cetlib cetlib_except
 	      )
 
 install_headers()

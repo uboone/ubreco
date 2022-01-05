@@ -1,6 +1,6 @@
 art_make(
 	  LIB_LIBRARIES
-			art_Framework_Core
+			art::Framework_Core
 			art::Framework_Services_Registry
 			art::Framework_Principal art::Framework_Core
 			larcorealg_Geometry lardataobj_RecoBase
