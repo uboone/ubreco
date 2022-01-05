@@ -1,5 +1,3 @@
-#cet_find_library( CRY NAMES CRY PATHS ENV CRY_LIB NO_DEFAULT_PATH ) 
-include_directories ( $ENV{CRYHOME}/src )
 
 art_make(
 	  LIB_LIBRARIES
