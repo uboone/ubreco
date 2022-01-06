@@ -10,7 +10,8 @@ art_make(
 			lardata_Utilities # added now
 		   	#uboone_Geometry
 			larcore_Geometry_Geometry_service
-			art::Utilities canvas::canvas
+			art::Utilities
+                        canvas::canvas
                         messagefacility::MF_MessageLogger
                         
                         cetlib::cetlib

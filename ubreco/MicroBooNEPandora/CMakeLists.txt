@@ -12,9 +12,10 @@ art_make( BASENAME_ONLY
                         art::Framework_Services_Registry
                         art_root_io::tfile_support ROOT::Core
                         art_root_io::TFileService_service
-                        art::Persistency_Common canvas
-                        art::Persistency_Provenance canvas
-                        art::Utilities canvas
+                        art::Persistency_Common
+                        art::Persistency_Provenance
+                        art::Utilities
+                        canvas::canvas
                         messagefacility::MF_MessageLogger
                         fhiclcpp::fhiclcpp
                         cetlib::cetlib

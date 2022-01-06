@@ -9,7 +9,8 @@ art_make(
                         larcore_Geometry_Geometry_service
                         lardata_Utilities
                         larreco_Calorimetry
-                        art::Utilities canvas::canvas
+                        art::Utilities
+                        canvas::canvas
                         messagefacility::MF_MessageLogger
                         
                         cetlib::cetlib

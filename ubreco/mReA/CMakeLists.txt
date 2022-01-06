@@ -22,9 +22,10 @@ art_make(
     art::Framework_Core
     art::Framework_Principal
     art::Framework_Services_Registry
-    art::Persistency_Common canvas
-    art::Persistency_Provenance canvas
-    art::Utilities canvas
+    art::Persistency_Common
+    art::Persistency_Provenance
+    art::Utilities
+    canvas::canvas
     messagefacility::MF_MessageLogger
     fhiclcpp::fhiclcpp
     cetlib::cetlib 

@@ -7,7 +7,9 @@ art_make(
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
                         lardataalg_DetectorInfo
-			art::Utilities canvas messagefacility::MF_MessageLogger
+			art::Utilities
+                        canvas::canvas
+                        messagefacility::MF_MessageLogger
 			art::Framework_Services_Registry
 			art_root_io::tfile_support
                         ROOT::Core

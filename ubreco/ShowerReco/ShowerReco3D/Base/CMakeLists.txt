@@ -4,7 +4,8 @@ art_make(
 			larcorealg_Geometry
 		   	larcorealg_Geometry
 			larcore_Geometry_Geometry_service
-			art::Utilities canvas::canvas
+			art::Utilities
+                        canvas::canvas
                         messagefacility::MF_MessageLogger
                         
                         cetlib::cetlib
