@@ -6,14 +6,16 @@ art_make(
 			art::Utilities canvas::canvas
 			messagefacility::MF_MessageLogger
 
-			cetlib::cetlib cetlib_except
+			cetlib::cetlib
+                        cetlib_except::cetlib_except
 
           MODULE_LIBRARIES
 			ubreco_wcopreco_data
 			ubreco_wcopreco_deconv
 			ubreco_wcopreco_algo
 			ubreco_wcopreco_app
-			cetlib::cetlib cetlib_except
+			cetlib::cetlib
+                        cetlib_except::cetlib_except
 			CLHEP::CLHEP
                         ROOT::Geom
                         ROOT::XMLIO

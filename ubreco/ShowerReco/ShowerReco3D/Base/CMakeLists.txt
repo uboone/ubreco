@@ -7,7 +7,8 @@ art_make(
 			art::Utilities canvas::canvas
                         messagefacility::MF_MessageLogger
                         
-                        cetlib::cetlib cetlib_except::cetlib_except
+                        cetlib::cetlib
+                        cetlib_except::cetlib_except
 
 		   	art::Framework_Services_Registry
 		   	art_root_io::tfile_support ROOT::Core
@@ -36,7 +37,8 @@ art_make(
 			  messagefacility::MF_MessageLogger
 			  
 			  fhiclcpp::fhiclcpp
-			  cetlib::cetlib cetlib_except::cetlib_except
+			  cetlib::cetlib
+                          cetlib_except::cetlib_except
 			  Boost::filesystem
                           CLHEP::CLHEP
 
