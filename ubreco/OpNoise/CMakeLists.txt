@@ -1,6 +1,4 @@
 
-include_directories ( $ENV{G4INCLUDE} )
-
 art_make(  
           MODULE_LIBRARIES  larsim_Simulation 
 			    lardataobj_Simulation
@@ -16,13 +14,11 @@ art_make(
 			    art::Framework_Core
 			    art::Framework_Principal
 			    art::Framework_Services_Registry
-			    
 			    art::Framework_Services_Optional_RandomNumberGenerator_service
 			    art::Persistency_Common canvas
 			    art::Persistency_Provenance canvas
 			    art::Utilities
 			    messagefacility::MF_MessageLogger
-			    
 			    fhiclcpp::fhiclcpp
 			    CLHEP::CLHEP
 			    larreco_RecoAlg

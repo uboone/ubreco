@@ -1,16 +1,10 @@
 
 # where should the scripts/..xml file be installed?  Perhaps in bin?
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
-
-include_directories( $ENV{PANDORA_INC} )
-include_directories( $ENV{LARPANDORA_INC} )
-include_directories( $ENV{LARPANDORACONTENT_INC} )
-
 art_make( BASENAME_ONLY
           LIBRARY_NAME  MicroBooNEPandora
           LIB_LIBRARIES larpandora_LArPandoraInterface
-                        ${LARPANDORACONTENT}
+                        LArPandoraContent
                         PandoraSDK
                         PandoraMonitoring
                         art::Framework_Core
@@ -23,9 +17,9 @@ art_make( BASENAME_ONLY
                         art::Utilities canvas
                         messagefacility::MF_MessageLogger
                         fhiclcpp::fhiclcpp
-                        cetlib::cetlib cetlib_except
+                        cetlib::cetlib
+                        cetlib_except::cetlib_except
                         ROOT::Geom
-                        
           MODULE_LIBRARIES MicroBooNEPandora
           )
 

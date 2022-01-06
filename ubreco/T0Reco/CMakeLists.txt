@@ -1,13 +1,11 @@
-#cet_find_library( CRY NAMES CRY PATHS ENV CRY_LIB NO_DEFAULT_PATH ) 
-include_directories ( $ENV{CRYHOME}/src )
 
 art_make(
 	  LIB_LIBRARIES
 			art::Framework_Core
 			art::Utilities canvas::canvas
 			messagefacility::MF_MessageLogger
-
-			cetlib::cetlib cetlib_except
+	                cetlib::cetlib
+                        cetlib_except::cetlib_except
 
           MODULE_LIBRARIES
                         ubevt_Utilities
@@ -34,9 +32,9 @@ art_make(
 			art::Persistency_Provenance canvas::canvas
 			art::Utilities canvas::canvas
 			messagefacility::MF_MessageLogger
-
 	                fhiclcpp::fhiclcpp
-			cetlib::cetlib cetlib_except
+	                cetlib::cetlib
+                        cetlib_except::cetlib_except
 			CLHEP::CLHEP
                         ROOT::Geom
                         ROOT::XMLIO

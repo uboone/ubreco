@@ -4,9 +4,8 @@ art_make(
 			art::Framework_Core
 			art::Utilities canvas
 			messagefacility::MF_MessageLogger
-			
-			cetlib::cetlib cetlib_except
-                        
+			cetlib::cetlib
+                        cetlib_except                        
 			ROOT::Hist
           MODULE_LIBRARIES 
 			larcorealg_Geometry
@@ -23,14 +22,14 @@ art_make(
 			art::Framework_Principal
 			art::Framework_Services_Registry
 			art::Framework_Services_Optional_RandomNumberGenerator_service
-			
 			art::Persistency_Common canvas
 			art::Persistency_Provenance canvas
 			art::Utilities canvas
 			messagefacility::MF_MessageLogger
                         ubevt_Utilities						
 	                fhiclcpp::fhiclcpp
-			cetlib::cetlib cetlib_except
+			cetlib::cetlib
+                        cetlib_except::cetlib_except
 			CLHEP::CLHEP
                         ROOT::Geom
                         ROOT::XMLIO

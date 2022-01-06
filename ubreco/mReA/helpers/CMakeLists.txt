@@ -23,7 +23,6 @@ art_make(
     art::Framework_Core
     art::Framework_Principal
     art::Framework_Services_Registry
-    
     art::Persistency_Common canvas
     art::Persistency_Provenance canvas
     art::Utilities canvas
@@ -34,7 +33,6 @@ art_make(
     ROOT::Geom
     ROOT::XMLIO
     ROOT::Gdml
-    
   )
 
 install_headers()

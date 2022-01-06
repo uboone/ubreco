@@ -10,15 +10,14 @@ art_make( MODULE_LIBRARIES larcorealg_Geometry
 	art::Framework_Core
 	art::Framework_Principal
 	art::Framework_Services_Registry
-	
 	art::Persistency_Common
 	art::Persistency_Provenance
 	art::Utilities
 	canvas::canvas
 	messagefacility::MF_MessageLogger
-
 	fhiclcpp::fhiclcpp
-	cetlib::cetlib cetlib_except
+	cetlib::cetlib
+        cetlib_except::cetlib_except
 	ROOT::Geom
 	ROOT::XMLIO
 	ROOT::Gdml

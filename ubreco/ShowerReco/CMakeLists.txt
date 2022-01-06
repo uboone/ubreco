@@ -2,10 +2,11 @@
 art_make(
 	  LIB_LIBRARIES
 			art::Framework_Core
-			art::Utilities canvas::canvas
+			art::Utilities
+                        canvas::canvas
 			messagefacility::MF_MessageLogger
-			
-			cetlib::cetlib cetlib_except
+			cetlib::cetlib
+                        cetlib_except::cetlib_except
                    	#larpandora_LArPandoraInterface
 
           MODULE_LIBRARIES
@@ -30,9 +31,9 @@ art_make(
 			art::Persistency_Provenance canvas::canvas
 			art::Utilities canvas::canvas
 			messagefacility::MF_MessageLogger
-			
 	                fhiclcpp::fhiclcpp
-			cetlib::cetlib cetlib_except
+			cetlib::cetlib
+                        cetlib_except::cetlib_except
 			CLHEP::CLHEP
                         ROOT::Geom
                         ROOT::XMLIO

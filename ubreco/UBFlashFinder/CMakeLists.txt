@@ -1,5 +1,3 @@
-include_directories( $ENV{EIGEN_INC} )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
 include_directories(../wcopreco/data)
 include_directories(../wcopreco/deconv)
 include_directories(../wcopreco/algo)
@@ -15,7 +13,6 @@ art_make( BASENAME_ONLY
                    lardataobj_RecoBase
                    art::Framework_Core
                    art::Framework_Principal
-
                    art::Framework_Services_Registry
                    art_root_io::tfile_support ROOT::Core
                    art_root_io::TFileService_service
@@ -24,7 +21,8 @@ art_make( BASENAME_ONLY
                    art::Utilities canvas::canvas
                    messagefacility::MF_MessageLogger
                    fhiclcpp::fhiclcpp
-                   cetlib::cetlib cetlib_except
+                   cetlib::cetlib
+                   cetlib_except::cetlib_except
                    ROOT::Geom
                    ROOT::XMLIO
                    ROOT::Gdml
@@ -50,7 +48,8 @@ art_make( BASENAME_ONLY
                    art::Utilities canvas::canvas
                    messagefacility::MF_MessageLogger
                    fhiclcpp::fhiclcpp
-                   cetlib::cetlib cetlib_except
+                   cetlib::cetlib
+                   cetlib_except::cetlib_except
                    ROOT::Geom
                    ROOT::XMLIO
                    ROOT::Gdml

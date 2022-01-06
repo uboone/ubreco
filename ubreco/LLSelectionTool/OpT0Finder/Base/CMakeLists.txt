@@ -4,15 +4,14 @@ art_make( BASENAME_ONLY
 	  ubana_BasicTool_GeoAlgo
 	  fhiclcpp::fhiclcpp
 	  art::Utilities
-          cetlib::cetlib cetlib_except
-
+          cetlib::cetlib
+          cetlib_except::cetlib_except
 	larcorealg_Geometry
 	larcore_Geometry_Geometry_service
 	lardataalg_DetectorInfo
 	art::Framework_Core
 	art::Framework_Principal
 	art::Framework_Services_Registry
-	
 	art::Framework_Services_Registry
 	art::Persistency_Common
 	art::Persistency_Provenance

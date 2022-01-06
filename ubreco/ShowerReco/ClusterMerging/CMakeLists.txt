@@ -3,7 +3,6 @@ art_make(
                         art::Framework_Core
                         art::Utilities canvas::canvas
                         messagefacility::MF_MessageLogger
-                        
                         cetlib::cetlib
                         larcorealg_Geometry
                         lardata_Utilities
@@ -33,7 +32,6 @@ art_make(
                         art::Persistency_Provenance
                         art::Utilities canvas::canvas
                         messagefacility::MF_MessageLogger
-                        
                         fhiclcpp::fhiclcpp
                         cetlib::cetlib
                         CLHEP::CLHEP

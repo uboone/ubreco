@@ -14,22 +14,18 @@ MODULE_LIBRARIES
 	art::Framework_Core
 	art::Framework_Principal
 	art::Framework_Services_Registry
-	
 	art::Persistency_Common
 	art::Persistency_Provenance
 	art::Utilities
 	canvas::canvas
 	messagefacility::MF_MessageLogger
-
-	fhiclcpp::fhiclcpp
-	cetlib::cetlib cetlib_except
 	ROOT::Geom
 	ROOT::XMLIO
 	ROOT::Gdml
 	ROOT::EG
 )
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
+#include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
 
 add_subdirectory(Check)
 add_subdirectory(job)

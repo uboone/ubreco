@@ -1,5 +1,3 @@
-include_directories( $ENV{PANDORA_INC} )
-include_directories( $ENV{LARPANDORACONTENT_INC} )
 
 cet_find_library( PANDORASDK NAMES PandoraSDK PATHS ENV PANDORA_LIB NO_DEFAULT_PATH)
 
@@ -20,7 +18,6 @@ art_make(
 			larcore_Geometry_Geometry_service
 			art::Utilities canvas::canvas
                         messagefacility::MF_MessageLogger
-                        
                         cetlib::cetlib cetlib_except::cetlib_except
 		   	art::Framework_Services_Registry
 		   	art_root_io::tfile_support ROOT::Core
@@ -53,7 +50,6 @@ art_make(
 			  art::Utilities
 			  canvas::canvas
 			  messagefacility::MF_MessageLogger
-			  
 			  fhiclcpp::fhiclcpp
 			  cetlib::cetlib cetlib_except::cetlib_except
 			  ROOT::Geom

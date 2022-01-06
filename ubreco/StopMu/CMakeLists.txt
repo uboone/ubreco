@@ -1,20 +1,12 @@
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
-include_directories( $ENV{NUTOOLS_INC} )
-cet_find_library( SQLITE3 NAMES sqlite3 PATHS ENV NO_DEFAULT_PATH )
-#cet_find_library( CRY NAMES CRY PATHS ENV CRY_LIB NO_DEFAULT_PATH )
-cet_find_library( IFDH NAMES ifdh PATHS ENV IFDHC_LIB NO_DEFAULT_PATH )
-include_directories ( $ENV{CRYHOME}/src )
-include_directories( $ENV{IFDHC_FQ_DIR}/inc )
 
 art_make(	
 	  LIB_LIBRARIES
 			art::Framework_Core
 			art::Utilities canvas
 			messagefacility::MF_MessageLogger
-			
-			cetlib::cetlib cetlib_except
+			cetlib::cetlib
+                        cetlib_except::cetlib_except
                    	#larpandora_LArPandoraInterface	
-                        
 			larcorealg_Geometry
 			lardata_Utilities
 			lardataobj_RecoBase
@@ -45,14 +37,13 @@ art_make(
 			art::Framework_Principal
 			art::Framework_Services_Registry
 			art::Framework_Services_Optional_RandomNumberGenerator_service
-			
 			art::Persistency_Common canvas
 			art::Persistency_Provenance canvas
 			art::Utilities canvas
 			messagefacility::MF_MessageLogger
-			
 	                fhiclcpp::fhiclcpp
-			cetlib::cetlib cetlib_except
+			cetlib::cetlib
+                        cetlib_except::cetlib_except
 			CLHEP::CLHEP
 			ROOT::Physics
       			ROOT::Geom

@@ -1,5 +1,3 @@
-include_directories( $ENV{PANDORA_INC} )
-include_directories( $ENV{LARPANDORACONTENT_INC} )
 
 add_subdirectory(job)
 add_subdirectory(HitCosmicTag)
@@ -28,15 +26,14 @@ art_make(         TOOL_LIBRARIES
                         art::Framework_Core
                         art::Framework_Principal
                         art::Framework_Services_Registry
-                        
                         art::Persistency_Common
                         art::Persistency_Provenance
                         art::Utilities
                         canvas::canvas
                         messagefacility::MF_MessageLogger
                         fhiclcpp::fhiclcpp
-                        cetlib::cetlib cetlib_except
-                        
+                        cetlib::cetlib
+                        cetlib_except::cetlib_except
                         Boost::filesystem
                         ROOT::Geom
                         ubreco_SelectionTool_OpT0FinderBase
@@ -62,14 +59,13 @@ art_make(         TOOL_LIBRARIES
 			art::Framework_Principal
 			art::Framework_Services_Registry
 			art::Framework_Services_Optional_RandomNumberGenerator_service
-			
 			art::Persistency_Common canvas
 			art::Persistency_Provenance canvas
 			art::Utilities canvas
 			messagefacility::MF_MessageLogger
-			
 	                fhiclcpp::fhiclcpp
-			cetlib::cetlib cetlib_except
+                        cetlib::cetlib
+                        cetlib_except::cetlib_except
 			CLHEP::CLHEP
                         ROOT::Geom
                         ROOT::XMLIO
