@@ -25,7 +25,6 @@ art_make(
 			    
 			    fhiclcpp::fhiclcpp
 			    CLHEP::CLHEP
-			    ${G4_LIB_LIST}
 			    larreco_RecoAlg
 			    larreco_RecoAlg_ClusterRecoUtil
 			    larreco_ClusterFinder
