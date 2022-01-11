@@ -7,7 +7,7 @@ art_make( BASENAME_ONLY
 			  ubcore::ubana_BasicTool_GeoAlgo
 			  ubreco_SelectionTool_OpT0FinderBase
 			  ubobj_Trigger
-                          UBOpReadoutMap_service
+                          ubcore::UBOpReadoutMap_service
   		          art::Framework_Core
    		          art::Framework_Principal
                           art::Framework_Services_Registry
