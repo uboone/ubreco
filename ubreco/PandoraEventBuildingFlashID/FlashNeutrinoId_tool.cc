@@ -295,7 +295,6 @@ void FlashNeutrinoId::FillSliceTree(const art::Event &evt, const SliceVector &sl
       art::Handle< std::vector<simb::MCTruth> > mcTruthHandle;
       evt.getByLabel(m_truthLabel, mcTruthHandle);
       if (mcTruthHandle.isValid()) {
-	art::Ptr<simb::MCTruth> beamNuMCTruth;   
 	for (unsigned int i = 0; i < mcTruthHandle->size(); ++i)
 	  {
 	    const art::Ptr<simb::MCTruth> mcTruth(mcTruthHandle, i);
