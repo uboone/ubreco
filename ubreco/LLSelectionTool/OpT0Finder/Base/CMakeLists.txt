@@ -1,7 +1,7 @@
 art_make( BASENAME_ONLY
    	  LIBRARY_NAME     ubreco_SelectionTool_OpT0FinderBase
 	  LIB_LIBRARIES
-	  ubana_BasicTool_GeoAlgo
+	  ubcore::ubana_BasicTool_GeoAlgo
 	  fhiclcpp::fhiclcpp
 	  art::Utilities
           cetlib::cetlib
