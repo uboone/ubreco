@@ -242,11 +242,11 @@ if(f_BDTport){
   float shw_sp_n_br3_showers;
   float shw_sp_n_br4_showers;
   float shw_sp_n_20br1_showers;
-  std::vector<int> *shw_sp_20mev_showers;
-  std::vector<int> *shw_sp_br1_showers;
-  std::vector<int> *shw_sp_br2_showers;
-  std::vector<int> *shw_sp_br3_showers;
-  std::vector<int> *shw_sp_br4_showers;
+  std::vector<int> *shw_sp_20mev_showers = new std::vector<int>;
+  std::vector<int> *shw_sp_br1_showers = new std::vector<int>;
+  std::vector<int> *shw_sp_br2_showers = new std::vector<int>;
+  std::vector<int> *shw_sp_br3_showers = new std::vector<int>;
+  std::vector<int> *shw_sp_br4_showers = new std::vector<int>;
   float shw_sp_shw_vtx_dis;
   float shw_sp_max_shw_dis;
   tree3->SetBranchAddress("shw_sp_num_mip_tracks",&shw_sp_num_mip_tracks);
@@ -692,19 +692,19 @@ if(f_BDTport){
 
 
   float shw_sp_lol_flag;
-  std::vector<float> *shw_sp_lol_1_v_flag= new std::vector<float>;
+  std::vector<float> *shw_sp_lol_1_v_flag = new std::vector<float>;
   std::vector<float> *shw_sp_lol_1_v_energy = new std::vector<float>;
-  std::vector<float> *shw_sp_lol_1_v_vtx_n_segs= new std::vector<float>;
-  std::vector<float> *shw_sp_lol_1_v_nseg= new std::vector<float>;
-  std::vector<float> *shw_sp_lol_1_v_angle= new std::vector<float>;
+  std::vector<float> *shw_sp_lol_1_v_vtx_n_segs = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_1_v_nseg = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_1_v_angle = new std::vector<float>;
   std::vector<float> *shw_sp_lol_2_v_flag = new std::vector<float>;
-  std::vector<float> *shw_sp_lol_2_v_length= new std::vector<float>;
-  std::vector<float> *shw_sp_lol_2_v_angle= new std::vector<float>;
-  std::vector<float> *shw_sp_lol_2_v_type= new std::vector<float>;
-  std::vector<float> *shw_sp_lol_2_v_vtx_n_segs= new std::vector<float>;
-  std::vector<float> *shw_sp_lol_2_v_energy= new std::vector<float>;
-  std::vector<float> *shw_sp_lol_2_v_shower_main_length= new std::vector<float>;
-  std::vector<float> *shw_sp_lol_2_v_flag_dir_weak= new std::vector<float>;
+  std::vector<float> *shw_sp_lol_2_v_length = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_2_v_angle = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_2_v_type = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_2_v_vtx_n_segs = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_2_v_energy = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_2_v_shower_main_length = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_2_v_flag_dir_weak = new std::vector<float>;
   float shw_sp_lol_3_flag;
   float shw_sp_lol_3_angle_beam;
   float shw_sp_lol_3_n_valid_tracks;
