@@ -1,0 +1,80 @@
+#include "services_microboone.fcl"
+#include "triggeralgo_service.fcl"
+#include "gaushitproximity.fcl"
+#include "cosmicfilter.fcl"
+
+process_name: CosmicHitFilter
+
+services:
+{
+  scheduler:               { defaultExceptions: false }    # Make all uncaught exceptions fatal.
+  TFileService:            { fileName: "hist_%p_%tc.root" }
+                            @table::microboone_services_reco
+  DetectorProperties:       @local::microboone_detproperties
+  DetectorClocksService:    @local::microboone_detectorclocks
+  Geometry:                 @local::microboone_geo
+  LArProperties:            @local::microboone_properties
+  #ExptGeoHelperInterface:   @local::microboone_geometry_helper
+  #FileCatalogMetadata:      @local::art_file_catalog_mc
+  #message:                  @local::microboone_message_services_prod_debug
+                            #@table::microboone_simulation_services
+}
+
+# The following overrides are necessary to handle the truncation of RawDigits from
+# 9600 ticks to 6400 ticks (which happens at reco1).
+services.DetectorPropertiesService.NumberTimeSamples:        6400
+services.DetectorPropertiesService.ReadOutWindowSize:        6400
+services.DetectorPropertiesService.TimeOffsetU:              0.
+services.DetectorPropertiesService.TimeOffsetV:              -4.539
+services.DetectorPropertiesService.TimeOffsetZ:              -7.782
+services.DetectorClocksService.InheritClockConfig:           false
+services.DetectorClocksService.TriggerOffsetTPC:             -400
+
+source:
+{
+  module_type: RootInput
+  maxEvents:   -1 
+}
+
+physics:
+{
+
+  producers:
+  {
+    cosmicfilter     : @local::CosmicFilter
+    gaushitproximity : @local::GausHitProximity
+  }
+
+  reco:           [ cosmicfilter, gaushitproximity ]
+  trigger_paths:  [ reco ]
+  stream1:        [ out1 ]
+  end_paths:      [ stream1 ]
+
+}
+
+outputs:
+{
+  out1:
+  {
+    module_type: RootOutput
+    fileName:    "%ifb_%tc_%p.root"
+    dataTier:    "reconstructed"
+    fastCloning: false
+    compressionLevel: 1
+    #SelectEvents: [reco]
+  }
+}
+
+physics.producers.cosmicfilter.VtxProducer:   ""
+physics.producers.cosmicfilter.HitProducer:   "gaushit"
+physics.producers.cosmicfilter.TrkProducer:   "pandora"
+physics.producers.cosmicfilter.CluProducer:   "pandora"
+physics.producers.cosmicfilter.PFPProducer:   "pandora"
+physics.producers.cosmicfilter.MinTrkLength:  15
+physics.producers.cosmicfilter.VetoRadius:    150
+physics.producers.cosmicfilter.IPmin:         10
+
+physics.producers.gaushitproximity.HitProducer: "cosmicfilter"
+physics.producers.gaushitproximity.VtxProducer: ""
+physics.producers.gaushitproximity.BeamDriftTickMin: 780
+physics.producers.gaushitproximity.BeamDriftTickMax: 5500
