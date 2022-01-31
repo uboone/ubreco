@@ -1,0 +1,46 @@
+#
+# This fhicl takes an input ArtROOT file containing reconstructed events
+# and outputs a file with the raw::Digit and recob::Wire objects dropped
+# to save a considerable amount of disk space. Add this as the final fcl 
+# in your grid reco stage if you only intend to access the higher-level 
+# objects like hits, tracks, and showers for your analysis.
+#
+
+#include "services_microboone.fcl"
+
+process_name: DropWaveforms
+
+services:
+{
+  scheduler:    { defaultExceptions: false }    # Make all uncaught exceptions fatal.
+  message:      @local::standard_warning
+}
+
+source:
+{
+  module_type: RootInput
+  maxEvents:  10        # Number of events to create
+}
+
+physics:
+{
+ stream1:     [ out1 ]
+ end_paths:   [ stream1 ]  
+}
+
+outputs:
+{
+ out1:
+ {
+   module_type: RootOutput
+   fileName:    "%ifb_%p.root"
+   dataTier:    "reconstructed"
+   outputCommands:  [
+    "keep *_*_*_*",  
+    "drop recob::Wires_*_*_*",
+    "drop raw::RawDigits_*_*_*",
+    "drop raw::OpDetWaveforms_*_*_*"
+   ]
+   compressionLevel: 1
+ }
+}

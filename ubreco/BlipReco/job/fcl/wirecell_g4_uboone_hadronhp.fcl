@@ -1,0 +1,6 @@
+#include "wirecell_g4_uboone.fcl"
+
+# Use QGSP_BERT_HP physics list
+#physics.producers.largeant.G4PhysListName:      "QGSP_BERT_HP" #<-- not needed; "HadronHP" in EnabledPhysics turns this list on
+services.LArG4Parameters.EnabledPhysics:        [ "Em", "FastOptical", "SynchrotronAndGN", "Ion", "HadronHP", "Decay", "HadronElastic", "Stopping" ]
+#services.LArG4Parameters.KeepEMShowerDaughters: true
