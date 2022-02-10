@@ -1,0 +1,39 @@
+#include "services_microboone.fcl"
+
+process_name: KeepEssentials
+
+services:
+{
+  scheduler:    { defaultExceptions: false }    # Make all uncaught exceptions fatal.
+  message:      @local::standard_warning
+}
+
+source:
+{
+  module_type: RootInput
+  maxEvents:  -1        # Number of events to create
+}
+
+physics:
+{
+ stream1:     [ out1 ]
+ end_paths:   [ stream1 ]  
+}
+
+outputs:
+{
+ out1:
+ {
+   module_type: RootOutput
+   fileName:    "%ifb_%p.root"
+   dataTier:    "reconstructed"
+   compressionLevel: 1
+   outputCommands:  [
+    "drop *_*_*_*"
+    ,"keep *_pandora_*_*"
+    ,"keep *_cosmicfilter_*_*"
+    ,"keep *_gaushitproximity_*_*"
+   ]
+
+ }
+}

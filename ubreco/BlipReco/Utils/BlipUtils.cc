@@ -4,7 +4,20 @@ const float rmsWidthFact        = 1.0;
 
 namespace BlipUtils {
  
-  
+
+  //============================================================================
+  void InitializeUtils() {
+    //auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+    auto const* detClock = lar::providerFrom<detinfo::DetectorClocksService>();
+    auto const clockData = detClock->TPCClock();
+    fTickPeriod = clockData.TickPeriod();
+    std::cout
+    <<"##################################################################\n"
+    <<" Initializing BlipUtils\n\n"
+    <<" Tick period: "<<fTickPeriod<<"\n"
+    <<"##################################################################\n";
+  }
+
   //============================================================================
   // Find total visible energy deposited in the LAr, and number of electrons drifted
   // to wires, by looking at the SimChannels for all three planes
@@ -273,33 +286,37 @@ namespace BlipUtils {
  
   //=================================================================
   HitClust MakeHitClust(HitInfo const& hitinfo){
-    art::Ptr<recob::Hit> hit = hitinfo.hit;
+    //art::Ptr<recob::Hit> hit = hitinfo.hit;
     HitClust hc;
-    hc.LeadHit      = hit;
-    hc.TPC          = hit->WireID().TPC;
-    hc.Plane        = hit->WireID().Plane;
+    hc.LeadHit      = hitinfo.hit;
+    //hc.LeadHitWire  = hitinfo.hit->WireID().Wire;
+    //hc.LeadHitPH    = hitinfo.hit->PeakAmplitude();
+    //hc.LeadHitRMS   = hitinfo.hit->RMS();
+    hc.LeadHitCharge= hitinfo.qcoll;
+    hc.LeadHitID    = hitinfo.hitid;
+    hc.LeadHitTime  = hitinfo.driftTicks;
+    hc.TPC          = hitinfo.hit->WireID().TPC;
+    hc.Plane        = hitinfo.hit->WireID().Plane;
     hc.G4ID         = hitinfo.g4id;
     hc.G4IDs        .insert(hitinfo.g4ids.begin(), hitinfo.g4ids.end());
     hc.HitIDs       .insert(hitinfo.hitid);
-    hc.Wires        .insert(hit->WireID().Wire);
-    hc.LeadHitWire  = hit->WireID().Wire;
+    hc.Wires        .insert(hitinfo.hit->WireID().Wire);
     hc.Charge       = hitinfo.qcoll;
-    hc.LeadHitCharge= hc.Charge;
-    hc.mapWireCharge[hit->WireID().Wire] = hitinfo.qcoll;
+    hc.mapWireCharge[hitinfo.hit->WireID().Wire] = hitinfo.qcoll;
     hc.mapTimeCharge[hitinfo.driftTicks] = hitinfo.qcoll;
-    hc.LeadHitTime  = hitinfo.driftTicks;
     hc.Time         = hitinfo.driftTicks;
     hc.WeightedTime = hitinfo.driftTicks;
-    hc.StartTime    = hitinfo.driftTicks - hit->RMS();
-    hc.EndTime      = hitinfo.driftTicks + hit->RMS();
-    hc.StartWire    = hc.LeadHitWire;
-    hc.EndWire      = hc.LeadHitWire;
+    hc.TimeErr      = hitinfo.hit->RMS();
+    hc.StartTime    = hitinfo.driftTicks - hitinfo.hit->RMS();
+    hc.EndTime      = hitinfo.driftTicks + hitinfo.hit->RMS();
+    hc.StartWire    = hitinfo.hit->WireID().Wire; //LeadHitWire;
+    hc.EndWire      = hitinfo.hit->WireID().Wire; //hc.LeadHitWire;
     hc.isValid      = true;
     hc.isMerged     = false;
     hc.isMatched    = false;
     //auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
     //hc.XPos         = detProp->ConvertTicksToX(hc.LeadHit->PeakTime(),hc.Plane,hc.TPC,0);
-    hc.XPos         = ConvertTicksToX(hc.LeadHit->PeakTime(),hc.Plane,hc.TPC,0);
+    //hc.XPos         = ConvertTicksToX(hc.LeadHit->PeakTime(),hc.Plane,hc.TPC,0);
     return hc;
   }
 
@@ -309,6 +326,8 @@ namespace BlipUtils {
     if( (int)hit->WireID().TPC   != hc.TPC ) return;
     if( (int)hit->WireID().Plane != hc.Plane ) return;
     if( hc.HitIDs.find(hitinfo.hitid) != hc.HitIDs.end() ) return;
+    float q1      = hc.Charge;
+    float q2      = hitinfo.qcoll;
     hc.G4IDs      .insert(hitinfo.g4ids.begin(), hitinfo.g4ids.end());
     hc.HitIDs     .insert(hitinfo.hitid);
     hc.Wires      .insert(hit->WireID().Wire);
@@ -318,25 +337,39 @@ namespace BlipUtils {
     hc.mapWireCharge[hit->WireID().Wire] += hitinfo.qcoll;
     hc.mapTimeCharge[hitinfo.driftTicks] += hitinfo.qcoll;
     if( hitinfo.qcoll > hc.LeadHitCharge ) {
-      hc.LeadHit = hit;
-      hc.LeadHitCharge = hitinfo.qcoll;
-      if( hitinfo.g4id >= 0 ) 
-        hc.G4ID = hitinfo.g4id;
-      hc.LeadHitTime = hitinfo.driftTicks;
-      hc.LeadHitWire = hitinfo.hit->WireID().Wire;
+      hc.LeadHit      = hit;
+      hc.LeadHitID    = hitinfo.hitid;
+      hc.LeadHitCharge= hitinfo.qcoll;
+      hc.LeadHitTime  = hitinfo.driftTicks;
+      if( hitinfo.g4id >= 0 ) hc.G4ID = hitinfo.g4id;
     }
     hc.StartTime  = std::min(hc.StartTime,hitinfo.driftTicks - hit->RMS());
     hc.EndTime    = std::max(hc.EndTime,  hitinfo.driftTicks + hit->RMS());
     hc.Time       = (hc.StartTime+hc.EndTime)/2.;
     // recalculate charge-weighted time
+    /*
     hc.WeightedTime = 0;
-    for(auto const& tq : hc.mapTimeCharge ) hc.WeightedTime += (tq.first * tq.second)/hc.Charge;
-    auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    hc.XPos         = detProp->ConvertTicksToX(hc.LeadHit->PeakTime(),hc.Plane,hc.TPC,0);
+    hc.TimeErr      = 0;
+    float sumErrSquared = 0;
+    for(auto const& tq : hc.mapTimeCharge ) {
+      hc.WeightedTime += (tq.first * tq.second)/hc.Charge;
+      sumErrSquared   += (tq
+
+    }
+    */
+    float w1 = q1/(q1+q2);
+    float w2 = q2/(q1+q2);
+    hc.WeightedTime = w1*hc.WeightedTime + w2*hitinfo.driftTicks;
+    //hc.TimeErr      = sqrt( pow(q1*hc.TimeErr,2) + pow(q2*hitinfo.hit->RMS(),2) ) / (q1+q2);
+    hc.TimeErr      = w1*hc.TimeErr       + w2*hitinfo.hit->RMS();
+    //auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+    //hc.XPos         = detProp->ConvertTicksToX(hc.LeadHit->PeakTime(),hc.Plane,hc.TPC,0);
   }
 
   //=================================================================
   HitClust MergeHitClusts(HitClust& hc1, HitClust& hc2){
+    float q1      = hc1.Charge;
+    float q2      = hc2.Charge;
     HitClust hc = hc1;
     if( (hc1.TPC != hc2.TPC)||(hc1.Plane != hc2.Plane) ) return hc;
     hc1.isMerged = true;
@@ -350,19 +383,25 @@ namespace BlipUtils {
     hc.mapWireCharge.insert(hc2.mapWireCharge.begin(),hc2.mapWireCharge.end());
     hc.mapTimeCharge.insert(hc2.mapTimeCharge.begin(),hc2.mapTimeCharge.end());
     if( hc2.LeadHitCharge > hc.LeadHitCharge ) {
-      hc.LeadHit = hc2.LeadHit;
-      hc.LeadHitCharge = hc2.LeadHitCharge;
-      hc.LeadHitWire = hc2.LeadHitWire;
-      hc.LeadHitTime = hc2.LeadHitTime;
-      if( hc2.G4ID >= 0 ) 
-        hc.G4ID = hc2.G4ID;
+      hc.LeadHit      = hc2.LeadHit;
+      hc.LeadHitID    = hc2.LeadHitID;
+      hc.LeadHitCharge= hc2.LeadHitCharge;
+      hc.LeadHitTime  = hc2.LeadHitTime;
+      if( hc2.G4ID >= 0 ) hc.G4ID = hc2.G4ID;
     }
     hc.StartTime  = std::min(hc.StartTime,hc2.StartTime);
     hc.EndTime    = std::max(hc.EndTime,hc2.EndTime);
     hc.Time       = (hc.StartTime+hc.EndTime)/2.;
     // recalculate charge-weighted time
-    hc.WeightedTime = 0;
-    for(auto const& tq : hc.mapTimeCharge ) hc.WeightedTime += (tq.first * tq.second)/hc.Charge;
+    //hc.WeightedTime = 0;
+    //for(auto const& tq : hc.mapTimeCharge ) hc.WeightedTime += (tq.first * tq.second)/hc.Charge;
+    //hc.WeightedTime = (origCharge*hc.WeightedTime   + hitinfo.qcoll*hitinfo.driftTicks) / hc.Charge;
+    //hc.TimeErr      = sqrt( (origCharge*pow(hc.TimeErr,2) + hitinfo.qcoll*pow(hitinfo.hit->RMS(),2) ) / hc.Charge );
+    float w1 = q1/(q1+q2);
+    float w2 = q2/(q1+q2);
+    hc.WeightedTime = w1*hc1.WeightedTime + w2*hc2.WeightedTime;
+    hc.TimeErr      = w1*hc1.TimeErr       + w2*hc2.TimeErr;
+    //hc.TimeErr      = sqrt( w1*pow(w1*hc1.TimeErr,2) + pow(w2*hc2.TimeErr,2) );
     return hc;
   }
 
@@ -388,20 +427,20 @@ namespace BlipUtils {
 
     // Calculate mean time and X (assuming in-time deposition)
     auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    auto const* detClock = lar::providerFrom<detinfo::DetectorClocksService>();
-    auto const clockData = detClock->TPCClock();
-    float samplingPeriod = clockData.TickPeriod();
+    //auto const* detClock = lar::providerFrom<detinfo::DetectorClocksService>();
+    //auto const clockData = detClock->TPCClock();
+    //float samplingPeriod = clockData.TickPeriod();
     //std::cout<<"sampling period: " <<samplingPeriod<<" microseconds\n";
     float t = 0, x = 0;
     for(auto hc : hcs ) {
       //std::cout<<"...hitclust on pl "<<hc.Plane<<" with time "<<hc.Time<<"\n";
-      t += samplingPeriod * hc.Time/float(hcs.size());
+      t += fTickPeriod * hc.Time/float(hcs.size());
       //std::cout<<"converting PeakTime ticks ("<<hc.LeadHit->PeakTime()<<") to X\n";
       //std::cout<<"... peakTime "<<hc.LeadHit->PeakTime()<<", plane "<<hc.Plane<<" --> X = "<<detProp->ConvertTicksToX(hc.LeadHit->PeakTime(),hc.Plane,0,0)<<"\n";
       x += detProp->ConvertTicksToX(hc.LeadHit->PeakTime(),hc.Plane,TPC,0)/float(hcs.size());
       //x += ConvertTicksToX(hc.LeadHit->PeakTime(),hc.Plane,TPC,0)/float(hcs.size());
     }
-    std::cout<<"t: "<<t<<", x: "<<x<<"\n";
+    //std::cout<<"t: "<<t<<", x: "<<x<<"\n";
     newblip.DriftTime = t;
 
     // Look for valid wire intersections and calculate

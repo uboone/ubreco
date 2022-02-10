@@ -8,8 +8,13 @@ add_subdirectory(UBFlashFinder)
 add_subdirectory(ShowerReco)
 add_subdirectory(LLSelectionTool)
 add_subdirectory(StopMu)
+<<<<<<< HEAD
 add_subdirectory(OpNoise)
 add_subdirectory(DetectorSystematics)
 add_subdirectory(WcpPortedReco)
 add_subdirectory(GammaCatcher)
 add_subdirectory(mReA)
+=======
+add_subdirectory(GammaCatcher)
+add_subdirectory(BlipReco)
+>>>>>>> 1da68c74 (Modifications to ProxCluster and CosmicFilter to ignore vertices, consolidating blip-related fcls, other updates and improvements to BlipReco)

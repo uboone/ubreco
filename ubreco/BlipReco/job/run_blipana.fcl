@@ -49,7 +49,21 @@ physics:
   
   ana:            [ blipana ]
   trigger_paths:  [ ] 
+  stream1:        [ out1 ]
   end_paths:      [ ana ] 
 
 } # physics
+   
 
+outputs:
+{
+  out1:
+  {
+    module_type: RootOutput
+    fileName:    "%ifb_%p.root"
+    dataTier:    "reconstructed"
+    fastCloning: false
+    compressionLevel: 1
+    #SelectEvents: [reco]
+  }
+}

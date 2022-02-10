@@ -1,0 +1,2 @@
+#include "run_blipana_data.fcl"
+physics.end_paths: [ ana, stream1 ]

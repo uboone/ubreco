@@ -16,11 +16,35 @@ microboone_blipana:
   module_type:        "BlipAna"
   HitModuleLabel:     "cosmicfilter"
   LArG4ModuleLabel:   "largeant"
-  TrackModuleLabel:   "pandora" # pandoraTrack
+  TrackModuleLabel:   "pandora" # pandoraTrack?
   CaloAlg:		        @local::microboone_mcc9_calorimetryalgmc
-  DoHitFiltering:     false
-  HitMatchWidthFact:  0.5
-  HitMatchMaxTicks:   5
+  CaloPlane:          2
+  SaveTruthInfo:      true
+  SaveHitInfo:        true
+  MakeDiagHists:      true
+  TrueBlipMergeDist:  0.3 # cm 
+  DoHitFiltering:     true
+  MinHitRMS:          [ 1.5,  1.5,  1.5 ]
+  MaxHitRMS:          [ 30,  30,  30 ]
+  #MinHitRatio:        [ 0,    0,    0   ]
+  #MaxHitRatio:        [ 3,    3,    2   ]
+  MinHitGOF:          [ 0,    0,    0   ]
+  HitClustWidthFact:  2.5
+  HitClustWireRange:  1
+  MaxWiresInCluster:  5 
+  HitMatchWidthFact:  0.8 # xRMS
+  HitMatchMaxTicks:   3 # max extent to match hits
+  MinMatchedPlanes:   2 # min matched planes required
+  #DiffTolerance:      2 # cm
 }
+
+microboone_blipana_data:                @local::microboone_blipana
+microboone_blipana_data.CaloAlg:        @local::microboone_calorimetryalgdata
+#microboone_blipana_data.SaveTruthInfo:  false
+
+
+
+# Source: reco_uboone_mcc9_8_driver_overlay_stage2.fcl
+#physics.analyzers.blipana.CaloAlg.CalAreaConstants:   [ 4.31e-3, 4.02e-3, 4.1e-3 ]
 
 END_PROLOG

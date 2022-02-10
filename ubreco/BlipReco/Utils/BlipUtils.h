@@ -124,7 +124,7 @@ namespace BlipUtils{
     bool    isValid         = false;
     bool    isMerged        = false;
     bool    isMatched       = false;
-    int     LeadHitWire     = -999;
+    int     LeadHitID       = -999;
     float   LeadHitCharge   = -999;
     float   LeadHitTime     = -999;
     int     G4ID            = -9;
@@ -133,9 +133,10 @@ namespace BlipUtils{
     float   Charge          = -999;
     float   Time            = -999;
     float   WeightedTime    = -999;
+    float   TimeErr         = -999;
     float   StartTime       = -999;
     float   EndTime         = -999;
-    float   XPos            = -999; 
+    //float   XPos            = -999; 
     int     StartWire       = -999;
     int     EndWire         = -999;
     int     ID              = -9;
@@ -164,6 +165,13 @@ namespace BlipUtils{
     std::set<int> ClustIDs;     // Associated clusters
     std::set<int> HitIDs;       // Associasted hits (will be taken care of by LArSoft associations)
   };
+  
+  //###################################################
+  //  Common parameters
+  //###################################################
+  float   fTickPeriod;
+
+  void    InitializeUtils();
 
   //###################################################
   // Functions related to blip reconstruction
@@ -203,6 +211,7 @@ namespace BlipUtils{
   void    GetGeoBoundaries(double&,double&,double&,double&,double&,double&);
   bool    IsPointInAV(float,float,float);
   bool    IsPointInAV(TVector3&);
+  
 
 
 }
