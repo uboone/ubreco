@@ -1,0 +1,11 @@
+#include "particleinventoryservice.fcl"
+#include "wirecell_g4_uboone.fcl"
+
+# Enable HadronHP
+services.LArG4Parameters.EnabledPhysics:        [ "Em", "FastOptical", "SynchrotronAndGN", "Ion", "HadronHP", "Decay", "HadronElastic", "Stopping" ]
+
+# Add ParticleLister for output during running
+physics.analyzers.pdump: { module_type: "ParticleDump" }
+physics.ana: [ "pdump" ]
+physics.end_paths: [stream1, ana]
+

@@ -361,6 +361,7 @@ std::pair<int,float> CosmicFilter::SphereIntersection(const recob::Track& trk) {
     if (trk.HasValidPoint(ptn) == false) { ptn += 1; continue; }
     auto const& pt = trk.LocationAtPoint( ptn );
     ptn += 1;
+    std::cout<<"CosmicFilt: Looking at point "<<ptn<<": "<<pt.X()<<"   "<<pt.Y()<<"  "<<pt.Z()<<"\n";
     auto dSq = SqDist(pt);
     if (dSq < dvtxSq) { dvtxSq = dSq; }
     if (dSq < fVetoRadiusSq) {

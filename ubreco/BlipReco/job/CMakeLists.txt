@@ -1,4 +1,6 @@
-add_subdirectory(fcl)
+add_subdirectory(g4)
+add_subdirectory(reco)
+add_subdirectory(utility)
 install_headers()
 install_fhicl()
 install_source()
