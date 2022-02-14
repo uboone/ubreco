@@ -208,6 +208,16 @@ private:
 	double _vertex_Y_incoming_nu; //The Y position of the incoming nu vertex   
 	double _vertex_Z_incoming_nu; //The Z position of the incoming nu vertex 
 	
+  //Flux information variabels
+  TTree* _flux_tree;
+  int _which_decay_type; //Type of decay. For NuMI, you can find the decay codes @ http://www.hep.utexas.edu/~zarko/wwwgnumi/v19/
+  double _decay_x; //The decay x position. The origin is defined as the target. 
+  double _decay_y; //The decay y position. The origin is defined as the target. 
+  double _decay_z; //The decay z position. The origin is defined as the target. 
+
+  int _mcflux_size; //Size of the MCFlux vector -- This is me trying to make sure this is all 1 and I don't need to use associations  
+
+
 	// POT information variabels  
 	TTree *_subrun_tree;
   int _run_sr; // The run number
@@ -591,7 +601,7 @@ void gammacorrelation::gammacorrelation_analyze(art::Event const& e){
 void gammacorrelation::mudar_analyze(art::Event const& e){
 
 	// ************************************************************************
-	// *********************** Load MC truth info *****************************
+	// *********************** Load MCTruth info *****************************
 	// ************************************************************************
 
   art::Handle<art::Assns<simb::MCTruth,simb::MCParticle,sim::GeneratedParticleInfo>> MCTruthHandle;
@@ -601,29 +611,26 @@ void gammacorrelation::mudar_analyze(art::Event const& e){
 	std::cout << "Size: " << MCTruthHandle->size() << std::endl;
 	const art::Ptr<simb::MCTruth> mctruth = MCTruthHandle->at(0).first;
 	std::cout << "mctruth nparticles  " << mctruth->NParticles() << std::endl;
-/*
-  art::Handle<art::Assns<simb::MCTruth, simb::MCFlux, sim::GeneratedParticleInfo>> MCTruthFluxHandle;
-  e.getByLabel(fMCTruthTag, MCTruthFluxHandle);
-  const art::Ptr<simb::MCFlux> mcflux = MCTruthFluxHandle->at(0).second;
 
-  //Retrieving the neutrino information
-  auto decay = mcflux->fndecay; 
 
-  std::cout << "Decay code: " << decay << std::endl; 
-  */
+	// ************************************************************************
+	// *********************** Load MCFlux info *****************************
+	// ************************************************************************
 
   art::Handle< std::vector<simb::MCFlux> > mcFluxHandle;
   e.getByLabel("generator", mcFluxHandle);
   std::vector< art::Ptr<simb::MCFlux> > mcFluxVec;
   art::fill_ptr_vector(mcFluxVec, mcFluxHandle);
 
-  std::cout << "mcfluxvec size: " << mcFluxVec.size() << std::endl;  
-  std::cout << "x decay code: " <<  mcFluxVec.at(0)->fvx << std::endl;  
-  std::cout << "y decay code: " <<  mcFluxVec.at(0)->fvy << std::endl;  
-  std::cout << "z decay code: " <<  mcFluxVec.at(0)->fvz << std::endl;  
-  std::cout << "decay code: " <<  mcFluxVec.at(0)->fndecay << std::endl;  
+  //Retrieving flux information 
 
-	//Retrieving the neutrino information
+  _decay_x = mcFluxVec.at(0)->fvx; 
+  _decay_y = mcFluxVec.at(0)->fvy; 
+  _decay_z = mcFluxVec.at(0)->fvz; 
+  _which_decay_type = mcFluxVec.at(0)->fndecay; 
+  _mcflux_size = mcFluxVec.size(); 
+
+  //Retrieving the neutrino information
 	auto neutrino = mctruth->GetNeutrino();
   const simb::MCParticle nu = neutrino.Nu();
 	_neutrino_E = nu.E();
@@ -738,6 +745,7 @@ void gammacorrelation::mudar_analyze(art::Event const& e){
 	}
 
 	_tree_Events->Fill();
+  _flux_tree->Fill();
 }
 
 
@@ -748,6 +756,7 @@ void gammacorrelation::mudar_beginJob(){
 
 	_tree_Events = tfs->make<TTree>("Events", "Events");
 	_subrun_tree = tfs->make<TTree>("SubRun", "SubRun");
+  _flux_tree = tfs->make<TTree>("Flux_Events", "Flux_Events");
 
 	//trigger branches
 	_tree_Events -> Branch("_opfilter_pe_beam", &_opfilter_pe_beam, "_opfilter_pe_beam/F");
@@ -773,9 +782,17 @@ void gammacorrelation::mudar_beginJob(){
 	_tree_Events -> Branch("vertex_Z_nu", &_vertex_Z_incoming_nu, "vertex_Z/D");
 
 	//POT counting info 
-  	_subrun_tree->Branch("run", &_run_sr, "run/I");
-  	_subrun_tree->Branch("subRun", &_sub_sr, "subRun/I");
+  _subrun_tree->Branch("run", &_run_sr, "run/I");
+  _subrun_tree->Branch("subRun", &_sub_sr, "subRun/I");
 	_subrun_tree->Branch("pot", &_pot, "pot/F");
+
+  //Flux info
+  _flux_tree->Branch("Decay_type", &_which_decay_type, "Decay_type/I");
+  _flux_tree->Branch("Decay_X", &_decay_x, "Decay_X/D");
+  _flux_tree->Branch("Decay_Y", &_decay_y, "Decay_Y/D");
+  _flux_tree->Branch("Decay_Z", &_decay_z, "Decay_Z/D");
+  _flux_tree->Branch("MCflux_size", &_mcflux_size, "MCflux_size/I");
+
 }
 
 void gammacorrelation::gammacorrelation_beginJob(){
