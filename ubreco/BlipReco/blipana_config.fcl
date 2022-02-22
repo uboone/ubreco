@@ -31,7 +31,7 @@ microboone_blipana:
   MinHitGOF:          [ 0,    0,    0   ]
   HitClustWidthFact:  2.5
   HitClustWireRange:  1
-  MaxWiresInCluster:  5 
+  MaxWiresInCluster:  6 
   HitMatchWidthFact:  0.8 # xRMS
   HitMatchMaxTicks:   3 # max extent to match hits
   MinMatchedPlanes:   2 # min matched planes required
