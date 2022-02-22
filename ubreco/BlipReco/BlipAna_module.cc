@@ -482,7 +482,6 @@ class BlipAnaTreeDataStruct
     tree->Branch("depEnergy",depEnergy,"depEnergy[nparticles]/F");
     tree->Branch("process",&process);
     tree->Branch("nedeps",&nedeps,"nedeps/I");
-//    tree->Branch("edep_tpc",edep_tpc,"edep_tpc[nedeps]/I"); 
     tree->Branch("edep_g4id",edep_g4id,"edep_g4id[nedeps]/I"); 
     tree->Branch("edep_pdg",edep_pdg,"edep_pdg[nedeps]/I"); 
     tree->Branch("edep_blipid",edep_blipid,"edep_blipid[nedeps]/I"); 
@@ -593,12 +592,10 @@ class BlipAnaTreeDataStruct
     tree->Branch("blip_maxdiff",blip_maxdiff,"blip_maxdiff[nblips]/F");
     tree->Branch("blip_charge",blip_charge,"blip_charge[nblips]/F");
     tree->Branch("blip_energy",blip_energy,"blip_energy[nblips]/F");
-    tree->Branch("blip_energyESTAR",blip_energyESTAR,"blip_energyESTAR[nblips]/F");
+    //tree->Branch("blip_energyESTAR",blip_energyESTAR,"blip_energyESTAR[nblips]/F");
     tree->Branch("blip_edepid",blip_edepid,"blip_edepid[nblips]/I");
     for(int i=0; i<kNplanes; i++) 
       tree->Branch(Form("blip_clustid_pl%i",i),blip_clustid[i],Form("blip_clustid_pl%i[nblips]/I",i));
-    //for(int i=0; i<kNplanes; i++)
-      //tree->Branch(Form("blip_charge_pl%i",i),blip_charge[i],Form("blip_charge_pl%i[nblips]/F",i));
     
   }
     
@@ -646,7 +643,6 @@ class BlipAna : public art::EDAnalyzer
   bool                fSaveTruthInfo;
   bool                fSaveHitInfo;
   bool                fMakeDiagHists;
-//  bool                fMakeTruthHists;
   float               fTrueBlipMergeDist;
   bool                fDoHitFiltering;
   std::vector<float>  fMinHitRMS;
@@ -654,7 +650,7 @@ class BlipAna : public art::EDAnalyzer
   std::vector<float>  fMinHitRatio;
   std::vector<float>  fMaxHitRatio;
   std::vector<float>  fMinHitGOF;
-  //std::vector<float>  fMaxHitGOF;
+  std::vector<float>  fMaxHitGOF;
   float               fHitClustWidthFact;
   int                 fHitClustWireRange;
   float               fHitMatchWidthFact;
@@ -1616,9 +1612,6 @@ void BlipAna::analyze(const art::Event& evt)
   //    Method 2: ESTAR lookup table method ala ArgoNeuT
   for(size_t i=0; i<blips.size(); i++){
 
-
-    //auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService const>()->DataForJob();
-    //auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
     auto const* SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
     float qColl = blips[i].Charge[fCaloPlane];
     float td    = blips[i].DriftTime;
@@ -1653,13 +1646,7 @@ void BlipAna::analyze(const art::Event& evt)
     auto const& b = blips[i];
     fData->blip_tpc[i]        = b.TPC;
     fData->blip_nplanes[i]    = b.NPlanes;
-    //fData->blip_caloplane[i]  = fCaloPlane;
     fData->blip_charge[i]       = b.Charge[fCaloPlane];
-    //fData->blip_charge[0][i]    = b.Charge[0];
-    //fData->blip_charge[1][i]    = b.Charge[1];
-    //fData->blip_charge[2][i]    = b.Charge[2];
-    //if( fData->blip_charge[2][i]  > 1e6 ) std::cout << " watermelon "<<b.Charge[2]<<"    "<<fData->blip_charge[2][i]<<"\n";
-    //fData->blip_charge[i]     = b.Charge[fCaloPlane];
     fData->blip_energy[i]     = b.Energy;
     fData->blip_energyESTAR[i]= b.EnergyESTAR;
     fData->blip_maxdiff[i]    = b.MaxIntersectDiff;
