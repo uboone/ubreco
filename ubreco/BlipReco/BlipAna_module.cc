@@ -120,11 +120,10 @@ class BlipAnaTreeDataStruct
   bool  saveHitInfo               = true;
 
   // --- Event information ---   
-  int   event;                    // event number
-  int   run;                      // run number
-  float lifetime;                 // electron lifetime
-  double timestamp;                // unix time of event
-  //double timestamp_aux;                // unix time of event
+  int           event;                    // event number
+  int           run;                      // run number
+  unsigned int  timestamp;                // unix time of event
+  float         lifetime;                 // electron lifetime
   
   // --- G4 information ---
   float total_depEnergy;          // total deposited energy in AV
@@ -275,14 +274,14 @@ class BlipAnaTreeDataStruct
   float blip_y[kMaxBlips];
   float blip_z[kMaxBlips];
   float blip_maxdiff[kMaxBlips];
-  //float blip_charge[kMaxBlips];
+  float blip_charge[kMaxBlips];
   float blip_energy[kMaxBlips];
   float blip_energyESTAR[kMaxBlips];
   int   blip_edepid[kMaxBlips];  
   //int   blip_clustid[kNplanes][kMaxBlips];
   //float blip_charge[kNplanes][kMaxBlips];
   int   blip_clustid[kNplanes][kMaxBlips];
-  float blip_charge[kNplanes][kMaxBlips];
+  //float blip_charge[kNplanes][kMaxBlips];
 
   // === Function for resetting data ===
   void Clear(){ 
@@ -427,13 +426,13 @@ class BlipAnaTreeDataStruct
     FillWith(blip_y, -99999);
     FillWith(blip_z, -99999);
     FillWith(blip_maxdiff, -9);
-    //FillWith(blip_charge, -999);
+    FillWith(blip_charge, -999);
     FillWith(blip_energy, -999);
     FillWith(blip_energyESTAR, -999);
     FillWith(blip_edepid, -9);
     for(int i=0; i<kNplanes; i++){
       FillWith(blip_clustid[i], -9);
-      FillWith(blip_charge[i], -999);
+      //FillWith(blip_charge[i], -999);
     }
 
   }
@@ -451,8 +450,7 @@ class BlipAnaTreeDataStruct
     tree = tfs->make<TTree>(treeName.c_str(),"analysis tree");
     tree->Branch("event",&event,"event/I");
     tree->Branch("run",&run,"run/I");
-    tree->Branch("timestamp",&timestamp,"timestamp/D");
-    //tree->Branch("timestamp_aux",&timestamp_aux,"timestamp_aux/D");
+    tree->Branch("timestamp",&timestamp,"timestamp/i");
     tree->Branch("lifetime",&lifetime,"lifetime/F");
   
     if( saveTruthInfo ) {
@@ -593,14 +591,14 @@ class BlipAnaTreeDataStruct
     tree->Branch("blip_y",blip_y,"blip_y[nblips]/F");
     tree->Branch("blip_z",blip_z,"blip_z[nblips]/F");
     tree->Branch("blip_maxdiff",blip_maxdiff,"blip_maxdiff[nblips]/F");
-    //tree->Branch("blip_charge",blip_charge,"blip_charge[nblips]/F");
+    tree->Branch("blip_charge",blip_charge,"blip_charge[nblips]/F");
     tree->Branch("blip_energy",blip_energy,"blip_energy[nblips]/F");
     tree->Branch("blip_energyESTAR",blip_energyESTAR,"blip_energyESTAR[nblips]/F");
     tree->Branch("blip_edepid",blip_edepid,"blip_edepid[nblips]/I");
     for(int i=0; i<kNplanes; i++) 
       tree->Branch(Form("blip_clustid_pl%i",i),blip_clustid[i],Form("blip_clustid_pl%i[nblips]/I",i));
-    for(int i=0; i<kNplanes; i++)
-      tree->Branch(Form("blip_charge_pl%i",i),blip_charge[i],Form("blip_charge_pl%i[nblips]/F",i));
+    //for(int i=0; i<kNplanes; i++)
+      //tree->Branch(Form("blip_charge_pl%i",i),blip_charge[i],Form("blip_charge_pl%i[nblips]/F",i));
     
   }
     
@@ -899,14 +897,10 @@ void BlipAna::analyze(const art::Event& evt)
   fData->run        = evt.id().run();
   fIsRealData       = evt.isRealData();
  
-  // Get event time
-  art::Timestamp ts = evt.time();
-  TTimeStamp tts(ts.timeHigh(), ts.timeLow());
-  fData->timestamp = tts.AsDouble();
-
-  //fData->timestamp_aux = ev.eventAuxiliary().time().timeHigh();
-
-  fNumEvents++;
+  // Get timestamp
+  unsigned long long int tsval = evt.time().value();
+  const unsigned long int mask32 = 0xFFFFFFFFUL;
+  fData->timestamp = ( tsval >> 32 ) & mask32;
   
   // Detector properties
   auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
@@ -937,6 +931,7 @@ void BlipAna::analyze(const art::Event& evt)
   <<"Processing event "<<evt.id().event()<<" in run "<<evt.id().run()<<"; total: "<<fNumEvents<<"\n";
   //<<"Electron lifetime: "<<fData->lifetime<<"\n"
   //<<"TickOffsets      : "<<TickOffset[0]<<", "<<TickOffset[1]<<", "<<TickOffset[2]<<"\n";
+  fNumEvents++;
 
 
   //=========================================
@@ -1286,8 +1281,10 @@ void BlipAna::analyze(const art::Event& evt)
   for(size_t i=0; i<hitlist.size(); i++){
     int plane = hitlist[i]->WireID().Plane;
     
-    // Exclude any hits that were part of tracks
-    //if( hitinfo[i].trkid >= 0 ) continue;
+    // Exclude any hits that were part of 3cm+ tracks
+    int trkID = hitinfo[i].trkid;
+    if( trkID >= 0 && trkID < fData->ntrks ) 
+      if( fData->trk_length[trkID] > 3 ) continue;
     
     if( !fDoHitFiltering ) {
       hitinfo[i].isgood = true;
@@ -1657,9 +1654,10 @@ void BlipAna::analyze(const art::Event& evt)
     fData->blip_tpc[i]        = b.TPC;
     fData->blip_nplanes[i]    = b.NPlanes;
     //fData->blip_caloplane[i]  = fCaloPlane;
-    fData->blip_charge[0][i]    = b.Charge[0];
-    fData->blip_charge[1][i]    = b.Charge[1];
-    fData->blip_charge[2][i]    = b.Charge[2];
+    fData->blip_charge[i]       = b.Charge[fCaloPlane];
+    //fData->blip_charge[0][i]    = b.Charge[0];
+    //fData->blip_charge[1][i]    = b.Charge[1];
+    //fData->blip_charge[2][i]    = b.Charge[2];
     //if( fData->blip_charge[2][i]  > 1e6 ) std::cout << " watermelon "<<b.Charge[2]<<"    "<<fData->blip_charge[2][i]<<"\n";
     //fData->blip_charge[i]     = b.Charge[fCaloPlane];
     fData->blip_energy[i]     = b.Energy;
