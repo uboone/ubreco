@@ -62,7 +62,7 @@ private:
   unsigned int NumberOfPF;
   std::string fInput; // input ROOT file for each event
   std::string fInput_prefix; // file name prefix
-  std::string fInput_tree;  // particle flow 
+  std::string fInput_tree;  // particle flow
   std::string fInput_tree2; // nu selection tagger results
   std::string fInput_tree3; // BDT input variables
   std::string fInput_tree4; // KINE input variables
@@ -95,7 +95,7 @@ nsm::WireCellPF::WireCellPF(fhicl::ParameterSet const& p)
   if(f_BDTport) produces< std::vector<nsm::NuSelectionBDT> >();
   if(f_KINEport) produces< std::vector<nsm::NuSelectionKINE> >();
   MF_LOG_DEBUG("WireCellPF") << "Debug: WireCellPF() ends";
-	
+
 }
 
 void nsm::WireCellPF::produce(art::Event& e)
@@ -103,13 +103,13 @@ void nsm::WireCellPF::produce(art::Event& e)
   // Implementation of required member function here.
   bool badinput = false;
   TFile* fin = nullptr;
-  std::string event_runinfo = std::to_string((int)e.run())+"_"+std::to_string((int)e.subRun())+"_"+std::to_string((int)e.event());  
+  std::string event_runinfo = std::to_string((int)e.run())+"_"+std::to_string((int)e.subRun())+"_"+std::to_string((int)e.event());
   fInput = fInput_prefix+"_"+event_runinfo+".root";
   mf::LogInfo("WireCellPF") <<"INPUT FILE NAME: "<< fInput <<"\n";
   std::ifstream fcheck(fInput.c_str());
   if(!fcheck.good()) {
 	mf::LogInfo("WireCellPF") <<"INPUT FILE NOT FOUND!"<<std::endl;
-	badinput = true; 
+	badinput = true;
   }
   else{
 	fin = new TFile(fInput.c_str());
@@ -119,13 +119,13 @@ void nsm::WireCellPF::produce(art::Event& e)
 	}
   }
 
-if(f_PFport){ 
+if(f_PFport){
   auto outputPF = std::make_unique< std::vector<simb::MCParticle> >();
   if(badinput){
 	e.put(std::move(outputPF));
-	//return; 
+	//return;
   }
-  else{ 
+  else{
   /// various nu taggers saved in an integer:
   // 2nd bit: cosmic (including dirt)
   // 3rd bit: numu CC
@@ -140,8 +140,8 @@ if(f_PFport){
   tree2->SetBranchAddress("neutrino_type",&neutrino_type);
     for(int i=0; i<tree2->GetEntries(); i++){
 	tree2->GetEntry(i);
-	if(neutrino_type>1) break; // this should be the in-beam flash match 
-    }  
+	if(neutrino_type>1) break; // this should be the in-beam flash match
+    }
   }
 
   TTree *tree = (TTree*)fin->Get(fInput_tree.c_str());
@@ -159,7 +159,7 @@ if(f_PFport){
   float mc_endMomentum[MAX_TRACKS][4];  // end momentum of this track; size == mc_Ntrack
   std::vector<std::vector<int> > *mc_daughters = new std::vector<std::vector<int>>;  // daughters id of this track; vector
   //std::cout<<"Check point 0.1: "<<std::endl;
-  
+
   tree->SetBranchAddress("mc_Ntrack"       , &mc_Ntrack);
   tree->SetBranchAddress("mc_id"           , &mc_id);
   tree->SetBranchAddress("mc_pdg"          , &mc_pdg);
@@ -180,8 +180,8 @@ if(f_PFport){
 	// (trackID, pdg, string process, motherID, mass, status)
 	// status --> neutrino_type for our reco level taggers
 	// mass --> not an actual mass reconstruction since PID tells us the mass already if you believe
-	// mass --> container of "mc_included" info to indicate if this particle should be included in the nu energy calculation 
-	simb::MCParticle p(mc_id[i], mc_pdg[i], "unknown", mc_mother[i], mc_included[i], neutrino_type); 
+	// mass --> container of "mc_included" info to indicate if this particle should be included in the nu energy calculation
+	simb::MCParticle p(mc_id[i], mc_pdg[i], "unknown", mc_mother[i], mc_included[i], neutrino_type);
 	//std::cout<<"Check point 2: "<<i<<std::endl;
   	int Ndaughter = mc_daughters->at(i).size();
 	//std::cout<<"Check point 3: "<<i<<std::endl;
@@ -193,19 +193,19 @@ if(f_PFport){
 	TLorentzVector endposition(mc_endXYZT[i][0], mc_endXYZT[i][1], mc_endXYZT[i][2], mc_endXYZT[i][3]);
 	TLorentzVector startMomentum(mc_startMomentum[i][0], mc_startMomentum[i][1], mc_startMomentum[i][2], mc_startMomentum[i][3]);
 	TLorentzVector endMomentum(mc_endMomentum[i][0], mc_endMomentum[i][1], mc_endMomentum[i][2], mc_endMomentum[i][3]);
-	p.AddTrajectoryPoint(startposition, startMomentum);	
+	p.AddTrajectoryPoint(startposition, startMomentum);
 	p.AddTrajectoryPoint(endposition, endMomentum);
-	///  
+	///
   	outputPF->push_back(std::move(p));
   }
-   
+
   NumberOfPF++;
-  
+
   }
   else {
     mf::LogError("WireCellPF") <<"TTree "<< fInput_tree <<" not found in file " << fInput <<"\n";
   }
- 
+
   e.put(std::move(outputPF));
   }
 }
@@ -214,15 +214,532 @@ if(f_BDTport){
   auto outputBDTvars = std::make_unique< std::vector<nsm::NuSelectionBDT> >();
   if(badinput){
 	e.put(std::move(outputBDTvars));
-	//return; 
+	//return;
   }
   else{
   nsm::NuSelectionBDT nsmbdt;
-  
+
   TTree *tree3 = (TTree*)fin->Get(fInput_tree3.c_str());
-  if(tree3){   
-  
+  if(tree3){
+
   /// define variables and set branch address
+
+  // single photon
+  float shw_sp_num_mip_tracks;
+  float shw_sp_num_muons;
+  float shw_sp_num_pions;
+  float shw_sp_num_protons;
+  float shw_sp_proton_length_1;
+  float shw_sp_proton_dqdx_1;
+  float shw_sp_proton_energy_1;
+  float shw_sp_proton_length_2;
+  float shw_sp_proton_dqdx_2;
+  float shw_sp_proton_energy_2;
+  float shw_sp_n_good_showers;
+  float shw_sp_n_20mev_showers;
+  float shw_sp_n_br1_showers;
+  float shw_sp_n_br2_showers;
+  float shw_sp_n_br3_showers;
+  float shw_sp_n_br4_showers;
+  float shw_sp_n_20br1_showers;
+  std::vector<int> *shw_sp_20mev_showers = new std::vector<int>;
+  std::vector<int> *shw_sp_br1_showers = new std::vector<int>;
+  std::vector<int> *shw_sp_br2_showers = new std::vector<int>;
+  std::vector<int> *shw_sp_br3_showers = new std::vector<int>;
+  std::vector<int> *shw_sp_br4_showers = new std::vector<int>;
+  float shw_sp_shw_vtx_dis;
+  float shw_sp_max_shw_dis;
+  tree3->SetBranchAddress("shw_sp_num_mip_tracks",&shw_sp_num_mip_tracks);
+  tree3->SetBranchAddress("shw_sp_num_muons",&shw_sp_num_muons);
+  tree3->SetBranchAddress("shw_sp_num_pions",&shw_sp_num_pions);
+  tree3->SetBranchAddress("shw_sp_num_protons",&shw_sp_num_protons);
+  tree3->SetBranchAddress("shw_sp_proton_length_1",&shw_sp_proton_length_1);
+  tree3->SetBranchAddress("shw_sp_proton_dqdx_1",&shw_sp_proton_dqdx_1);
+  tree3->SetBranchAddress("shw_sp_proton_energy_1",&shw_sp_proton_energy_1);
+  tree3->SetBranchAddress("shw_sp_proton_length_2",&shw_sp_proton_length_2);
+  tree3->SetBranchAddress("shw_sp_proton_dqdx_2",&shw_sp_proton_dqdx_2);
+  tree3->SetBranchAddress("shw_sp_proton_energy_2",&shw_sp_proton_energy_2);
+  tree3->SetBranchAddress("shw_sp_n_good_showers",&shw_sp_n_good_showers);
+  tree3->SetBranchAddress("shw_sp_n_20mev_showers",&shw_sp_n_20mev_showers);
+  tree3->SetBranchAddress("shw_sp_n_br1_showers",&shw_sp_n_br1_showers);
+  tree3->SetBranchAddress("shw_sp_n_br2_showers",&shw_sp_n_br2_showers);
+  tree3->SetBranchAddress("shw_sp_n_br3_showers",&shw_sp_n_br3_showers);
+  tree3->SetBranchAddress("shw_sp_n_br4_showers",&shw_sp_n_br4_showers);
+  tree3->SetBranchAddress("shw_sp_n_20br1_showers",&shw_sp_n_20br1_showers);
+  tree3->SetBranchAddress("shw_sp_20mev_showers",&shw_sp_20mev_showers);
+  tree3->SetBranchAddress("shw_sp_br1_showers",&shw_sp_br1_showers);
+  tree3->SetBranchAddress("shw_sp_br2_showers",&shw_sp_br2_showers);
+  tree3->SetBranchAddress("shw_sp_br3_showers",&shw_sp_br3_showers);
+  tree3->SetBranchAddress("shw_sp_br4_showers",&shw_sp_br4_showers);
+  tree3->SetBranchAddress("shw_sp_shw_vtx_dis",&shw_sp_shw_vtx_dis);
+  tree3->SetBranchAddress("shw_sp_max_shw_dis",&shw_sp_max_shw_dis);
+
+  float shw_sp_filled;
+  float shw_sp_flag;
+  float shw_sp_energy;
+  float shw_sp_vec_dQ_dx_0;
+  float shw_sp_vec_dQ_dx_1;
+  float shw_sp_max_dQ_dx_sample;
+  float shw_sp_n_below_threshold;
+  float shw_sp_n_below_zero;
+  float shw_sp_n_lowest;
+  float shw_sp_n_highest;
+  float shw_sp_lowest_dQ_dx;
+  float shw_sp_highest_dQ_dx;
+  float shw_sp_medium_dQ_dx;
+  float shw_sp_stem_length;
+  float shw_sp_length_main;
+  float shw_sp_length_total;
+  float shw_sp_angle_beam;
+  float shw_sp_iso_angle;
+  float shw_sp_n_vertex;
+  float shw_sp_n_good_tracks;
+  float shw_sp_E_indirect_max_energy;
+  float shw_sp_flag_all_above;
+  float shw_sp_min_dQ_dx_5;
+  float shw_sp_n_other_vertex;
+  float shw_sp_n_stem_size;
+  float shw_sp_flag_stem_trajectory;
+  float shw_sp_min_dis;
+  tree3->SetBranchAddress("shw_sp_filled",&shw_sp_filled);
+  tree3->SetBranchAddress("shw_sp_flag",&shw_sp_flag);
+  tree3->SetBranchAddress("shw_sp_energy",&shw_sp_energy);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_0",&shw_sp_vec_dQ_dx_0);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_1",&shw_sp_vec_dQ_dx_1);
+  tree3->SetBranchAddress("shw_sp_max_dQ_dx_sample",&shw_sp_max_dQ_dx_sample);
+  tree3->SetBranchAddress("shw_sp_n_below_threshold",&shw_sp_n_below_threshold);
+  tree3->SetBranchAddress("shw_sp_n_below_zero",&shw_sp_n_below_zero);
+  tree3->SetBranchAddress("shw_sp_n_lowest",&shw_sp_n_lowest);
+  tree3->SetBranchAddress("shw_sp_n_highest",&shw_sp_n_highest);
+  tree3->SetBranchAddress("shw_sp_lowest_dQ_dx",&shw_sp_lowest_dQ_dx);
+  tree3->SetBranchAddress("shw_sp_highest_dQ_dx",&shw_sp_highest_dQ_dx);
+  tree3->SetBranchAddress("shw_sp_medium_dQ_dx",&shw_sp_medium_dQ_dx);
+  tree3->SetBranchAddress("shw_sp_stem_length",&shw_sp_stem_length);
+  tree3->SetBranchAddress("shw_sp_length_main",&shw_sp_length_main);
+  tree3->SetBranchAddress("shw_sp_length_total",&shw_sp_length_total);
+  tree3->SetBranchAddress("shw_sp_angle_beam",&shw_sp_angle_beam);
+  tree3->SetBranchAddress("shw_sp_iso_angle",&shw_sp_iso_angle);
+  tree3->SetBranchAddress("shw_sp_n_vertex",&shw_sp_n_vertex);
+  tree3->SetBranchAddress("shw_sp_n_good_tracks",&shw_sp_n_good_tracks);
+  tree3->SetBranchAddress("shw_sp_E_indirect_max_energy",&shw_sp_E_indirect_max_energy);
+  tree3->SetBranchAddress("shw_sp_flag_all_above",&shw_sp_flag_all_above);
+  tree3->SetBranchAddress("shw_sp_min_dQ_dx_5",&shw_sp_min_dQ_dx_5);
+  tree3->SetBranchAddress("shw_sp_n_other_vertex",&shw_sp_n_other_vertex);
+  tree3->SetBranchAddress("shw_sp_n_stem_size",&shw_sp_n_stem_size);
+  tree3->SetBranchAddress("shw_sp_flag_stem_trajectory",&shw_sp_flag_stem_trajectory);
+  tree3->SetBranchAddress("shw_sp_min_dis",&shw_sp_min_dis);
+
+  float shw_sp_vec_median_dedx;
+  float shw_sp_vec_mean_dedx;
+  float shw_sp_vec_dQ_dx_2;
+  float shw_sp_vec_dQ_dx_3;
+  float shw_sp_vec_dQ_dx_4;
+  float shw_sp_vec_dQ_dx_5;
+  float shw_sp_vec_dQ_dx_6;
+  float shw_sp_vec_dQ_dx_7;
+  float shw_sp_vec_dQ_dx_8;
+  float shw_sp_vec_dQ_dx_9;
+  float shw_sp_vec_dQ_dx_10;
+  float shw_sp_vec_dQ_dx_11;
+  float shw_sp_vec_dQ_dx_12;
+  float shw_sp_vec_dQ_dx_13;
+  float shw_sp_vec_dQ_dx_14;
+  float shw_sp_vec_dQ_dx_15;
+  float shw_sp_vec_dQ_dx_16;
+  float shw_sp_vec_dQ_dx_17;
+  float shw_sp_vec_dQ_dx_18;
+  float shw_sp_vec_dQ_dx_19;
+  tree3->SetBranchAddress("shw_sp_vec_median_dedx",&shw_sp_vec_median_dedx);
+  tree3->SetBranchAddress("shw_sp_vec_mean_dedx",&shw_sp_vec_mean_dedx);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_2",&shw_sp_vec_dQ_dx_2);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_3",&shw_sp_vec_dQ_dx_3);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_4",&shw_sp_vec_dQ_dx_4);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_5",&shw_sp_vec_dQ_dx_5);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_6",&shw_sp_vec_dQ_dx_6);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_7",&shw_sp_vec_dQ_dx_7);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_8",&shw_sp_vec_dQ_dx_8);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_9",&shw_sp_vec_dQ_dx_9);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_10",&shw_sp_vec_dQ_dx_10);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_11",&shw_sp_vec_dQ_dx_11);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_12",&shw_sp_vec_dQ_dx_12);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_13",&shw_sp_vec_dQ_dx_13);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_14",&shw_sp_vec_dQ_dx_14);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_15",&shw_sp_vec_dQ_dx_15);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_16",&shw_sp_vec_dQ_dx_16);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_17",&shw_sp_vec_dQ_dx_17);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_18",&shw_sp_vec_dQ_dx_18);
+  tree3->SetBranchAddress("shw_sp_vec_dQ_dx_19",&shw_sp_vec_dQ_dx_19);
+
+  float shw_sp_pio_filled;
+  float shw_sp_pio_flag;
+  float shw_sp_pio_mip_id;
+  float shw_sp_pio_flag_pio;
+  float shw_sp_pio_1_flag;
+  float shw_sp_pio_1_mass;
+  float shw_sp_pio_1_pio_type;
+  float shw_sp_pio_1_energy_1;
+  float shw_sp_pio_1_energy_2;
+  float shw_sp_pio_1_dis_1;
+  float shw_sp_pio_1_dis_2;
+  std::vector<float> *shw_sp_pio_2_v_flag = new std::vector<float>;
+  std::vector<float> *shw_sp_pio_2_v_dis2 = new std::vector<float>;
+  std::vector<float> *shw_sp_pio_2_v_angle2 = new std::vector<float>;
+  std::vector<float> *shw_sp_pio_2_v_acc_length = new std::vector<float>;
+  tree3->SetBranchAddress("shw_sp_pio_filled",&shw_sp_pio_filled);
+  tree3->SetBranchAddress("shw_sp_pio_flag",&shw_sp_pio_flag);
+  tree3->SetBranchAddress("shw_sp_pio_mip_id",&shw_sp_pio_mip_id);
+  tree3->SetBranchAddress("shw_sp_pio_flag_pio",&shw_sp_pio_flag_pio);
+  tree3->SetBranchAddress("shw_sp_pio_1_flag",&shw_sp_pio_1_flag);
+  tree3->SetBranchAddress("shw_sp_pio_1_mass",&shw_sp_pio_1_mass);
+  tree3->SetBranchAddress("shw_sp_pio_1_pio_type",&shw_sp_pio_1_pio_type);
+  tree3->SetBranchAddress("shw_sp_pio_1_energy_1",&shw_sp_pio_1_energy_1);
+  tree3->SetBranchAddress("shw_sp_pio_1_energy_2",&shw_sp_pio_1_energy_2);
+  tree3->SetBranchAddress("shw_sp_pio_1_dis_1",&shw_sp_pio_1_dis_1);
+  tree3->SetBranchAddress("shw_sp_pio_1_dis_2",&shw_sp_pio_1_dis_2);
+  tree3->SetBranchAddress("shw_sp_pio_2_v_flag",&shw_sp_pio_2_v_flag);
+  tree3->SetBranchAddress("shw_sp_pio_2_v_dis2",&shw_sp_pio_2_v_dis2);
+  tree3->SetBranchAddress("shw_sp_pio_2_v_angle2",&shw_sp_pio_2_v_angle2);
+  tree3->SetBranchAddress("shw_sp_pio_2_v_acc_length",&shw_sp_pio_2_v_acc_length);
+
+  float shw_sp_lem_flag;
+  float shw_sp_lem_shower_total_length;
+  float shw_sp_lem_shower_main_length;
+  float shw_sp_lem_n_3seg;
+  float shw_sp_lem_e_charge;
+  float shw_sp_lem_e_dQdx;
+  float shw_sp_lem_shower_num_segs;
+  float shw_sp_lem_shower_num_main_segs;
+  tree3->SetBranchAddress("shw_sp_lem_flag",&shw_sp_lem_flag);
+  tree3->SetBranchAddress("shw_sp_lem_shower_total_length",&shw_sp_lem_shower_total_length);
+  tree3->SetBranchAddress("shw_sp_lem_shower_main_length",&shw_sp_lem_shower_main_length);
+  tree3->SetBranchAddress("shw_sp_lem_n_3seg",&shw_sp_lem_n_3seg);
+  tree3->SetBranchAddress("shw_sp_lem_e_charge",&shw_sp_lem_e_charge);
+  tree3->SetBranchAddress("shw_sp_lem_e_dQdx",&shw_sp_lem_e_dQdx);
+  tree3->SetBranchAddress("shw_sp_lem_shower_num_segs",&shw_sp_lem_shower_num_segs);
+  tree3->SetBranchAddress("shw_sp_lem_shower_num_main_segs",&shw_sp_lem_shower_num_main_segs);
+
+  float shw_sp_br_filled;
+  float shw_sp_br1_flag;
+  float shw_sp_br1_1_flag;
+  float shw_sp_br1_1_shower_type;
+  float shw_sp_br1_1_vtx_n_segs;
+  float shw_sp_br1_1_energy;
+  float shw_sp_br1_1_n_segs;
+  float shw_sp_br1_1_flag_sg_topology;
+  float shw_sp_br1_1_flag_sg_trajectory;
+  float shw_sp_br1_1_sg_length;
+  float shw_sp_br1_2_flag;
+  float shw_sp_br1_2_energy;
+  float shw_sp_br1_2_n_connected;
+  float shw_sp_br1_2_max_length;
+  float shw_sp_br1_2_n_connected_1;
+  float shw_sp_br1_2_vtx_n_segs;
+  float shw_sp_br1_2_n_shower_segs;
+  float shw_sp_br1_2_max_length_ratio;
+  float shw_sp_br1_2_shower_length;
+  float shw_sp_br1_3_flag;
+  float shw_sp_br1_3_energy;
+  float shw_sp_br1_3_n_connected_p;
+  float shw_sp_br1_3_max_length_p;
+  float shw_sp_br1_3_n_shower_segs;
+  float shw_sp_br1_3_flag_sg_topology;
+  float shw_sp_br1_3_flag_sg_trajectory;
+  float shw_sp_br1_3_n_shower_main_segs;
+  float shw_sp_br1_3_sg_length;
+  tree3->SetBranchAddress("shw_sp_br_filled",&shw_sp_br_filled);
+  tree3->SetBranchAddress("shw_sp_br1_flag",&shw_sp_br1_flag);
+  tree3->SetBranchAddress("shw_sp_br1_1_flag",&shw_sp_br1_1_flag);
+  tree3->SetBranchAddress("shw_sp_br1_1_shower_type",&shw_sp_br1_1_shower_type);
+  tree3->SetBranchAddress("shw_sp_br1_1_vtx_n_segs",&shw_sp_br1_1_vtx_n_segs);
+  tree3->SetBranchAddress("shw_sp_br1_1_energy",&shw_sp_br1_1_energy);
+  tree3->SetBranchAddress("shw_sp_br1_1_n_segs",&shw_sp_br1_1_n_segs);
+  tree3->SetBranchAddress("shw_sp_br1_1_flag_sg_topology",&shw_sp_br1_1_flag_sg_topology);
+  tree3->SetBranchAddress("shw_sp_br1_1_flag_sg_trajectory",&shw_sp_br1_1_flag_sg_trajectory);
+  tree3->SetBranchAddress("shw_sp_br1_1_sg_length",&shw_sp_br1_1_sg_length);
+  tree3->SetBranchAddress("shw_sp_br1_2_flag",&shw_sp_br1_2_flag);
+  tree3->SetBranchAddress("shw_sp_br1_2_energy",&shw_sp_br1_2_energy);
+  tree3->SetBranchAddress("shw_sp_br1_2_n_connected",&shw_sp_br1_2_n_connected);
+  tree3->SetBranchAddress("shw_sp_br1_2_max_length",&shw_sp_br1_2_max_length);
+  tree3->SetBranchAddress("shw_sp_br1_2_n_connected_1",&shw_sp_br1_2_n_connected_1);
+  tree3->SetBranchAddress("shw_sp_br1_2_vtx_n_segs",&shw_sp_br1_2_vtx_n_segs);
+  tree3->SetBranchAddress("shw_sp_br1_2_n_shower_segs",&shw_sp_br1_2_n_shower_segs);
+  tree3->SetBranchAddress("shw_sp_br1_2_max_length_ratio",&shw_sp_br1_2_max_length_ratio);
+  tree3->SetBranchAddress("shw_sp_br1_2_shower_length",&shw_sp_br1_2_shower_length);
+  tree3->SetBranchAddress("shw_sp_br1_3_flag",&shw_sp_br1_3_flag);
+  tree3->SetBranchAddress("shw_sp_br1_3_energy",&shw_sp_br1_3_energy);
+  tree3->SetBranchAddress("shw_sp_br1_3_n_connected_p",&shw_sp_br1_3_n_connected_p);
+  tree3->SetBranchAddress("shw_sp_br1_3_max_length_p",&shw_sp_br1_3_max_length_p);
+  tree3->SetBranchAddress("shw_sp_br1_3_n_shower_segs",&shw_sp_br1_3_n_shower_segs);
+  tree3->SetBranchAddress("shw_sp_br1_3_flag_sg_topology",&shw_sp_br1_3_flag_sg_topology);
+  tree3->SetBranchAddress("shw_sp_br1_3_flag_sg_trajectory",&shw_sp_br1_3_flag_sg_trajectory);
+  tree3->SetBranchAddress("shw_sp_br1_3_n_shower_main_segs",&shw_sp_br1_3_n_shower_main_segs);
+  tree3->SetBranchAddress("shw_sp_br1_3_sg_length",&shw_sp_br1_3_sg_length);
+
+
+  float shw_sp_br2_flag;
+  float shw_sp_br2_flag_single_shower;
+  float shw_sp_br2_num_valid_tracks;
+  float shw_sp_br2_energy;
+  float shw_sp_br2_angle1;
+  float shw_sp_br2_angle2;
+  float shw_sp_br2_angle;
+  float shw_sp_br2_angle3;
+  float shw_sp_br2_n_shower_main_segs;
+  float shw_sp_br2_max_angle;
+  float shw_sp_br2_sg_length;
+  float shw_sp_br2_flag_sg_trajectory;
+  tree3->SetBranchAddress("shw_sp_br2_flag",&shw_sp_br2_flag);
+  tree3->SetBranchAddress("shw_sp_br2_flag_single_shower",&shw_sp_br2_flag_single_shower);
+  tree3->SetBranchAddress("shw_sp_br2_num_valid_tracks",&shw_sp_br2_num_valid_tracks);
+  tree3->SetBranchAddress("shw_sp_br2_energy",&shw_sp_br2_energy);
+  tree3->SetBranchAddress("shw_sp_br2_angle1",&shw_sp_br2_angle1);
+  tree3->SetBranchAddress("shw_sp_br2_angle2",&shw_sp_br2_angle2);
+  tree3->SetBranchAddress("shw_sp_br2_angle",&shw_sp_br2_angle);
+  tree3->SetBranchAddress("shw_sp_br2_angle3",&shw_sp_br2_angle3);
+  tree3->SetBranchAddress("shw_sp_br2_n_shower_main_segs",&shw_sp_br2_n_shower_main_segs);
+  tree3->SetBranchAddress("shw_sp_br2_max_angle",&shw_sp_br2_max_angle);
+  tree3->SetBranchAddress("shw_sp_br2_sg_length",&shw_sp_br2_sg_length);
+  tree3->SetBranchAddress("shw_sp_br2_flag_sg_trajectory",&shw_sp_br2_flag_sg_trajectory);
+
+
+  float shw_sp_br3_flag;
+  float shw_sp_br3_1_flag;
+  float shw_sp_br3_1_energy;
+  float shw_sp_br3_1_n_shower_segments;
+  float shw_sp_br3_1_sg_flag_trajectory;
+  float shw_sp_br3_1_sg_direct_length;
+  float shw_sp_br3_1_sg_length;
+  float shw_sp_br3_1_total_main_length;
+  float shw_sp_br3_1_total_length;
+  float shw_sp_br3_1_iso_angle;
+  float shw_sp_br3_1_sg_flag_topology;
+  float shw_sp_br3_2_flag;
+  float shw_sp_br3_2_n_ele;
+  float shw_sp_br3_2_n_other;
+  float shw_sp_br3_2_energy;
+  float shw_sp_br3_2_total_main_length;
+  float shw_sp_br3_2_total_length;
+  float shw_sp_br3_2_other_fid;
+  std::vector<float> *shw_sp_br3_3_v_flag = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_3_v_energy = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_3_v_angle = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_3_v_dir_length = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_3_v_length = new std::vector<float>;
+  float shw_sp_br3_4_flag;
+  float shw_sp_br3_4_acc_length;
+  float shw_sp_br3_4_total_length;
+  float shw_sp_br3_4_energy;
+  std::vector<float> *shw_sp_br3_5_v_flag = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_5_v_dir_length = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_5_v_total_length = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_5_v_flag_avoid_muon_check = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_5_v_n_seg = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_5_v_angle = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_5_v_sg_length = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_5_v_energy = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_5_v_n_main_segs = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_5_v_n_segs = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_5_v_shower_main_length = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_5_v_shower_total_length = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_6_v_flag = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_6_v_angle = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_6_v_angle1 = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_6_v_flag_shower_trajectory = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_6_v_direct_length = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_6_v_length = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_6_v_n_other_vtx_segs = new std::vector<float>;
+  std::vector<float> *shw_sp_br3_6_v_energy = new std::vector<float>;
+  float shw_sp_br3_7_flag;
+  float shw_sp_br3_7_energy;
+  float shw_sp_br3_7_min_angle;
+  float shw_sp_br3_7_sg_length;
+  float shw_sp_br3_7_shower_main_length;
+  float shw_sp_br3_8_flag;
+  float shw_sp_br3_8_max_dQ_dx;
+  float shw_sp_br3_8_energy;
+  float shw_sp_br3_8_n_main_segs;
+  float shw_sp_br3_8_shower_main_length;
+  float shw_sp_br3_8_shower_length;
+  tree3->SetBranchAddress("shw_sp_br3_flag",&shw_sp_br3_flag);
+  tree3->SetBranchAddress("shw_sp_br3_1_flag",&shw_sp_br3_1_flag);
+  tree3->SetBranchAddress("shw_sp_br3_1_energy",&shw_sp_br3_1_energy);
+  tree3->SetBranchAddress("shw_sp_br3_1_n_shower_segments",&shw_sp_br3_1_n_shower_segments);
+  tree3->SetBranchAddress("shw_sp_br3_1_sg_flag_trajectory",&shw_sp_br3_1_sg_flag_trajectory);
+  tree3->SetBranchAddress("shw_sp_br3_1_sg_direct_length",&shw_sp_br3_1_sg_direct_length);
+  tree3->SetBranchAddress("shw_sp_br3_1_sg_length",&shw_sp_br3_1_sg_length);
+  tree3->SetBranchAddress("shw_sp_br3_1_total_main_length",&shw_sp_br3_1_total_main_length);
+  tree3->SetBranchAddress("shw_sp_br3_1_total_length",&shw_sp_br3_1_total_length);
+  tree3->SetBranchAddress("shw_sp_br3_1_iso_angle",&shw_sp_br3_1_iso_angle);
+  tree3->SetBranchAddress("shw_sp_br3_1_sg_flag_topology",&shw_sp_br3_1_sg_flag_topology);
+  tree3->SetBranchAddress("shw_sp_br3_2_flag",&shw_sp_br3_2_flag);
+  tree3->SetBranchAddress("shw_sp_br3_2_n_ele",&shw_sp_br3_2_n_ele);
+  tree3->SetBranchAddress("shw_sp_br3_2_n_other",&shw_sp_br3_2_n_other);
+  tree3->SetBranchAddress("shw_sp_br3_2_energy",&shw_sp_br3_2_energy);
+  tree3->SetBranchAddress("shw_sp_br3_2_total_main_length",&shw_sp_br3_2_total_main_length);
+  tree3->SetBranchAddress("shw_sp_br3_2_total_length",&shw_sp_br3_2_total_length);
+  tree3->SetBranchAddress("shw_sp_br3_2_other_fid",&shw_sp_br3_2_other_fid);
+  tree3->SetBranchAddress("shw_sp_br3_3_v_flag",&shw_sp_br3_3_v_flag);
+  tree3->SetBranchAddress("shw_sp_br3_3_v_energy",&shw_sp_br3_3_v_energy);
+  tree3->SetBranchAddress("shw_sp_br3_3_v_angle",&shw_sp_br3_3_v_angle);
+  tree3->SetBranchAddress("shw_sp_br3_3_v_dir_length",&shw_sp_br3_3_v_dir_length);
+  tree3->SetBranchAddress("shw_sp_br3_3_v_length",&shw_sp_br3_3_v_length);
+  tree3->SetBranchAddress("shw_sp_br3_4_flag", &shw_sp_br3_4_flag);
+  tree3->SetBranchAddress("shw_sp_br3_4_acc_length", &shw_sp_br3_4_acc_length);
+  tree3->SetBranchAddress("shw_sp_br3_4_total_length", &shw_sp_br3_4_total_length);
+  tree3->SetBranchAddress("shw_sp_br3_4_energy", &shw_sp_br3_4_energy);
+  tree3->SetBranchAddress("shw_sp_br3_5_v_flag", &shw_sp_br3_5_v_flag);
+  tree3->SetBranchAddress("shw_sp_br3_5_v_dir_length", &shw_sp_br3_5_v_dir_length);
+  tree3->SetBranchAddress("shw_sp_br3_5_v_total_length", &shw_sp_br3_5_v_total_length);
+  tree3->SetBranchAddress("shw_sp_br3_5_v_flag_avoid_muon_check", &shw_sp_br3_5_v_flag_avoid_muon_check);
+  tree3->SetBranchAddress("shw_sp_br3_5_v_n_seg", &shw_sp_br3_5_v_n_seg);
+  tree3->SetBranchAddress("shw_sp_br3_5_v_angle", &shw_sp_br3_5_v_angle);
+  tree3->SetBranchAddress("shw_sp_br3_5_v_sg_length", &shw_sp_br3_5_v_sg_length);
+  tree3->SetBranchAddress("shw_sp_br3_5_v_energy", &shw_sp_br3_5_v_energy);
+  tree3->SetBranchAddress("shw_sp_br3_5_v_n_main_segs", &shw_sp_br3_5_v_n_main_segs);
+  tree3->SetBranchAddress("shw_sp_br3_5_v_n_segs", &shw_sp_br3_5_v_n_segs);
+  tree3->SetBranchAddress("shw_sp_br3_5_v_shower_main_length", &shw_sp_br3_5_v_shower_main_length);
+  tree3->SetBranchAddress("shw_sp_br3_5_v_shower_total_length", &shw_sp_br3_5_v_shower_total_length);
+  tree3->SetBranchAddress("shw_sp_br3_6_v_flag",&shw_sp_br3_6_v_flag);
+  tree3->SetBranchAddress("shw_sp_br3_6_v_angle",&shw_sp_br3_6_v_angle);
+  tree3->SetBranchAddress("shw_sp_br3_6_v_angle1",&shw_sp_br3_6_v_angle1);
+  tree3->SetBranchAddress("shw_sp_br3_6_v_flag_shower_trajectory",&shw_sp_br3_6_v_flag_shower_trajectory);
+  tree3->SetBranchAddress("shw_sp_br3_6_v_direct_length",&shw_sp_br3_6_v_direct_length);
+  tree3->SetBranchAddress("shw_sp_br3_6_v_length",&shw_sp_br3_6_v_length);
+  tree3->SetBranchAddress("shw_sp_br3_6_v_n_other_vtx_segs",&shw_sp_br3_6_v_n_other_vtx_segs);
+  tree3->SetBranchAddress("shw_sp_br3_6_v_energy",&shw_sp_br3_6_v_energy);
+  tree3->SetBranchAddress("shw_sp_br3_7_flag",&shw_sp_br3_7_flag);
+  tree3->SetBranchAddress("shw_sp_br3_7_energy",&shw_sp_br3_7_energy);
+  tree3->SetBranchAddress("shw_sp_br3_7_min_angle",&shw_sp_br3_7_min_angle);
+  tree3->SetBranchAddress("shw_sp_br3_7_sg_length",&shw_sp_br3_7_sg_length);
+  tree3->SetBranchAddress("shw_sp_br3_7_main_length",&shw_sp_br3_7_shower_main_length);
+  tree3->SetBranchAddress("shw_sp_br3_8_flag",&shw_sp_br3_8_flag);
+  tree3->SetBranchAddress("shw_sp_br3_8_max_dQ_dx",&shw_sp_br3_8_max_dQ_dx);
+  tree3->SetBranchAddress("shw_sp_br3_8_energy",&shw_sp_br3_8_energy);
+  tree3->SetBranchAddress("shw_sp_br3_8_n_main_segs",&shw_sp_br3_8_n_main_segs);
+  tree3->SetBranchAddress("shw_sp_br3_8_shower_main_length",&shw_sp_br3_8_shower_main_length);
+  tree3->SetBranchAddress("shw_sp_br3_8_shower_length",&shw_sp_br3_8_shower_length);
+
+
+  float shw_sp_br4_flag;
+  float shw_sp_br4_1_flag;
+  float shw_sp_br4_1_shower_main_length;
+  float shw_sp_br4_1_shower_total_length;
+  float shw_sp_br4_1_min_dis;
+  float shw_sp_br4_1_energy;
+  float shw_sp_br4_1_flag_avoid_muon_check;
+  float shw_sp_br4_1_n_vtx_segs;
+  float shw_sp_br4_1_n_main_segs;
+  float shw_sp_br4_2_flag;
+  float shw_sp_br4_2_ratio_45;
+  float shw_sp_br4_2_ratio_35;
+  float shw_sp_br4_2_ratio_25;
+  float shw_sp_br4_2_ratio_15;
+  float shw_sp_br4_2_energy;
+  float shw_sp_br4_2_ratio1_45;
+  float shw_sp_br4_2_ratio1_35;
+  float shw_sp_br4_2_ratio1_25;
+  float shw_sp_br4_2_ratio1_15;
+  float shw_sp_br4_2_iso_angle;
+  float shw_sp_br4_2_iso_angle1;
+  float shw_sp_br4_2_angle;
+  tree3->SetBranchAddress("shw_sp_br4_flag", &shw_sp_br4_flag);
+  tree3->SetBranchAddress("shw_sp_br4_1_flag", &shw_sp_br4_1_flag);
+  tree3->SetBranchAddress("shw_sp_br4_1_shower_main_length", &shw_sp_br4_1_shower_main_length);
+  tree3->SetBranchAddress("shw_sp_br4_1_shower_total_length", &shw_sp_br4_1_shower_total_length);
+  tree3->SetBranchAddress("shw_sp_br4_1_min_dis", &shw_sp_br4_1_min_dis);
+  tree3->SetBranchAddress("shw_sp_br4_1_energy", &shw_sp_br4_1_energy);
+  tree3->SetBranchAddress("shw_sp_br4_1_flag_avoid_muon_check", &shw_sp_br4_1_flag_avoid_muon_check);
+  tree3->SetBranchAddress("shw_sp_br4_1_n_vtx_segs", &shw_sp_br4_1_n_vtx_segs);
+  tree3->SetBranchAddress("shw_sp_br4_1_n_main_segs", &shw_sp_br4_1_n_main_segs);
+  tree3->SetBranchAddress("shw_sp_br4_2_flag", &shw_sp_br4_2_flag);
+  tree3->SetBranchAddress("shw_sp_br4_2_ratio_45", &shw_sp_br4_2_ratio_45);
+  tree3->SetBranchAddress("shw_sp_br4_2_ratio_35", &shw_sp_br4_2_ratio_35);
+  tree3->SetBranchAddress("shw_sp_br4_2_ratio_25", &shw_sp_br4_2_ratio_25);
+  tree3->SetBranchAddress("shw_sp_br4_2_ratio_15", &shw_sp_br4_2_ratio_15);
+  tree3->SetBranchAddress("shw_sp_br4_2_energy",   &shw_sp_br4_2_energy);
+  tree3->SetBranchAddress("shw_sp_br4_2_ratio1_45", &shw_sp_br4_2_ratio1_45);
+  tree3->SetBranchAddress("shw_sp_br4_2_ratio1_35", &shw_sp_br4_2_ratio1_35);
+  tree3->SetBranchAddress("shw_sp_br4_2_ratio1_25", &shw_sp_br4_2_ratio1_25);
+  tree3->SetBranchAddress("shw_sp_br4_2_ratio1_15", &shw_sp_br4_2_ratio1_15);
+  tree3->SetBranchAddress("shw_sp_br4_2_iso_angle", &shw_sp_br4_2_iso_angle);
+  tree3->SetBranchAddress("shw_sp_br4_2_iso_angle1", &shw_sp_br4_2_iso_angle1);
+  tree3->SetBranchAddress("shw_sp_br4_2_angle", &shw_sp_br4_2_angle);
+
+  float shw_sp_hol_flag;
+  float shw_sp_hol_1_flag;
+  float shw_sp_hol_1_n_valid_tracks;
+  float shw_sp_hol_1_min_angle;
+  float shw_sp_hol_1_energy;
+  float shw_sp_hol_1_flag_all_shower;
+  float shw_sp_hol_1_min_length;
+  float shw_sp_hol_2_flag;
+  float shw_sp_hol_2_min_angle;
+  float shw_sp_hol_2_medium_dQ_dx;
+  float shw_sp_hol_2_ncount;
+  float shw_sp_hol_2_energy;
+  tree3->SetBranchAddress("shw_sp_hol_flag", &shw_sp_hol_flag);
+  tree3->SetBranchAddress("shw_sp_hol_1_flag", &shw_sp_hol_1_flag);
+  tree3->SetBranchAddress("shw_sp_hol_1_n_valid_tracks", &shw_sp_hol_1_n_valid_tracks);
+  tree3->SetBranchAddress("shw_sp_hol_1_min_angle", &shw_sp_hol_1_min_angle);
+  tree3->SetBranchAddress("shw_sp_hol_1_energy", &shw_sp_hol_1_energy);
+  tree3->SetBranchAddress("shw_sp_hol_1_flag_all_shower", &shw_sp_hol_1_flag_all_shower);
+  tree3->SetBranchAddress("shw_sp_hol_1_min_length", &shw_sp_hol_1_min_length);
+  tree3->SetBranchAddress("shw_sp_hol_2_flag", &shw_sp_hol_2_flag);
+  tree3->SetBranchAddress("shw_sp_hol_2_min_angle", &shw_sp_hol_2_min_angle);
+  tree3->SetBranchAddress("shw_sp_hol_2_medium_dQ_dx", &shw_sp_hol_2_medium_dQ_dx);
+  tree3->SetBranchAddress("shw_sp_hol_2_ncount", &shw_sp_hol_2_ncount);
+  tree3->SetBranchAddress("shw_sp_hol_2_energy", &shw_sp_hol_2_energy);
+
+
+  float shw_sp_lol_flag;
+  std::vector<float> *shw_sp_lol_1_v_flag = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_1_v_energy = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_1_v_vtx_n_segs = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_1_v_nseg = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_1_v_angle = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_2_v_flag = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_2_v_length = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_2_v_angle = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_2_v_type = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_2_v_vtx_n_segs = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_2_v_energy = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_2_v_shower_main_length = new std::vector<float>;
+  std::vector<float> *shw_sp_lol_2_v_flag_dir_weak = new std::vector<float>;
+  float shw_sp_lol_3_flag;
+  float shw_sp_lol_3_angle_beam;
+  float shw_sp_lol_3_n_valid_tracks;
+  float shw_sp_lol_3_min_angle;
+  float shw_sp_lol_3_vtx_n_segs;
+  float shw_sp_lol_3_energy;
+  float shw_sp_lol_3_shower_main_length;
+  float shw_sp_lol_3_n_out;
+  float shw_sp_lol_3_n_sum;
+  tree3->SetBranchAddress("shw_sp_lol_flag",&shw_sp_lol_flag);
+  tree3->SetBranchAddress("shw_sp_lol_1_v_flag",&shw_sp_lol_1_v_flag);
+  tree3->SetBranchAddress("shw_sp_lol_1_v_energy",&shw_sp_lol_1_v_energy);
+  tree3->SetBranchAddress("shw_sp_lol_1_v_vtx_n_segs",&shw_sp_lol_1_v_vtx_n_segs);
+  tree3->SetBranchAddress("shw_sp_lol_1_v_nseg",&shw_sp_lol_1_v_nseg);
+  tree3->SetBranchAddress("shw_sp_lol_1_v_angle",&shw_sp_lol_1_v_angle);
+  tree3->SetBranchAddress("shw_sp_lol_2_v_flag",&shw_sp_lol_2_v_flag);
+  tree3->SetBranchAddress("shw_sp_lol_2_v_length",&shw_sp_lol_2_v_length);
+  tree3->SetBranchAddress("shw_sp_lol_2_v_angle",&shw_sp_lol_2_v_angle);
+  tree3->SetBranchAddress("shw_sp_lol_2_v_type",&shw_sp_lol_2_v_type);
+  tree3->SetBranchAddress("shw_sp_lol_2_v_vtx_n_segs",&shw_sp_lol_2_v_vtx_n_segs);
+  tree3->SetBranchAddress("shw_sp_lol_2_v_energy",&shw_sp_lol_2_v_energy);
+  tree3->SetBranchAddress("shw_sp_lol_2_v_shower_main_length",&shw_sp_lol_2_v_shower_main_length);
+  tree3->SetBranchAddress("shw_sp_lol_2_v_flag_dir_weak",&shw_sp_lol_2_v_flag_dir_weak);
+  tree3->SetBranchAddress("shw_sp_lol_3_flag",&shw_sp_lol_3_flag);
+  tree3->SetBranchAddress("shw_sp_lol_3_angle_beam",&shw_sp_lol_3_angle_beam);
+  tree3->SetBranchAddress("shw_sp_lol_3_n_valid_tracks",&shw_sp_lol_3_n_valid_tracks);
+  tree3->SetBranchAddress("shw_sp_lol_3_min_angle",&shw_sp_lol_3_min_angle);
+  tree3->SetBranchAddress("shw_sp_lol_3_vtx_n_segs",&shw_sp_lol_3_vtx_n_segs);
+  tree3->SetBranchAddress("shw_sp_lol_3_energy",&shw_sp_lol_3_energy);
+  tree3->SetBranchAddress("shw_sp_lol_3_shower_main_length",&shw_sp_lol_3_shower_main_length);
+  tree3->SetBranchAddress("shw_sp_lol_3_n_out",&shw_sp_lol_3_n_out);
+  tree3->SetBranchAddress("shw_sp_lol_3_n_sum",&shw_sp_lol_3_n_sum);
+
+
+
 	  float cosmic_filled;
 	  float cosmic_flag;
 	  float cosmic_n_solid_tracks;
@@ -299,32 +816,32 @@ if(f_BDTport){
 	  float mip_n_end_reduction;
 	  float mip_n_first_mip;
 	  float mip_n_first_non_mip;
-          float mip_n_first_non_mip_1;
-          float mip_n_first_non_mip_2;
-          float mip_vec_dQ_dx_0;
-          float mip_vec_dQ_dx_1;
-          float mip_max_dQ_dx_sample;
-          float mip_n_below_threshold;
-          float mip_n_below_zero;
-          float mip_n_lowest;
-          float mip_n_highest;
-          float mip_lowest_dQ_dx;
-          float mip_highest_dQ_dx;
-          float mip_medium_dQ_dx;
-          float mip_stem_length;
-          float mip_length_main;
-          float mip_length_total;
-          float mip_angle_beam;
-          float mip_iso_angle;
-          float mip_n_vertex;
-          float mip_n_good_tracks;
-          float mip_E_indirect_max_energy;
-          float mip_flag_all_above;
-          float mip_min_dQ_dx_5;
-          float mip_n_other_vertex;
-          float mip_n_stem_size;
-          float mip_flag_stem_trajectory;
-          float mip_min_dis;
+    float mip_n_first_non_mip_1;
+    float mip_n_first_non_mip_2;
+    float mip_vec_dQ_dx_0;
+    float mip_vec_dQ_dx_1;
+    float mip_max_dQ_dx_sample;
+    float mip_n_below_threshold;
+    float mip_n_below_zero;
+    float mip_n_lowest;
+    float mip_n_highest;
+    float mip_lowest_dQ_dx;
+    float mip_highest_dQ_dx;
+    float mip_medium_dQ_dx;
+    float mip_stem_length;
+    float mip_length_main;
+    float mip_length_total;
+    float mip_angle_beam;
+    float mip_iso_angle;
+    float mip_n_vertex;
+    float mip_n_good_tracks;
+    float mip_E_indirect_max_energy;
+    float mip_flag_all_above;
+    float mip_min_dQ_dx_5;
+    float mip_n_other_vertex;
+    float mip_n_stem_size;
+    float mip_flag_stem_trajectory;
+    float mip_min_dis;
 	  tree3->SetBranchAddress("mip_filled",&mip_filled);
 	  tree3->SetBranchAddress("mip_flag",&mip_flag);
 	  tree3->SetBranchAddress("mip_energy",&mip_energy);
@@ -441,7 +958,7 @@ if(f_BDTport){
 	  std::vector<float> *sig_2_v_flag_single_shower= new std::vector<float>;
 	  std::vector<float> *sig_2_v_medium_dQ_dx= new std::vector<float>;
 	  std::vector<float> *sig_2_v_start_dQ_dx= new std::vector<float>;
-	  tree3->SetBranchAddress("sig_flag",&sig_flag); 
+	  tree3->SetBranchAddress("sig_flag",&sig_flag);
 	  tree3->SetBranchAddress("sig_1_v_flag",&sig_1_v_flag);
 	  tree3->SetBranchAddress("sig_1_v_angle",&sig_1_v_angle);
 	  tree3->SetBranchAddress("sig_1_v_flag_single_shower",&sig_1_v_flag_single_shower);
@@ -526,7 +1043,7 @@ if(f_BDTport){
 	  std::vector<float> *stw_4_v_angle = new std::vector<float>;
 	  std::vector<float> *stw_4_v_dis = new std::vector<float>;
 	  std::vector<float> *stw_4_v_energy = new std::vector<float>;
-	  tree3->SetBranchAddress("stw_flag", &stw_flag); 
+	  tree3->SetBranchAddress("stw_flag", &stw_flag);
 	  tree3->SetBranchAddress("stw_1_flag",&stw_1_flag);
 	  tree3->SetBranchAddress("stw_1_energy",&stw_1_energy);
 	  tree3->SetBranchAddress("stw_1_dis",&stw_1_dis);
@@ -1129,7 +1646,7 @@ if(f_BDTport){
 	  float lol_3_energy;
 	  float lol_3_shower_main_length;
 	  float lol_3_n_out;
-	  float lol_3_n_sum;    
+	  float lol_3_n_sum;
 	  tree3->SetBranchAddress("lol_flag",&lol_flag);
 	  tree3->SetBranchAddress("lol_1_v_flag",&lol_1_v_flag);
 	  tree3->SetBranchAddress("lol_1_v_energy",&lol_1_v_energy);
@@ -1153,7 +1670,7 @@ if(f_BDTport){
 	  tree3->SetBranchAddress("lol_3_shower_main_length",&lol_3_shower_main_length);
 	  tree3->SetBranchAddress("lol_3_n_out",&lol_3_n_out);
 	  tree3->SetBranchAddress("lol_3_n_sum",&lol_3_n_sum);
-		
+
 	  float cosmict_flag_1; // fiducial volume vertex
 	  float cosmict_flag_2;  // single muon
 	  float cosmict_flag_3;  // single muon (long)
@@ -1284,7 +1801,7 @@ if(f_BDTport){
 	  tree3->SetBranchAddress("cosmict_10_flag_dir_weak",&cosmict_10_flag_dir_weak);
 	  tree3->SetBranchAddress("cosmict_10_angle_beam",&cosmict_10_angle_beam);
 	  tree3->SetBranchAddress("cosmict_10_length",&cosmict_10_length);
-	   
+
 	  // numu tagger
 	  float numu_cc_flag;
 	  std::vector<float> *numu_cc_flag_1= new std::vector<float>;
@@ -1422,11 +1939,293 @@ if(f_BDTport){
 	  tree3->SetBranchAddress("tro_5_score",&tro_5_score);
 	  tree3->SetBranchAddress("nue_score",&nue_score);
 
-  	
+
 
   /// Read and assign values
   tree3->GetEntry(0); // rare case: multiple in-beam matched activity
-  
+
+  nsm::NuSelectionBDT::SPID _SPID_init = {
+          shw_sp_num_mip_tracks,
+          shw_sp_num_muons,
+          shw_sp_num_pions,
+          shw_sp_num_protons,
+          shw_sp_proton_length_1,
+          shw_sp_proton_dqdx_1,
+          shw_sp_proton_energy_1,
+          shw_sp_proton_length_2,
+          shw_sp_proton_dqdx_2,
+          shw_sp_proton_energy_2,
+          shw_sp_n_good_showers,
+          shw_sp_n_20mev_showers,
+          shw_sp_n_br1_showers,
+          shw_sp_n_br2_showers,
+          shw_sp_n_br3_showers,
+          shw_sp_n_br4_showers,
+          shw_sp_n_20br1_showers,
+          shw_sp_20mev_showers,
+          shw_sp_br1_showers,
+          shw_sp_br2_showers,
+          shw_sp_br3_showers,
+          shw_sp_br4_showers,
+          shw_sp_shw_vtx_dis,
+          shw_sp_max_shw_dis
+  };
+
+  nsm::NuSelectionBDT::SPSHWID1 _SPSHWID1_init = {
+          shw_sp_filled,
+          shw_sp_flag,
+          shw_sp_energy,
+          shw_sp_vec_dQ_dx_0,
+          shw_sp_vec_dQ_dx_1,
+          shw_sp_max_dQ_dx_sample,
+          shw_sp_n_below_threshold,
+          shw_sp_n_below_zero,
+          shw_sp_n_lowest,
+          shw_sp_n_highest,
+          shw_sp_lowest_dQ_dx,
+          shw_sp_highest_dQ_dx,
+          shw_sp_medium_dQ_dx,
+          shw_sp_stem_length,
+          shw_sp_length_main,
+          shw_sp_length_total,
+          shw_sp_angle_beam,
+          shw_sp_iso_angle,
+          shw_sp_n_vertex,
+          shw_sp_n_good_tracks,
+          shw_sp_E_indirect_max_energy,
+          shw_sp_flag_all_above,
+          shw_sp_min_dQ_dx_5,
+          shw_sp_n_other_vertex,
+          shw_sp_n_stem_size,
+          shw_sp_flag_stem_trajectory,
+          shw_sp_min_dis
+  };
+
+  nsm::NuSelectionBDT::SPSHWID2 _SPSHWID2_init = {
+          shw_sp_vec_median_dedx,
+          shw_sp_vec_mean_dedx,
+          shw_sp_vec_dQ_dx_2,
+          shw_sp_vec_dQ_dx_3,
+          shw_sp_vec_dQ_dx_4,
+          shw_sp_vec_dQ_dx_5,
+          shw_sp_vec_dQ_dx_6,
+          shw_sp_vec_dQ_dx_7,
+          shw_sp_vec_dQ_dx_8,
+          shw_sp_vec_dQ_dx_9,
+          shw_sp_vec_dQ_dx_10,
+          shw_sp_vec_dQ_dx_11,
+          shw_sp_vec_dQ_dx_12,
+          shw_sp_vec_dQ_dx_13,
+          shw_sp_vec_dQ_dx_14,
+          shw_sp_vec_dQ_dx_15,
+          shw_sp_vec_dQ_dx_16,
+          shw_sp_vec_dQ_dx_17,
+          shw_sp_vec_dQ_dx_18,
+          shw_sp_vec_dQ_dx_19
+  };
+
+  nsm::NuSelectionBDT::SPPi0Tagger1 _SPPi0Tagger1_init = {
+          shw_sp_pio_filled,
+          shw_sp_pio_flag,
+          shw_sp_pio_mip_id,
+          shw_sp_pio_flag_pio,
+          shw_sp_pio_1_flag,
+          shw_sp_pio_1_mass,
+          shw_sp_pio_1_pio_type,
+          shw_sp_pio_1_energy_1,
+          shw_sp_pio_1_energy_2,
+          shw_sp_pio_1_dis_1,
+          shw_sp_pio_1_dis_2,
+          shw_sp_pio_2_v_flag,
+          shw_sp_pio_2_v_dis2,
+          shw_sp_pio_2_v_angle2,
+          shw_sp_pio_2_v_acc_length
+  };
+
+  nsm::NuSelectionBDT::SPLowEMichel _SPLowEMichel_init = {
+          shw_sp_lem_flag,
+          shw_sp_lem_shower_total_length,
+          shw_sp_lem_shower_main_length,
+          shw_sp_lem_n_3seg,
+          shw_sp_lem_e_charge,
+          shw_sp_lem_e_dQdx,
+          shw_sp_lem_shower_num_segs,
+          shw_sp_lem_shower_num_main_segs
+  };
+
+  nsm::NuSelectionBDT::SPBadReco1 _SPBadReco1_init = {
+          shw_sp_br_filled,
+          shw_sp_br1_flag,
+          shw_sp_br1_1_flag,
+          shw_sp_br1_1_shower_type,
+          shw_sp_br1_1_vtx_n_segs,
+          shw_sp_br1_1_energy,
+          shw_sp_br1_1_n_segs,
+          shw_sp_br1_1_flag_sg_topology,
+          shw_sp_br1_1_flag_sg_trajectory,
+          shw_sp_br1_1_sg_length,
+          shw_sp_br1_2_flag,
+          shw_sp_br1_2_energy,
+          shw_sp_br1_2_n_connected,
+          shw_sp_br1_2_max_length,
+          shw_sp_br1_2_n_connected_1,
+          shw_sp_br1_2_vtx_n_segs,
+          shw_sp_br1_2_n_shower_segs,
+          shw_sp_br1_2_max_length_ratio,
+          shw_sp_br1_2_shower_length,
+          shw_sp_br1_3_flag,
+          shw_sp_br1_3_energy,
+          shw_sp_br1_3_n_connected_p,
+          shw_sp_br1_3_max_length_p,
+          shw_sp_br1_3_n_shower_segs,
+          shw_sp_br1_3_flag_sg_topology,
+          shw_sp_br1_3_flag_sg_trajectory,
+          shw_sp_br1_3_n_shower_main_segs,
+          shw_sp_br1_3_sg_length
+  };
+  nsm::NuSelectionBDT::SPBadReco2 _SPBadReco2_init = {
+          shw_sp_br_filled,
+          shw_sp_br2_flag,
+          shw_sp_br2_flag_single_shower,
+          shw_sp_br2_num_valid_tracks,
+          shw_sp_br2_energy,
+          shw_sp_br2_angle1,
+          shw_sp_br2_angle2,
+          shw_sp_br2_angle,
+          shw_sp_br2_angle3,
+          shw_sp_br2_n_shower_main_segs,
+          shw_sp_br2_max_angle,
+          shw_sp_br2_sg_length,
+          shw_sp_br2_flag_sg_trajectory
+  };
+  nsm::NuSelectionBDT::SPBadReco3 _SPBadReco3_init = {
+          shw_sp_br_filled,
+          shw_sp_br3_flag,
+          shw_sp_br3_1_flag,
+          shw_sp_br3_1_energy,
+          shw_sp_br3_1_n_shower_segments,
+          shw_sp_br3_1_sg_flag_trajectory,
+          shw_sp_br3_1_sg_direct_length,
+          shw_sp_br3_1_sg_length,
+          shw_sp_br3_1_total_main_length,
+          shw_sp_br3_1_total_length,
+          shw_sp_br3_1_iso_angle,
+          shw_sp_br3_1_sg_flag_topology,
+          shw_sp_br3_2_flag,
+          shw_sp_br3_2_n_ele,
+          shw_sp_br3_2_n_other,
+          shw_sp_br3_2_energy,
+          shw_sp_br3_2_total_main_length,
+          shw_sp_br3_2_total_length,
+          shw_sp_br3_2_other_fid,
+          shw_sp_br3_3_v_flag,
+          shw_sp_br3_3_v_energy,
+          shw_sp_br3_3_v_angle,
+          shw_sp_br3_3_v_dir_length,
+          shw_sp_br3_3_v_length,
+          shw_sp_br3_4_flag,
+          shw_sp_br3_4_acc_length,
+          shw_sp_br3_4_total_length,
+          shw_sp_br3_4_energy,
+          shw_sp_br3_5_v_flag,
+          shw_sp_br3_5_v_dir_length,
+          shw_sp_br3_5_v_total_length,
+          shw_sp_br3_5_v_flag_avoid_muon_check,
+          shw_sp_br3_5_v_n_seg,
+          shw_sp_br3_5_v_angle,
+          shw_sp_br3_5_v_sg_length,
+          shw_sp_br3_5_v_energy,
+          shw_sp_br3_5_v_n_main_segs,
+          shw_sp_br3_5_v_n_segs,
+          shw_sp_br3_5_v_shower_main_length,
+          shw_sp_br3_5_v_shower_total_length,
+          shw_sp_br3_6_v_flag,
+          shw_sp_br3_6_v_angle,
+          shw_sp_br3_6_v_angle1,
+          shw_sp_br3_6_v_flag_shower_trajectory,
+          shw_sp_br3_6_v_direct_length,
+          shw_sp_br3_6_v_length,
+          shw_sp_br3_6_v_n_other_vtx_segs,
+          shw_sp_br3_6_v_energy,
+          shw_sp_br3_7_flag,
+          shw_sp_br3_7_energy,
+          shw_sp_br3_7_min_angle,
+          shw_sp_br3_7_sg_length,
+          shw_sp_br3_7_shower_main_length,
+          shw_sp_br3_8_flag,
+          shw_sp_br3_8_max_dQ_dx,
+          shw_sp_br3_8_energy,
+          shw_sp_br3_8_n_main_segs,
+          shw_sp_br3_8_shower_main_length,
+          shw_sp_br3_8_shower_length
+  };
+  nsm::NuSelectionBDT::SPBadReco4 _SPBadReco4_init = {
+          shw_sp_br_filled,
+          shw_sp_br4_flag,
+          shw_sp_br4_1_flag,
+          shw_sp_br4_1_shower_main_length,
+          shw_sp_br4_1_shower_total_length,
+          shw_sp_br4_1_min_dis,
+          shw_sp_br4_1_energy,
+          shw_sp_br4_1_flag_avoid_muon_check,
+          shw_sp_br4_1_n_vtx_segs,
+          shw_sp_br4_1_n_main_segs,
+          shw_sp_br4_2_flag,
+          shw_sp_br4_2_ratio_45,
+          shw_sp_br4_2_ratio_35,
+          shw_sp_br4_2_ratio_25,
+          shw_sp_br4_2_ratio_15,
+          shw_sp_br4_2_energy,
+          shw_sp_br4_2_ratio1_45,
+          shw_sp_br4_2_ratio1_35,
+          shw_sp_br4_2_ratio1_25,
+          shw_sp_br4_2_ratio1_15,
+          shw_sp_br4_2_iso_angle,
+          shw_sp_br4_2_iso_angle1,
+          shw_sp_br4_2_angle
+  };
+
+  nsm::NuSelectionBDT::SPHighEoverlap _SPHighEoverlap_init = {
+          shw_sp_hol_flag,
+          shw_sp_hol_1_flag,
+          shw_sp_hol_1_n_valid_tracks,
+          shw_sp_hol_1_min_angle,
+          shw_sp_hol_1_energy,
+          shw_sp_hol_1_flag_all_shower,
+          shw_sp_hol_1_min_length,
+          shw_sp_hol_2_flag,
+          shw_sp_hol_2_min_angle,
+          shw_sp_hol_2_medium_dQ_dx,
+          shw_sp_hol_2_ncount,
+          shw_sp_hol_2_energy
+  };
+  nsm::NuSelectionBDT::SPLowEoverlap _SPLowEoverlap_init = {
+          shw_sp_lol_flag,
+          shw_sp_lol_1_v_flag,
+          shw_sp_lol_1_v_energy,
+          shw_sp_lol_1_v_vtx_n_segs,
+          shw_sp_lol_1_v_nseg,
+          shw_sp_lol_1_v_angle,
+          shw_sp_lol_2_v_flag,
+          shw_sp_lol_2_v_length,
+          shw_sp_lol_2_v_angle,
+          shw_sp_lol_2_v_type,
+          shw_sp_lol_2_v_vtx_n_segs,
+          shw_sp_lol_2_v_energy,
+          shw_sp_lol_2_v_shower_main_length,
+          shw_sp_lol_2_v_flag_dir_weak,
+          shw_sp_lol_3_flag,
+          shw_sp_lol_3_angle_beam,
+          shw_sp_lol_3_n_valid_tracks,
+          shw_sp_lol_3_min_angle,
+          shw_sp_lol_3_vtx_n_segs,
+          shw_sp_lol_3_energy,
+          shw_sp_lol_3_shower_main_length,
+          shw_sp_lol_3_n_out,
+          shw_sp_lol_3_n_sum
+  };
+
+
   nsm::NuSelectionBDT::CosmicTagger _CosmicTagger_init = {
           cosmic_filled,
           cosmic_flag,
@@ -2058,6 +2857,17 @@ if(f_BDTport){
   };
 
   // set
+  nsmbdt.SetSPID(_SPID_init);
+  nsmbdt.SetSPSHWID1(_SPSHWID1_init);
+  nsmbdt.SetSPSHWID2(_SPSHWID2_init);
+  nsmbdt.SetSPPi0Tagger1(_SPPi0Tagger1_init);
+  nsmbdt.SetSPLowEMichel(_SPLowEMichel_init);
+  nsmbdt.SetSPBadReco1(_SPBadReco1_init);
+  nsmbdt.SetSPBadReco2(_SPBadReco2_init);
+  nsmbdt.SetSPBadReco3(_SPBadReco3_init);
+  nsmbdt.SetSPBadReco4(_SPBadReco4_init);
+  nsmbdt.SetSPHighEoverlap(_SPHighEoverlap_init);
+  nsmbdt.SetSPLowEoverlap(_SPLowEoverlap_init);
   nsmbdt.SetCosmicTagger(_CosmicTagger_init);
   nsmbdt.SetGapID(_GapID_init);
   nsmbdt.SetMipCheck(_MipCheck_init);
@@ -2082,12 +2892,12 @@ if(f_BDTport){
   nsmbdt.SetBadReco4(_BadReco4_init);
   nsmbdt.SetTrackOverCluster(_TrackOverCluster_init);
   nsmbdt.SetHighEoverlap(_HighEoverlap_init);
-  nsmbdt.SetLowEoverlap(_LowEoverlap_init);  
+  nsmbdt.SetLowEoverlap(_LowEoverlap_init);
   nsmbdt.SetMajorCosmicTagger(_MajorCosmicTagger_init);
   nsmbdt.SetNumuCCTagger(_NumuCCTagger_init);
   nsmbdt.SetBDTscores(_BDTscores_init);
 
-  
+
   outputBDTvars->push_back(nsmbdt);
 
   }
@@ -2098,20 +2908,20 @@ if(f_BDTport){
   e.put(std::move(outputBDTvars));
 
   }//else
-} 
+}
 
 if(f_KINEport){
   auto outputKINEvars = std::make_unique< std::vector<nsm::NuSelectionKINE> >();
   if(badinput){
 	e.put(std::move(outputKINEvars));
-	//return; 
+	//return;
   }
   else{
   nsm::NuSelectionKINE nsmkine;
- 
+
   TTree *tree4 = (TTree*)fin->Get(fInput_tree4.c_str());
   if(tree4){
-	
+
 	  float kine_reco_Enu; // kinetic energy  + additional energy ...
 	  float kine_reco_add_energy;  // mass, binding energy ...
 	  std::vector<float> *kine_energy_particle = new std::vector<float>;  // energy of each particle
@@ -2172,23 +2982,23 @@ if(f_KINEport){
 		  kine_pio_dis_2,
 		  kine_pio_angle
 	  };
-	
+
 	  nsmkine.SetKineInfo(_KineInfo_init);
 	  outputKINEvars->push_back(nsmkine);
 
   }
   else{
     mf::LogError("WireCellPF") <<"TTree "<< fInput_tree4 <<" not found in file " << fInput <<"\n";
-  }  
-  
+  }
+
   e.put(std::move(outputKINEvars));
- 
+
   }
 }
 
 
   if(fin) fin->Close();
-  return; 
+  return;
 
 }
 
