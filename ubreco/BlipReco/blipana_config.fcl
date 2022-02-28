@@ -14,7 +14,7 @@ microboone_mcc9_calorimetryalgmc:
 microboone_blipana:
 { 
   module_type:        "BlipAna"
-  HitModuleLabel:     "cosmicfilter"
+  HitModuleLabel:     "cosmicfilter" #"cosmicfilter"
   LArG4ModuleLabel:   "largeant"
   TrackModuleLabel:   "pandora" # pandoraTrack?
   CaloAlg:		        @local::microboone_mcc9_calorimetryalgmc
@@ -25,7 +25,7 @@ microboone_blipana:
   TrueBlipMergeDist:  0.3 # cm 
   DoHitFiltering:     true
   MinHitRMS:          [ 1.5,  1.5,  1.5 ]
-  MaxHitRMS:          [ 30,  30,  30 ]
+  MaxHitRMS:          [ 50,  50,  50 ]
   #MinHitRatio:        [ 0,    0,    0   ]
   #MaxHitRatio:        [ 3,    3,    2   ]
   MinHitGOF:          [ 0,    0,    0   ]
