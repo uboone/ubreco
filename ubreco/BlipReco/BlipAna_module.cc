@@ -644,6 +644,9 @@ class BlipAna : public art::EDAnalyzer
   bool                fSaveHitInfo;
   bool                fMakeDiagHists;
   float               fTrueBlipMergeDist;
+  float               fTrackLengthCut;
+  float               fTrackLengthCylinderCut;
+  float               fCylinderCutRadius;
   bool                fDoHitFiltering;
   std::vector<float>  fMinHitRMS;
   std::vector<float>  fMaxHitRMS;
@@ -800,8 +803,8 @@ BlipAna::BlipAna(fhicl::ParameterSet const& pset) :
   EDAnalyzer(pset)
   ,fData              (nullptr)
   ,fCaloAlg           (pset.get< fhicl::ParameterSet >    ("CaloAlg"))
-  ,fAnaTreeName       (pset.get< std::string >            ("AnaTreeName",       "anatree"))
-  ,fHitModuleLabel    (pset.get< std::string >            ("HitModuleLabel",    "gaushit"))
+  //,fAnaTreeName       (pset.get< std::string >            ("AnaTreeName",       "anatree"))
+  //,fHitModuleLabel    (pset.get< std::string >            ("HitModuleLabel",    "gaushit"))
   ,fLArG4ModuleLabel  (pset.get< std::string >            ("LArG4ModuleLabel",  "largeant"))
   ,fTrackModuleLabel  (pset.get< std::string >            ("TrackModuleLabel",  "pandoraTrack"))
   ,fShowerModuleLabel (pset.get< std::string >            ("ShowerModuleLabel", "pandoraShower"))
@@ -826,6 +829,16 @@ BlipAna::BlipAna(fhicl::ParameterSet const& pset) :
 //  ,fDiffTolerance     (pset.get< float >                  ("DiffTolerance",     2.0))
 {
   // TODO: move above into "reconfigure" function; parameters to be set in blipana_config.fcl
+  //fData               = (nullptr);
+  //fCaloAlg           = pset.get< fhicl::ParameterSet >    ("CaloAlg");
+  fAnaTreeName       = pset.get< std::string >            ("AnaTreeName",       "anatree");
+  fHitModuleLabel    = pset.get< std::string >            ("HitModuleLabel",    "gaushit");
+  fDiffTolerance = pset.get< float >("DiffTolerance", 999.);
+  fMinMatchedPlanes = pset.get< int >("MinMatchedPlanes", 2);
+  fTrackLengthCut     = pset.get<float>("TrackLengthCut",3);
+  fTrackLengthCylinderCut     = pset.get<float>("TrackLengthCylinderCut",10);
+  fCylinderCutRadius     = pset.get<float>("CylinderCutRadius",15);
+
   fData = new BlipAnaTreeDataStruct();
   fData ->saveTruthInfo = fSaveTruthInfo;
   fData ->saveHitInfo = fSaveHitInfo;
@@ -833,8 +846,6 @@ BlipAna::BlipAna(fhicl::ParameterSet const& pset) :
   fData ->Clear();
   fData ->MakeTree();
   InitializeHistograms();
-  fDiffTolerance = pset.get< float >("DiffTolerance", 999.);
-  fMinMatchedPlanes = pset.get< int >("MinMatchedPlanes", 2);
 }
 BlipAna::~BlipAna(){}
 
@@ -1071,9 +1082,12 @@ void BlipAna::analyze(const art::Event& evt)
   // Save hit information
   //====================================
   std::vector<BlipUtils::HitInfo> hitinfo(hitlist.size());
-  std::map<int,std::vector<int>> wirehitsMap;
+  //std::map<int,std::vector<int>> wirehitsMap_pl2;
+  std::map<int,std::vector<int>> chanhitsMap;
+  std::map<int,std::vector<int>> planehitsMap;
   std::cout<<"Looping over the hits\n";
   for(size_t i=0; i<hitlist.size(); i++){
+    int   chan  = hitlist[i]->Channel();
     int   wire  = hitlist[i]->WireID().Wire;
     int   plane = hitlist[i]->WireID().Plane;
     int   tpc   = hitlist[i]->WireID().TPC;
@@ -1102,8 +1116,9 @@ void BlipAna::analyze(const art::Event& evt)
     //  if (fmshwr.at(i).size()) hitinfo[i].shwrid = fmshwr.at(i)[0]->ID();
     //}
     
-    // Add to the wire-by-wire hit map
-    wirehitsMap[wire].push_back(i);
+    // Add to the channel hit map
+    chanhitsMap[chan].push_back(i);
+    planehitsMap[plane].push_back(i);
     
     //printf("  %i   tpc: %i  plane: %i  wire: %i  time: %f  rms: %f   ratio: %f\n",
     //  (int)i, tpc, plane, wire, hitinfo[i].driftTicks, hitlist[i]->RMS(), hitlist[i]->RMS()/hitlist[i]->PeakAmplitude());
@@ -1111,25 +1126,6 @@ void BlipAna::analyze(const art::Event& evt)
 
   }
  
-  /*
-  // Time matching
-  for(size_t i=0; i<hitlist.size(); i++){
-    for(size_t j=i+1; j<hitlist.size(); j++){
-      if( hitinfo[i].plane == hitinfo[j].plane ) continue;
-      if( hitinfo[i].tpc != hitinfo[j].tpc   ) continue;
-      if( hitinfo[i].trkid >= 0 || hitinfo[j].trkid >= 0) continue;
-      float dT = fabs(hitinfo[j].driftTicks - hitinfo[i].driftTicks);
-      //h_hit_dT->Fill( dT );
-      if( dT <= fHitMatchTolerance ) {
-        hitinfo[i].ismatch = true;
-        hitinfo[j].ismatch = true;
-      }
-    }
-  }
-  */
-
-  
-  
 
  /*
   // Flag real hits and fill hit diagnostic histograms
@@ -1277,10 +1273,6 @@ void BlipAna::analyze(const art::Event& evt)
   for(size_t i=0; i<hitlist.size(); i++){
     int plane = hitlist[i]->WireID().Plane;
     
-    // Exclude any hits that were part of 3cm+ tracks
-    int trkID = hitinfo[i].trkid;
-    if( trkID >= 0 && trkID < fData->ntrks ) 
-      if( fData->trk_length[trkID] > 3 ) continue;
     
     if( !fDoHitFiltering ) {
       hitinfo[i].isgood = true;
@@ -1296,19 +1288,44 @@ void BlipAna::analyze(const art::Event& evt)
     hitinfo[i].rmsCut = true;
     
     // Ratio cut
-    float ratio = hitlist[i]->RMS()/hitlist[i]->PeakAmplitude();
-    if( ratio < fMinHitRatio[plane] || ratio > fMaxHitRatio[plane] ) continue;
+    //float ratio = hitlist[i]->RMS()/hitlist[i]->PeakAmplitude();
+    //if( ratio < fMinHitRatio[plane] || ratio > fMaxHitRatio[plane] ) continue;
     hitinfo[i].ratioCut = true;
     
     hitinfo[i].isgood = true;
     
     // since this hit looks good, also flag any overlapping hits
     // on the same wire as good too
-    for(auto j : wirehitsMap[hitlist[i]->WireID().Wire] ) {
+    //for(auto j : wirehitsMap[hitlist[i]->WireID().Wire] ) {
+    for(auto j : chanhitsMap[hitlist[i]->Channel()] ) {
       if( BlipUtils::DoHitsOverlap(hitlist[i],hitlist[j]) ) 
         hitinfo[j].isgood = true;
     }
   
+  }
+  
+  //---------------------------------------------------------------
+  // Exclude any hits that were part of tracks of a certain length
+  for(size_t i=0; i<hitlist.size(); i++){
+    int trkID = hitinfo[i].trkid;
+    if( trkID >= 0 && trkID < fData->ntrks ) {
+      float trkLen = fData->trk_length[trkID];
+      if( trkLen > fTrackLengthCut ) {
+        hitinfo[i].isgood = false;
+        for(auto j : planehitsMap[hitlist[i]->WireID().Plane] ) {
+          int w1 = hitlist[i]->WireID().Wire;
+          int w2 = hitlist[j]->WireID().Wire;
+          float t1 = hitlist[i]->PeakTime()*0.5;
+          float t2 = hitlist[j]->PeakTime()*0.5;
+          float dx = float(w1-w2) * 0.3; // wire space 0.3cm
+          float dy = float(t1-t2) * 0.1041;  // ~0.1041 cm/us drift speed
+          float ds = sqrt( pow(dx,2) + pow(dy,2) );
+          if( ds < 1 || (trkLen > fTrackLengthCylinderCut && ds < fCylinderCutRadius) ) 
+            hitinfo[j].isgood = false;
+        }
+
+      }
+    }
   }
   
 
@@ -1318,8 +1335,8 @@ void BlipAna::analyze(const art::Event& evt)
   std::vector<BlipUtils::HitClust> hitclust;
   std::map<int,std::map<int,std::vector<int>>> tpc_planeclustsMap;
   std::cout<<"Doing first-pass cluster reco\n";
-  for(auto const& wirehits : wirehitsMap){
-    for(auto const& hi : wirehits.second ){
+  for(auto const& chanhits : chanhitsMap){
+    for(auto const& hi : chanhits.second ){
       if( !hitinfo[hi].isgood || hitinfo[hi].isclustered ) continue;
       // cluster this hit
       BlipUtils::HitClust hc = BlipUtils::MakeHitClust(hitinfo[hi]);
@@ -1330,7 +1347,7 @@ void BlipAna::analyze(const art::Event& evt)
       int hitsAdded;
       do{
         hitsAdded = 0;  
-        for(auto const& hj : wirehits.second ) {
+        for(auto const& hj : chanhits.second ) {
           if( !hitinfo[hj].isgood || hitinfo[hj].isclustered ) continue;
           if( hitlist[hj] == hitlist[hi] ) continue;
           float range = fHitClustWidthFact*hitlist[hj]->RMS();
