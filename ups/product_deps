@@ -29,9 +29,9 @@ table_fragment_end
 # Add the dependent product and version
 
 product                 version
-ubsim                   v09_43_00
-larreco                 v09_09_05
-larpandora              v09_12_06
+ubsim                   v09_44_00
+larreco                 v09_09_06
+larpandora              v09_12_07
 swtrigger               v02_03_00d
 cetbuildtools	        v8_18_09	-	only_for_build
 end_product_list
