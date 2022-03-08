@@ -89,6 +89,7 @@ namespace BlipUtils{
     bool  isclustered   = false;
     bool  ismatch       = false;
     bool  isreal        = false;
+    bool  isneartrk     = false;
     int   blipid        = -9;
     int   clustid       = -9;
     int   g4id          = -9;
