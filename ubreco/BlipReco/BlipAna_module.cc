@@ -164,7 +164,7 @@ class BlipAnaTreeDataStruct
   int   edep_clustid[kMaxEDeps];  // hitclust ID
   int   edep_blipid[kMaxEDeps];   // reconstructed blip ID
   float edep_energy[kMaxEDeps];   // total energy deposited (MeV)
-  float edep_energyESTAR[kMaxEDeps];   // total energy deposited (MeV)
+  //float edep_energyESTAR[kMaxEDeps];   // total energy deposited (MeV)
   float edep_charge[kMaxEDeps];   // total electrons reaching anode wires
   float edep_x[kMaxEDeps];        // x (cm)
   float edep_y[kMaxEDeps];        // y (cm)
@@ -282,7 +282,7 @@ class BlipAnaTreeDataStruct
   float blip_maxdiff[kMaxBlips];
   float blip_charge[kMaxBlips];
   float blip_energy[kMaxBlips];
-  float blip_energyESTAR[kMaxBlips];
+  //float blip_energyESTAR[kMaxBlips];
   int   blip_edepid[kMaxBlips];  
   //int   blip_clustid[kNplanes][kMaxBlips];
   //float blip_charge[kNplanes][kMaxBlips];
@@ -328,7 +328,7 @@ class BlipAnaTreeDataStruct
     nedeps                = 0;    // --- EDeps ---
     FillWith(edep_tpc,    -9);
     FillWith(edep_energy, -999);
-    FillWith(edep_energyESTAR, -999);
+    //FillWith(edep_energyESTAR, -999);
     FillWith(edep_charge, -999);
     FillWith(edep_x,      -99999.);
     FillWith(edep_y,      -99999.);
@@ -438,7 +438,7 @@ class BlipAnaTreeDataStruct
     FillWith(blip_maxdiff, -9);
     FillWith(blip_charge, -999);
     FillWith(blip_energy, -999);
-    FillWith(blip_energyESTAR, -999);
+    //FillWith(blip_energyESTAR, -999);
     FillWith(blip_edepid, -9);
     for(int i=0; i<kNplanes; i++){
       FillWith(blip_clustid[i], -9);
@@ -647,7 +647,7 @@ class BlipAna : public art::EDAnalyzer
   // --- Data and calo objects ---
   BlipAnaTreeDataStruct*  fData;
   calo::CalorimetryAlg    fCaloAlg;
-  TGraph2D*               ESTAR;
+  //TGraph2D*               ESTAR;
 
   // --- FCL configs ---
   std::string         fAnaTreeName;
@@ -892,6 +892,7 @@ void BlipAna::beginJob() {
   h_trkhit_ph = new TH1D("h_trkhit_ph","h_trkhit_ph",1000,0,1000);
 
   // Load the ESTAR lookup table
+  /*
   std::string fname;
   //std::string path="ShowerEnergyReco/ESTAREnergyLookupCurve.root";
   std::string path="ESTAREnergyLookupCurve.root";
@@ -909,6 +910,7 @@ void BlipAna::beginJob() {
       if(!ESTAR) throw cet::exception("BlipAna") << "Could not read the ESTAR TGraph";
     }
   }
+  */
 
 }
 
@@ -1682,7 +1684,7 @@ void BlipAna::analyze(const art::Event& evt)
 
     // METHOD 2
     //std::cout<<"Calculating ESTAR energy dep...  "<<depEl<<", "<<Efield<<"\n";
-    blips[i].EnergyESTAR = ESTAR->Interpolate(depEl, Efield); 
+    //blips[i].EnergyESTAR = ESTAR->Interpolate(depEl, Efield); 
 
   }
  
@@ -1699,7 +1701,7 @@ void BlipAna::analyze(const art::Event& evt)
     fData->blip_nplanes[i]    = b.NPlanes;
     fData->blip_charge[i]       = b.Charge[fCaloPlane];
     fData->blip_energy[i]     = b.Energy;
-    fData->blip_energyESTAR[i]= b.EnergyESTAR;
+    //fData->blip_energyESTAR[i]= b.EnergyESTAR;
     fData->blip_maxdiff[i]    = b.MaxIntersectDiff;
     fData->blip_x[i]          = (float)b.Position.X();
     fData->blip_y[i]          = (float)b.Position.Y();
