@@ -1,0 +1,5 @@
+#include "reco_uboone_data_mcc9_8_driver_stage2_reduced_beamOff.fcl"
+
+microboone_tfile_metadata.GenerateTFileMetadata: [ true, false ]
+source.maxEvents: -1
+

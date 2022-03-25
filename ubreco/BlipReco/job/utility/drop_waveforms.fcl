@@ -2,7 +2,7 @@
 
 process_name: DropWaveforms
 
-out1.outputCommands:  [
+outputs.out1.outputCommands:  [
     "keep *_*_*_*" 
     ,"drop raw::RawDigits_*_*_*"
     ,"drop raw::OpDetWaveforms_*_*_*"

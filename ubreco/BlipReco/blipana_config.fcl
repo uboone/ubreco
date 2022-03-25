@@ -11,37 +11,47 @@ microboone_mcc9_calorimetryalgmc:
   CaloUseModBox: true
 }
 
+microboone_trackmasker:
+{ 
+  module_type:        "TrackMasker"
+  HitProducer:        "gaushit" 
+  TrkProducer:        "pandora"
+  MinTrkLength:       3   # cm
+  MinTrkLengthVeto:   10  # cm
+  VetoRadius:         15  # cm
+  
+}
+
 microboone_blipana:
 { 
   module_type:        "BlipAna"
-  HitModuleLabel:     "gaushit" #"cosmicfilter"
-  LArG4ModuleLabel:   "largeant"
-  TrackModuleLabel:   "pandora" # pandoraTrack?
+  HitProducer:        "trackmasker"
+  TrkProducer:        "pandora"
   CaloAlg:		        @local::microboone_mcc9_calorimetryalgmc
   CaloPlane:          2
   SaveTruthInfo:      true
-  SaveHitInfo:        false
+  SaveHitInfo:        true
   MakeDiagHists:      true
-  TrueBlipMergeDist:  0.3 # cm 
+  TrueBlipMergeDist:  0.3 # cm
   DoHitFiltering:     true
-  MinHitRMS:          [ 0,  0,  0 ]
-  MaxHitRMS:          [ 50, 50, 50 ]
-  #MinHitRatio:        [ 0,    0,    0   ]
-  #MaxHitRatio:        [ 3,    3,    2   ]
-  #MinHitGOF:          [ 0,    0,    0   ]
+  MaxHitTrkLength:    3
+  MaxHitAmp:          200
+  MinHitRMS:          [ 0,  0,  0  ]
+  MaxHitRMS:          [ 20, 20, 20 ]
+  #MinHitGOF:          [ 0, 0, 0 ]
+  #MaxHitGOF:          [ 50, 50, 50 ]
   HitClustWidthFact:  2.5
   HitClustWireRange:  1
-  MaxWiresInCluster:  6 
-  HitMatchWidthFact:  0.8 # xRMS
-  HitMatchMaxTicks:   3 # max extent to match hits
-  MinMatchedPlanes:   2 # min matched planes required
-  #DiffTolerance:      2 # cm
+  MaxWiresInCluster:  6
+  MaxClusterSpan:     30 # ticks
+  HitMatchWidthFact:  0.5 # xRMS
+  HitMatchMaxTicks:   2 # max extent to match hits
+  PickyBlips:         false # require 3 planes that all intersect at same point (+/- 1 cm)
 }
 
 microboone_blipana_data:                @local::microboone_blipana
 microboone_blipana_data.CaloAlg:        @local::microboone_calorimetryalgdata
 microboone_blipana_data.SaveTruthInfo:  false
-
 
 
 # Source: reco_uboone_mcc9_8_driver_overlay_stage2.fcl

@@ -85,11 +85,12 @@ namespace BlipUtils{
     int   wire          = -9;
     int   trkid         = -9;
     int   shwrid        = -9;
-    bool  isgood        = false;
-    bool  isclustered   = false;
+    //bool  isgood        = false;
+    //bool  isclustered   = false;
     bool  ismatch       = false;
     bool  isreal        = false;
     bool  isneartrk     = false;
+    float trkdist2D     = -9;
     int   blipid        = -9;
     int   clustid       = -9;
     int   g4id          = -9;
@@ -100,6 +101,7 @@ namespace BlipUtils{
     float driftTicks    = -999999;
     bool  rmsCut        = false;
     bool  ratioCut      = false;
+    TVector2 point2D;
   };
 
   struct TrueBlip {
@@ -209,6 +211,8 @@ namespace BlipUtils{
   double  PathLength(const simb::MCParticle&);
   bool    IsAncestorOf(int, int, bool);
   double  DistToBoundary(const recob::Track::Point_t&);
+  double  DistToLine(TVector3&, TVector3&, TVector3&);
+  double  DistToLine2D(TVector2&, TVector2&, TVector2&);
   void    GetGeoBoundaries(double&,double&,double&,double&,double&,double&);
   bool    IsPointInAV(float,float,float);
   bool    IsPointInAV(TVector3&);

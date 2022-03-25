@@ -32,6 +32,7 @@ outputs:
     "drop *_*_*_*"
     ,"keep *_gaushit_*_*"
     ,"keep *_pandora_*_*"
+    ,"keep *_pandoratag_*_*"
     ,"keep *_cosmicfilter_*_*"
     ,"keep *_gaushitproximity_*_*"
    ]
