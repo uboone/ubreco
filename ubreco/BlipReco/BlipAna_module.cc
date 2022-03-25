@@ -241,48 +241,48 @@ class BlipAnaTreeDataStruct
   */
 
   // --- Hit cluster information ---
-  int   nclusts;
-  int   clust_tpc[kMaxHits];
-  int   clust_plane[kMaxHits];
-  int   clust_wire[kMaxHits];
-  int   clust_chan[kMaxHits];
-  int   clust_nwires[kMaxHits];
-  int   clust_nhits[kMaxHits];
-  int   clust_lhit_id[kMaxHits];
-  float   clust_lhit_amp[kMaxHits];
-  float   clust_lhit_rms[kMaxHits];
-  float   clust_lhit_time[kMaxHits];
-  float clust_lhit_peakT[kMaxHits];
-  float clust_lhit_gof[kMaxHits];
-  float clust_charge[kMaxHits];
-  float clust_time[kMaxHits];
-  float clust_time_w[kMaxHits];
-  float clust_time_err[kMaxHits];
-  float clust_startTime[kMaxHits];
-  float clust_endTime[kMaxHits];
-  float clust_timespan[kMaxHits];
-  float clust_g4energy[kMaxHits];
-  float clust_g4charge[kMaxHits];
-  int   clust_g4id[kMaxHits];
-  int   clust_ismatch[kMaxHits];
-  int   clust_blipid[kMaxHits];
-  int   clust_edepid[kMaxHits];
+  int   nclusts;                      // total clusters made
+  int   clust_tpc[kMaxHits];          // cluster TPC ID
+  int   clust_plane[kMaxHits];        // cluster plane 
+  int   clust_wire[kMaxHits];         // cluster wire (lead hit wire)
+  int   clust_chan[kMaxHits];         // cluster channel (lead hit wire)
+  int   clust_nwires[kMaxHits];       // number of wires in this cluster
+  int   clust_nhits[kMaxHits];        // number of hits
+  int   clust_lhit_id[kMaxHits];      // lead hit ID (index for hit_X[i] branches)
+  float   clust_lhit_amp[kMaxHits];   // lead hit peak amplitude [ADC]
+  float   clust_lhit_rms[kMaxHits];   // lead hit RMS [ADC]
+  float   clust_lhit_time[kMaxHits];  // lead hit time-tick, corrected for offsets
+  float clust_lhit_peakT[kMaxHits];   // lead hit time-tick, uncorrected (hit->PeakT)
+  float clust_lhit_gof[kMaxHits];     // lead hit goodness-of-fit
+  float clust_charge[kMaxHits];       // cluster charge at anode [e-]
+  float clust_time[kMaxHits];         // cluster time-tick
+  float clust_time_w[kMaxHits];       // cluster time-tick (charge-weighted)
+  float clust_time_err[kMaxHits];     // cluster time uncertainty
+  float clust_startTime[kMaxHits];    // cluster start tick
+  float clust_endTime[kMaxHits];      // cluster end tick
+  float clust_timespan[kMaxHits];     // cluster timespan
+  float clust_g4energy[kMaxHits];     // true cluster energy from G4
+  float clust_g4charge[kMaxHits];     // true cluster charge at anode
+  int   clust_g4id[kMaxHits];         // true MCParticle ID (index for particle branches)
+  int   clust_ismatch[kMaxHits];      // was this cluster plane-matched?
+  int   clust_blipid[kMaxHits];       // blip ID for this clusteer (if it was made into one)
+  int   clust_edepid[kMaxHits];       // true energy dep ID
 
-  // --- Blip information ---
-  float total_blip_energy;
-  int   nblips;
-  int   blip_tpc[kMaxBlips];
-  int   blip_nplanes[kMaxBlips];
-  float blip_x[kMaxBlips];
-  float blip_y[kMaxBlips];
-  float blip_z[kMaxBlips];
-  float blip_maxdiff[kMaxBlips];
-  float blip_charge[kMaxBlips];
-  float blip_energy[kMaxBlips];
+  // --- 3D Blip information ---
+  float total_blip_energy;            // total summed blip energy in event [MeV]
+  int   nblips;                       // number of blips in event
+  int   blip_tpc[kMaxBlips];          // blip TPC
+  int   blip_nplanes[kMaxBlips];      // number of planes matched (2 or 3)
+  float blip_x[kMaxBlips];            // X position [cm]
+  float blip_y[kMaxBlips];            // Y position [cm]
+  float blip_z[kMaxBlips];            // Z position [cm]
+  float blip_maxdiff[kMaxBlips];      // difference in wire intersection points
+  float blip_charge[kMaxBlips];       // blip charge at anode [e-]
+  float blip_energy[kMaxBlips];       // blip energy [MeV]
   //float blip_energyESTAR[kMaxBlips];
-  int   blip_edepid[kMaxBlips];  
-  int   blip_clustid[kNplanes][kMaxBlips];
-  float blip_trkdist[kMaxBlips];
+  int   blip_edepid[kMaxBlips];       // true energy dep ID
+  int   blip_clustid[kNplanes][kMaxBlips];  // cluster ID per plane
+  float blip_trkdist[kMaxBlips];      // distance to nearest track
 
   // === Function for resetting data ===
   void Clear(){ 
