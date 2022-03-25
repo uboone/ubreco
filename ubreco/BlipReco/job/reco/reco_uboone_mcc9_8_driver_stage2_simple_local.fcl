@@ -11,8 +11,8 @@ physics.reco: [
       "pandoraPatRec",
       "pandoraAllOutcomesTrack",
       "pandoraAllOutcomesShower",
-      "pandora"
-      #"pandoratag",
+      "pandora",
+      "pandoratag"
       #"pandoraContTag",
       #"pandoraMCSMu",
       #"pandoracalo",

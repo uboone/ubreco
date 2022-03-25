@@ -43,13 +43,17 @@ source: {
 
 physics:
 {
+  producers:{
+    trackmasker: @local::microboone_trackmasker
+  }
+  
   analyzers:{
     blipana: @local::microboone_blipana
   }
   
   ana:            [ blipana ]
-  trigger_paths:  [ ] 
-  stream1:        [ out1 ]
+  #trigger_paths:  [ ] 
+  stream1:        [ ]
   end_paths:      [ ana ] 
 
 } # physics
@@ -67,3 +71,4 @@ outputs:
     #SelectEvents: [reco]
   }
 }
+

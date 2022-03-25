@@ -686,6 +686,48 @@ namespace BlipUtils {
     return std::min( std::min( std::min(d1,d2), d3), d4);
   }
 
+  //===========================================================================
+  // Given a line with endpoints L1,L2, return shortest distance betweene the
+  // line and point 'P'
+  double DistToLine(TVector3& L1, TVector3& L2, TVector3& p){
+    
+    /*
+    // 2D:
+    // d = | (x2-x1)(y1-y0) - (x1-x0)(y2-y1) | / sqrt( (x2-x1)^2 + (y2-y1)^2 )
+    float a = ( L2.X()-L1.X() )*( L1.Y()-P.Y() );
+    float b = ( L1.X()-P.X()  )*( L2.Y()-L1.Y() );
+    float c = sqrt( pow(L2.X()-L1.X(), 2) + pow(L2.Y()-L1.Y(),2 ) );
+    if( c > 0 ) 
+      return fabs( a - b ) / c;
+    else
+      return -1;
+    */
+
+
+    // general vector formulation:
+    // a = point on a line
+    // n = unit vector pointing along line
+    // --> d = norm[ (p-a) - ((p-a) dot n) * n ]
+    TVector3 a = L1;
+    TVector3 n = (L2-a).Unit();
+    TVector3 b = (p-a);
+    
+    double  projLen = b.Dot(n);
+    double d = -1;
+    if      ( projLen < 0             ) d = (p-L1).Mag();
+    else if ( projLen > (L2-L1).Mag() ) d = (p-L2).Mag();
+    else                                d = (b-projLen*n).Mag();
+   
+    return d;
+    
+  }
+  
+  double DistToLine2D(TVector2& L1, TVector2& L2, TVector2& p){
+    TVector3 newL1(L1.X(), L1.Y(), 0);
+    TVector3 newL2(L2.X(), L2.Y(), 0);
+    TVector3 newp(p.X(), p.Y(), 0);
+    return DistToLine(newL1,newL2,newp);
+  }
 
   //===========================================================================
   void GetGeoBoundaries(double& xmin, double& xmax, double& ymin, double& ymax, double&zmin, double& zmax){
