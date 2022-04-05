@@ -72,7 +72,7 @@ outputs:
   out1:
   {
     module_type: RootOutput
-    fileName:    "%ifb_%p.root"
+    fileName:    "%ifb_cosmicfilt.root"
     dataTier:    "reconstructed"
     fastCloning: false
     compressionLevel: 1

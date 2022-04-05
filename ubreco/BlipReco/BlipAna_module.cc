@@ -242,6 +242,7 @@ class BlipAnaTreeDataStruct
 
   // --- Hit cluster information ---
   int   nclusts;                      // total clusters made
+  int   clust_id[kMaxHits];           // cluster ID (index)
   int   clust_tpc[kMaxHits];          // cluster TPC ID
   int   clust_plane[kMaxHits];        // cluster plane 
   int   clust_wire[kMaxHits];         // cluster wire (lead hit wire)
@@ -391,6 +392,7 @@ class BlipAnaTreeDataStruct
     //FillWith(shwr_length, -999);
     //FillWith(shwr_openangle, -999);
     nclusts               = 0;    // --- Hit Clusters ---
+    FillWith(clust_id,  -9);
     FillWith(clust_tpc,  -9);
     FillWith(clust_plane, -9);
     FillWith(clust_wire, -9);
@@ -451,7 +453,7 @@ class BlipAnaTreeDataStruct
     tree->Branch("run",&run,"run/I");
     tree->Branch("timestamp",&timestamp,"timestamp/i");
     tree->Branch("lifetime",&lifetime,"lifetime/F");
-  
+    
     if( saveTruthInfo ) {
     tree->Branch("total_depEnergy",&total_depEnergy,"total_depEnergy/F");
     tree->Branch("total_numElectrons",&total_numElectrons,"total_numElectrons/F");
@@ -492,6 +494,7 @@ class BlipAnaTreeDataStruct
     tree->Branch("edep_z",edep_z,"edep_z[nedeps]/F"); 
     tree->Branch("edep_ds",edep_ds,"edep_ds[nedeps]/F"); 
     }
+  
    
     tree->Branch("nhits",&nhits,"nhits/I");
     if( saveHitInfo ) {
@@ -519,22 +522,21 @@ class BlipAnaTreeDataStruct
     tree->Branch("hit_clustid",hit_clustid,"hit_clustid[nhits]/I"); 
     tree->Branch("hit_blipid",hit_blipid,"hit_blipid[nhits]/I");
     tree->Branch("hit_gof",hit_gof,"hit_gof[nhits]/F");
-    }
-    
     tree->Branch("ave_trkhit_amp",&ave_trkhit_amp,"ave_trkhit_amp/F");
+    }
     
     tree->Branch("ntrks",&ntrks,"ntrks/I");          
     tree->Branch("trk_id",trk_id,"trk_id[ntrks]/I");       
-    tree->Branch("trk_npts",trk_npts,"trk_npts[ntrks]/I");
+    //tree->Branch("trk_npts",trk_npts,"trk_npts[ntrks]/I");
     tree->Branch("trk_length",trk_length,"trk_length[ntrks]/F");
     tree->Branch("trk_startx",trk_startx,"trk_startx[ntrks]/F");
     tree->Branch("trk_starty",trk_starty,"trk_starty[ntrks]/F");
     tree->Branch("trk_startz",trk_startz,"trk_startz[ntrks]/F");
-    tree->Branch("trk_startd",trk_startd,"trk_startd[ntrks]/F");
+    //tree->Branch("trk_startd",trk_startd,"trk_startd[ntrks]/F");
     tree->Branch("trk_endx",trk_endx,"trk_endx[ntrks]/F");
     tree->Branch("trk_endy",trk_endy,"trk_endy[ntrks]/F");
     tree->Branch("trk_endz",trk_endz,"trk_endz[ntrks]/F");
-    tree->Branch("trk_endd",trk_endd,"trk_endd[ntrks]/F");
+    //tree->Branch("trk_endd",trk_endd,"trk_endd[ntrks]/F");
     //tree->Branch("trk_origin",trk_origin,"trk_origin[ntrks]/I");
     //tree->Branch("trk_g4id",trk_g4id,"trk_g4id[ntrks]/I");
     //tree->Branch("trk_g4pdg",trk_g4pdg,"trk_g4pdg[ntrks]/I");
@@ -557,21 +559,22 @@ class BlipAnaTreeDataStruct
     //tree->Branch("shwr_length",shwr_length,"shwr_length[nshwrs]/F");
     //tree->Branch("shwr_openangle",shwr_openangle,"shwr_openangle[nshwrs]/F");
     tree->Branch("nclusts",&nclusts,"nclusts/I");
-    tree->Branch("clust_tpc",clust_tpc,"clust_tpc[nclusts]/I");
+    tree->Branch("clust_id",&clust_id,"clust_id[nclusts]/I");
+    //tree->Branch("clust_tpc",clust_tpc,"clust_tpc[nclusts]/I");
     tree->Branch("clust_plane",clust_plane,"clust_plane[nclusts]/I");
     tree->Branch("clust_wire",clust_wire,"clust_wire[nclusts]/I");
     //tree->Branch("clust_chan",clust_chan,"clust_chan[nclusts]/I");
     tree->Branch("clust_nwires",clust_nwires,"clust_nwires[nclusts]/I");
     tree->Branch("clust_nhits",clust_nhits,"clust_nhits[nclusts]/I");
-    tree->Branch("clust_lhit_id",clust_lhit_id,"clust_lhit_id[nclusts]/I");
+    //tree->Branch("clust_lhit_id",clust_lhit_id,"clust_lhit_id[nclusts]/I");
     tree->Branch("clust_lhit_amp",clust_lhit_amp,"clust_lhit_amp[nclusts]/F");
     tree->Branch("clust_lhit_rms",clust_lhit_rms,"clust_lhit_rms[nclusts]/F");
     tree->Branch("clust_lhit_peakT",clust_lhit_peakT,"clust_lhit_peakT[nclusts]/F");
     tree->Branch("clust_lhit_gof",clust_lhit_gof,"clust_lhit_gof[nclusts]/F");
     tree->Branch("clust_charge",clust_charge,"clust_charge[nclusts]/F");
     tree->Branch("clust_time",clust_time,"clust_time[nclusts]/F");
-    tree->Branch("clust_time_w",clust_time_w,"clust_time_w[nclusts]/F");
-    tree->Branch("clust_time_err",clust_time_err,"clust_time_err[nclusts]/F");
+    //tree->Branch("clust_time_w",clust_time_w,"clust_time_w[nclusts]/F");
+    //tree->Branch("clust_time_err",clust_time_err,"clust_time_err[nclusts]/F");
     //tree->Branch("clust_startTime",clust_startTime,"clust_startTime[nclusts]/F");
     //tree->Branch("clust_endTime",clust_endTime,"clust_endTime[nclusts]/F");
     tree->Branch("clust_timespan",clust_timespan,"clust_timespan[nclusts]/F");
@@ -582,9 +585,11 @@ class BlipAnaTreeDataStruct
     }
     tree->Branch("clust_ismatch",clust_ismatch,"clust_ismatch[nclusts]/I");
     tree->Branch("clust_blipid",clust_blipid,"clust_blipid[nclusts]/I");
+    
     tree->Branch("total_blip_energy",&total_blip_energy,"total_blip_energy/F");
+    
     tree->Branch("nblips",&nblips,"nblips/I");
-    tree->Branch("blip_tpc",blip_tpc,"blip_tpc[nblips]/I");
+    //tree->Branch("blip_tpc",blip_tpc,"blip_tpc[nblips]/I");
     tree->Branch("blip_nplanes",blip_nplanes,"blip_nplanes[nblips]/I");
     tree->Branch("blip_x",blip_x,"blip_x[nblips]/F");
     tree->Branch("blip_y",blip_y,"blip_y[nblips]/F");
@@ -600,7 +605,9 @@ class BlipAnaTreeDataStruct
     for(int i=0; i<kNplanes; i++) 
       tree->Branch(Form("blip_clustid_pl%i",i),blip_clustid[i],Form("blip_clustid_pl%i[nblips]/I",i));
     
+    
   }
+    
     
   // === Function for filling tree ===
   void FillTree(){ tree->Fill(); }
@@ -697,11 +704,6 @@ class BlipAna : public art::EDAnalyzer
   void InitializeHistograms(){
     art::ServiceHandle<art::TFileService> tfs;
   
-    //h_hit_dt      = tfs->make<TH1D>("hit_dt","Hit matching;dT [ticks]",200,0,20);
-    //h_hit_dtfrac  = tfs->make<TH1D>("hit_dtfrac","Hit matching;dT/RMS",200,0,5);
-    //h_hit_best_dt      = tfs->make<TH1D>("hit_best_dt","Hit matching (best-matched in cluster);dT [ticks]",200,0,20);
-    //h_hit_best_dtfrac  = tfs->make<TH1D>("hit_best_dtfrac","Hit matching (best-matched in cluster);dT/RMS",200,0,5);
-   
     h_blip_zy   = tfs->make<TH2D>("blip_zy","3D blip location;Z [cm];Y [cm]",600,-100,1100,150,-150,150);
     h_blip_zy   ->SetOption("COLZ");
 
@@ -715,10 +717,10 @@ class BlipAna : public art::EDAnalyzer
     if( fMakeDiagHists ) {
 
       art::TFileDirectory diagDir = tfs->mkdir("Diagnostics");
-      float hitMax  = 300;    int hitBins   = 300;
-      float ampMax = 50;       int ampBins    = 250;
-      float rmsMax = 15;      int rmsBins   = 300;
-      float areaMax = 300;    int areaBins  = 300;
+      float hitMax  = 3000;    int hitBins  = 3000;
+      float ampMax = 300;     int ampBins   = 1500;
+      float rmsMax = 30;      int rmsBins   = 600;
+      float areaMax = 1000;   int areaBins  = 1000;
       float ratioMax = 5.0;   int ratioBins = 250;
         
       h_clust_nwires = diagDir.make<TH1D>("clust_nwires","Clusters (pre-cut);Wires in cluster",100,0,100);
@@ -727,8 +729,9 @@ class BlipAna : public art::EDAnalyzer
       for(int i=0; i<kNplanes; i++) {
     
         if( i != fCaloPlane ) {
-          h_hit_dt[i]     = diagDir.make<TH1D>(Form("pl%i_hit_dt",i),    Form("Plane %i best-matched hit;dT [ticks]",i),200,0,20);
-          h_hit_dtfrac[i] = diagDir.make<TH1D>(Form("pl%i_hit_dtfrac",i),Form("Plane %i best-matched hit;dT/RMS",i),200,0,5);
+          h_hit_dt[i]     = diagDir.make<TH1D>(Form("pl%i_hit_dt",i),    Form("Plane %i hits;dT [ticks]",i),300,-30,30);
+          h_hit_dtfrac[i] = diagDir.make<TH1D>(Form("pl%i_hit_dtfrac",i),Form("Plane %i hits;dT/RMS",i),400,-20,20);
+          h_nmatches[i] = diagDir.make<TH1D>(Form("pl%i_nmatches",i),Form("number of matched hits, plane %i",i),10,0,10);
         }
 
         h_nhits[i]    = diagDir.make<TH1D>(Form("pl%i_nhits",i),  Form("Plane %i;number of hits",i),hitBins,0,hitMax);
@@ -746,7 +749,6 @@ class BlipAna : public art::EDAnalyzer
         h_nelec_Resolution[i] = diagDir.make<TH1D>( Form("pl%i_nelec_res",i),Form("Plane %i;hit charge resolution: (reco-true)/true",i),300,-3,3);
         h_chargecomp[i] = diagDir.make<TH1D>(Form("pl%i_charge_completeness",i),Form("charge completness, plane %i",i),101,0,1.01);
         h_hitpur[i]     = diagDir.make<TH1D>(Form("pl%i_hit_purity",i),Form("hit purity, plane %i",i),101,0,1.01);
-        h_nmatches[i] = diagDir.make<TH1D>(Form("pl%i_nmatches",i),Form("number of matched hits, plane %i",i),10,0,10);
 
         /*
         for(int k=0; k<3; k++){
@@ -802,7 +804,7 @@ BlipAna::BlipAna(fhicl::ParameterSet const& pset) :
   fMaxHitRMS          = pset.get<std::vector<float>>  ("MaxHitRMS",  { 9999, 9999, 9999});
   fMinHitGOF          = pset.get<std::vector<float>>  ("MinHitGOF",  {-9999,-9999,-9999});
   fMaxHitGOF          = pset.get<std::vector<float>>  ("MaxHitGOF",  { 9999, 9999, 9999});
-  
+
   // data tree object
   fData = new BlipAnaTreeDataStruct();
   fData ->saveHitInfo    = pset.get<bool>        ("SaveHitInfo",true);
@@ -1050,6 +1052,7 @@ void BlipAna::analyze(const art::Event& evt)
   //====================================
   std::vector<BlipUtils::HitInfo> hitinfo(hitlist.size());
   std::map<int,std::vector<int>> chanhitsMap;
+  std::map<int,std::vector<int>> chanhitsMap_untracked;
   std::map<int,std::vector<int>> planehitsMap;
   std::cout<<"Looping over the hits\n";
   for(size_t i=0; i<hitlist.size(); i++){
@@ -1084,12 +1087,14 @@ void BlipAna::analyze(const art::Event& evt)
     // Add to the channel hit map
     chanhitsMap[chan].push_back(i);
     planehitsMap[plane].push_back(i);
-    
+    if( hitinfo[i].trkid <= 0 ) chanhitsMap_untracked[chan].push_back(i);
+
     //printf("  %i   tpc: %i  plane: %i  wire: %i  time: %f  rms: %f   ratio: %f\n",
     //  (int)i, tpc, plane, wire, hitinfo[i].driftTicks, hitlist[i]->RMS(), hitlist[i]->RMS()/hitlist[i]->PeakAmplitude());
     //PrintHitInfo(hitinfo[i]);
 
   }
+  
 
   /* 
   // Flag real hits and fill hit diagnostic histograms
@@ -1147,6 +1152,7 @@ void BlipAna::analyze(const art::Event& evt)
   
 
   for(size_t i=0; i<kNplanes; i++){
+    h_nhits[i]->Fill(nhits_all[i]);
     float qcomp = -9, pur = -9;
     if( !fIsRealData ) {
       if( fData->total_numElectrons ) qcomp = total_chargeInHits[i]/fData->total_numElectrons;
@@ -1228,6 +1234,8 @@ void BlipAna::analyze(const art::Event& evt)
   // ---------------------------------------------------
   std::vector<BlipUtils::HitClust> hitclust;
   std::map<int,std::map<int,std::vector<int>>> tpc_planeclustsMap;
+  
+  //std::map<int,std::vector<int>> chan_clustsMap;
   std::cout<<"Doing first-pass cluster reco\n";
   for(auto const& chanhits : chanhitsMap){
     for(auto const& hi : chanhits.second ){
@@ -1322,6 +1330,7 @@ void BlipAna::analyze(const art::Event& evt)
   fData->nclusts = (int)hitclust.size();
   for(size_t i=0; i<hitclust.size(); i++){
     hitclust[i].ID            = i;
+    fData->clust_id[i]        = i;
     fData->clust_tpc[i]       = hitclust[i].TPC;
     fData->clust_plane[i]     = hitclust[i].Plane;
     fData->clust_wire[i]      = hitclust[i].LeadHit->WireID().Wire;
@@ -1411,13 +1420,14 @@ void BlipAna::analyze(const art::Event& evt)
           for(auto const& j : hitclusts_planeB.second ) {
             if( hitclust[j].isMatched ) continue;
             if( hitclust[j].Charge > 2e6 ) continue; // guard against absurdly large clusters
-
+            
             //std::cout<<"    cl "<<j<<"\n";
             // Check if the two clusts overlap by any degree
             // (we don't want to waste time making calls to the geometry 
             // service if there's no chance there's a match)
-            if( BlipUtils::DoHitClustsOverlap(hitclust[i],hitclust[j])) {
-              
+            //if( BlipUtils::DoHitClustsOverlap(hitclust[i],hitclust[j])) {
+            if( true ) { 
+
               //std::cout<<"    --> in neighborhood\n";
 
               // Check if the two channels actually intersect
@@ -1436,8 +1446,6 @@ void BlipAna::analyze(const art::Event& evt)
                 float dT = fabs(tA-tB);
                 float maxWidth = std::max(hitclust[i].TimeErr,hitclust[j].TimeErr);
                 float matchTol = std::min(fHitMatchMaxTicks, fHitMatchWidthFact*maxWidth);
-                //h_hit_dt->Fill(dT);
-                //h_hit_dtfrac->Fill(dT/maxWidth);
                 if( dT < matchTol ){
                   cands[planeB].insert(j);
                   if( dT < best_dT[planeB] ) {
@@ -1457,20 +1465,20 @@ void BlipAna::analyze(const art::Event& evt)
                   for(auto hitB : hitsB){
                     float tA = hitinfo[hitA].driftTicks;
                     float tB = hitinfo[hitB].driftTicks;
-                    float dT = fabs(tA-tB);
+                    float dT = tB-tA;
                     float maxWidth = std::max(hitlist[hitA]->RMS(),hitlist[hitB]->RMS());
                     float matchTol = std::min(fHitMatchMaxTicks, fHitMatchWidthFact*maxWidth);
                     
-                    // only plot dT if this is the *only* hit in the cluster
-                    //if( hitclust[i].HitIDs.size() == 1 && hitclust[j].HitIDs.size() == 1 ) {
-                    //  h_hit_dt[planeB]->Fill( dT );
-                    //  h_hit_dtfrac->Fill( dT / maxWidth );
-                    //}
+                    // fill dT histograms only if there is only 1 hit on each wire to be matched
+                    if( chanhitsMap_untracked[chA].size() == 1 && chanhitsMap_untracked[chB].size() == 1 ) {
+                      h_hit_dt[planeB]->Fill(dT);
+                      h_hit_dtfrac[planeB]->Fill(dT/matchTol);
+                    }
                     
                     //std::cout<<"dT: "<<dT<<"  matchTolerance: "<<matchTol<<"\n";
-                    if( dT < matchTol ) {
+                    if( fabs(dT) < matchTol ) {
                       cands[planeB].insert(j);
-                      if( dT < best_dT[planeB] ) {
+                      if( fabs(dT) < best_dT[planeB] ) {
                         //std::cout<<"    --> matching hit found! "<<dT<<"\n";
                         //update vectors
                         best_dT[planeB] = dT;
@@ -1504,8 +1512,6 @@ void BlipAna::analyze(const art::Event& evt)
               hitclust[bestID].isMatched = true;
               for(auto hit : hitclust[bestID].HitIDs) hitinfo[hit].ismatch = true;
             }
-            h_hit_dt[c.first]->Fill(best_dT[c.first]);
-            h_hit_dtfrac[c.first]->Fill(best_dTfrac[c.first]);
           }
         
           // make our new blip
@@ -1735,6 +1741,8 @@ void BlipAna::endJob(){
 
   printf("\n=============================================\n");
   printf("BlipAna Summary\n\n");
+  printf("  Hit producer            : %s\n",fHitProducer.c_str());
+  printf("  Track producer          : %s\n",fTrkProducer.c_str());
   printf("  Max match window        : %3.1f ticks\n",fHitMatchMaxTicks);
   printf("  Hit match width fact    : x%3.1f\n",    fHitMatchWidthFact);
   printf("\n");
