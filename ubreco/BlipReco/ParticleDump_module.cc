@@ -79,6 +79,12 @@ class ParticleDump;
       //
       TH1D*     hNCaptureGammas;
       TH1D*     hNCaptureGammaSumE;
+      
+      // basic diagnostic plots
+      TH1D*     h_primary_startx;
+      TH1D*     h_primary_starty;
+      TH1D*     h_primary_startz;
+      TH1D*     h_primary_t0;
 
       //TH1D*   hPrimarySep;
   
@@ -124,6 +130,11 @@ class ParticleDump;
     
     //hPrimarySep = tfs->make<TH1D>("PrimaryGammaSep",";Separation [cm]",100,0,50);
 
+    h_primary_startx = tfs->make<TH1D>("Primary_StartX","Starting point of primary particle;X [cm]",1500,-250,500);
+    h_primary_starty = tfs->make<TH1D>("Primary_StartY","Starting point of primary particle;Y [cm]",1000,-250,250);
+    h_primary_startz = tfs->make<TH1D>("Primary_StartZ","Starting point of primary particle;Z [cm]",4000,-500,1500);
+    h_primary_t0      = tfs->make<TH1D>("Primary_T0","Starting time of primary particle;T0 [us]",4000,-4000,4000);
+  
   }
   ParticleDump::~ParticleDump(){}
 
@@ -213,6 +224,13 @@ class ParticleDump;
           gammaE_ncapt += KE0;
         }
       }
+      
+      if( proc == "primary" ) {
+        h_primary_startx->Fill(loc0.X());
+        h_primary_starty->Fill(loc0.Y());
+        h_primary_startz->Fill(loc0.Z());
+        h_primary_t0      ->Fill(T0/1000.);
+      }
 
       /*
       if( proc == "primary" ){ 
@@ -285,13 +303,12 @@ class ParticleDump;
         if( fMaxParticles < 0 || counter <= fMaxParticles ) {
           
           std::stringstream stream;
-          stream << std::fixed << std::setprecision(1) << T0;
-          std::string timeString = stream.str() + "ns";
-          
+          stream << std::fixed << std::setprecision(1) << T0/1000;
+          std::string timeString = stream.str() + " us";
+          //if( fabs(T0) > 1e6 ) timeString = "> 1ms";
 
-          if( fabs(T0) > 1e6 ) timeString = "> 1ms";
           //printf("  %5i PDG: %11i, dL: %5.1fcm, XYZ: (%7.1f,%7.1f,%7.1f),  KE0: %7.3f, KEf: %7.3f, T0: %8.8s, moth: %5i, %20.20s -->%20.20s, nD: %i\n",
-          printf("  %5i PDG: %11i, dL: %6.1fcm, XYZ: (%7.1f,%7.1f,%7.1f),  KE0: %7.3f, T0: %8.8s, moth: %5i, %20.20s -->%20.20s, nD: %i\n",
+          printf("  %5i PDG: %11i, dL: %6.1fcm, XYZ: (%7.1f,%7.1f,%7.1f),  KE0: %7.3f, T0: %8.3s, moth: %5i, %20.20s -->%20.20s, nD: %i\n",
             trackId,
             pdg,
             dL,

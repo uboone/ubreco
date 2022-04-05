@@ -48,10 +48,12 @@ physics:
   }
   
   analyzers:{
-    blipana: @local::microboone_blipana
+    blipanaAllHits:   @local::microboone_blipana
+    blipanaTrkMask:   @local::microboone_blipana
+    blipanaCosFilt:   @local::microboone_blipana
   }
   
-  ana:            [ blipana ]
+  ana:            [ blipanaAllHits ]
   #trigger_paths:  [ ] 
   stream1:        [ ]
   end_paths:      [ ana ] 
@@ -71,4 +73,12 @@ outputs:
     #SelectEvents: [reco]
   }
 }
+
+physics.analyzers.blipanaAllHits.HitProducer: "gaushit"
+physics.analyzers.blipanaAllHits.SaveHitInfo: false
+
+physics.analyzers.blipanaTrkMask.HitProducer: "trackmasker"
+physics.analyzers.blipanaCosFilt.HitProducer: "cosmicfilter"
+    
+
 

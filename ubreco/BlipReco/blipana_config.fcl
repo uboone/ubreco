@@ -19,15 +19,21 @@ microboone_trackmasker:
   MinTrkLength:       3   # cm
   MinTrkLengthVeto:   10  # cm
   VetoRadius:         15  # cm
-  
 }
+
+microboone_trackmasker_tight: @local::microboone_trackmasker
+microboone_trackmasker_tight.MinTrkLength:      3
+microboone_trackmasker_tight.MinTrkLengthVeto:  5
+microboone_trackmasker_tight.VetoRadius:        1
+
 
 microboone_blipana:
 { 
   module_type:        "BlipAna"
   HitProducer:        "trackmasker"
   TrkProducer:        "pandora"
-  CaloAlg:		        @local::microboone_mcc9_calorimetryalgmc
+  #CaloAlg:		        @local::microboone_mcc9_calorimetryalgmc
+  CaloAlg:		        @local::microboone_calorimetryalgdata
   CaloPlane:          2
   SaveTruthInfo:      true
   SaveHitInfo:        true
@@ -44,8 +50,8 @@ microboone_blipana:
   HitClustWireRange:  1
   MaxWiresInCluster:  6
   MaxClusterSpan:     30 # ticks
-  HitMatchWidthFact:  0.5 # xRMS
-  HitMatchMaxTicks:   2 # max extent to match hits
+  HitMatchWidthFact:  1.5 # xRMS
+  HitMatchMaxTicks:   3 # max extent to match hits
   PickyBlips:         false # require 3 planes that all intersect at same point (+/- 1 cm)
 }
 

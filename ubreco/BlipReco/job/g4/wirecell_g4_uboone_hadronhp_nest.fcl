@@ -1,4 +1,0 @@
-#include "particleinventoryservice.fcl"
-#include "wirecell_g4_uboone_hadronhp.fcl"
-
-services.LArG4Parameters.IonAndScintCalculator: "NEST"
