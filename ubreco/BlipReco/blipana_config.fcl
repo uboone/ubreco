@@ -2,10 +2,19 @@
 
 BEGIN_PROLOG
 
-microboone_mcc9_calorimetryalgmc:
+microboone_mcc9_calo_mc:
 {
-  CalAmpConstants: [  9.2e-4, 1.062e-3, 1.084e-3 ]
-  CalAreaConstants: [ 4.08e-3,3.97e-3,  4.21e-3 ]
+  CalAmpConstants:  [ 9.2e-4,   1.062e-3, 1.084e-3 ]
+  CalAreaConstants: [ 4.08e-3,  3.97e-3,  4.21e-3 ]
+  CaloDoLifeTimeCorrection: true
+  CaloLifeTimeForm: 0
+  CaloUseModBox: true
+}
+
+microboone_calo_data:
+{
+  CalAmpConstants:  [ 9.2e-4, 1.062e-3, 1.084e-3 ]
+  CalAreaConstants: [ 4.31e-3,4.02e-3,  4.26e-3 ]
   CaloDoLifeTimeCorrection: true
   CaloLifeTimeForm: 0
   CaloUseModBox: true
@@ -26,17 +35,20 @@ microboone_trackmasker_tight.MinTrkLength:      3
 microboone_trackmasker_tight.MinTrkLengthVeto:  5
 microboone_trackmasker_tight.VetoRadius:        1
 
-
 microboone_blipana:
-{ 
+{
+  #DebugMode: true
   module_type:        "BlipAna"
-  HitProducer:        "trackmasker"
+  HitProducer:        "gaushit"
   TrkProducer:        "pandora"
-  #CaloAlg:		        @local::microboone_mcc9_calorimetryalgmc
-  CaloAlg:		        @local::microboone_calorimetryalgdata
+  CaloAlg:		        @local::microboone_calorimetryalgmcc84mc
+  #CaloAlg:		        @local::microboone_calorimetryalgmcc84data
+  #CaloAlg:            @local::microboone_calo_data
   CaloPlane:          2
   SaveTruthInfo:      true
-  SaveHitInfo:        true
+  SaveTrkInfo:        true 
+  SaveHitInfo:        false
+  DoTrkCalibrations:  true
   MakeDiagHists:      true
   TrueBlipMergeDist:  0.3 # cm
   DoHitFiltering:     true
@@ -44,23 +56,41 @@ microboone_blipana:
   MaxHitAmp:          200
   MinHitRMS:          [ 0,  0,  0  ]
   MaxHitRMS:          [ 20, 20, 20 ]
-  #MinHitGOF:          [ 0, 0, 0 ]
-  #MaxHitGOF:          [ 50, 50, 50 ]
   HitClustWidthFact:  2.5
   HitClustWireRange:  1
   MaxWiresInCluster:  6
   MaxClusterSpan:     30 # ticks
   HitMatchWidthFact:  1.5 # xRMS
-  HitMatchMaxTicks:   3 # max extent to match hits
+  HitMatchMaxTicks:   4 # max extent to match hits
   PickyBlips:         false # require 3 planes that all intersect at same point (+/- 1 cm)
 }
 
 microboone_blipana_data:                @local::microboone_blipana
-microboone_blipana_data.CaloAlg:        @local::microboone_calorimetryalgdata
+microboone_blipana_data.CaloAlg:		    @local::microboone_calorimetryalgmcc84data
 microboone_blipana_data.SaveTruthInfo:  false
-
 
 # Source: reco_uboone_mcc9_8_driver_overlay_stage2.fcl
 #physics.analyzers.blipana.CaloAlg.CalAreaConstants:   [ 4.31e-3, 4.02e-3, 4.1e-3 ]
+
+microboone_lifetime: {
+  CalibrationHelper: {
+    EventMixingModuleLabel: "retriever"
+  }
+  ElectronLifetimeProvider: {
+    DatabaseRetrievalAlg: {
+      AlgName: "DatabaseRetrievalAlg"
+      DBFolderName: "elifetime_data"
+      DBTag: "v3r0"
+      DBUrl: "https://dbdata0vm.fnal.gov:8443/uboonecon_prod/app/"
+      UseSQLite: true
+    }
+    DefaultLifetime: 1000
+    DefaultLifetimeErr: 0
+    UseDB: true
+    UseFile: false
+  }
+  service_provider: "UbooneElectronLifetimeService"
+}
+
 
 END_PROLOG

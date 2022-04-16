@@ -23,6 +23,7 @@
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RecoBase/Track.h"
 #include "larsim/MCCheater/BackTrackerService.h"
+#include "lardataobj/AnalysisBase/BackTrackerMatchingData.h"
 #include "larsim/MCCheater/ParticleInventoryService.h"
 #include "larcore/Geometry/Geometry.h"
 //namespace detinfo {
@@ -66,12 +67,15 @@ namespace BlipUtils{
     float energyDep         = -9;
     float mass              = -9;
     float E                 = -9;
-    float endE              = -9; 
+    float endE              = -9;
+    float KE                = -9;
+    float endKE             = -9;
     float P                 = -9; 
     float Px                = -9; 
     float Py                = -9; 
     float Pz                = -9; 
     float pathLength        = -9;
+    float time              = -9;
     TVector3 startPoint;      
     TVector3 endPoint;      
   };
@@ -113,6 +117,7 @@ namespace BlipUtils{
     float     Energy        = 0;
     float     NumElectrons  = 0; // (post-drift)
     float     Length        = 0;
+    float     Time          = -999e9;
     TVector3  Position;
     TVector3  StartPoint;
     TVector3  EndPoint;
@@ -133,6 +138,7 @@ namespace BlipUtils{
     int     G4ID            = -9;
     int     TPC             = -9;
     int     Plane           = -9;
+    float   ADCs            = -999;
     float   Charge          = -999;
     float   Time            = -999;
     float   WeightedTime    = -999;

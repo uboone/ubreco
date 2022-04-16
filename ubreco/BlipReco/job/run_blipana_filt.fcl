@@ -1,3 +1,6 @@
 #include "run_blipana.fcl"
-physics.ana: [ blipanaCosFilt, blipanaTrkMask ] 
+
+physics.reco:             [ trackmasker, cosmicfilter ]
+physics.ana:              [ blipanaTrkMask, blipanaCosFilt ]
+physics.trigger_paths:    [ reco ] 
 

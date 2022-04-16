@@ -1,0 +1,20 @@
+# Disable common warning messages
+
+services.message: {
+  destinations: {
+         STDCOUT: {
+            categories: {
+               SIOVChannelStatusProvider: {
+                  limit: 0
+                  reportEvery: 0
+               }
+               DetPedestalRetrievalAlg: {
+                  limit: 0
+                  reportEvery: 0
+               }
+            }
+            threshold: "WARNING"
+            type: "cout"
+         }
+  }
+}
