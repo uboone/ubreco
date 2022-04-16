@@ -1,0 +1,3 @@
+physics.producers.gaushit.HitFinderToolVec.CandidateHitsPlane0.RoiThreshold: 1.5
+physics.producers.gaushit.HitFinderToolVec.CandidateHitsPlane1.RoiThreshold: 1.5
+physics.producers.gaushit.HitFinderToolVec.CandidateHitsPlane2.RoiThreshold: 0.7

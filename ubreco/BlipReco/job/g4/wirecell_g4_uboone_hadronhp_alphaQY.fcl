@@ -1,2 +1,3 @@
 #include "wirecell_g4_uboone_hadronhp.fcl"
 physics.producers.largeant.AlphaChargeYield: 360 # 0.36 e-/keV from NEST baseline plot
+physics.producers.ionization.AlphaChargeYield: 360 # 0.36 e-/kev from NEST baseline plot

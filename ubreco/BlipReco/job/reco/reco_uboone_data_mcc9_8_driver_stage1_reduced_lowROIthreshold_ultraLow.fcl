@@ -1,0 +1,5 @@
+#include "reco_uboone_data_mcc9_8_driver_stage1_reduced.fcl"
+
+#include "low_thresh_gaushit_settings_ultralow.fcl"
+
+physics.producers.nfspl1.wcls_main.configs: [ "pgrapher/experiment/uboone/wcls-nf-sp_lowROIthreshold_ultraLow.jsonnet" ]

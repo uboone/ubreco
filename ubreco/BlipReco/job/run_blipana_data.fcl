@@ -1,13 +1,12 @@
 #include "run_blipana.fcl"
 
-physics.analyzers.blipanaAllHits.CaloAlg:       @local::microboone_calorimetryalgdata
-physics.analyzers.blipanaAllHits.SaveTruthInfo: false
-physics.analyzers.blipanaAllHits.SaveHitInfo:   false
+#services.BackTrackerService.BackTracker.OverrideRealData: false
 
-physics.analyzers.blipanaCosFilt.CaloAlg:       @local::microboone_calorimetryalgdata
-physics.analyzers.blipanaCosFilt.SaveTruthInfo: false
-physics.analyzers.blipanaCosFilt.SaveHitInfo:   false
+physics.analyzers.blipana:  @local::microboone_blipana_data
 
-physics.analyzers.blipanaTrkMask.CaloAlg:       @local::microboone_calorimetryalgdata
-physics.analyzers.blipanaTrkMask.SaveTruthInfo: false
-physics.analyzers.blipanaTrkMask.SaveHitInfo:   false
+physics.analyzers.blipanaTrkMask: @local::microboone_blipana_data
+physics.analyzers.blipanaTrkMask.HitProducer: "trackmasker"
+
+physics.analyzers.blipanaCosFilt: @local::microboone_blipana_data
+physics.analyzers.blipanaCosFilt.HitProducer: "cosmicfilter"
+physics.analyzers.blipanaCosFilt.DoTrkCalibrations: false

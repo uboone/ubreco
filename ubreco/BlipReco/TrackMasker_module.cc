@@ -122,7 +122,9 @@ TrackMasker::TrackMasker(fhicl::ParameterSet const & p)
 //###################################################
 void TrackMasker::produce(art::Event & e)
 {
-  std::cout<<"\n***** TrackMasker *****\n";
+  std::cout<<"\n"
+  <<"=========== TrackMasker =========================\n"
+  <<"Processing event "<<e.id().event()<<" in run "<<e.id().run()<<"\n";
   
   // *****************************
   // Grab data products from file
@@ -176,7 +178,7 @@ void TrackMasker::produce(art::Event & e)
     trklmap[trk->ID()] = (double)trk->Length();
   }
 
-  std::cout<<" --> "<<trklmap.size()<<" of those tracks pass trk length cut\n";
+  std::cout<<" --> "<<trklmap.size()<<" of those tracks pass trk length cut (> "<<fMinTrkLength<<" cm)\n";
 
 
 
@@ -241,6 +243,12 @@ void TrackMasker::produce(art::Event & e)
         
       // skip hits that are already veto'd
       if ( hitIsVetoed[hh] ) continue;
+
+      // skip hits on far-away wires
+      if( (wtpoint.at(hh).X()-wtpoint.at(h).X()) > fVetoRadius ) continue;
+
+      // skip hits that are sufficiently separated in time
+      if( (wtpoint.at(hh).Y()-wtpoint.at(h).Y()) > fVetoRadius ) continue;
       
       // check 2D proximity
       if( (wtpoint.at(hh)-wtpoint.at(h)).Mod() < fVetoRadius ) {
@@ -249,6 +257,8 @@ void TrackMasker::produce(art::Event & e)
       }
     }
   }
+
+  std::cout<<"done masking hits around tracks\n";
 
 
   // ********************************************
@@ -259,9 +269,9 @@ void TrackMasker::produce(art::Event & e)
       Hit_v->emplace_back(hit_h->at(h));
   }
  
-  printf("---- Track Masker ----\n");
   printf("input hits  : %lu\n",hit_h->size());
   printf("output hits : %lu\n",Hit_v->size());
+  printf("----------------------------\n");
 
   e.put(std::move(Hit_v));
         

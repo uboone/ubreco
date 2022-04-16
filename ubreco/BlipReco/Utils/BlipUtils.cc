@@ -7,7 +7,6 @@ namespace BlipUtils {
 
   //============================================================================
   void InitializeUtils() {
-    //auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
     auto const* detClock = lar::providerFrom<detinfo::DetectorClocksService>();
     auto const clockData = detClock->TPCClock();
     fTickPeriod = clockData.TickPeriod();
@@ -57,12 +56,14 @@ namespace BlipUtils {
     ne      += totalne_particle;
     //std::cout<<":: "<<totalE_particle<<" MeV, "<<totalne_particle<<" electrons\n";
   }
+
+
   
   //===========================================================================
   // Provided a MCParticle, calculate everything we'll need for later calculations
   // and save into ParticleInfo object
   void FillParticleInfo( const simb::MCParticle& part, ParticleInfo& pinfo){
-
+    
     // Get important info and do conversions
     pinfo.particle    = part;
     pinfo.trackId     = part.TrackId();
@@ -70,10 +71,13 @@ namespace BlipUtils {
     pinfo.mass        = /*GeV->MeV*/1e3 * part.Mass();
     pinfo.E           = /*GeV->MeV*/1e3 * part.E();
     pinfo.endE        = /*GeV->MeV*/1e3 * part.EndE();
+    pinfo.KE          = /*GeV->MeV*/1e3 * (part.E()-part.Mass());
+    pinfo.endKE       = /*GeV->MeV*/1e3 * (part.EndE()-part.Mass());
     pinfo.P           = /*GeV->MeV*/1e3 * part.Momentum().Vect().Mag();
     pinfo.Px          = /*GeV->MeV*/1e3 * part.Px();
     pinfo.Py          = /*GeV->MeV*/1e3 * part.Py();
     pinfo.Pz          = /*GeV->MeV*/1e3 * part.Pz();
+    pinfo.time        = /*ns ->mus*/1e-3 * part.T();
 
     // Pathlength (in AV) and start/end point
     pinfo.pathLength  = BlipUtils::PathLength( part, pinfo.startPoint, pinfo.endPoint);
@@ -191,9 +195,17 @@ namespace BlipUtils {
 
     // Check that path length isn't zero
     if( !pinfo.pathLength ) return;
-
+    
     // If this is a new blip, initialize
-    if( tblip.G4IDs.size() == 0 ) tblip.StartPoint  = pinfo.startPoint;
+    if( tblip.G4IDs.size() == 0 ) {
+      tblip.StartPoint  = pinfo.startPoint;
+      tblip.Time        = pinfo.time;
+    } 
+    
+    // Check that the particle creation time isn't too much
+    // different from the original blip
+    if ( fabs(tblip.Time - pinfo.time) > 3 ) return; 
+
     
     tblip.G4IDs       .push_back(part.TrackId());
     tblip.PDGs       .push_back(part.PdgCode());
@@ -260,6 +272,9 @@ namespace BlipUtils {
         if( isGrouped.at(j) ) continue;
         auto const& blip_j = vtb.at(j);
 //        if( blip_i.TPC != blip_j.TPC ) continue;
+        // check that the times are similar (we don't want to merge
+        // together a blip that happened much later but in the same spot)
+        if( fabs(blip_i.Time - blip_j.Time) > 3 ) continue;
         float d = (blip_i.Position-blip_j.Position).Mag();
         if( d < dmin ) {
           isGrouped.at(j) = true;
@@ -301,6 +316,7 @@ namespace BlipUtils {
     hc.G4IDs        .insert(hitinfo.g4ids.begin(), hitinfo.g4ids.end());
     hc.HitIDs       .insert(hitinfo.hitid);
     hc.Wires        .insert(hitinfo.hit->WireID().Wire);
+    hc.ADCs         = hitinfo.hit->Integral();
     hc.Charge       = hitinfo.qcoll;
     hc.mapWireCharge[hitinfo.hit->WireID().Wire] = hitinfo.qcoll;
     hc.mapTimeCharge[hitinfo.driftTicks] = hitinfo.qcoll;
@@ -333,6 +349,7 @@ namespace BlipUtils {
     hc.Wires      .insert(hit->WireID().Wire);
     hc.StartWire  = *hc.Wires.begin();
     hc.EndWire    = *hc.Wires.rbegin();
+    hc.ADCs       += hitinfo.hit->Integral();
     hc.Charge     += hitinfo.qcoll;
     hc.mapWireCharge[hit->WireID().Wire] += hitinfo.qcoll;
     hc.mapTimeCharge[hitinfo.driftTicks] += hitinfo.qcoll;
@@ -379,6 +396,7 @@ namespace BlipUtils {
     hc.Wires    .insert(hc2.Wires.begin(),      hc2.Wires.end());
     hc.StartWire  = *hc.Wires.begin();
     hc.EndWire    = *hc.Wires.rbegin();
+    hc.ADCs     += hc2.ADCs;
     hc.Charge   += hc2.Charge;
     hc.mapWireCharge.insert(hc2.mapWireCharge.begin(),hc2.mapWireCharge.end());
     hc.mapTimeCharge.insert(hc2.mapTimeCharge.begin(),hc2.mapTimeCharge.end());
