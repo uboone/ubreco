@@ -241,20 +241,24 @@ void TrackMasker::produce(art::Event & e)
       // skip same hit (duh)
       if( hh == h ) continue;
         
-      // skip hits that are already veto'd
+      // skip hits that are already vetoed
       if ( hitIsVetoed[hh] ) continue;
-
+      
+      float dw = fabs(wtpoint.at(hh).X()-wtpoint.at(h).X());
+      float dt = fabs(wtpoint.at(hh).Y()-wtpoint.at(h).Y());
+      
       // skip hits on far-away wires
-      if( (wtpoint.at(hh).X()-wtpoint.at(h).X()) > fVetoRadius ) continue;
+      if( dw > fVetoRadius ) continue;
 
       // skip hits that are sufficiently separated in time
-      if( (wtpoint.at(hh).Y()-wtpoint.at(h).Y()) > fVetoRadius ) continue;
+      if( dt > fVetoRadius ) continue;
       
-      // check 2D proximity
-      if( (wtpoint.at(hh)-wtpoint.at(h)).Mod() < fVetoRadius ) {
-        _vetohits.push_back(hh);
-        hitIsVetoed[hh] = true;
-      }
+      // finally, check 2D proximity
+      if( sqrt( pow(dw,2)+pow(dt,2) ) > fVetoRadius ) continue;
+      
+      _vetohits.push_back(hh);
+      hitIsVetoed[hh] = true;
+
     }
   }
 
