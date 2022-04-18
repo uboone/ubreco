@@ -43,9 +43,6 @@ services.message.destinations.STDCOUT: {
 services.DetectorPropertiesService.NumberTimeSamples:        6400
 services.DetectorPropertiesService.ReadOutWindowSize:        6400
 services.DetectorPropertiesService.InheritNumberTimeSamples: false
-services.DetectorPropertiesService.TimeOffsetU:              0.
-services.DetectorPropertiesService.TimeOffsetV:              -4.539
-services.DetectorPropertiesService.TimeOffsetZ:              -7.782
 services.DetectorClocksService.InheritClockConfig:           false
 services.DetectorClocksService.TriggerOffsetTPC:             -400
 
