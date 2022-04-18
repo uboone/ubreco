@@ -12,6 +12,10 @@ services.message: {
                   limit: 0
                   reportEvery: 0
                }
+               OpDetBacktrackerRecord: {
+                 limit: 0
+                 reportEvery: 0
+               }
             }
             threshold: "WARNING"
             type: "cout"

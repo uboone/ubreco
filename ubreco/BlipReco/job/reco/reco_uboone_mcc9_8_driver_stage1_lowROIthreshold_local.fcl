@@ -2,4 +2,4 @@
 
 #include "low_thresh_gaushit_settings.fcl"
 
-physics.producers.simnfspl1.wcls_main.configs: [ "pgrapher/experiment/uboone/wcls-nf-sp_lowROIthreshold_corrected.jsonnet" ]
+physics.producers.simnfspl1.wcls_main.configs: [ "pgrapher/experiment/uboone/wcls-nf-sp_lowROIthreshold.jsonnet" ]
