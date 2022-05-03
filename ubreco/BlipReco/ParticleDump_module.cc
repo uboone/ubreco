@@ -207,7 +207,7 @@ class ParticleDump;
       double  dL                  = (particle->Position(0).Vect()-particle->Position(last).Vect()).Mag();
       float   KE0                 = 1e3*(particle->E(0)-particle->Mass());
       //float   KEf                 = 1e3*(particle->E(secToLast)-particle->Mass());
-      float   T0                  = particle->T(0);
+      float   T0                  = 1e-3*particle->T(0);
       //float   Tf                  = particle->T(last);
       std::string proc            = particle->Process().c_str();
       std::string endProc         = particle->EndProcess().c_str();  
@@ -229,7 +229,7 @@ class ParticleDump;
         h_primary_startx->Fill(loc0.X());
         h_primary_starty->Fill(loc0.Y());
         h_primary_startz->Fill(loc0.Z());
-        h_primary_t0      ->Fill(T0/1000.);
+        h_primary_t0      ->Fill(T0);
       }
 
       /*
@@ -302,13 +302,12 @@ class ParticleDump;
       if(printOut) {
         if( fMaxParticles < 0 || counter <= fMaxParticles ) {
           
-          std::stringstream stream;
-          stream << std::fixed << std::setprecision(1) << T0/1000;
-          std::string timeString = stream.str() + " us";
-          //if( fabs(T0) > 1e6 ) timeString = "> 1ms";
+          //std::stringstream stream;
+          //stream << std::fixed << std::setprecision(2) << T0/1000;
+          //std::string timeString = stream.str();
 
           //printf("  %5i PDG: %11i, dL: %5.1fcm, XYZ: (%7.1f,%7.1f,%7.1f),  KE0: %7.3f, KEf: %7.3f, T0: %8.8s, moth: %5i, %20.20s -->%20.20s, nD: %i\n",
-          printf("  %5i PDG: %11i, dL: %6.1fcm, XYZ: (%7.1f,%7.1f,%7.1f),  KE0: %7.3f, T0: %8.3s, moth: %5i, %20.20s -->%20.20s, nD: %i\n",
+          printf("  %5i PDG: %11i, dL: %6.1fcm, XYZ: (%7.1f,%7.1f,%7.1f),  KE0: %7.3f, T0: %8.2f us, moth: %5i, %20.20s -->%20.20s, nD: %i\n",
             trackId,
             pdg,
             dL,
@@ -317,8 +316,7 @@ class ParticleDump;
             loc0.Z(),
             KE0,
             //KEf,
-            //T0,
-            timeString.c_str(),
+            T0, //timeString.c_str(),
             mother,
             proc.c_str(),
             endProc.c_str(),      

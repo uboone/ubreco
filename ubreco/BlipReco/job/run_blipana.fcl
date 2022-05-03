@@ -68,15 +68,14 @@ physics:
   
   ana:            [ blipana ]
   trigger_paths:  [ ] 
-  #stream1:        [ ]
   end_paths:      [ ana ] 
 
 } # physics
 
 # Cosmic filter settings: this module removes hits that are
 # directly a part of cosmic-tagged tracks. This is different
-# from the TrackMasker module, which vetos a cylindrical region
-# in 2D wire-time space around tracks of a certain length.
+# from the TrackMasker module, which also vetoes a cylindrical region
+# in 2D wire-time space around *all* tracks of a certain length.
 physics.producers.cosmicfilter.VtxProducer:   "" #"pandora"
 physics.producers.cosmicfilter.HitProducer:   "gaushit"
 physics.producers.cosmicfilter.TrkProducer:   "pandora"
