@@ -1,5 +1,8 @@
 #include "reco_uboone_mcc9_8_driver_overlay_stage2_local.fcl"
 
+microboone_tfile_metadata.GenerateTFileMetadata: [ true, false ]
+source.maxEvents: -1
+
 physics.reco: [
       "rns",
       "crttzero",
@@ -9,16 +12,16 @@ physics.reco: [
       "pandoraAllOutcomesTrack",
       "pandoraAllOutcomesShower",
       "pandora",
-      "pandoratag"
+      "pandoratag",
       #"pandoraContTag",
       #"pandoraMCSMu",
-      #"pandoracalo",
+      "pandoracalo",
       #"pandorapid",
-      #"pandoracali",
+      "pandoracali",
       #"pandoracalipid",
-      #"pandoracaloSCE",
+      "pandoracaloSCE",
       #"pandorapidSCE",
-      #"pandoracaliSCE",
+      "pandoracaliSCE"
       #"pandoracalipidSCE",
       #"pandoraKalmanTrack",
       #"pandoraKalmanShower",
@@ -41,3 +44,4 @@ physics.reco: [
       #"trajclusterKalmanTrack",
       #"tcshower"
 ]
+

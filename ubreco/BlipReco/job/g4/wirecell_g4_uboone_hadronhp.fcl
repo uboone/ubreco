@@ -8,7 +8,7 @@ services.LArG4Parameters.EnabledPhysics:        [ "Em", "FastOptical", "Synchrot
 
 # Add ParticleLister for output during running
 physics.analyzers.pdump: { module_type: "ParticleDump" }
-physics.analyzers.pdump.MaxParticles: 50
+physics.analyzers.pdump.MaxParticles: 200
 physics.ana: [ "pdump" ]
 physics.end_paths: [stream1, ana]
 

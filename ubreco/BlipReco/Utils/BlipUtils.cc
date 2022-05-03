@@ -1,9 +1,8 @@
 #include "BlipUtils.h"
 
-const float rmsWidthFact        = 1.0;
 
 namespace BlipUtils {
- 
+
 
   //============================================================================
   void InitializeUtils() {
@@ -16,53 +15,57 @@ namespace BlipUtils {
     <<" Tick period: "<<fTickPeriod<<"\n"
     <<"##################################################################\n";
   }
+  
 
   //============================================================================
-  // Find total visible energy deposited in the LAr, and number of electrons drifted
-  // to wires, by looking at the SimChannels for all three planes
-  void CalcTotalDep(float& energy, float& ne){
-    energy  = 0;
-    ne      = 0;
+  // Find total visible energy deposited in the LAr, and number of electrons deposited
+  // and drifted to the anode.
+  void CalcTotalDep(float& energy, int& ne_dep, float& ne_anode, SEDVec_t& sedvec){
+   
+    // energy and electrons deposited
+    energy = 0; 
+    ne_dep = 0;
+    for(auto& sed : sedvec ) { 
+      energy += sed->Energy(); 
+      ne_dep += sed->NumElectrons();
+    }
+    
+    // electrons drifted to collection plane wires
+    ne_anode = 0;
     for(auto const &chan : art::ServiceHandle<cheat::BackTrackerService>()->SimChannels()) {
       for(auto const &tdcide : chan->TDCIDEMap() ) {
         for(const auto& ide : tdcide.second) {
-          energy += ide.energy/art::ServiceHandle<geo::Geometry>()->Nplanes();
-          ne += ide.numElectrons/art::ServiceHandle<geo::Geometry>()->Nplanes();
+          ne_anode += ide.numElectrons/art::ServiceHandle<geo::Geometry>()->Nplanes();
         }
       }
     }
   }
-  
-  //============================================================================
-  // Get the total energy deposited by this particle by looking at IDEs from 3 planes.
-  void CalcPartDep(int trackID, float& energy, float& ne){
-    if( energy< 0 ) energy = 0;
-    if( ne    < 0 ) ne = 0;
-    //std::cout<<":: Calculating energy dep for trackID "<<trackID<<"\n";
-    int nPlanes = 0;
-    float totalE_particle = 0, totalne_particle = 0;
-    for(const geo::View_t view : {geo::kU, geo::kV, geo::kW} ) {
-      std::vector<const sim::IDE* > ides 
+
+
+  //==========================================================================
+  // Get total electrons drifted to anode by this particle
+  void CalcPartDrift(int trackID, float& ne_drift){
+    if( ne_drift < 0 ) ne_drift = 0;
+    std::vector<geo::View_t> views={geo::kU, geo::kV, geo::kW};
+    float ne = 0;
+    int nviews = 0;
+    for(auto view : views ) {
+      std::vector<const sim::IDE* > ides
         = art::ServiceHandle<cheat::BackTrackerService>()->TrackIdToSimIDEs_Ps(trackID, view);
-      if( ides.size() ) nPlanes++;
-      for (auto ide: ides) {
-        //std::cout<<"ide on plane "<<view<<": "<<ide->energy<<"\n";
-        totalE_particle += ide->energy;
-        totalne_particle += ide->numElectrons;
+      if( ides.size() ) {
+        nviews++;
+        for (auto ide: ides) ne += ide->numElectrons;
       }
     }
-    if(nPlanes) { totalE_particle /= nPlanes; totalne_particle /= nPlanes; }
-    energy  += totalE_particle;
-    ne      += totalne_particle;
-    //std::cout<<":: "<<totalE_particle<<" MeV, "<<totalne_particle<<" electrons\n";
+    if( nviews ) ne_drift = ne / float(nviews);
+    return;
   }
-
 
   
   //===========================================================================
   // Provided a MCParticle, calculate everything we'll need for later calculations
   // and save into ParticleInfo object
-  void FillParticleInfo( const simb::MCParticle& part, ParticleInfo& pinfo){
+  void FillParticleInfo( const simb::MCParticle& part, ParticleInfo& pinfo, SEDVec_t& sedvec){
     
     // Get important info and do conversions
     pinfo.particle    = part;
@@ -78,12 +81,23 @@ namespace BlipUtils {
     pinfo.Py          = /*GeV->MeV*/1e3 * part.Py();
     pinfo.Pz          = /*GeV->MeV*/1e3 * part.Pz();
     pinfo.time        = /*ns ->mus*/1e-3 * part.T();
+    pinfo.endtime     = /*ns ->mus*/1e-3 * part.EndT();
 
     // Pathlength (in AV) and start/end point
     pinfo.pathLength  = BlipUtils::PathLength( part, pinfo.startPoint, pinfo.endPoint);
+    
+    // Energy/charge deposited by this particle, found using SimEnergyDeposits 
+    pinfo.depEnergy     = 0;
+    pinfo.depElectrons  = 0;
+    for(auto& sed : sedvec ) {
+      if( sed->TrackID() == part.TrackId() ) {
+        pinfo.depEnergy     += sed->Energy();
+        pinfo.depElectrons  += sed->NumElectrons();
+      }
+    }
 
-    // Energy deposited by this particle
-    BlipUtils::CalcPartDep( pinfo.trackId, pinfo.energyDep, pinfo.numElectrons );
+    // Electrons drifted to wires
+    CalcPartDrift( pinfo.trackId, pinfo.numElectrons );
   
   }
 
@@ -98,9 +112,6 @@ namespace BlipUtils {
       TrueBlip tb;
       
       auto part = pinfo[i].particle;
-      //std::cout<<":: MakeTrueBlip for track "<<part.TrackId()<<"\n";
-      //art::ServiceHandle<cheat::ParticleInventoryService> pi_serv;
-      //const sim::ParticleList& plist = pi_serv->ParticleList();
 
       // If this is an electron that came from another electron, it would 
       // have already been grouped as part of the contiguous "blip" previously.
@@ -111,7 +122,7 @@ namespace BlipUtils {
       if( part.PdgCode() == 2112 || part.PdgCode() == 22 ) continue;
 
       // Only count protons < 3 MeV KE
-      if( part.PdgCode() == 2212 && pinfo[i].energyDep > 3. ) continue;
+      if( part.PdgCode() == 2212 && pinfo[i].depEnergy > 3. ) continue;
 
       // Create the new blip
       GrowTrueBlip(pinfo[i],tb);
@@ -128,62 +139,12 @@ namespace BlipUtils {
         }
       }
 
-      // Ensure this blip has at least some energy, and
-      // that it doesn't extend beyond ~3 wires
-      //    if( tb.Energy && tb.Length < 1. ) tb.isValid = true;
       if( tb.Energy) tb.isValid = true;
       trueblips.push_back(tb);
     }
     
   }
   
-  /*
-  //====================================================================
-  // Make a TrueBlip object from a G4 particle, grouping contiguous particles
-  // in with the blip.
-  TrueBlip MakeTrueBlip(int trackID){
-    std::cout<<":: MakeTrueBlip for track "<<trackID<<"\n";
-    art::ServiceHandle<cheat::ParticleInventoryService> pi_serv;
-    const sim::ParticleList& plist = pi_serv->ParticleList();
-    simb::MCParticle part = *plist.at(trackID);
-    
-    TrueBlip tb;
-
-    // If this is an electron that came from another electron, it would 
-    // have already been grouped as part of the contiguous "blip" previously.
-    if( part.PdgCode() == 11 && (part.Process() == "eIoni" || part.Process() == "muIoni" || part.Process() == "hIoni") ) return tb;
-    
-    // If this is a photon or neutron, don't even bother!
-    if( part.PdgCode() == 2112 || part.PdgCode() == 22 ) return tb;
-
-    // Calculate energy dep if none provided
-    float edep, ne;
-    CalcPartDep(part,edep,ne);
-
-    // Only count protons < 3 MeV KE
-    //if( part.PdgCode() == 2212 && edep > 3. ) return tb;
-
-    // Create the new blip
-    GrowTrueBlip(part,tb);
-
-    // We want to loop through any contiguous electrons (produced
-    // with process "eIoni") and add the energy they deposit into this blip.
-    if( part.NumberDaughters() ) {
-      for(auto it = std::next(plist.find(trackID)); it != plist.end(); it++){
-        simb::MCParticle p = *(it)->second;
-        if( p.PdgCode() != 2112 && (p.Process() == "eIoni" || p.Process() == "muIoni" || p.Process() == "hIoni") ){
-          if( IsAncestorOf(p.TrackId(),trackID,true) ) GrowTrueBlip(p,tb);
-        }
-      }
-    }
-
-    // Ensure this blip has at least some energy, and
-    // that it doesn't extend beyond ~3 wires
-//    if( tb.Energy && tb.Length < 1. ) tb.isValid = true;
-    if( tb.Energy) tb.isValid = true;
-    return tb;
-  }
-  */
   
   //====================================================================
   void GrowTrueBlip( ParticleInfo const& pinfo, TrueBlip& tblip ) {
@@ -205,58 +166,23 @@ namespace BlipUtils {
     // Check that the particle creation time isn't too much
     // different from the original blip
     if ( fabs(tblip.Time - pinfo.time) > 3 ) return; 
-
     
     tblip.G4IDs       .push_back(part.TrackId());
     tblip.PDGs       .push_back(part.PdgCode());
-    tblip.Energy      += pinfo.energyDep;
+    tblip.Energy      += pinfo.depEnergy;
+    tblip.DepElectrons+= pinfo.depElectrons;
     tblip.NumElectrons+= pinfo.numElectrons;
     tblip.EndPoint    = pinfo.endPoint;
     tblip.Position    = (tblip.StartPoint + tblip.EndPoint)*0.5;
     tblip.Length      += pinfo.pathLength;
-    if(pinfo.energyDep > tblip.LeadEnergy ) {
-      tblip.LeadEnergy = pinfo.energyDep;
+    if(pinfo.depEnergy > tblip.LeadEnergy ) {
+      tblip.LeadEnergy = pinfo.depEnergy;
       tblip.LeadG4ID = part.TrackId();
+      tblip.LeadG4Index = pinfo.index;
       tblip.LeadG4PDG = part.PdgCode();
     }
   }
 
-  /*
-  //====================================================================
-  void GrowTrueBlip(simb::MCParticle const& part, TrueBlip& tblip){
-    
-    // Skip neutrons, photons
-    if( part.PdgCode() == 2112 || part.PdgCode() == 22 ) return;
-
-    // Get particle path length and start/end position *inside TPC*
-    TVector3 start, end;
-    float len = PathLength(part,start,end);
-
-    if( !len ) return;
-
-    // If this is a new blip, initialize
-    if( tblip.G4IDs.size() == 0 ) {
-      tblip.StartPoint  = start;
-      //double posArray[3]= { tblip.Position.X(), tblip.Position.Y(), tblip.Position.Z() };
-      //tblip.TPC         = art::ServiceHandle<geo::Geometry>()->PositionToTPC({start.X(),start.Y(),start.Z()}).ID().TPC;
-    }
-    
-    float edep = 0, ne = 0;
-    CalcPartDep(part.TrackId(),edep,ne);
-    tblip.G4IDs       .push_back(part.TrackId());
-    tblip.PDGs       .push_back(part.PdgCode());
-    tblip.Energy      += edep;
-    tblip.NumElectrons+= ne;
-    tblip.EndPoint    = end;
-    tblip.Position    = (tblip.StartPoint + end)*0.5;
-    tblip.Length      += len; 
-    if(edep > tblip.LeadEnergy ) {
-      tblip.LeadEnergy = edep;
-      tblip.LeadG4ID = part.TrackId();
-      tblip.LeadG4PDG = part.PdgCode();
-    }
-  }
-  */
   
   //====================================================================
   // Merge blips that are close
@@ -271,14 +197,16 @@ namespace BlipUtils {
       for(size_t j=i+1; j<vtb.size(); j++){
         if( isGrouped.at(j) ) continue;
         auto const& blip_j = vtb.at(j);
-//        if( blip_i.TPC != blip_j.TPC ) continue;
+        if( blip_i.TPC != blip_j.TPC ) continue;
         // check that the times are similar (we don't want to merge
         // together a blip that happened much later but in the same spot)
         if( fabs(blip_i.Time - blip_j.Time) > 3 ) continue;
         float d = (blip_i.Position-blip_j.Position).Mag();
         if( d < dmin ) {
           isGrouped.at(j) = true;
-          blip_i.Energy   += blip_j.Energy;
+          blip_i.Energy       += blip_j.Energy;
+          blip_i.DepElectrons += blip_j.DepElectrons;
+          blip_i.NumElectrons += blip_j.NumElectrons;
           blip_i.EndPoint = blip_j.EndPoint;
           blip_i.Position = (blip_i.EndPoint+blip_i.StartPoint)*0.5;
           blip_i.Length   = (blip_i.EndPoint-blip_i.StartPoint).Mag();
@@ -289,6 +217,7 @@ namespace BlipUtils {
           if( blip_j.LeadEnergy > blip_i.LeadEnergy ) {
             blip_i.LeadEnergy = blip_j.LeadEnergy;
             blip_i.LeadG4ID = blip_j.LeadG4ID;
+            blip_i.LeadG4Index = blip_j.LeadG4Index;
             blip_i.LeadG4PDG = blip_j.LeadG4PDG;
           }
         }//d < dmin
@@ -304,9 +233,6 @@ namespace BlipUtils {
     //art::Ptr<recob::Hit> hit = hitinfo.hit;
     HitClust hc;
     hc.LeadHit      = hitinfo.hit;
-    //hc.LeadHitWire  = hitinfo.hit->WireID().Wire;
-    //hc.LeadHitPH    = hitinfo.hit->PeakAmplitude();
-    //hc.LeadHitRMS   = hitinfo.hit->RMS();
     hc.LeadHitCharge= hitinfo.qcoll;
     hc.LeadHitID    = hitinfo.hitid;
     hc.LeadHitTime  = hitinfo.driftTicks;
@@ -363,24 +289,10 @@ namespace BlipUtils {
     hc.StartTime  = std::min(hc.StartTime,hitinfo.driftTicks - hit->RMS());
     hc.EndTime    = std::max(hc.EndTime,  hitinfo.driftTicks + hit->RMS());
     hc.Time       = (hc.StartTime+hc.EndTime)/2.;
-    // recalculate charge-weighted time
-    /*
-    hc.WeightedTime = 0;
-    hc.TimeErr      = 0;
-    float sumErrSquared = 0;
-    for(auto const& tq : hc.mapTimeCharge ) {
-      hc.WeightedTime += (tq.first * tq.second)/hc.Charge;
-      sumErrSquared   += (tq
-
-    }
-    */
     float w1 = q1/(q1+q2);
     float w2 = q2/(q1+q2);
     hc.WeightedTime = w1*hc.WeightedTime + w2*hitinfo.driftTicks;
-    //hc.TimeErr      = sqrt( pow(q1*hc.TimeErr,2) + pow(q2*hitinfo.hit->RMS(),2) ) / (q1+q2);
     hc.TimeErr      = w1*hc.TimeErr       + w2*hitinfo.hit->RMS();
-    //auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    //hc.XPos         = detProp->ConvertTicksToX(hc.LeadHit->PeakTime(),hc.Plane,hc.TPC,0);
   }
 
   //=================================================================
@@ -410,16 +322,10 @@ namespace BlipUtils {
     hc.StartTime  = std::min(hc.StartTime,hc2.StartTime);
     hc.EndTime    = std::max(hc.EndTime,hc2.EndTime);
     hc.Time       = (hc.StartTime+hc.EndTime)/2.;
-    // recalculate charge-weighted time
-    //hc.WeightedTime = 0;
-    //for(auto const& tq : hc.mapTimeCharge ) hc.WeightedTime += (tq.first * tq.second)/hc.Charge;
-    //hc.WeightedTime = (origCharge*hc.WeightedTime   + hitinfo.qcoll*hitinfo.driftTicks) / hc.Charge;
-    //hc.TimeErr      = sqrt( (origCharge*pow(hc.TimeErr,2) + hitinfo.qcoll*pow(hitinfo.hit->RMS(),2) ) / hc.Charge );
     float w1 = q1/(q1+q2);
     float w2 = q2/(q1+q2);
     hc.WeightedTime = w1*hc1.WeightedTime + w2*hc2.WeightedTime;
     hc.TimeErr      = w1*hc1.TimeErr       + w2*hc2.TimeErr;
-    //hc.TimeErr      = sqrt( w1*pow(w1*hc1.TimeErr,2) + pow(w2*hc2.TimeErr,2) );
     return hc;
   }
 
@@ -445,20 +351,11 @@ namespace BlipUtils {
 
     // Calculate mean time and X (assuming in-time deposition)
     auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    //auto const* detClock = lar::providerFrom<detinfo::DetectorClocksService>();
-    //auto const clockData = detClock->TPCClock();
-    //float samplingPeriod = clockData.TickPeriod();
-    //std::cout<<"sampling period: " <<samplingPeriod<<" microseconds\n";
     float t = 0, x = 0;
     for(auto hc : hcs ) {
-      //std::cout<<"...hitclust on pl "<<hc.Plane<<" with time "<<hc.Time<<"\n";
       t += fTickPeriod * hc.Time/float(hcs.size());
-      //std::cout<<"converting PeakTime ticks ("<<hc.LeadHit->PeakTime()<<") to X\n";
-      //std::cout<<"... peakTime "<<hc.LeadHit->PeakTime()<<", plane "<<hc.Plane<<" --> X = "<<detProp->ConvertTicksToX(hc.LeadHit->PeakTime(),hc.Plane,0,0)<<"\n";
       x += detProp->ConvertTicksToX(hc.LeadHit->PeakTime(),hc.Plane,TPC,0)/float(hcs.size());
-      //x += ConvertTicksToX(hc.LeadHit->PeakTime(),hc.Plane,TPC,0)/float(hcs.size());
     }
-    //std::cout<<"t: "<<t<<", x: "<<x<<"\n";
     newblip.DriftTime = t;
 
     // Look for valid wire intersections and calculate
@@ -474,8 +371,6 @@ namespace BlipUtils {
         bool match3d = art::ServiceHandle<geo::Geometry>()->ChannelsIntersect(
           hcs[i].LeadHit->Channel(),hcs[j].LeadHit->Channel(),y,z);
         if( match3d ) {
-//          newblip.WireIntersect[pli] = true;
-//          newblip.WireIntersect[plj] = true;
           newblip.Charge[pli] = hcs[i].Charge;
           newblip.Charge[plj] = hcs[j].Charge;
           newblip.Planes[pli] = true;
@@ -536,7 +431,7 @@ namespace BlipUtils {
     float t1 = hit1->PeakTime();
     float t2 = hit2->PeakTime();
     float sig = std::max(hit1->RMS(),hit2->RMS());
-    if( fabs(t1-t2) < rmsWidthFact*sig ) return true;
+    if( fabs(t1-t2) < 1.0*sig ) return true;
     else return false;
   }
   
@@ -590,18 +485,11 @@ namespace BlipUtils {
 
   //====================================================================
   // This function calculates the leading MCParticle ID contributing to a hit and the
-  // fraction of that hit's energy comes from that particle.
+  // fraction of that hit's energy coming from that particle.
   void  HitTruth(art::Ptr<recob::Hit> const& hit, int& truthid, float& truthidEnergyFrac, float& energy,float& numElectrons){
     // Get associated sim::TrackIDEs for this hit
-    //auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataForJob();
-    //auto const* detClock = lar::providerFrom<detinfo::DetectorClocksService>();
-    //auto const clockData = detClock->TPCClock();
     std::vector<sim::TrackIDE> trackIDEs 
-    //  = art::ServiceHandle<cheat::BackTrackerService>()->HitToTrackIDEs(clockData, hit);
       = art::ServiceHandle<cheat::BackTrackerService>()->HitToTrackIDEs(hit);
-    if( !trackIDEs.size() ) return;
-    // Loop through and find the leading TrackIDE, and keep
-    // track of the total energy of ALL IDEs.
     float maxe = 0;
     float bestfrac = 0;
     float bestid = 0;
@@ -620,20 +508,15 @@ namespace BlipUtils {
     energy = maxe;
     numElectrons = ne;
   }
+  
  
   //==================================================================
   // Returns list of all G4 track IDs associated with a hit
   std::set<int> HitTruthIds( art::Ptr<recob::Hit> const& hit){
     std::set<int> ids;
     art::ServiceHandle<cheat::BackTrackerService> bt_serv;
-    //auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataForJob();
-    //auto const* detClock = lar::providerFrom<detinfo::DetectorClocksService>();
-    //auto const clockData = detClock->TPCClock();
-    //std::vector<sim::TrackIDE> trackIDEs = bt_serv->HitToTrackIDEs(clockData, hit);
     std::vector<sim::TrackIDE> trackIDEs = bt_serv->HitToTrackIDEs(hit);
     for(size_t i = 0; i < trackIDEs.size(); ++i) ids.insert(trackIDEs[i].trackID);
-    //std::vector<int> vout(ids.begin(),ids.end());
-    //return vout;
     return ids;
   }
   
@@ -709,19 +592,6 @@ namespace BlipUtils {
   // line and point 'P'
   double DistToLine(TVector3& L1, TVector3& L2, TVector3& p){
     
-    /*
-    // 2D:
-    // d = | (x2-x1)(y1-y0) - (x1-x0)(y2-y1) | / sqrt( (x2-x1)^2 + (y2-y1)^2 )
-    float a = ( L2.X()-L1.X() )*( L1.Y()-P.Y() );
-    float b = ( L1.X()-P.X()  )*( L2.Y()-L1.Y() );
-    float c = sqrt( pow(L2.X()-L1.X(), 2) + pow(L2.Y()-L1.Y(),2 ) );
-    if( c > 0 ) 
-      return fabs( a - b ) / c;
-    else
-      return -1;
-    */
-
-
     // general vector formulation:
     // a = point on a line
     // n = unit vector pointing along line
@@ -750,8 +620,6 @@ namespace BlipUtils {
   //===========================================================================
   void GetGeoBoundaries(double& xmin, double& xmax, double& ymin, double& ymax, double&zmin, double& zmax){
     art::ServiceHandle<geo::Geometry> geom;
-    //xmin = -2.0 * geom->DetHalfWidth() - 1e-8;
-    //xmax = 2.0 * geom->DetHalfWidth() + 1e-8;
     xmin = 0. + 1e-8;
     xmax = 2.0 * geom->DetHalfWidth() - 1e-8;
     ymin = - (geom->DetHalfHeight() + 1e-8);
@@ -788,11 +656,11 @@ namespace BlipUtils {
     auto const clockData = detClock->TPCClock();
     double Efield   = detProp->Efield(0);
     double Temp     = detProp->Temperature();
-    // The drift velocity "Fudge factor" can't 
-    double driftVel = detProp->DriftVelocity(Efield,Temp)*9.832658327e-1;
+    // The drift velocity "Fudge factor"... need to look into this more!
+    double fudgeFact = 9.832658e-1;
+    double driftVel = detProp->DriftVelocity(Efield,Temp)*fudgeFact;
     double drift    = (peakTime - detProp->GetXTicksOffset(plane,tpc,cryo))*clockData.TickPeriod();
     double X        = drift * driftVel;
-    //std::cout<<"CONVERT TICKS TO X: driftVel "<<driftVel<<", driftTime "<<drift<<", X = "<<X<<"\n";
     return X;
   }
 

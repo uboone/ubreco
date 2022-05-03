@@ -20,20 +20,18 @@
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "nusimdata/SimulationBase/MCParticle.h"
 #include "nusimdata/SimulationBase/MCTruth.h"
+#include "lardataobj/Simulation/SimEnergyDeposit.h"
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RecoBase/Track.h"
 #include "larsim/MCCheater/BackTrackerService.h"
 #include "lardataobj/AnalysisBase/BackTrackerMatchingData.h"
 #include "larsim/MCCheater/ParticleInventoryService.h"
 #include "larcore/Geometry/Geometry.h"
-//namespace detinfo {
-//  class DetectorClocksData;
-//  class DetectorPropertiesData;
-//}
 
 // c++
 #include <vector>
 #include <map>
+
 
 // Helper templates for initializing arrays
 namespace{  
@@ -52,6 +50,9 @@ typedef std::vector<int> vi_t;
 typedef std::set<int> si_t;
 typedef std::map<int,float> mif_t;
 typedef std::map<float,float> mff_t;
+typedef std::vector<art::Ptr<sim::SimEnergyDeposit>> SEDVec_t;
+typedef std::vector<simb::MCParticle const*> vmcp_t;
+typedef std::vector<anab::BackTrackerHitMatchingData const*> vbt_t;
 
 namespace BlipUtils{
 
@@ -62,9 +63,11 @@ namespace BlipUtils{
   struct ParticleInfo {
     simb::MCParticle particle;
     int   trackId           = -9;
+    int   index             = -9;
     int   isPrimary         = -9;
+    float depEnergy         = -9;
+    int   depElectrons      = -9;
     float numElectrons      = -9;
-    float energyDep         = -9;
     float mass              = -9;
     float E                 = -9;
     float endE              = -9;
@@ -76,23 +79,20 @@ namespace BlipUtils{
     float Pz                = -9; 
     float pathLength        = -9;
     float time              = -9;
+    float endtime           = -9;
     TVector3 startPoint;      
     TVector3 endPoint;      
   };
   
   struct HitInfo {
     art::Ptr<recob::Hit> hit;
-    si_t  g4ids;
     int   hitid         = -9;
     int   plane         = -9;
     int   tpc           = -9;
     int   wire          = -9;
     int   trkid         = -9;
     int   shwrid        = -9;
-    //bool  isgood        = false;
-    //bool  isclustered   = false;
     bool  ismatch       = false;
-    bool  isreal        = false;
     bool  isneartrk     = false;
     float trkdist2D     = -9;
     int   blipid        = -9;
@@ -105,6 +105,7 @@ namespace BlipUtils{
     float driftTicks    = -999999;
     bool  rmsCut        = false;
     bool  ratioCut      = false;
+    si_t  g4ids;
     TVector2 point2D;
   };
 
@@ -112,9 +113,11 @@ namespace BlipUtils{
     bool      isValid       = false;
     int       TPC           = -9;
     int       LeadG4ID      = -9;
+    int       LeadG4Index   = -9;
     int       LeadG4PDG     = -9;
     float     LeadEnergy    = -9;
     float     Energy        = 0;
+    int       DepElectrons  = 0;
     float     NumElectrons  = 0; // (post-drift)
     float     Length        = 0;
     float     Time          = -999e9;
@@ -145,7 +148,6 @@ namespace BlipUtils{
     float   TimeErr         = -999;
     float   StartTime       = -999;
     float   EndTime         = -999;
-    //float   XPos            = -999; 
     int     StartWire       = -999;
     int     EndWire         = -999;
     int     ID              = -9;
@@ -175,23 +177,18 @@ namespace BlipUtils{
     std::set<int> HitIDs;       // Associasted hits (will be taken care of by LArSoft associations)
   };
   
-  //###################################################
-  //  Common parameters
-  //###################################################
+  // Tick period
   float   fTickPeriod;
-
-  void    InitializeUtils();
-
+  
   //###################################################
   // Functions related to blip reconstruction
   //###################################################
-  void      FillParticleInfo(const simb::MCParticle&, ParticleInfo&);  
-  void      CalcTotalDep(float&,float&);
-  void      CalcPartDep(int, float&,float&);
-  //TrueBlip  MakeTrueBlip(int);
-  //void      GrowTrueBlip(simb::MCParticle const&, TrueBlip&);
-  void      MakeTrueBlips( const std::vector<ParticleInfo>&, std::vector<TrueBlip>&);
-  void      GrowTrueBlip( ParticleInfo const&, TrueBlip&);
+  void      InitializeUtils();
+  void      FillParticleInfo(simb::MCParticle const&, ParticleInfo&, SEDVec_t&);
+  void      CalcTotalDep(float&,int&,float&, SEDVec_t&);
+  void      CalcPartDrift(int,float&);
+  void      MakeTrueBlips(std::vector<ParticleInfo> const&, std::vector<TrueBlip>&);
+  void      GrowTrueBlip(ParticleInfo const&, TrueBlip&);
   void      MergeTrueBlips(std::vector<TrueBlip>&, float);
   HitClust  MakeHitClust(HitInfo const&);
   HitClust  MergeHitClusts(HitClust&,HitClust&);
@@ -201,7 +198,6 @@ namespace BlipUtils{
   bool      DoHitClustsOverlap(HitClust const&,float,float);
   bool      DoChannelsIntersect(int,int);
   bool      DoHitClustsMatch(HitClust const&, HitClust const&,float);
-  //Blip      MakeBlip(detinfo::DetectorPropertiesData const&, std::vector<HitClust> const&);
   Blip      MakeBlip(std::vector<HitClust> const&);
   float     ModBoxRecomb(float,float);
   float     ConvertTicksToX(float, int, int, int);

@@ -2,23 +2,26 @@
 
 BEGIN_PROLOG
 
-microboone_mcc9_calo_mc:
+# CalAreaConstants Used in MCC9 MC
+microboone_calo_mcc9_mc:
 {
-  CalAmpConstants:  [ 9.2e-4,   1.062e-3, 1.084e-3 ]
-  CalAreaConstants: [ 4.08e-3,  3.97e-3,  4.21e-3 ]
-  CaloDoLifeTimeCorrection: true
+  CalAreaConstants: [ 4.08e-3,3.97e-3,4.21e-3 ]
+  CalAmpConstants:  [ 9.2e-4, 1.062e-3, 1.084e-3 ]
+  CaloDoLifeTimeCorrection: false
   CaloLifeTimeForm: 0
   CaloUseModBox: true
 }
 
-microboone_calo_data:
+# CalAreaConstants used in MCC9 data
+microboone_calo_mcc9_data:
 {
+  CalAreaConstants: [ 4.31e-3, 4.02e-3, 4.10e-3  ]
   CalAmpConstants:  [ 9.2e-4, 1.062e-3, 1.084e-3 ]
-  CalAreaConstants: [ 4.31e-3,4.02e-3,  4.26e-3 ]
-  CaloDoLifeTimeCorrection: true
+  CaloDoLifeTimeCorrection: false
   CaloLifeTimeForm: 0
   CaloUseModBox: true
 }
+
 
 microboone_trackmasker:
 { 
@@ -41,34 +44,33 @@ microboone_blipana:
   module_type:        "BlipAna"
   HitProducer:        "gaushit"
   TrkProducer:        "pandora"
-  CaloAlg:		        @local::microboone_calorimetryalgmcc84mc
-  #CaloAlg:		        @local::microboone_calorimetryalgmcc84data
-  #CaloAlg:            @local::microboone_calo_data
+  CaloAlg:            @local::microboone_calo_mcc9_data
   CaloPlane:          2
   SaveTruthInfo:      true
   SaveTrkInfo:        true 
   SaveHitInfo:        false
-  DoTrkCalibrations:  false
-  MakeDiagHists:      true
   TrueBlipMergeDist:  0.3 # cm
   DoHitFiltering:     true
   MaxHitTrkLength:    3
   MaxHitAmp:          200
   MinHitRMS:          [ 0,  0,  0  ]
-  MaxHitRMS:          [ 20, 20, 20 ]
-  HitClustWidthFact:  2.5
+  MaxHitRMS:          [ 30, 30, 30 ]
+  #MinHitGOF:          [ 0,  0,  0  ]
+  HitClustWidthFact:  2.0
   HitClustWireRange:  1
-  MaxWiresInCluster:  6
-  MaxClusterSpan:     30 # ticks
-  HitMatchWidthFact:  1.0 # xRMS
-  HitMatchMaxTicks:   3 # max extent to match hits
-  PickyBlips:         false # require 3 planes that all intersect at same point (+/- 1 cm)
+  MaxWiresInCluster:  7
+  MaxClusterSpan:     30    # ticks
+  HitMatchWidthFact:  0.8   # xRMS
+  HitMatchMaxTicks:   2     # max extent to match hits
+  PickyBlips:         false # require 3 planes that all intersect at same point (+/- 5 cm)
 }
 
+microboone_blipana_fullmc:              @local::microboone_blipana
+microboone_blipana_fullmc.CaloAlg:		  @local::microboone_calo_mcc9_mc
+
 microboone_blipana_data:                @local::microboone_blipana
-microboone_blipana_data.CaloAlg:		    @local::microboone_calorimetryalgmcc84data
+microboone_blipana_data.CaloAlg:		    @local::microboone_calo_mcc9_data
 microboone_blipana_data.SaveTruthInfo:  false
-#microboone_blipana_data.DoTrkCalibrations:  true
 
 # Source: reco_uboone_mcc9_8_driver_overlay_stage2.fcl
 #physics.analyzers.blipana.CaloAlg.CalAreaConstants:   [ 4.31e-3, 4.02e-3, 4.1e-3 ]
