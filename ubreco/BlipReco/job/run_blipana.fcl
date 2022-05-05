@@ -4,7 +4,7 @@
 #include "calorimetry_microboone.fcl"
 #include "triggeralgo_service.fcl"
 #include "cosmicfilter.fcl"
-#include "blipana_config.fcl"
+#include "blip_configs.fcl"
 
 process_name: BlipAna
 
@@ -87,5 +87,6 @@ physics.producers.cosmicfilter.IPmin:         10
 
 physics.analyzers.blipanaTrkMask.HitProducer: "trackmasker"
 physics.analyzers.blipanaCosFilt.HitProducer: "cosmicfilter"
-physics.analyzers.blipanaCosFilt.DoTrkCalibrations: false
+physics.analyzers.blipanaTrkMask.BlipAlg.HitProducer: "trackmasker"
+physics.analyzers.blipanaCosFilt.BlipAlg.HitProducer: "cosmicfilter"
     

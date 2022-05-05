@@ -3,7 +3,7 @@
 #include "services_microboone.fcl"
 #include "triggeralgo_service.fcl"
 #include "cosmicfilter.fcl"
-#include "blipana_config.fcl"
+#include "blip_configs.fcl"
 
 process_name: ParticleDump
 
