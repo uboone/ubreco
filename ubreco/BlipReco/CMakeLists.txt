@@ -28,7 +28,6 @@ art_make(
 			${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
 			art_Persistency_Common canvas
 			art_Persistency_Provenance canvas
-			art_Utilities canvas
 			${MF_MESSAGELOGGER}
       ${FHICLCPP}
 			cetlib cetlib_except
@@ -38,10 +37,12 @@ art_make(
       ${ROOT_GDML}
 			${ROOT_BASIC_LIB_LIST}
       ubreco_BlipUtils
+      ubreco_BlipRecoAlg
 
 )
 
 add_subdirectory(Utils)
+add_subdirectory(Alg)
 add_subdirectory(job)
 install_fhicl()
 install_source()

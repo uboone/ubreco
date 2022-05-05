@@ -2,6 +2,7 @@
 
 BEGIN_PROLOG
 
+
 # CalAreaConstants Used in MCC9 MC
 microboone_calo_mcc9_mc:
 {
@@ -23,6 +24,7 @@ microboone_calo_mcc9_data:
 }
 
 
+
 microboone_trackmasker:
 { 
   module_type:        "TrackMasker"
@@ -38,17 +40,16 @@ microboone_trackmasker_tight.MinTrkLength:      3
 microboone_trackmasker_tight.MinTrkLengthVeto:  5
 microboone_trackmasker_tight.VetoRadius:        1.0
 
-microboone_blipana:
+
+
+microboone_blipalg:
 {
-  #DebugMode: true
-  module_type:        "BlipAna"
   HitProducer:        "gaushit"
   TrkProducer:        "pandora"
+  GeantProducer:      "largeant"
+  SimEDepProducer:    "ionization"
   CaloAlg:            @local::microboone_calo_mcc9_data
   CaloPlane:          2
-  SaveTruthInfo:      true
-  SaveTrkInfo:        true 
-  SaveHitInfo:        false
   TrueBlipMergeDist:  0.3 # cm
   DoHitFiltering:     true
   MaxHitTrkLength:    3
@@ -65,35 +66,28 @@ microboone_blipana:
   PickyBlips:         false # require 3 planes that all intersect at same point (+/- 5 cm)
 }
 
-microboone_blipana_fullmc:              @local::microboone_blipana
-microboone_blipana_fullmc.CaloAlg:		  @local::microboone_calo_mcc9_mc
 
-microboone_blipana_data:                @local::microboone_blipana
-microboone_blipana_data.CaloAlg:		    @local::microboone_calo_mcc9_data
-microboone_blipana_data.SaveTruthInfo:  false
+
+microboone_blipana:
+{
+  module_type:        "BlipAna"
+  BlipAlg:            @local::microboone_blipalg
+  SaveTruthInfo:      true
+  SaveTrkInfo:        true 
+  SaveHitInfo:        false
+  #DebugMode: true
+}
+
+microboone_blipana_fullmc:                  @local::microboone_blipana
+microboone_blipana_fullmc.CaloAlg:	        @local::microboone_calo_mcc9_mc
+microboone_blipana_fullmc.BlipAlg.CaloAlg:	@local::microboone_calo_mcc9_mc
+
+microboone_blipana_data:                    @local::microboone_blipana
+microboone_blipana_data.CaloAlg:		        @local::microboone_calo_mcc9_data
+microboone_blipana_data.BlipAlg.CaloAlg:	  @local::microboone_calo_mcc9_data
+microboone_blipana_data.SaveTruthInfo:      false
 
 # Source: reco_uboone_mcc9_8_driver_overlay_stage2.fcl
 #physics.analyzers.blipana.CaloAlg.CalAreaConstants:   [ 4.31e-3, 4.02e-3, 4.1e-3 ]
-
-microboone_lifetime: {
-  CalibrationHelper: {
-    EventMixingModuleLabel: "retriever"
-  }
-  ElectronLifetimeProvider: {
-    DatabaseRetrievalAlg: {
-      AlgName: "DatabaseRetrievalAlg"
-      DBFolderName: "elifetime_data"
-      DBTag: "v3r0"
-      DBUrl: "https://dbdata0vm.fnal.gov:8443/uboonecon_prod/app/"
-      UseSQLite: true
-    }
-    DefaultLifetime: 1000
-    DefaultLifetimeErr: 0
-    UseDB: true
-    UseFile: false
-  }
-  service_provider: "UbooneElectronLifetimeService"
-}
-
 
 END_PROLOG

@@ -9,8 +9,6 @@
 #define BLIPUTIL_H_SEEN
 
 // framework
-#include "art/Framework/Services/Optional/TFileService.h"
-#include "art/Framework/Services/Optional/TFileDirectory.h"
 #include "canvas/Persistency/Common/Ptr.h" 
 #include "canvas/Persistency/Common/PtrVector.h" 
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
@@ -32,20 +30,6 @@
 #include <vector>
 #include <map>
 
-
-// Helper templates for initializing arrays
-namespace{  
-  template <typename ITER, typename TYPE> 
-    inline void FillWith(ITER from, ITER to, TYPE value) 
-    { std::fill(from, to, value); }
-  template <typename ITER, typename TYPE> 
-    inline void FillWith(ITER from, size_t n, TYPE value)
-    { std::fill(from, from + n, value); }
-  template <typename CONT, typename V>
-    inline void FillWith(CONT& data, const V& value)
-    { FillWith(std::begin(data), std::end(data), value); }
-}
-
 typedef std::vector<int> vi_t;
 typedef std::set<int> si_t;
 typedef std::map<int,float> mif_t;
@@ -54,8 +38,10 @@ typedef std::vector<art::Ptr<sim::SimEnergyDeposit>> SEDVec_t;
 typedef std::vector<simb::MCParticle const*> vmcp_t;
 typedef std::vector<anab::BackTrackerHitMatchingData const*> vbt_t;
 
-namespace BlipUtils{
+const int kNplanes  = 3;  
 
+namespace blip {
+  
   //###################################################
   //  Data structures
   //###################################################
@@ -110,6 +96,7 @@ namespace BlipUtils{
   };
 
   struct TrueBlip {
+    int       ID;
     bool      isValid       = false;
     int       TPC           = -9;
     int       LeadG4ID      = -9;
@@ -126,7 +113,6 @@ namespace BlipUtils{
     TVector3  EndPoint;
     vi_t      G4IDs;
     vi_t      PDGs;
-    int       ID;
   };
 
   
@@ -173,9 +159,13 @@ namespace BlipUtils{
     float     MaxIntersectDiff= -9;                     // Max difference between wire intersection 
                                                         // points (only valid for >=3 planes)
     TVector3  Position;         // 3D position vector
-    std::set<int> ClustIDs;     // Associated clusters
-    std::set<int> HitIDs;       // Associasted hits (will be taken care of by LArSoft associations)
+    std::set<int> ClustIDs;     // Associated blip::HitClusts
+    std::set<int> HitIDs;       // Associated recob::Hits
   };
+}
+
+
+namespace BlipUtils {
   
   // Tick period
   float   fTickPeriod;
@@ -183,24 +173,23 @@ namespace BlipUtils{
   //###################################################
   // Functions related to blip reconstruction
   //###################################################
-  void      InitializeUtils();
-  void      FillParticleInfo(simb::MCParticle const&, ParticleInfo&, SEDVec_t&);
+  void      FillParticleInfo(simb::MCParticle const&, blip::ParticleInfo&, SEDVec_t&);
   void      CalcTotalDep(float&,int&,float&, SEDVec_t&);
   void      CalcPartDrift(int,float&);
-  void      MakeTrueBlips(std::vector<ParticleInfo> const&, std::vector<TrueBlip>&);
-  void      GrowTrueBlip(ParticleInfo const&, TrueBlip&);
-  void      MergeTrueBlips(std::vector<TrueBlip>&, float);
-  HitClust  MakeHitClust(HitInfo const&);
-  HitClust  MergeHitClusts(HitClust&,HitClust&);
-  void      GrowHitClust(HitInfo const&, HitClust&);
+  void      MakeTrueBlips(std::vector<blip::ParticleInfo> const&, std::vector<blip::TrueBlip>&);
+  void      GrowTrueBlip(blip::ParticleInfo const&, blip::TrueBlip&);
+  void      MergeTrueBlips(std::vector<blip::TrueBlip>&, float);
+  void      GrowHitClust(blip::HitInfo const&, blip::HitClust&);
   bool      DoHitsOverlap(art::Ptr<recob::Hit> const&, art::Ptr<recob::Hit> const&);
-  bool      DoHitClustsOverlap(HitClust const&, HitClust const&);
-  bool      DoHitClustsOverlap(HitClust const&,float,float);
+  bool      DoHitClustsOverlap(blip::HitClust const&, blip::HitClust const&);
+  bool      DoHitClustsOverlap(blip::HitClust const&,float,float);
   bool      DoChannelsIntersect(int,int);
-  bool      DoHitClustsMatch(HitClust const&, HitClust const&,float);
-  Blip      MakeBlip(std::vector<HitClust> const&);
+  bool      DoHitClustsMatch(blip::HitClust const&, blip::HitClust const&,float);
   float     ModBoxRecomb(float,float);
   float     ConvertTicksToX(float, int, int, int);
+  blip::HitClust  MakeHitClust(blip::HitInfo const&);
+  blip::HitClust  MergeHitClusts(blip::HitClust&, blip::HitClust&);
+  blip::Blip      MakeBlip(std::vector<blip::HitClust> const&);
 
   //###################################################
   // General functions 
@@ -218,8 +207,6 @@ namespace BlipUtils{
   void    GetGeoBoundaries(double&,double&,double&,double&,double&,double&);
   bool    IsPointInAV(float,float,float);
   bool    IsPointInAV(TVector3&);
-  
-
 
 }
 

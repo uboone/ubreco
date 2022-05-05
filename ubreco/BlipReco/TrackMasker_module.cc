@@ -124,7 +124,7 @@ void TrackMasker::produce(art::Event & e)
 {
   std::cout<<"\n"
   <<"=========== TrackMasker =========================\n"
-  <<"Processing event "<<e.id().event()<<" in run "<<e.id().run()<<"\n";
+  <<"Event "<<e.id().event()<<" / run "<<e.id().run()<<"\n";
   
   // *****************************
   // Grab data products from file
@@ -226,7 +226,9 @@ void TrackMasker::produce(art::Event & e)
   
   }//endloop over hits
   
-  std::cout<<"--> we flagged "<<flaggedhits.size()<<" hits total and veto'd "<<_vetohits.size()<<"\n";
+  std::cout<<" --> removed "<<_vetohits.size()<<" tracked hits\n";
+  std::cout<<" --> flagged "<<flaggedhits.size()<<" hits in tracks long enough to apply veto radius\n";
+  size_t veto_hits_trk = _vetohits.size();
   
   //***************************************************
   // Loop through all tracked hits and for each one, 
@@ -261,8 +263,9 @@ void TrackMasker::produce(art::Event & e)
 
     }
   }
+  
+  std::cout<<" --> vetoed additional "<<_vetohits.size()-veto_hits_trk<<" hits within radius\n";
 
-  std::cout<<"done masking hits around tracks\n";
 
 
   // ********************************************
@@ -272,10 +275,10 @@ void TrackMasker::produce(art::Event & e)
     if (std::find(_vetohits.begin(),_vetohits.end(),h) == _vetohits.end() )
       Hit_v->emplace_back(hit_h->at(h));
   }
- 
+
+  
   printf("input hits  : %lu\n",hit_h->size());
   printf("output hits : %lu\n",Hit_v->size());
-  printf("----------------------------\n");
 
   e.put(std::move(Hit_v));
         
