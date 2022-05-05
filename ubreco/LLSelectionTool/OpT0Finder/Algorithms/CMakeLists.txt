@@ -18,6 +18,7 @@ art_make( BASENAME_ONLY
                           fhiclcpp::fhiclcpp
                           cetlib::cetlib
                           cetlib_except::cetlib_except
+                          ROOT::Minuit
 	)
 
 install_headers()
