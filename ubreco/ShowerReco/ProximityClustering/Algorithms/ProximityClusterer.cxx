@@ -2,6 +2,7 @@
 #define GAMMACATCHER_PROXIMITYCLUSTERER_CXX
 
 #include "ProximityClusterer.h"
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 
 namespace gammacatcher {
 

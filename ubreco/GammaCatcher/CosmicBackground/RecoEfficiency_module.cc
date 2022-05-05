@@ -33,6 +33,7 @@ using namespace std;
 // Services
 #include "art_root_io/TFileService.h"
 #include "larcore/Geometry/Geometry.h"
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 //#include "larcore/Geometry/GeometryCore.h"
 #include "lardata/Utilities/GeometryUtilities.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"

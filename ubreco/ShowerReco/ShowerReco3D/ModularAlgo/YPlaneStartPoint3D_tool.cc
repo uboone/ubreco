@@ -2,6 +2,7 @@
 #define YPLANESTARTPOINT3D_CXX
 
 #include <iostream>
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "ubreco/ShowerReco/ShowerReco3D/Base/ShowerRecoModuleBase.h"
 /**

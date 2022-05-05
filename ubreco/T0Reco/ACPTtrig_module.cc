@@ -37,6 +37,7 @@
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
 
 #include "larcore/Geometry/Geometry.h"
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 #include "larevt/CalibrationDBI/Interface/PmtGainService.h"
 #include "larevt/CalibrationDBI/Interface/PmtGainProvider.h"
 #include "ubevt/Utilities/PMTRemapService.h"

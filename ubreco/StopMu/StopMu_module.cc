@@ -30,6 +30,7 @@
 #include "lardataobj/RecoBase/Hit.h"
 #include "nusimdata/SimulationBase/MCParticle.h"
 #include "lardataobj/AnalysisBase/BackTrackerMatchingData.h"
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 
 
 #include "lardataobj/RecoBase/OpFlash.h"

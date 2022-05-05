@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include "ubreco/ShowerReco/ShowerReco3D/Base/ShowerRecoModuleBase.h"
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 /**
    \class ShowerRecoModuleBase
    User defined class ShowerRecoModuleBase ... these comments are used to generate

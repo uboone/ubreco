@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include "ubreco/ShowerReco/ShowerReco3D/Base/ShowerRecoModuleBase.h"
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 
 //#include "ubreco/Database/TPCEnergyCalib/TPCEnergyCalibService.h"
 //#include "ubreco/Database/TPCEnergyCalib/TPCEnergyCalibProvider.h"
