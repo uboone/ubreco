@@ -3,10 +3,3 @@
 physics.analyzers.blipana.DebugMode:    true
 physics.analyzers.blipana.SaveHitInfo:  true
 
-physics.analyzers.blipanaCosFilt.DebugMode:   true
-physics.analyzers.blipanaCosFilt.SaveHitInfo: true
-
-physics.reco:             [ cosmicfilter ]
-physics.ana:              [ blipana ]
-physics.trigger_paths:    [ reco ] 
-

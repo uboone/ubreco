@@ -44,26 +44,26 @@ namespace blip {
   // Reconfigure fcl parameters
   //###########################################################
   void BlipRecoAlg::reconfigure( fhicl::ParameterSet const& pset ){
-    fHitProducer        = pset.get<std::string>   ("HitProducer");
-    fTrkProducer        = pset.get<std::string>   ("TrkProducer");
-    fGeantProducer      = pset.get<std::string>   ("GeantProducer","largeant");
-    fSimDepProducer     = pset.get<std::string>   ("SimEDepProducer","ionization");
-    fMakeHistos         = pset.get<bool>          ("MakeHistograms",true);
-    fTrueBlipMergeDist  = pset.get<float>         ("TrueBlipMergeDist");
-    fDoHitFiltering     = pset.get<bool>          ("DoHitFiltering");
-    fHitClustWidthFact  = pset.get<float>         ("HitClustWidthFact");
-    fHitClustWireRange  = pset.get<int>           ("HitClustWireRange");
-    fHitMatchWidthFact  = pset.get<float>         ("HitMatchWidthFact");
-    fHitMatchMaxTicks   = pset.get<float>         ("HitMatchMaxTicks");
+    fHitProducer        = pset.get<std::string>   ("HitProducer",       "pandora");
+    fTrkProducer        = pset.get<std::string>   ("TrkProducer",       "gaushit");
+    fGeantProducer      = pset.get<std::string>   ("GeantProducer",     "largeant");
+    fSimDepProducer     = pset.get<std::string>   ("SimEDepProducer",   "ionization");
+    fMakeHistos         = pset.get<bool>          ("MakeHistograms",    true);
+    fTrueBlipMergeDist  = pset.get<float>         ("TrueBlipMergeDist", 0.3);
+    fDoHitFiltering     = pset.get<bool>          ("DoHitFiltering",     true);
+    fHitClustWidthFact  = pset.get<float>         ("HitClustWidthFact", 2.0);
+    fHitClustWireRange  = pset.get<int>           ("HitClustWireRange", 1);
+    fHitMatchWidthFact  = pset.get<float>         ("HitMatchWidthFact", 0.8);
+    fHitMatchMaxTicks   = pset.get<float>         ("HitMatchMaxTicks",  2);
     fClustMatchMinScore = pset.get<float>         ("ClustMatchMinScore",0);
-    fCaloPlane          = pset.get<int>           ("CaloPlane");
-    fMaxHitTrkLength    = pset.get<float>         ("MaxHitTrkLength");
-    fMaxWiresInCluster  = pset.get<int>           ("MaxWiresInCluster");
-    fMaxClusterSpan     = pset.get<float>         ("MaxClusterSpan");
-    fPickyBlips         = pset.get<bool>          ("PickyBlips");
-    fMaxHitAmp          = pset.get<float>         ("MaxHitAmp");
+    fCaloPlane          = pset.get<int>           ("CaloPlane",         2);
+    fMaxHitTrkLength    = pset.get<float>         ("MaxHitTrkLength",   5);
+    fMaxWiresInCluster  = pset.get<int>           ("MaxWiresInCluster", 7);
+    fMaxClusterSpan     = pset.get<float>         ("MaxClusterSpan",    30);
+    fPickyBlips         = pset.get<bool>          ("PickyBlips",        false);
+    fMaxHitAmp          = pset.get<float>         ("MaxHitAmp",         200);
     fApplyTrkCylinderCut= pset.get<bool>          ("ApplyTrkCylinderCut",false);
-    fCylinderRadius     = pset.get<float>         ("CylinderRadius",15);
+    fCylinderRadius     = pset.get<float>         ("CylinderRadius",    15);
     fMinHitRMS          = pset.get<std::vector<float>>  ("MinHitRMS",  {-9999,-9999,-9999});
     fMaxHitRMS          = pset.get<std::vector<float>>  ("MaxHitRMS",  { 9999, 9999, 9999});
     fMinHitGOF          = pset.get<std::vector<float>>  ("MinHitGOF",  {-9999,-9999,-9999});
