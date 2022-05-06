@@ -156,17 +156,18 @@ namespace blip {
     float     Energy          = -999;                   // Energy (const dE/dx = 2 MeV/cm)
     float     EnergyESTAR     = -999;                   // Energy (ESTAR method from ArgoNeuT)
     float     DriftTime       = -999;                   // Drift time (ticks)
-    float     MaxIntersectDiff= -9;                     // Max difference between wire intersection 
-                                                       // points (only valid for >=3 planes)
-    float     trkdist         = -9;
-    int       trkid           = -9;
-    bool      inCylinder      = false;
-    float     x = -999;
-    float     y = -999;
-    float     z = -999;
-    TVector3  Position;         // 3D position vector
-    std::set<int> ClustIDs;     // Associated blip::HitClusts
-    std::set<int> HitIDs;       // Associated recob::Hits
+    float     MaxIntersectDiff= -9;                     // Nax difference between wire intersection 
+                                                        //   points (only valid for >=3 planes)
+    float     trkdist         = -9;                     // Distance to cloest track
+    int       trkid           = -9;                     // ID of closest track
+    bool      inCylinder      = false;                  // Whether this blip is within a 
+                                                        //   track's cone/cylinder region
+    float     x               = -999;                   // Reconstructed X [cm]
+    float     y               = -999;                   // Reconstructed Y [cm]
+    float     z               = -999;                   // Reconstructed Z [cm]
+    TVector3  Position;                                 // 3D position TVector3
+    std::set<int> ClustIDs;                             // IDs of associated blip::HitClusts
+    std::set<int> HitIDs;                               // IDs of associated recob::Hits
   };
 }
 

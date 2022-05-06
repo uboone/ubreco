@@ -4,7 +4,7 @@
 #include "calorimetry_microboone.fcl"
 #include "triggeralgo_service.fcl"
 #include "cosmicfilter.fcl"
-#include "blip_configs.fcl"
+#include "blipreco_configs.fcl"
 
 process_name: BlipAna
 
@@ -62,8 +62,8 @@ physics:
   
   analyzers:{
     blipana:          @local::microboone_blipana
-    blipanaTrkMask:   @local::microboone_blipana
-    blipanaCosFilt:   @local::microboone_blipana
+    #blipanaTrkMask:   @local::microboone_blipana
+    #blipanaCosFilt:   @local::microboone_blipana
   }
   
   ana:            [ blipana ]
@@ -85,8 +85,6 @@ physics.producers.cosmicfilter.MinTrkLength:  15
 physics.producers.cosmicfilter.VetoRadius:    150 # only applies to vertex
 physics.producers.cosmicfilter.IPmin:         10
 
-physics.analyzers.blipanaTrkMask.HitProducer: "trackmasker"
-physics.analyzers.blipanaCosFilt.HitProducer: "cosmicfilter"
-physics.analyzers.blipanaTrkMask.BlipAlg.HitProducer: "trackmasker"
-physics.analyzers.blipanaCosFilt.BlipAlg.HitProducer: "cosmicfilter"
+#physics.analyzers.blipanaTrkMask.BlipAlg.HitProducer: "trackmasker"
+#physics.analyzers.blipanaCosFilt.BlipAlg.HitProducer: "cosmicfilter"
     

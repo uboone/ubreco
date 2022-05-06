@@ -1,6 +1,10 @@
 #include "run_blipana_data.fcl"
 
-physics.reco:             [ trackmasker ] #cosmicfilter ]
-physics.ana:              [ blipanaTrkMask ] #blipanaCosFilt ]
+process_name: BlipAnaTrackMask
+
+physics.reco:             [ trackmasker ]
+physics.ana:              [ blipana ]
 physics.trigger_paths:    [ reco ] 
+
+physics.analyzers.blipana.BlipAlg.HitProducer: "trackmasker"
 
