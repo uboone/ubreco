@@ -378,6 +378,9 @@ namespace BlipUtils {
       TVector3 vecmean;
       for(size_t i=0; i<wirex.size(); i++) vecmean += wirex[i] * (1./wirex.size());
       newblip.Position = vecmean;
+      newblip.x = vecmean.X();
+      newblip.y = vecmean.Y();
+      newblip.z = vecmean.Z();
       newblip.TPC = TPC;
       newblip.NPlanes = nPlanes;
       newblip.isValid = true;
