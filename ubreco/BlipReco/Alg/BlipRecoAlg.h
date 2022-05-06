@@ -109,6 +109,9 @@ namespace blip {
     int                 fCaloPlane;
     bool                fPickyBlips;
     
+    bool                fApplyTrkCylinderCut;
+    float               fCylinderRadius; 
+    
     // --- Calorimetry alg ---
     calo::CalorimetryAlg*   fCaloAlg;
   

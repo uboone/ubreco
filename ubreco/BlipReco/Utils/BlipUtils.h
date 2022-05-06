@@ -160,6 +160,7 @@ namespace blip {
                                                        // points (only valid for >=3 planes)
     float     trkdist         = -9;
     int       trkid           = -9;
+    bool      inCylinder      = false;
     float     x = -999;
     float     y = -999;
     float     z = -999;

@@ -44,26 +44,29 @@ microboone_trackmasker_tight.VetoRadius:        1.0
 
 microboone_blipalg:
 {
-  HitProducer:        "gaushit"
-  TrkProducer:        "pandora"
-  GeantProducer:      "largeant"
-  SimEDepProducer:    "ionization"
-  CaloAlg:            @local::microboone_calo_mcc9_data
-  CaloPlane:          2
-  TrueBlipMergeDist:  0.3 # cm
-  DoHitFiltering:     true
-  MaxHitTrkLength:    3
-  MaxHitAmp:          200
-  MinHitRMS:          [ 0,  0,  0  ]
-  MaxHitRMS:          [ 30, 30, 30 ]
-  #MinHitGOF:          [ 0,  0,  0  ]
-  HitClustWidthFact:  2.0
-  HitClustWireRange:  1
-  MaxWiresInCluster:  7
-  MaxClusterSpan:     30    # ticks
-  HitMatchWidthFact:  0.8   # xRMS
-  HitMatchMaxTicks:   2     # max extent to match hits
-  PickyBlips:         false # require 3 planes that all intersect at same point (+/- 5 cm)
+  HitProducer:          "gaushit"
+  TrkProducer:          "pandora"
+  GeantProducer:        "largeant"
+  SimEDepProducer:      "ionization"
+  CaloAlg:              @local::microboone_calo_mcc9_data
+  CaloPlane:            2
+  TrueBlipMergeDist:    0.3 # cm
+  DoHitFiltering:       true
+  MaxHitTrkLength:      3
+  MaxHitAmp:            200
+  MinHitRMS:            [ 0,  0,  0  ]
+  MaxHitRMS:            [ 30, 30, 30 ]
+  #MinHitGOF:           [ 0,  0,  0  ]
+  HitClustWidthFact:    2.0
+  HitClustWireRange:    1
+  MaxWiresInCluster:    7
+  MaxClusterSpan:       30    # ticks
+  HitMatchWidthFact:    0.8   # xRMS
+  HitMatchMaxTicks:     2     # max extent to match hits
+  PickyBlips:           false # require 3 planes that all intersect at same point (+/- 5 cm)
+
+  ApplyTrkCylinderCut:  false  
+  CylinderRadius:       15.    # flag 3D blips close to tracks [cm]
 }
 
 

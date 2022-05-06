@@ -284,7 +284,8 @@ class BlipAnaTreeDataStruct
   int   blip_edepid[kMaxBlips];       // true energy dep ID
   int   blip_clustid[kNplanes][kMaxBlips];  // cluster ID per plane
   float blip_trkdist[kMaxBlips];      // distance to nearest track
-  int   blip_trkid[kMaxBlips];     // index of nearest trk
+  int   blip_trkid[kMaxBlips];        // index of nearest trk
+  bool  blip_incylinder[kMaxBlips];   // is blip within a cylinder near a track
   
   // === Function for resetting data ===
   void Clear(){ 
@@ -415,6 +416,7 @@ class BlipAnaTreeDataStruct
     FillWith(blip_energy,     -999);
     FillWith(blip_trkdist,    -9);
     FillWith(blip_trkid,      -9);
+    FillWith(blip_incylinder, false);
     FillWith(blip_edepid,     -9);
     for(int i=0; i<kNplanes; i++)
       FillWith(blip_clustid[i],-9);
@@ -518,6 +520,7 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("blip_energy",blip_energy,"blip_energy[nblips]/F");
       evtTree->Branch("blip_trkdist",blip_trkdist,"blip_trkdist[nblips]/F");
       evtTree->Branch("blip_trkid",blip_trkid,"blip_trkid[nblips]/I");
+      evtTree->Branch("blip_incylinder",blip_incylinder,"blip_incylinder[nblips]/O");
       if( saveTruthInfo ) evtTree->Branch("blip_edepid",blip_edepid,"blip_edepid[nblips]/I");
       for(int i=0;i<kNplanes;i++) evtTree->Branch(Form("blip_clustid_pl%i",i),blip_clustid[i],Form("blip_clustid_pl%i[nblips]/I",i));
       evtTree->Branch("total_blip_energy",&total_blip_energy,"total_blip_energy/F");
@@ -577,6 +580,7 @@ class BlipAnaTreeDataStruct
       blipTree->Branch("lifetime",    &lifetime,        "lifetime/F");
       //blipTree->Branch("blip_tpc",    &thisBlip.TPC,    "blip_tpc/S");
       blipTree->Branch("blip_nplanes",&thisBlip.NPlanes,"blip_nplanes/S");
+      blipTree->Branch("blip_maxdiff",&thisBlip.MaxIntersectDiff,"blip_maxdiff/F");
       blipTree->Branch("blip_x",      &thisBlip.x,      "blip_x/F");
       blipTree->Branch("blip_y",      &thisBlip.y,      "blip_y/F");
       blipTree->Branch("blip_z",      &thisBlip.z,      "blip_z/F");
@@ -584,7 +588,7 @@ class BlipAnaTreeDataStruct
       blipTree->Branch("blip_energy", &thisBlip.Energy, "blip_energy/F");
       blipTree->Branch("blip_trkdist",&thisBlip.trkdist,"blip_trkdist/F");
       blipTree->Branch("blip_trkid",  &thisBlip.trkid,  "blip_trkid/I");
-      blipTree->Branch("blip_maxdiff",&thisBlip.MaxIntersectDiff,"blip_maxdiff/F");
+      blipTree->Branch("blip_incylinder",&thisBlip.inCylinder,"blip_incylinder/O");
     }
    
   }
@@ -1172,6 +1176,7 @@ void BlipAna::analyze(const art::Event& evt)
     fData->blip_z[i]          = b.z;
     fData->blip_trkdist[i]    = b.trkdist;
     fData->blip_trkid[i]      = b.trkid;
+    fData->blip_incylinder[i] = b.inCylinder;
     if( b.Charge[fCaloPlane] > 0 ) {
       fData->blip_charge[i]     = b.Charge[fCaloPlane];
       fData->blip_energy[i]     = b.Energy;
