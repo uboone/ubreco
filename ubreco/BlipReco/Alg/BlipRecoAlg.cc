@@ -62,6 +62,8 @@ namespace blip {
     fMaxClusterSpan     = pset.get<float>         ("MaxClusterSpan");
     fPickyBlips         = pset.get<bool>          ("PickyBlips");
     fMaxHitAmp          = pset.get<float>         ("MaxHitAmp");
+    fApplyTrkCylinderCut= pset.get<bool>          ("ApplyTrkCylinderCut",false);
+    fCylinderRadius     = pset.get<float>         ("CylinderRadius",15);
     fMinHitRMS          = pset.get<std::vector<float>>  ("MinHitRMS",  {-9999,-9999,-9999});
     fMaxHitRMS          = pset.get<std::vector<float>>  ("MaxHitRMS",  { 9999, 9999, 9999});
     fMinHitGOF          = pset.get<std::vector<float>>  ("MinHitGOF",  {-9999,-9999,-9999});
@@ -123,6 +125,7 @@ namespace blip {
       art::fill_ptr_vector(hitlist, hitHandle);
 
     // -- hits (from gaushit)
+    // -- these are used in truth-matching of hits
     art::Handle< std::vector<recob::Hit> > hitHandleGH;
     std::vector<art::Ptr<recob::Hit> > hitlistGH;
     if (evt.getByLabel("gaushit",hitHandleGH))
@@ -136,13 +139,12 @@ namespace blip {
   
     // -- hit <-> track associations
     art::FindManyP<recob::Track> fmtrk(hitHandle,evt,fTrkProducer);
+
+    // -- gaushit <-> track associations 
+    art::FindManyP<recob::Track> fmtrkGH(hitHandleGH,evt,fTrkProducer);
   
     // -- gaushit <-> particle associations
     art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> fmhh(hitHandleGH,evt,"gaushitTruthMatch");
-   
-    std::cout<<"Found "<<hitlist.size()<<" hits from "<<fHitProducer<<"\n";
-    std::cout<<"Found "<<tracklist.size()<<" tracks from "<<fTrkProducer<<"\n";
-
 
     
     //==================================================
@@ -198,7 +200,7 @@ namespace blip {
     for(size_t i=0; i<tracklist.size(); i++) 
       trkindexmap[tracklist.at(i)->ID()] = i;
 
-
+    
 
     //=======================================
     // Fill vector of hit info
@@ -208,7 +210,8 @@ namespace blip {
     std::map<int,std::vector<int>> chanhitsMap;
     std::map<int,std::vector<int>> chanhitsMap_untracked;
     std::map<int,std::vector<int>> planehitsMap;
-  
+    int nhits_untracked = 0;
+
     //std::cout<<"Looping over the hits...\n";
     for(size_t i=0; i<hitlist.size(); i++){
       int   chan  = hitlist[i]->Channel();
@@ -255,15 +258,29 @@ namespace blip {
       // find associated track
       if (fmtrk.isValid()){ 
         if (fmtrk.at(i).size())  hitinfo[i].trkid = trkindexmap[fmtrk.at(i)[0]->ID()];
-      }
       
+        // if the hit collection didn't have associations made
+        // to the tracks, try gaushit instead
+      } else if (fmtrkGH.isValid()) {
+        int gi = map_gh[i];
+        if (fmtrkGH.at(gi).size()) hitinfo[i].trkid=trkindexmap[fmtrkGH.at(gi)[0]->ID()];
+      }
+
       // add to the channel hit map
       chanhitsMap[chan].push_back(i);
       planehitsMap[plane].push_back(i);
-      if( hitinfo[i].trkid <= 0 ) chanhitsMap_untracked[chan].push_back(i);
+      if( hitinfo[i].trkid <= 0 ) {
+        chanhitsMap_untracked[chan].push_back(i);
+        nhits_untracked++;
+      }
 
     }//endloop over hits
     
+    std::cout<<"Found "<<hitlist.size()<<" hits from "<<fHitProducer<<" ("<<nhits_untracked<<" untracked)\n";
+    std::cout<<"Found "<<tracklist.size()<<" tracks from "<<fTrkProducer<<"\n";
+
+
+
 
 
     //=================================================================
@@ -293,6 +310,7 @@ namespace blip {
     // Filter based on hit properties
     if( fDoHitFiltering ) {
       for(size_t i=0; i<hitlist.size(); i++){
+        if( !hitIsGood[i] ) continue;
         hitIsGood[i] = false;
         int plane = hitlist[i]->WireID().Plane;
         // goodness of fit
@@ -430,6 +448,7 @@ namespace blip {
           std::map<int, std::set<int>> cands;
           std::map<int, float> clust_score;
           
+          // ---------------------------------------------------
           // loop over other planes
           for(auto  hitclusts_planeB : planeMap ) {
             int planeB = hitclusts_planeB.first;
@@ -492,6 +511,7 @@ namespace blip {
             }//endloop over B clusters
           }//endloop over other planes
           
+          // ---------------------------------------------------
           // loop over the candidates found on each plane
           // and select the one with the largest score
           if( cands.size() ) {
@@ -515,18 +535,53 @@ namespace blip {
               }
             }
 
+            // ----------------------------------------
             // make our new blip
             blip::Blip newBlip = BlipUtils::MakeBlip(hcGroup);
 
+            // ----------------------------------------
             // if it isn't valid, forget it and move on
             if( !newBlip.isValid ) continue;
 
+            // ----------------------------------------
             // if we are being picky...
             if( fPickyBlips ) {
               if( newBlip.NPlanes < 3           ) continue;
               if( newBlip.MaxIntersectDiff > 5  ) continue;
             }
+   
+            // ----------------------------------------
+            // apply cylinder cut 
+            for(auto& trk : tracklist ){
+              if( trk->Length() < fMaxHitTrkLength ) continue;
+              auto& a = trk->Vertex();
+              auto& b = trk->End();
+              TVector3 p1(a.X(), a.Y(), a.Z() );
+              TVector3 p2(b.X(), b.Y(), b.Z() );
+              TVector3 bp = newBlip.Position;
+              float d = BlipUtils::DistToLine(p1,p2,bp);
+              
+              if( d > 0 ) {
+                // update closest trkdist
+                if( newBlip.trkdist < 0 || d < newBlip.trkdist ) {
+                  newBlip.trkdist = d;
+                  newBlip.trkid = trk->ID();
+                }
+
+                // need to do some math to figure out if this is in
+                // the 45 degreee "cone" relative to the start/end 
+                if( !newBlip.inCylinder && d < fCylinderRadius ) {
+                  float angle1 = asin( d / (p1-bp).Mag() ) * 180./3.14159;
+                  float angle2 = asin( d / (p2-bp).Mag() ) * 180./3.14159;
+                  ///std::cout<<"d "<<d<<"  angles "<<angle1<<"  "<<angle2<<"\n";
+                  if( angle1 < 45. && angle2 < 45. ) newBlip.inCylinder = true;
+                }
+              }
+            }//endloop over trks
             
+            if( fApplyTrkCylinderCut && newBlip.inCylinder ) continue;
+
+            // ----------------------------------------
             // if we made it this far, the blip is good!
             newBlip.ID = blips.size();
             blips.push_back(newBlip);
@@ -534,8 +589,6 @@ namespace blip {
             // associate this blip with the hits and clusters within it
             for(auto hc : hcGroup )       hitclust[hc.ID].BlipID = newBlip.ID;
             for(auto h : newBlip.HitIDs ) hitinfo[h].blipid = newBlip.ID;
-              //if( hitID >= 0 ) hitinfo[hitID].blipid = ;
-            //}
           
           }
 
@@ -583,11 +636,10 @@ namespace blip {
 
     }
   
-    //================================================
-    // Loop over tracks and determine the impact 
-    // parameter for each found 3D blip
-    //================================================
-    for(auto& trk : tracklist ){
+        
+
+
+      /*
       if( trk->Length() < 10. ) continue;
       auto& a = trk->Vertex();
       auto& b = trk->End();
@@ -597,15 +649,14 @@ namespace blip {
         auto& b = blips[j];
         TVector3 bp = b.Position;
         float d = BlipUtils::DistToLine(p1,p2,bp);
-        if( b.trkdist <0 || d < b.trkdist ) {
+        if( d > 0 && (b.trkdist <0 || d < b.trkdist) ) {
           b.trkdist = d;
           b.trkid   = trk->ID();
         }
       }
-    }
-
+      */
+    
   
-
   }//End main blip reco function
 
 
@@ -619,6 +670,8 @@ namespace blip {
     printf("  Max cluster timespan      : %f ticks\n",    fMaxClusterSpan);
     printf("  Max match window          : %3.1f ticks\n", fHitMatchMaxTicks);
     printf("  Hit match RMS fact        : x%3.1f\n",      fHitMatchWidthFact);
+    printf("  Track-cylinder radius     : %f cm\n",       fCylinderRadius);
+    printf("  Applying cylinder cut?    : %i\n",          fApplyTrkCylinderCut);
     printf("  Picky blip mode?          : %i\n\n",        fPickyBlips);
   
   }

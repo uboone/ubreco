@@ -599,9 +599,14 @@ namespace BlipUtils {
     
     double  projLen = b.Dot(n);
     double d = -1;
+    /*
     if      ( projLen < 0             ) d = (p-L1).Mag();
     else if ( projLen > (L2-L1).Mag() ) d = (p-L2).Mag();
     else                                d = (b-projLen*n).Mag();
+    */
+
+    if( projLen > 0 && projLen < (L2-L1).Mag() ) 
+      d = (b-projLen*n).Mag();
    
     return d;
     
