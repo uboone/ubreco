@@ -15,7 +15,7 @@ namespace blip {
       art::ServiceHandle<art::TFileService> tfs;
       art::TFileDirectory hdir = tfs->mkdir("BlipRecoAlg");
       h_clust_nwires    = hdir.make<TH1D>("clust_nwires","Clusters (pre-cut);Wires in cluster",100,0,100);
-      h_clust_timespan  = hdir.make<TH1D>("clust_timespan","Clusters (pre-cut);Time span",100,0,100);
+      h_clust_timespan  = hdir.make<TH1D>("clust_timespan","Clusters (pre-cut);Time span [ticks]",100,0,100);
       for(int i=0; i<kNplanes; i++) {
         if( i != fCaloPlane ) {
           h_hit_dt[i]           = hdir.make<TH1D>(Form("pl%i_hit_dt",i),    Form("Plane %i hits;dT [ticks]",i),200,-20,20);
@@ -581,6 +581,27 @@ namespace blip {
       //std::cout<<"Calculating ESTAR energy dep...  "<<depEl<<", "<<Efield<<"\n";
       //blips[i].EnergyESTAR = ESTAR->Interpolate(depEl, Efield); 
 
+    }
+  
+    //================================================
+    // Loop over tracks and determine the impact 
+    // parameter for each found 3D blip
+    //================================================
+    for(auto& trk : tracklist ){
+      if( trk->Length() < 10. ) continue;
+      auto& a = trk->Vertex();
+      auto& b = trk->End();
+      TVector3 p1(a.X(), a.Y(), a.Z() );
+      TVector3 p2(b.X(), b.Y(), b.Z() );
+      for(size_t j=0; j<blips.size(); j++){
+        auto& b = blips[j];
+        TVector3 bp = b.Position;
+        float d = BlipUtils::DistToLine(p1,p2,bp);
+        if( b.trkdist <0 || d < b.trkdist ) {
+          b.trkdist = d;
+          b.trkid   = trk->ID();
+        }
+      }
     }
 
   

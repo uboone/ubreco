@@ -157,7 +157,12 @@ namespace blip {
     float     EnergyESTAR     = -999;                   // Energy (ESTAR method from ArgoNeuT)
     float     DriftTime       = -999;                   // Drift time (ticks)
     float     MaxIntersectDiff= -9;                     // Max difference between wire intersection 
-                                                        // points (only valid for >=3 planes)
+                                                       // points (only valid for >=3 planes)
+    float     trkdist         = -9;
+    int       trkid           = -9;
+    float     x = -999;
+    float     y = -999;
+    float     z = -999;
     TVector3  Position;         // 3D position vector
     std::set<int> ClustIDs;     // Associated blip::HitClusts
     std::set<int> HitIDs;       // Associated recob::Hits

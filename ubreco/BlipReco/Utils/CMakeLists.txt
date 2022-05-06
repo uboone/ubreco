@@ -34,5 +34,3 @@ art_make(    LIBRARY_NAME ubreco_BlipUtils
 install_headers()
 install_fhicl()
 install_source()
-
-add_subdirectory(ESTAR)
