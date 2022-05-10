@@ -22,6 +22,7 @@ namespace blip {
           h_hit_dtfrac[i]       = hdir.make<TH1D>(Form("pl%i_hit_dtfrac",i),Form("Plane %i hits;dT/RMS",i),200,-5,5);
           h_nmatches[i]         = hdir.make<TH1D>(Form("pl%i_nmatches",i),Form("number of plane%i matches to single collection cluster",i),10,0,10);
           h_clust_mScore[i]     = hdir.make<TH1D>(Form("pl%i_clust_matchScore",i),Form("match score for clusters on plane %i",i),110,0,1.1);
+          h_clust_overlap[i]     = hdir.make<TH1D>(Form("pl%i_clust_overlap",i),Form("overlap fraction for clusters on plane %i",i),101,-0,1.01);
         }
       }
     }
@@ -82,9 +83,9 @@ namespace blip {
   //###########################################################
   void BlipRecoAlg::RunBlipReco( const art::Event& evt ) {
   
-    std::cout<<"\n"
-    <<"=========== BlipRecoAlg =========================\n"
-    <<"Event "<<evt.id().event()<<" / run "<<evt.id().run()<<"\n";
+    //std::cout<<"\n"
+    //<<"=========== BlipRecoAlg =========================\n"
+    //<<"Event "<<evt.id().event()<<" / run "<<evt.id().run()<<"\n";
   
     //=======================================
     // Reset things
@@ -161,8 +162,8 @@ namespace blip {
     
     if( plist.size() || fmhh.isValid() ) {
 
-      std::cout<<"Found "<<plist.size()<<" particles from "<<fGeantProducer<<"\n";
-      std::cout<<"Found "<<sedlist.size()<<" sim energy deposits from "<<fSimDepProducer<<"\n";
+      //std::cout<<"Found "<<plist.size()<<" particles from "<<fGeantProducer<<"\n";
+      //std::cout<<"Found "<<sedlist.size()<<" sim energy deposits from "<<fSimDepProducer<<"\n";
       
       isMC = true;
       pinfo.resize(plist.size());
@@ -276,8 +277,8 @@ namespace blip {
 
     }//endloop over hits
     
-    std::cout<<"Found "<<hitlist.size()<<" hits from "<<fHitProducer<<" ("<<nhits_untracked<<" untracked)\n";
-    std::cout<<"Found "<<tracklist.size()<<" tracks from "<<fTrkProducer<<"\n";
+    //std::cout<<"Found "<<hitlist.size()<<" hits from "<<fHitProducer<<" ("<<nhits_untracked<<" untracked)\n";
+    //std::cout<<"Found "<<tracklist.size()<<" tracks from "<<fTrkProducer<<"\n";
 
 
 
@@ -408,7 +409,7 @@ namespace blip {
         }
       }
     }
-    std::cout<<"Reconstructed "<<hitclust.size()<<" hit clusts\n";
+    //std::cout<<"Reconstructed "<<hitclust.size()<<" hit clusts\n";
     
 
 
@@ -435,7 +436,7 @@ namespace blip {
         auto  hitclusts_planeA  = planeMap[planeA];
         //std::cout<<"using plane "<<fCaloPlane<<" as reference/calo plane ("<<planeMap[planeA].size()<<" clusts)\n";
         for(auto const& i : hitclusts_planeA ) {
-         
+          
           // initiate hit-cluster group
           std::vector<blip::HitClust> hcGroup;
           hcGroup.push_back(hitclust[i]);
@@ -457,6 +458,9 @@ namespace blip {
             // Loop over all non-matched clusts on this plane
             for(auto const& j : hitclusts_planeB.second ) {
               if( hitclust[j].isMatched ) continue;
+              
+              // Check if clusters overlap at all in time
+              if( !BlipUtils::DoHitClustsOverlap(hitclust[i],hitclust[j]) ) continue;
 
               // Check if the two channels actually intersect
               double y,z;
@@ -466,7 +470,10 @@ namespace blip {
                                   ->ChannelsIntersect(chA,chB,y,z);
               
               if( !doTheyCross ) continue;
-              
+             
+              float overlapFrac = BlipUtils::CalcHitClustsOverlap(hitclust[i],hitclust[j]);
+              h_clust_overlap[planeB]->Fill(overlapFrac);
+
               // best match-score per hit for clust A
               float score_clustA = 0;
 
@@ -485,8 +492,8 @@ namespace blip {
                   float maxWidth = std::max(hitlist[hitA]->RMS(),hitlist[hitB]->RMS());
                   float matchTol = std::min(fHitMatchMaxTicks, fHitMatchWidthFact*maxWidth);
                   
+                  // fill dT histograms only if there is only 1 hit on each wire to be matched
                   if( fMakeHistos ) {
-                    // fill dT histograms only if there is only 1 hit on each wire to be matched
                     if( chanhitsMap_untracked[chA].size() == 1 && chanhitsMap_untracked[chB].size() == 1 ) {
                       h_hit_dt[planeB]->Fill(dT); 
                       h_hit_dtfrac[planeB]->Fill(dT/maxWidth); 
@@ -596,7 +603,7 @@ namespace blip {
       }//endif calo plane has clusters
     }//endloop over TPCs
   
-    std::cout<<"Reconstructed "<<blips.size()<<" 3D blips\n";
+    //std::cout<<"Reconstructed "<<blips.size()<<" 3D blips\n";
 
 
     // =============================================================================

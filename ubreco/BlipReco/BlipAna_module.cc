@@ -648,6 +648,7 @@ class BlipAna : public art::EDAnalyzer
   bool  fIsMC               = false;
   int   fNumEvents          = 0;
   int   fNumHits[3]         = {};
+  int   fNumHitsMatched[3]  = {};
   int   fNumHitsTrue[3]     = {};
   int   fNum3DBlips         = 0;
   int   fNum3DBlipsTrue     = 0;
@@ -1009,6 +1010,7 @@ void BlipAna::analyze(const art::Event& evt)
   int   num_hits_true[kNplanes]   ={0};
   int   num_hits_pmatch[kNplanes] ={0};
   float total_hit_charge[kNplanes]={0};
+  int nhits_untracked = 0;
   
   for(size_t i=0; i<hitlist.size(); i++){
     
@@ -1017,7 +1019,10 @@ void BlipAna::analyze(const art::Event& evt)
     
     fNumHits[plane]++;
     num_hits[plane]++;
-    if( hinfo.ismatch ) num_hits_pmatch[hinfo.plane]++;
+    if( hinfo.ismatch ) {
+      fNumHitsMatched[plane]++;
+      num_hits_pmatch[hinfo.plane]++;
+    }
     
     // fill diagnostic histograms
     h_hitamp[plane]    ->Fill(hitlist[i]->PeakAmplitude());
@@ -1060,6 +1065,7 @@ void BlipAna::analyze(const art::Event& evt)
       fData->hit_g4charge[i]  = hinfo.g4charge;
       fData->hit_blipid[i]    = hinfo.blipid;
       fData->hit_clustid[i]   = hinfo.clustid;
+      if( hinfo.trkid <= 0 ) nhits_untracked++;
     }
   
   }//endloop over hits
@@ -1087,7 +1093,9 @@ void BlipAna::analyze(const art::Event& evt)
     }
     std::cout<<"\n";
   }//endloop over planes
-  
+    
+  std::cout<<"Found "<<hitlist.size()<<" hits from "<<fHitProducer<<" ("<<nhits_untracked<<" untracked)\n";
+  std::cout<<"Found "<<tracklist.size()<<" tracks from "<<fTrkProducer<<"\n";
   
 
   //=============================================
@@ -1280,6 +1288,7 @@ void BlipAna::endJob(){
   for(size_t i=0; i<kNplanes; i++){
   printf("  Plane %lu -------------------------\n",i);
   printf("   * total hits/evt        : %.2f\n",fNumHits[i]/(float)fNumEvents);
+  printf("   * plane-matched hits/evt: %.2f\n",fNumHitsMatched[i]/(float)fNumEvents);
   if(fIsMC) {
   printf("   * true-matched hits/evt : %.2f\n",fNumHitsTrue[i]/(float)fNumEvents);
   printf("   * charge completeness   : %.4f\n",h_chargecomp[i]->GetMean());
