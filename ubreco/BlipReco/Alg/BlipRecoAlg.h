@@ -118,6 +118,7 @@ namespace blip {
     // --- Histograms ---
     TH1D*   h_clust_nwires;
     TH1D*   h_clust_timespan;
+    TH1D*   h_clust_overlap[kNplanes];
     TH1D*   h_hit_dt[kNplanes];
     TH1D*   h_hit_dtfrac[kNplanes];
     TH1D*   h_nmatches[kNplanes];

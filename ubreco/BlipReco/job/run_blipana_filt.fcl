@@ -1,6 +1,6 @@
 #include "run_blipana.fcl"
 
-process_name: BlipAnaTrackMask
+services.TFileService: { fileName: "hist_%p_TrkMask_%tc.root" }
 
 physics.reco:             [ trackmasker ]
 physics.trigger_paths:    [ reco ] 

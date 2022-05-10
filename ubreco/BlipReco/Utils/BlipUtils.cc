@@ -338,16 +338,14 @@ namespace BlipUtils {
     int nPlanes = planeIDs.size();
     int TPC = hcs[0].TPC;
     
-    // Get tick period
+    // Get DetectorClock (for tick period)
     auto const* detClock = lar::providerFrom<detinfo::DetectorClocksService>();
-    //auto const clockData = detClock->TPCClock();
-    fTickPeriod = detClock->TPCClock().TickPeriod();
 
     // Calculate mean time and X (assuming in-time deposition)
     auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
     float t = 0, x = 0;
     for(auto hc : hcs ) {
-      t += fTickPeriod * hc.Time/float(hcs.size());
+      t += detClock->TPCClock().TickPeriod() * hc.Time/float(hcs.size());
       x += detProp->ConvertTicksToX(hc.LeadHit->PeakTime(),hc.Plane,TPC,0)/float(hcs.size());
     }
     newblip.DriftTime = t;
@@ -449,6 +447,32 @@ namespace BlipUtils {
     hc2.StartTime = t1;
     hc2.EndTime = t2;
     return DoHitClustsOverlap(hc1,hc2);
+  }
+
+  //====================================================================
+  float CalcHitClustsOverlap(blip::HitClust const& hc1, blip::HitClust const& hc2){
+    float overlap = -1;
+    // only match across different wires in same TPC
+    if( hc1.TPC != hc2.TPC    ) return overlap;
+      
+    if( DoHitClustsOverlap(hc1,hc2) ) {
+
+      float x1 = hc1.StartTime;
+      float x2 = hc1.EndTime;
+      float y1 = hc2.StartTime;
+      float y2 = hc2.EndTime;
+      
+      // overlap interval
+      float overlap_dt = std::min(x2-y1, y2-x1);
+
+      float max_dt = std::max(y2-y1, x2-x1);
+
+      overlap = overlap_dt / max_dt;
+
+    }
+    
+    return overlap;
+
   }
 
   //====================================================================
