@@ -1,8 +1,7 @@
-#include "run_blipana.fcl"
+#include "run_blipana_filt.fcl"
 
-physics.producers.trackmasker:                        @local::microboone_trackmasker
-
-physics.analyzers.blipanaTrkMask:                     @local::microboone_blipana
+physics.analyzers.blipana:                            @local::microboone_blipana_data
+physics.analyzers.blipanaTrkMask:                     @local::microboone_blipana_data
 physics.analyzers.blipanaTrkMask.BlipAlg.HitProducer: "trackmasker"
 
 physics.reco:             [ trackmasker ]

@@ -55,10 +55,10 @@ source: {
 physics:
 {
   
-  producers:{
-    trackmasker:        @local::microboone_trackmasker
-    cosmicfilter:       @local::CosmicFilter
-  }
+  #producers:{
+    #trackmasker:        @local::microboone_trackmasker
+    #cosmicfilter:       @local::CosmicFilter
+  #}
   
   analyzers:{
     blipana:          @local::microboone_blipana
@@ -76,15 +76,12 @@ physics:
 # directly a part of cosmic-tagged tracks. This is different
 # from the TrackMasker module, which also vetoes a cylindrical region
 # in 2D wire-time space around *all* tracks of a certain length.
-physics.producers.cosmicfilter.VtxProducer:   "" #"pandora"
-physics.producers.cosmicfilter.HitProducer:   "gaushit"
-physics.producers.cosmicfilter.TrkProducer:   "pandora"
-physics.producers.cosmicfilter.CluProducer:   "pandora"
-physics.producers.cosmicfilter.PFPProducer:   "pandora"
-physics.producers.cosmicfilter.MinTrkLength:  15
-physics.producers.cosmicfilter.VetoRadius:    150 # only applies to vertex
-physics.producers.cosmicfilter.IPmin:         10
+#physics.producers.cosmicfilter.VtxProducer:   "" #"pandora"
+#physics.producers.cosmicfilter.HitProducer:   "gaushit"
+#physics.producers.cosmicfilter.TrkProducer:   "pandora"
+#physics.producers.cosmicfilter.CluProducer:   "pandora"
+#physics.producers.cosmicfilter.PFPProducer:   "pandora"
+#physics.producers.cosmicfilter.MinTrkLength:  15
+#physics.producers.cosmicfilter.VetoRadius:    150 # only applies to vertex
+#physics.producers.cosmicfilter.IPmin:         10
 
-#physics.analyzers.blipanaTrkMask.BlipAlg.HitProducer: "trackmasker"
-#physics.analyzers.blipanaCosFilt.BlipAlg.HitProducer: "cosmicfilter"
-    

@@ -473,7 +473,8 @@ namespace blip {
              
               float overlapFrac = BlipUtils::CalcHitClustsOverlap(hitclust[i],hitclust[j]);
               h_clust_overlap[planeB]->Fill(overlapFrac);
-
+              //if( overlapFrac < 0.7 ) continue;
+              
               // best match-score per hit for clust A
               float score_clustA = 0;
 

@@ -2,7 +2,7 @@
 
 #services.BackTrackerService.BackTracker.OverrideRealData: false
 
-physics.analyzers.blipana:  @local::microboone_blipana_data
+physics.analyzers.blipana: @local::microboone_blipana_data
 
 #physics.analyzers.blipanaTrkMask: @local::microboone_blipana_data
 #physics.analyzers.blipanaTrkMask.BlipAlg.HitProducer: "trackmasker"

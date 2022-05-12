@@ -121,24 +121,33 @@ namespace blip {
     int       ID              = -9;
     bool      isValid         = false;
     int       TPC             = -9;
-    int       NPlanes         = -9;                     // Num. matched planes
-    int       Planes[3]       = {false, false, false};  // Match status for each plane
-    float     Charge[3]       = {-999, -999, -999};     // Charge (e-) on each plane
-    float     Energy          = -999;                   // Energy (const dE/dx = 2 MeV/cm)
-    float     EnergyESTAR     = -999;                   // Energy (ESTAR method from ArgoNeuT)
-    float     DriftTime       = -999;                   // Drift time (ticks)
-    float     MaxIntersectDiff= -9;                     // Nax difference between wire intersection 
-                                                        //   points (only valid for >=3 planes)
-    float     trkdist         = -9;                     // Distance to cloest track
-    int       trkid           = -9;                     // ID of closest track
-    bool      inCylinder      = false;                  // Whether this blip is within a 
-                                                        //   track's cone/cylinder region
-    float     x               = -999;                   // Reconstructed X [cm]
-    float     y               = -999;                   // Reconstructed Y [cm]
-    float     z               = -999;                   // Reconstructed Z [cm]
-    TVector3  Position;                                 // 3D position TVector3
-    std::set<int> ClustIDs;                             // IDs of associated blip::HitClusts
-    std::set<int> HitIDs;                               // IDs of associated recob::Hits
+    int       NPlanes         = -9;         // Num. matched planes
+    bool      Planes[kNplanes]= {false};    // Match status for each plane
+    float     SumADC[kNplanes]= {-999};
+    float     Charge[kNplanes]= {-999};     // Charge (e-) on each plane
+    float     Energy          = -999;       // Energy (const dE/dx = 2 MeV/cm)
+    float     EnergyESTAR     = -999;       // Energy (ESTAR method from ArgoNeuT)
+    float     DriftTime       = -999;       // Drift time (ticks)
+    float     MaxIntersectDiff= -9;         // Nax difference between wire intersection 
+                                            //   points (only valid for >=3 planes)
+    float     trkdist         = -9;         // Distance to cloest track
+    int       trkid           = -9;         // ID of closest track
+    bool      inCylinder      = false;      // Whether this blip is within a 
+                                            //   track's cone/cylinder region
+    
+    TVector3  Position;                     // 3D position TVector3
+    float     x               = -999;       // Reconstructed X [cm]
+    float     y               = -999;       // Reconstructed Y [cm]
+    float     z               = -999;       // Reconstructed Z [cm]
+
+    std::set<int> ClustIDs;                 // IDs of associated blip::HitClusts
+    std::set<int> HitIDs;                   // IDs of associated recob::Hits
+    
+    int       clustID[kNplanes] = {-9};     // clust IDs per plane
+    int       nhits[kNplanes]   = {-9};     // NHits per cluster on each plane
+    int       nwires[kNplanes]  = {-9};     // NWires per cluster on each plane
+    float     timespan[kNplanes]    = {-9};     // cluster timespan [ticks] per plane
+
   };
 }
 
