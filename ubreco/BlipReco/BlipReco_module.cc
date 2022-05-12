@@ -1,0 +1,230 @@
+////////////////////////////////////////////////////////////////////////
+// Class:       BlipReco
+// Plugin Type: producer (art v2_11_03)
+// File:        BlipReco_module.cc
+//
+// W. Foreman
+// May 2022
+////////////////////////////////////////////////////////////////////////
+
+// Framework includes
+#include "art/Framework/Core/EDProducer.h"
+#include "art/Framework/Core/ModuleMacros.h"
+#include "art/Framework/Principal/Event.h"
+#include "art/Framework/Principal/SubRun.h"
+#include "art/Framework/Principal/Handle.h"
+#include "art/Framework/Principal/View.h"
+#include "canvas/Persistency/Common/FindMany.h"
+#include "canvas/Persistency/Common/FindManyP.h"
+#include "canvas/Persistency/Common/FindOneP.h"
+#include "canvas/Utilities/InputTag.h"
+#include "fhiclcpp/ParameterSet.h"
+#include "messagefacility/MessageLogger/MessageLogger.h"
+
+// LArSoft includes
+#include "larcore/Geometry/Geometry.h"
+#include "lardata/Utilities/AssociationUtil.h"
+#include "lardata/Utilities/GeometryUtilities.h"
+#include "lardata/DetectorInfoServices/DetectorClocksService.h"
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
+#include "lardata/DetectorInfoServices/LArPropertiesService.h"
+#include "lardataobj/Simulation/SimChannel.h"
+#include "lardataobj/Simulation/SimEnergyDeposit.h"
+#include "lardataobj/Simulation/AuxDetSimChannel.h"
+#include "lardataobj/AnalysisBase/Calorimetry.h"
+#include "lardataobj/AnalysisBase/ParticleID.h"
+#include "lardataobj/AnalysisBase/CosmicTag.h"
+#include "lardataobj/AnalysisBase/BackTrackerMatchingData.h"
+#include "lardataobj/RawData/RawDigit.h"
+#include "lardataobj/RecoBase/Track.h"
+#include "lardataobj/RecoBase/Shower.h"
+#include "lardataobj/RecoBase/Cluster.h"
+#include "lardataobj/RecoBase/SpacePoint.h"
+#include "lardataobj/RecoBase/Hit.h"
+#include "lardataobj/RecoBase/EndPoint2D.h"
+#include "lardataobj/RecoBase/Vertex.h"
+#include "larcoreobj/SimpleTypesAndConstants/geo_types.h"
+#include "larreco/Calorimetry/CalorimetryAlg.h"
+#include "larsim/MCCheater/BackTrackerService.h"
+#include "larsim/MCCheater/ParticleInventoryService.h"
+#include "larevt/SpaceChargeServices/SpaceChargeService.h"
+#include "cetlib/search_path.h"
+
+// MicroBooNE-specific includes
+#include "ubevt/Database/UbooneElectronLifetimeProvider.h"
+#include "ubevt/Database/UbooneElectronLifetimeService.h"
+#include "ubreco/BlipReco/Alg/BlipRecoAlg.h"
+
+class BlipReco;
+
+class BlipReco : public art::EDProducer 
+{
+  public:
+  explicit BlipReco(fhicl::ParameterSet const & p);
+  BlipReco(BlipReco const &) = delete;
+  BlipReco(BlipReco &&) = delete;
+  BlipReco & operator = (BlipReco const &) = delete;
+  BlipReco & operator = (BlipReco &&) = delete;
+
+  // Required functions.
+  void produce(art::Event & e) override;
+
+  private:
+  blip::BlipRecoAlg*      fBlipAlg;
+  std::string             fHitProducer;
+
+};
+
+
+
+//###################################################
+//  BlipReco constructor and destructor
+//###################################################
+BlipReco::BlipReco(fhicl::ParameterSet const & pset)
+{
+  // Read in fcl parameters for blip reco alg
+  fhicl::ParameterSet pset_blipalg = pset.get<fhicl::ParameterSet>("BlipAlg");
+  fBlipAlg        = new blip::BlipRecoAlg( pset_blipalg );
+  
+  fHitProducer    = pset_blipalg.get<std::string>   ("HitProducer");
+ 
+  // declare what we're going to produce
+  produces< std::vector<  recob::SpacePoint > >();
+  produces< std::vector<  blip::Blip > >();
+  produces< art::Assns <  recob::Hit, recob::SpacePoint> >();
+  
+  //produces< std::vector<  recob::Cluster    > >();
+  //produces< art::Assns <  recob::Cluster,   recob::SpacePoint> >();
+  //produces< art::Assns <  recob::Hit,       recob::Cluster> >();
+  
+}
+
+
+
+//###################################################
+//  Main produce function
+//###################################################
+void BlipReco::produce(art::Event & evt)
+{
+  
+  std::cout<<"\n"
+  <<"******************** BlipReco ****************************\n"
+  <<"Event "<<evt.id().event()<<" / run "<<evt.id().run()<<"\n";
+
+  //============================================
+  // Make unique pointers to the vectors of objects 
+  // and associations we will create
+  //============================================
+  std::unique_ptr< std::vector< recob::SpacePoint> > SpacePoint_v(new std::vector<recob::SpacePoint>);
+  std::unique_ptr< art::Assns <recob::Hit, recob::SpacePoint> >  assn_hit_sps_v(new art::Assns<recob::Hit,recob::SpacePoint> );
+  
+  std::unique_ptr< std::vector< blip::Blip > > Blip_v(new std::vector<blip::Blip>);
+
+  //============================================
+  // Get hits from input module
+  //============================================
+  art::Handle< std::vector<recob::Hit> > hitHandle;
+  std::vector<art::Ptr<recob::Hit> > hitlist;
+  if (evt.getByLabel(fHitProducer,hitHandle))
+    art::fill_ptr_vector(hitlist, hitHandle);
+  
+  //============================================
+  // Run blip reconstruction: 
+  //============================================
+  fBlipAlg->RunBlipReco(evt);
+  
+  //===========================================
+  // Make blip::Blips
+  //===========================================
+  for(size_t i=0; i<fBlipAlg->blips.size(); i++){
+    auto& b = fBlipAlg->blips[i];
+    blip::Blip nb = b;
+    Blip_v->emplace_back(nb);
+  }
+    
+
+
+  //===========================================
+  // Make recob::SpacePoints out of the blip::Blips
+  //===========================================
+  for(size_t i=0; i<fBlipAlg->blips.size(); i++){
+    auto& b = fBlipAlg->blips[i];
+    
+    Double32_t xyz[3];
+    Double32_t xyz_err[6];
+    Double32_t chiSquare = 0;
+    Double32_t err = 0.; //b.MaxIntersectDiff?
+    xyz[0]      = b.x;
+    xyz[1]      = b.y;
+    xyz[2]      = b.z;
+    xyz_err[0]  = err;
+    xyz_err[1]  = err;
+    xyz_err[2]  = err;
+    xyz_err[3]  = err;
+    xyz_err[4]  = err;
+    xyz_err[5]  = err;
+    
+    recob::SpacePoint newpt(xyz,xyz_err,chiSquare);
+    SpacePoint_v->emplace_back(newpt);
+    
+    
+    // Hit associations 
+    for(auto& ihit : b.HitIDs ) {
+      auto& hitptr = hitlist[ihit];
+      util::CreateAssn(*this, evt, *SpacePoint_v, hitptr, *assn_hit_sps_v);
+    }
+  
+  }
+ 
+  /*
+  //===========================================
+  // Make recob::Clusters out of the blip::HitClusts
+  //===========================================
+  for(size_t i=0; i<fBlipAlg->hitclust.size(); i++){
+    auto& hc = fBlipAlg->hitclust[i];
+ 
+    float start_wire;
+    float sigma_start_wire;
+    float start_tick;
+    float sigma_start_tick;
+    float start_charge;
+    float start_angle;
+    float start_opening;
+    float end_wire;
+    float sigma_end_wire;
+    float end_tick;
+    float sigma_end_tick;
+    float end_charge;
+    float end_angle;
+    float end_opening;
+    float integral;
+    float integral_stddev;
+    float summedADC;
+    float summedADC_stddev;
+    unsigned int n_hits;
+    float multiple_hit_density;
+    float width;
+    ID_t ID; 
+    geo::View_t view;
+    geo::PlaneID const &plane;
+    SentryArgument_t sentry=Sentry;
+  
+    
+  
+  }
+  */
+
+
+  //===========================================
+  // Put them on the event
+  //===========================================
+  evt.put(std::move(SpacePoint_v));
+  evt.put(std::move(assn_hit_sps_v));
+  
+  evt.put(std::move(Blip_v));
+ 
+  //std::cout<<"Producing "<<SpacePoint_v.size()<<" recob::SpacePoints\n";
+
+}//END EVENT LOOP
+
+DEFINE_ART_MODULE(BlipReco)

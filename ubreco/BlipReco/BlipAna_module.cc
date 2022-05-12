@@ -211,7 +211,7 @@ class BlipAnaTreeDataStruct
   float hit_rms[kMaxHits];        // shape RMS
   float	hit_amp[kMaxHits];         // amplitude
   float	hit_area[kMaxHits];       // charge (area) in ADC units
-  float	hit_sumadc[kMaxHits];     // summed ADC
+  float hit_sumadc[kMaxHits];     // summed ADC
   float hit_charge[kMaxHits];     // reconstructed number of electrons
   int   hit_mult[kMaxHits];       // multiplicity
   int	  hit_trkid[kMaxHits];      // is this hit associated with a reco track?
@@ -222,7 +222,7 @@ class BlipAnaTreeDataStruct
   float hit_g4charge[kMaxHits];   // true number of electrons (drift-attenuated)
   int   hit_clustid[kMaxHits];    // key of HitClust in which hit was included
   int   hit_blipid[kMaxHits];     // key of Blip in which hit was included
-  float hit_gof[kMaxHits];   // goodness of fit (default -1)
+  float hit_gof[kMaxHits];        // goodness of fit (default -1)
 
   // --- Track information ---
   int   ntrks;                    // number tracks
@@ -452,70 +452,69 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("run",&run,"run/I");
       evtTree->Branch("timestamp",&timestamp,"timestamp/i");
       evtTree->Branch("lifetime",&lifetime,"lifetime/F");
-   
   
-      evtTree->Branch("nhits",&nhits,"nhits/I");
       if( saveHitInfo ) {
-      //evtTree->Branch("hit_tpc",hit_tpc,"hit_tpc[nhits]/I"); 
-      evtTree->Branch("hit_plane",hit_plane,"hit_plane[nhits]/I"); 
-      evtTree->Branch("hit_wire",hit_wire,"hit_wire[nhits]/I"); 
-      evtTree->Branch("hit_peakT",hit_peakT,"hit_peakT[nhits]/F"); 
-      evtTree->Branch("hit_time",hit_time,"hit_time[nhits]/F"); 
-      evtTree->Branch("hit_rms",hit_rms,"hit_rms[nhits]/F"); 
-      evtTree->Branch("hit_amp",hit_amp,"hit_amp[nhits]/F"); 
-      evtTree->Branch("hit_area",hit_area,"hit_area[nhits]/F"); 
-      evtTree->Branch("hit_sumadc",hit_sumadc,"hit_sumadc[nhits]/F"); 
-      evtTree->Branch("hit_mult",hit_mult,"hit_mult[nhits]/I"); 
-      evtTree->Branch("hit_charge",hit_charge,"hit_charge[nhits]/F");
-      evtTree->Branch("hit_ismatch",hit_ismatch,"hit_ismatch[nhits]/I");
-      evtTree->Branch("hit_trkid",hit_trkid,"hit_trkid[nhits]/I"); 
-      if( saveTruthInfo ) {
-      evtTree->Branch("hit_g4id",hit_g4id,"hit_g4id[nhits]/I");
-      evtTree->Branch("hit_g4frac",hit_g4frac,"hit_g4frac[nhits]/F"); 
-      evtTree->Branch("hit_g4energy",hit_g4energy,"hit_g4energy[nhits]/F"); 
-      evtTree->Branch("hit_g4charge",hit_g4charge,"hit_g4charge[nhits]/F"); 
-      }
-      evtTree->Branch("hit_clustid",hit_clustid,"hit_clustid[nhits]/I"); 
-      evtTree->Branch("hit_blipid",hit_blipid,"hit_blipid[nhits]/I");
-      evtTree->Branch("hit_gof",hit_gof,"hit_gof[nhits]/F");
+        evtTree->Branch("nhits",&nhits,"nhits/I");
+        //evtTree->Branch("hit_tpc",hit_tpc,"hit_tpc[nhits]/I"); 
+        evtTree->Branch("hit_plane",hit_plane,"hit_plane[nhits]/I"); 
+        evtTree->Branch("hit_wire",hit_wire,"hit_wire[nhits]/I"); 
+        evtTree->Branch("hit_peakT",hit_peakT,"hit_peakT[nhits]/F"); 
+        evtTree->Branch("hit_time",hit_time,"hit_time[nhits]/F"); 
+        evtTree->Branch("hit_rms",hit_rms,"hit_rms[nhits]/F"); 
+        evtTree->Branch("hit_amp",hit_amp,"hit_amp[nhits]/F"); 
+        evtTree->Branch("hit_area",hit_area,"hit_area[nhits]/F"); 
+        evtTree->Branch("hit_sumadc",hit_sumadc,"hit_sumadc[nhits]/F"); 
+        evtTree->Branch("hit_mult",hit_mult,"hit_mult[nhits]/I"); 
+        evtTree->Branch("hit_charge",hit_charge,"hit_charge[nhits]/F");
+        evtTree->Branch("hit_ismatch",hit_ismatch,"hit_ismatch[nhits]/I");
+        evtTree->Branch("hit_trkid",hit_trkid,"hit_trkid[nhits]/I"); 
+        if( saveTruthInfo ) {
+        evtTree->Branch("hit_g4id",hit_g4id,"hit_g4id[nhits]/I");
+        evtTree->Branch("hit_g4frac",hit_g4frac,"hit_g4frac[nhits]/F"); 
+        evtTree->Branch("hit_g4energy",hit_g4energy,"hit_g4energy[nhits]/F"); 
+        evtTree->Branch("hit_g4charge",hit_g4charge,"hit_g4charge[nhits]/F"); 
+        }
+        evtTree->Branch("hit_clustid",hit_clustid,"hit_clustid[nhits]/I"); 
+        evtTree->Branch("hit_blipid",hit_blipid,"hit_blipid[nhits]/I");
+        evtTree->Branch("hit_gof",hit_gof,"hit_gof[nhits]/F");
       }
    
       if( saveTrkInfo ) {
-      evtTree->Branch("ntrks",&ntrks,"ntrks/I");
-      evtTree->Branch("trk_id",trk_id,"trk_id[ntrks]/S");       
-      evtTree->Branch("trk_length",trk_length,"trk_length[ntrks]/F");
-      evtTree->Branch("trk_startx",trk_startx,"trk_startx[ntrks]/F");
-      evtTree->Branch("trk_starty",trk_starty,"trk_starty[ntrks]/F");
-      evtTree->Branch("trk_startz",trk_startz,"trk_startz[ntrks]/F");
-      evtTree->Branch("trk_endx",trk_endx,"trk_endx[ntrks]/F");
-      evtTree->Branch("trk_endy",trk_endy,"trk_endy[ntrks]/F");
-      evtTree->Branch("trk_endz",trk_endz,"trk_endz[ntrks]/F");
+        evtTree->Branch("ntrks",&ntrks,"ntrks/I");
+        evtTree->Branch("trk_id",trk_id,"trk_id[ntrks]/S");       
+        evtTree->Branch("trk_length",trk_length,"trk_length[ntrks]/F");
+        evtTree->Branch("trk_startx",trk_startx,"trk_startx[ntrks]/F");
+        evtTree->Branch("trk_starty",trk_starty,"trk_starty[ntrks]/F");
+        evtTree->Branch("trk_startz",trk_startz,"trk_startz[ntrks]/F");
+        evtTree->Branch("trk_endx",trk_endx,"trk_endx[ntrks]/F");
+        evtTree->Branch("trk_endy",trk_endy,"trk_endy[ntrks]/F");
+        evtTree->Branch("trk_endz",trk_endz,"trk_endz[ntrks]/F");
       }
 
       if( saveClustInfo ) {
-      evtTree->Branch("nclusts",&nclusts,"nclusts/I");
-      //evtTree->Branch("clust_id",&clust_id,"clust_id[nclusts]/I");
-      evtTree->Branch("clust_plane",clust_plane,"clust_plane[nclusts]/S");
-      evtTree->Branch("clust_wire",clust_wire,"clust_wire[nclusts]/S");
-      evtTree->Branch("clust_startwire",clust_startwire,"clust_startwire[nclusts]/S");
-      evtTree->Branch("clust_endwire",clust_endwire,"clust_endwire[nclusts]/S");
-      evtTree->Branch("clust_nwires",clust_nwires,"clust_nwires[nclusts]/S");
-      evtTree->Branch("clust_nhits",clust_nhits,"clust_nhits[nclusts]/S");
-      evtTree->Branch("clust_lhit_amp",clust_lhit_amp,"clust_lhit_amp[nclusts]/F");
-      evtTree->Branch("clust_lhit_rms",clust_lhit_rms,"clust_lhit_rms[nclusts]/F");
-      evtTree->Branch("clust_lhit_gof",clust_lhit_gof,"clust_lhit_gof[nclusts]/F");
-      //evtTree->Branch("clust_lhit_isfit",clust_lhit_isfit,"clust_lhit_isfit[nclusts]/O");
-      evtTree->Branch("clust_sumadc",clust_sumadc,"clust_sumadc[nclusts]/F");
-      evtTree->Branch("clust_charge",clust_charge,"clust_charge[nclusts]/F");
-      evtTree->Branch("clust_time",clust_time,"clust_time[nclusts]/F");
-      evtTree->Branch("clust_timespan",clust_timespan,"clust_timespan[nclusts]/F");
-      if( saveTruthInfo ) {
-        evtTree->Branch("clust_g4charge",clust_g4charge,"clust_g4charge[nclusts]/F");
-        evtTree->Branch("clust_g4energy",clust_g4energy,"clust_g4energy[nclusts]/F");
-        evtTree->Branch("clust_edepid",clust_edepid,"clust_edepid[nclusts]/I");
-      }
-      evtTree->Branch("clust_ismatch",clust_ismatch,"clust_ismatch[nclusts]/O");
-      evtTree->Branch("clust_blipid",clust_blipid,"clust_blipid[nclusts]/I");
+        evtTree->Branch("nclusts",&nclusts,"nclusts/I");
+        //evtTree->Branch("clust_id",&clust_id,"clust_id[nclusts]/I");
+        evtTree->Branch("clust_plane",clust_plane,"clust_plane[nclusts]/S");
+        evtTree->Branch("clust_wire",clust_wire,"clust_wire[nclusts]/S");
+        evtTree->Branch("clust_startwire",clust_startwire,"clust_startwire[nclusts]/S");
+        evtTree->Branch("clust_endwire",clust_endwire,"clust_endwire[nclusts]/S");
+        evtTree->Branch("clust_nwires",clust_nwires,"clust_nwires[nclusts]/S");
+        evtTree->Branch("clust_nhits",clust_nhits,"clust_nhits[nclusts]/S");
+        //evtTree->Branch("clust_lhit_amp",clust_lhit_amp,"clust_lhit_amp[nclusts]/F");
+        //evtTree->Branch("clust_lhit_rms",clust_lhit_rms,"clust_lhit_rms[nclusts]/F");
+        //evtTree->Branch("clust_lhit_gof",clust_lhit_gof,"clust_lhit_gof[nclusts]/F");
+        evtTree->Branch("clust_lhit_isfit",clust_lhit_isfit,"clust_lhit_isfit[nclusts]/O");
+        //evtTree->Branch("clust_sumadc",clust_sumadc,"clust_sumadc[nclusts]/F");
+        evtTree->Branch("clust_charge",clust_charge,"clust_charge[nclusts]/F");
+        evtTree->Branch("clust_time",clust_time,"clust_time[nclusts]/F");
+        evtTree->Branch("clust_timespan",clust_timespan,"clust_timespan[nclusts]/F");
+        if( saveTruthInfo ) {
+          evtTree->Branch("clust_g4charge",clust_g4charge,"clust_g4charge[nclusts]/F");
+          evtTree->Branch("clust_g4energy",clust_g4energy,"clust_g4energy[nclusts]/F");
+          evtTree->Branch("clust_edepid",clust_edepid,"clust_edepid[nclusts]/I");
+        }
+        evtTree->Branch("clust_ismatch",clust_ismatch,"clust_ismatch[nclusts]/O");
+        evtTree->Branch("clust_blipid",clust_blipid,"clust_blipid[nclusts]/I");
       }
 
       evtTree->Branch("nblips",&nblips,"nblips/S");
@@ -526,7 +525,7 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("blip_y",blip_y,"blip_y[nblips]/F");
       evtTree->Branch("blip_z",blip_z,"blip_z[nblips]/F");
       evtTree->Branch("blip_maxdiff",blip_maxdiff,"blip_maxdiff[nblips]/F");
-      evtTree->Branch("blip_sumadc",blip_sumadc,"blip_sumadc[nblips]/F");
+      //evtTree->Branch("blip_sumadc",blip_sumadc,"blip_sumadc[nblips]/F");
       evtTree->Branch("blip_charge",blip_charge,"blip_charge[nblips]/F");
       evtTree->Branch("blip_energy",blip_energy,"blip_energy[nblips]/F");
       evtTree->Branch("blip_trkdist",blip_trkdist,"blip_trkdist[nblips]/F");
@@ -535,6 +534,7 @@ class BlipAnaTreeDataStruct
       if( saveTruthInfo ) evtTree->Branch("blip_edepid",blip_edepid,"blip_edepid[nblips]/I");
       for(int i=0;i<kNplanes;i++) {
         evtTree->Branch(Form("blip_pl%i_clustid",i),blip_clustid[i],Form("blip_pl%i_clustid[nblips]/I",i));
+        if( i != caloPlane ) continue;
         evtTree->Branch(Form("blip_pl%i_nhits",i),blip_nhits[i],    Form("blip_pl%i_nhits[nblips]/S",i));
         evtTree->Branch(Form("blip_pl%i_nwires",i),blip_nwires[i],  Form("blip_pl%i_nwires[nblips]/S",i));
         evtTree->Branch(Form("blip_pl%i_timespan",i),blip_timespan[i],  Form("blip_pl%i_timespan[nblips]/F",i));
@@ -543,49 +543,49 @@ class BlipAnaTreeDataStruct
       //evtTree->Branch("total_blip_energy",&total_blip_energy,"total_blip_energy/F");
       
       if( saveTruthInfo ) {
-      evtTree->Branch("total_depEnergy",&total_depEnergy,"total_depEnergy/F");
-      //evtTree->Branch("total_depElectrons",&total_depElectrons,"total_depElectrons/I");
-      evtTree->Branch("total_numElectrons",&total_numElectrons,"total_numElectrons/F");
-      evtTree->Branch("nparticles",&nparticles,"nparticles/S");
-      evtTree->Branch("isPrimary",isPrimary,"isPrimary[nparticles]/O");
-      evtTree->Branch("trackID",trackID,"trackID[nparticles]/S");
-      evtTree->Branch("pdg",pdg,"pdg[nparticles]/I");
-      evtTree->Branch("nDaughters",nDaughters,"nDaughters[nparticles]/S");
-      evtTree->Branch("mother",mother,"mother[nparticles]/S");
-      evtTree->Branch("KE",KE,"KE[nparticles]/F");
-      evtTree->Branch("endKE",endKE,"endKE[nparticles]/F");
-      //evtTree->Branch("mass",mass,"mass[nparticles]/F");
-      evtTree->Branch("P",P,"P[nparticles]/F");
-      //evtTree->Branch("Px",Px,"Px[nparticles]/F");
-      //evtTree->Branch("Py",Py,"Py[nparticles]/F");
-      //evtTree->Branch("Pz",Pz,"Pz[nparticles]/F");
-      evtTree->Branch("startPointx",startPointx,"startPointx[nparticles]/F");
-      evtTree->Branch("startPointy",startPointy,"startPointy[nparticles]/F");
-      evtTree->Branch("startPointz",startPointz,"startPointz[nparticles]/F");
-      evtTree->Branch("endPointx",endPointx,"endPointx[nparticles]/F");
-      evtTree->Branch("endPointy",endPointy,"endPointy[nparticles]/F");
-      evtTree->Branch("endPointz",endPointz,"endPointz[nparticles]/F");
-      evtTree->Branch("startT",startT,"startT[nparticles]/F");
-      evtTree->Branch("endT",endT,"endT[nparticles]/F");
-      evtTree->Branch("pathlen",pathlen,"pathlen[nparticles]/F");
-      evtTree->Branch("depEnergy",depEnergy,"depEnergy[nparticles]/F");
-      evtTree->Branch("depElectrons",depElectrons,"depElectrons[nparticles]/I");
-      evtTree->Branch("numElectrons",numElectrons,"numElectrons[nparticles]/F");
-      evtTree->Branch("process",&process);
-      
-      evtTree->Branch("nedeps",&nedeps,"nedeps/I");
-      evtTree->Branch("edep_g4id",edep_g4id,"edep_g4id[nedeps]/I"); 
-      evtTree->Branch("edep_g4index",edep_g4index,"edep_g4index[nedeps]/I"); 
-      evtTree->Branch("edep_pdg",edep_pdg,"edep_pdg[nedeps]/I"); 
-      evtTree->Branch("edep_blipid",edep_blipid,"edep_blipid[nedeps]/I"); 
-      evtTree->Branch("edep_clustid",edep_clustid,"edep_clustid[nedeps]/I"); 
-      evtTree->Branch("edep_energy",edep_energy,"edep_energy[nedeps]/F"); 
-      evtTree->Branch("edep_depne",edep_depne,"edep_depne[nedeps]/I"); 
-      evtTree->Branch("edep_charge",edep_charge,"edep_charge[nedeps]/F"); 
-      evtTree->Branch("edep_x",edep_x,"edep_x[nedeps]/F"); 
-      evtTree->Branch("edep_y",edep_y,"edep_y[nedeps]/F"); 
-      evtTree->Branch("edep_z",edep_z,"edep_z[nedeps]/F"); 
-      evtTree->Branch("edep_ds",edep_ds,"edep_ds[nedeps]/F"); 
+        evtTree->Branch("total_depEnergy",&total_depEnergy,"total_depEnergy/F");
+        //evtTree->Branch("total_depElectrons",&total_depElectrons,"total_depElectrons/I");
+        evtTree->Branch("total_numElectrons",&total_numElectrons,"total_numElectrons/F");
+        evtTree->Branch("nparticles",&nparticles,"nparticles/S");
+        evtTree->Branch("isPrimary",isPrimary,"isPrimary[nparticles]/O");
+        evtTree->Branch("trackID",trackID,"trackID[nparticles]/S");
+        evtTree->Branch("pdg",pdg,"pdg[nparticles]/I");
+        evtTree->Branch("nDaughters",nDaughters,"nDaughters[nparticles]/S");
+        evtTree->Branch("mother",mother,"mother[nparticles]/S");
+        evtTree->Branch("KE",KE,"KE[nparticles]/F");
+        evtTree->Branch("endKE",endKE,"endKE[nparticles]/F");
+        //evtTree->Branch("mass",mass,"mass[nparticles]/F");
+        evtTree->Branch("P",P,"P[nparticles]/F");
+        //evtTree->Branch("Px",Px,"Px[nparticles]/F");
+        //evtTree->Branch("Py",Py,"Py[nparticles]/F");
+        //evtTree->Branch("Pz",Pz,"Pz[nparticles]/F");
+        evtTree->Branch("startPointx",startPointx,"startPointx[nparticles]/F");
+        evtTree->Branch("startPointy",startPointy,"startPointy[nparticles]/F");
+        evtTree->Branch("startPointz",startPointz,"startPointz[nparticles]/F");
+        evtTree->Branch("endPointx",endPointx,"endPointx[nparticles]/F");
+        evtTree->Branch("endPointy",endPointy,"endPointy[nparticles]/F");
+        evtTree->Branch("endPointz",endPointz,"endPointz[nparticles]/F");
+        evtTree->Branch("startT",startT,"startT[nparticles]/F");
+        evtTree->Branch("endT",endT,"endT[nparticles]/F");
+        evtTree->Branch("pathlen",pathlen,"pathlen[nparticles]/F");
+        evtTree->Branch("depEnergy",depEnergy,"depEnergy[nparticles]/F");
+        evtTree->Branch("depElectrons",depElectrons,"depElectrons[nparticles]/I");
+        evtTree->Branch("numElectrons",numElectrons,"numElectrons[nparticles]/F");
+        evtTree->Branch("process",&process);
+        
+        evtTree->Branch("nedeps",&nedeps,"nedeps/I");
+        evtTree->Branch("edep_g4id",edep_g4id,"edep_g4id[nedeps]/I"); 
+        evtTree->Branch("edep_g4index",edep_g4index,"edep_g4index[nedeps]/I"); 
+        evtTree->Branch("edep_pdg",edep_pdg,"edep_pdg[nedeps]/I"); 
+        evtTree->Branch("edep_blipid",edep_blipid,"edep_blipid[nedeps]/I"); 
+        evtTree->Branch("edep_clustid",edep_clustid,"edep_clustid[nedeps]/I"); 
+        evtTree->Branch("edep_energy",edep_energy,"edep_energy[nedeps]/F"); 
+        evtTree->Branch("edep_depne",edep_depne,"edep_depne[nedeps]/I"); 
+        evtTree->Branch("edep_charge",edep_charge,"edep_charge[nedeps]/F"); 
+        evtTree->Branch("edep_x",edep_x,"edep_x[nedeps]/F"); 
+        evtTree->Branch("edep_y",edep_y,"edep_y[nedeps]/F"); 
+        evtTree->Branch("edep_z",edep_z,"edep_z[nedeps]/F"); 
+        evtTree->Branch("edep_ds",edep_ds,"edep_ds[nedeps]/F"); 
       }
     }
     
@@ -607,15 +607,15 @@ class BlipAnaTreeDataStruct
       //blipTree->Branch("blip_trkid",  &thisBlip.trkid,  "blip_trkid/S");
       blipTree->Branch("blip_incylinder",&thisBlip.inCylinder,"blip_incylinder/O");
       for(int i=0; i<kNplanes; i++) {
-        if( i != caloPlane ) continue;
         blipTree->Branch(Form("blip_pl%i_clustid",i), &thisBlip.clustID[i], Form("blip_pl%i_clustid/I",i));
+        if( i != caloPlane ) continue;
         blipTree->Branch(Form("blip_pl%i_nhits",i),   &thisBlip.nhits[i],   Form("blip_pl%i_nhits/S",i));
         blipTree->Branch(Form("blip_pl%i_nwires",i),  &thisBlip.nwires[i],  Form("blip_pl%i_nwires/S",i));
         blipTree->Branch(Form("blip_pl%i_timespan",i),  &thisBlip.timespan[i],  Form("blip_pl%i_timespan/F",i));
       }
     }
    
-  }
+  }//end MakeTree
   
   // === Function for filling tree ===
   void FillBlipTree( const blip::Blip& tb ) {
@@ -643,7 +643,7 @@ class BlipAna : public art::EDAnalyzer
   explicit BlipAna(fhicl::ParameterSet const& pset);
   virtual ~BlipAna();
   
-  void beginJob();                      // called once, at start of job
+  //void beginJob();                      // called once, at start of job
   void endJob();                        // called once, at end of job
   void analyze(const art::Event& evt);  // called per event
 
@@ -705,6 +705,7 @@ class BlipAna : public art::EDAnalyzer
   TH2D*   h_blip_reszy;
   TH1D*   h_blip_resx;
   TH2D*   h_blip_zy;
+  TH1D*   h_blip_sumadc;
   TH1D*   h_blip_charge;
   TH1D*   h_blip_charge_3p;
 
@@ -724,8 +725,9 @@ class BlipAna : public art::EDAnalyzer
     h_nblips          = tfs->make<TH1D>("nblips","Reconstructed 3D blips per event",blipBins,0,blipMax);
     h_blip_zy         = tfs->make<TH2D>("blip_zy","3D blip location;Z [cm];Y [cm]",600,-100,1100,150,-150,150);
     h_blip_zy         ->SetOption("COLZ");
-    h_blip_charge     = tfs->make<TH1D>("blip_charge","3D blips;Charge [e-]",500,0,50e3);
-    h_blip_charge_3p  = tfs->make<TH1D>("blip_charge_3plane","3D blips w/match on ALL planes;Charge [e-]",500,0,50e3);
+    h_blip_sumadc     = tfs->make<TH1D>("blip_sumadc","3D blips;Integral on coll plane [ADC]",            200,0,100);
+    h_blip_charge     = tfs->make<TH1D>("blip_charge","3D blips;Charge [e-]",                             250,0,50e3);
+    h_blip_charge_3p  = tfs->make<TH1D>("blip_charge_3plane","3D blips w/match on ALL planes;Charge [e-]",250,0,50e3);
       
     art::TFileDirectory dir_diag = tfs->mkdir("Diagnostics");
     
@@ -777,7 +779,6 @@ BlipAna::BlipAna(fhicl::ParameterSet const& pset) :
   EDAnalyzer(pset)
   ,fData  (nullptr)
 {
-  
   // blip reconstruction algorithm class
   //fBlipAlg = new blip::BlipRecoAlg( pset.get<fhicl::ParameterSet>("BlipAlg") );
   fhicl::ParameterSet pset_blipalg = pset.get<fhicl::ParameterSet>("BlipAlg");
@@ -802,23 +803,12 @@ BlipAna::BlipAna(fhicl::ParameterSet const& pset) :
   fData ->caloPlane       = fCaloPlane;
   fData ->Clear();
   fData ->MakeTree();
- 
 
   // initialize histograms
   InitializeHistograms();
-  
 }
 BlipAna::~BlipAna(){}
 
-
-
-//###################################################
-//  beginJob: retrieve relevant detector and clock
-//  data here, and save them into class variables
-//###################################################
-void BlipAna::beginJob() {
-  // TODO: Load the ESTAR lookup table
-}
 
 
 //###################################################
@@ -1158,7 +1148,7 @@ void BlipAna::analyze(const art::Event& evt)
     fData->clust_lhit_gof[i]  = clust.LeadHit->GoodnessOfFit();
     fData->clust_lhit_isfit[i]= (clust.LeadHit->GoodnessOfFit()>=0);
     fData->clust_lhit_time[i] = clust.LeadHitTime;
-    fData->clust_sumadc[i]       = clust.ADCs;
+    fData->clust_sumadc[i]    = clust.ADCs;
     fData->clust_charge[i]    = clust.Charge;
     fData->clust_time[i]      = clust.Time;
     fData->clust_time_w[i]    = clust.WeightedTime;
@@ -1240,6 +1230,7 @@ void BlipAna::analyze(const art::Event& evt)
     
     h_blip_zy->Fill(b.Position.Z(),b.Position.Y());
     h_blip_charge->Fill(b.Charge[fCaloPlane]);
+    h_blip_sumadc->Fill(b.SumADC[fCaloPlane]);
     if( b.NPlanes == kNplanes ) h_blip_charge_3p->Fill(b.Charge[fCaloPlane]);
    
     // -----------------------------------------------
