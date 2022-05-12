@@ -30,7 +30,7 @@ microboone_trackmasker:
   module_type:        "TrackMasker"
   HitProducer:        "gaushit" 
   TrkProducer:        "pandora"
-  MinTrkLength:       3   # cm
+  MinTrkLength:       5   # cm
   MinTrkLengthVeto:   10  # cm
   VetoRadius:         15  # cm
 }

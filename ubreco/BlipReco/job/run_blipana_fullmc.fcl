@@ -1,9 +1,5 @@
 #include "run_blipana.fcl"
 
 physics.analyzers.blipana:  @local::microboone_blipana_fullmc
+physics.analyzers.blipana.SaveHitInfo: true
 
-#physics.analyzers.blipanaTrkMask: @local::microboone_blipana_fullmc
-#physics.analyzers.blipanaTrkMask.BlipAlg.HitProducer: "trackmasker"
-
-#physics.analyzers.blipanaCosFilt: @local::microboone_blipana_fullmc
-#physics.analyzers.blipanaCosFilt.BlipAlg.HitProducer: "cosmicfilter"

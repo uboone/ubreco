@@ -363,12 +363,22 @@ namespace BlipUtils {
         bool match3d = art::ServiceHandle<geo::Geometry>()->ChannelsIntersect(
           hcs[i].LeadHit->Channel(),hcs[j].LeadHit->Channel(),y,z);
         if( match3d ) {
+          newblip.SumADC[pli] = hcs[i].ADCs;
+          newblip.SumADC[plj] = hcs[j].ADCs;
           newblip.Charge[pli] = hcs[i].Charge;
           newblip.Charge[plj] = hcs[j].Charge;
           newblip.Planes[pli] = true;
           newblip.Planes[plj] = true;
           TVector3 a(x,y,z);
           wirex.push_back(a);
+          newblip.clustID[pli] = hcs[i].ID;
+          newblip.clustID[plj] = hcs[j].ID;
+          newblip.nhits[pli]   = hcs[i].HitIDs.size();
+          newblip.nhits[plj]   = hcs[j].HitIDs.size();
+          newblip.nwires[pli]  = hcs[i].Wires.size();
+          newblip.nwires[plj]  = hcs[j].Wires.size();
+          newblip.timespan[pli]  = hcs[i].EndTime - hcs[i].StartTime;
+          newblip.timespan[plj]  = hcs[j].EndTime - hcs[j].StartTime;
         }
       }
     }
