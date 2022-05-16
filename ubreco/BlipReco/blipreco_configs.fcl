@@ -2,7 +2,7 @@
 
 BEGIN_PROLOG
 
-
+# ===================================
 # CalAreaConstants Used in MCC9 MC
 microboone_calo_mcc9_mc:
 {
@@ -24,24 +24,8 @@ microboone_calo_mcc9_data:
 }
 
 
-
-microboone_trackmasker:
-{ 
-  module_type:        "TrackMasker"
-  HitProducer:        "gaushit" 
-  TrkProducer:        "pandora"
-  MinTrkLength:       5   # cm
-  MinTrkLengthVeto:   10  # cm
-  VetoRadius:         15  # cm
-}
-
-microboone_trackmasker_tight: @local::microboone_trackmasker
-microboone_trackmasker_tight.MinTrkLength:      3
-microboone_trackmasker_tight.MinTrkLengthVeto:  5
-microboone_trackmasker_tight.VetoRadius:        1.0
-
-
-
+# ===================================
+# Main BlipAlg settings
 microboone_blipalg:
 {
   HitProducer:          "gaushit"
@@ -56,18 +40,19 @@ microboone_blipalg:
   MinHitRMS:            [ 0,  0,  0  ] # minimum hit RMS [ticks]
   MaxHitRMS:            [ 30, 30, 30 ] # maximum hit RMS [ticks]
   HitClustWidthFact:    2.0   # controls distance scale used when clustering
-  HitClustWireRange:    1     # skip N wires when clustering hits
-  MaxWiresInCluster:    7     # max allowable wires in a cluster
+  HitClustWireRange:    1     # look N wires away when clustering hits
+  MaxWiresInCluster:    10    # max allowable wires in a cluster
   MaxClusterSpan:       30    # max allowable time-ticks of a cluster
-  HitMatchWidthFact:    0.8   # hits must match with factor xRMS
-  HitMatchMaxTicks:     2     # max extent to match hits [ticks]
+  HitMatchWidthFact:    1.0   # hits must match with factor xRMS
+  HitMatchMaxTicks:     5     # max extent to match hits [ticks]
   PickyBlips:           false # require 3 planes that all intersect at same point (+/- 5 cm)
   ApplyTrkCylinderCut:  false # reject hits in track cone-cylinder regions
   CylinderRadius:       15.   # cylinder cut radius [cm]
 }
 
 
-
+# ===============================================
+# Main BlipAna settings (TTree + diagnostic hists)
 microboone_blipana:
 {
   module_type:        "BlipAna"
@@ -88,7 +73,17 @@ microboone_blipana_data:                    @local::microboone_blipana
 microboone_blipana_data.BlipAlg.CaloAlg:	  @local::microboone_calo_mcc9_data
 microboone_blipana_data.SaveTruthInfo:      false
 
-# Source: reco_uboone_mcc9_8_driver_overlay_stage2.fcl
-#physics.analyzers.blipana.CaloAlg.CalAreaConstants:   [ 4.31e-3, 4.02e-3, 4.1e-3 ]
+
+# ===============================================
+# TrackMasker settings
+microboone_trackmasker:
+{ 
+  module_type:        "TrackMasker"
+  HitProducer:        "gaushit" 
+  TrkProducer:        "pandora"
+  MinTrkLength:       5   # cm
+  MinTrkLengthVeto:   10  # cm
+  VetoRadius:         15  # cm
+}
 
 END_PROLOG

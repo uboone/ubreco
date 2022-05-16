@@ -56,10 +56,9 @@ physics:
   {
     rns:              { module_type: RandomNumberSaver }
     trackmasker:  @local::microboone_trackmasker
-    trackmaskerTight:  @local::microboone_trackmasker_tight
   }
 
-  reco:           [ rns, trackmasker, trackmaskerTight ]
+  reco:           [ rns, trackmasker ]
   stream1:        [ out1 ]
   end_paths:      [ stream1 ]
 

@@ -92,6 +92,10 @@ BlipReco3D::BlipReco3D(fhicl::ParameterSet const & pset)
   produces< std::vector<  recob::SpacePoint > >();
   produces< art::Assns <  recob::Hit, recob::SpacePoint> >();
   
+  //produces< std::vector<  blip::Blip > >();
+  //produces< art::Assns <  recob::SpacePoint,  blip::Blip> >();
+  //produces< art::Assns <  recob::Hit,         blip::Blip> >();
+
   //produces< std::vector<  recob::Cluster    > >();
   //produces< art::Assns <  recob::Cluster,   recob::SpacePoint> >();
   //produces< art::Assns <  recob::Hit,       recob::Cluster> >();
@@ -117,6 +121,8 @@ void BlipReco3D::produce(art::Event & evt)
   std::unique_ptr< std::vector< recob::SpacePoint> > SpacePoint_v(new std::vector<recob::SpacePoint>);
   std::unique_ptr< art::Assns <recob::Hit, recob::SpacePoint> >  assn_hit_sps_v(new art::Assns<recob::Hit,recob::SpacePoint> );
 
+  //std::unique_ptr< std::vector< blip::Blip > > Blip_v(new std::vector<blip::Blip>);
+  
   //============================================
   // Get hits from input module
   //============================================
@@ -125,10 +131,24 @@ void BlipReco3D::produce(art::Event & evt)
   if (evt.getByLabel(fHitProducer,hitHandle))
     art::fill_ptr_vector(hitlist, hitHandle);
   
+  
   //============================================
   // Run blip reconstruction: 
   //============================================
   fBlipAlg->RunBlipReco(evt);
+  
+  
+  //===========================================
+  // Make blip::Blips
+  //===========================================
+  /*
+  for(size_t i=0; i<fBlipAlg->blips.size(); i++){
+    auto& b = fBlipAlg->blips[i];
+    blip::Blip nb = b;
+    Blip_v->emplace_back(nb);
+  }
+  */
+  
   
   //===========================================
   // Make recob::SpacePoints out of the blip::Blips
@@ -162,8 +182,6 @@ void BlipReco3D::produce(art::Event & evt)
   
   }
     
-
-
   //===========================================
   // Put them on the event
   //===========================================
@@ -171,8 +189,6 @@ void BlipReco3D::produce(art::Event & evt)
   evt.put(std::move(assn_hit_sps_v));
   
   //evt.put(std::move(Blip_v));
- 
-  //std::cout<<"Producing "<<SpacePoint_v.size()<<" recob::SpacePoints\n";
 
 }//END EVENT LOOP
 
