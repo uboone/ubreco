@@ -1,5 +1,4 @@
 
-cet_find_library( PANDORASDK NAMES PandoraSDK PATHS ENV PANDORA_LIB NO_DEFAULT_PATH)
 
 art_make(
           LIB_LIBRARIES
