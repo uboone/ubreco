@@ -1,5 +1,0 @@
-#include "run_blipana.fcl"
-
-physics.analyzers.blipana.DebugMode:    true
-physics.analyzers.blipana.SaveHitInfo:  true
-

@@ -1,5 +1,0 @@
-#include "run_blipana_data.fcl"
-physics.analyzers.blipana.SaveTruthInfo:  false
-physics.analyzers.blipana.SaveTrkInfo:    false
-physics.analyzers.blipana.SaveHitInfo:    false
-physics.analyzers.blipana.SaveClustInfo:  false

@@ -503,11 +503,11 @@ class BlipAnaTreeDataStruct
         //evtTree->Branch("clust_lhit_amp",clust_lhit_amp,"clust_lhit_amp[nclusts]/F");
         //evtTree->Branch("clust_lhit_rms",clust_lhit_rms,"clust_lhit_rms[nclusts]/F");
         //evtTree->Branch("clust_lhit_gof",clust_lhit_gof,"clust_lhit_gof[nclusts]/F");
-        evtTree->Branch("clust_lhit_isfit",clust_lhit_isfit,"clust_lhit_isfit[nclusts]/O");
+        //evtTree->Branch("clust_lhit_isfit",clust_lhit_isfit,"clust_lhit_isfit[nclusts]/O");
         //evtTree->Branch("clust_sumadc",clust_sumadc,"clust_sumadc[nclusts]/F");
         evtTree->Branch("clust_charge",clust_charge,"clust_charge[nclusts]/F");
         evtTree->Branch("clust_time",clust_time,"clust_time[nclusts]/F");
-        evtTree->Branch("clust_timespan",clust_timespan,"clust_timespan[nclusts]/F");
+        //evtTree->Branch("clust_timespan",clust_timespan,"clust_timespan[nclusts]/F");
         if( saveTruthInfo ) {
           evtTree->Branch("clust_g4charge",clust_g4charge,"clust_g4charge[nclusts]/F");
           evtTree->Branch("clust_g4energy",clust_g4energy,"clust_g4energy[nclusts]/F");
@@ -1315,12 +1315,12 @@ void BlipAna::endJob(){
   fBlipAlg->PrintConfig();
   printf("BlipAna Summary\n\n");
   printf("  Total events              : %i\n",        fNumEvents);
-  printf("  Blips per evt             : %6.2f\n",       fNum3DBlips/float(fNumEvents));
+  printf("  Blips per evt             : %.2f\n",       fNum3DBlips/float(fNumEvents));
   if(fIsMC){
-  printf("  MC-matched blips per evt  : %6.2f\n",       fNum3DBlipsTrue/float(fNumEvents));
+  printf("  MC-matched blips per evt  : %.2f\n",       fNum3DBlipsTrue/float(fNumEvents));
   printf("  Blip charge completeness  : %.4f\n",        h_blip_qcomp->GetMean());
   }
-  printf("  Mean blip charge [e-]     : %8f\n",       h_blip_charge->GetMean());
+  printf("  Mean blip charge [e-]     : %.2f\n",      h_blip_charge->GetMean());
   printf("\n");
   for(size_t i=0; i<kNplanes; i++){
   printf("  Plane %lu -------------------------\n",i);

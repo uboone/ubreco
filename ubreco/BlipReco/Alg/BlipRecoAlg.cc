@@ -18,8 +18,8 @@ namespace blip {
       h_clust_timespan  = hdir.make<TH1D>("clust_timespan","Clusters (pre-cut);Time span [ticks]",100,0,100);
       for(int i=0; i<kNplanes; i++) {
         if( i != fCaloPlane ) {
-          h_hit_dt[i]           = hdir.make<TH1D>(Form("pl%i_hit_dt",i),    Form("Plane %i hits;dT [ticks]",i),200,-20,20);
           h_hit_dtfrac[i]       = hdir.make<TH1D>(Form("pl%i_hit_dtfrac",i),Form("Plane %i hits;dT/RMS",i),200,-5,5);
+          h_hit_dt[i]        = hdir.make<TH1D>(Form("pl%i_hit_dt",i),    Form("Plane %i hits;dT [ticks]",i),200,-20,20);
           h_nmatches[i]         = hdir.make<TH1D>(Form("pl%i_nmatches",i),Form("number of plane%i matches to single collection cluster",i),10,0,10);
           h_clust_mScore[i]     = hdir.make<TH1D>(Form("pl%i_clust_matchScore",i),Form("match score for clusters on plane %i",i),110,0,1.1);
           h_clust_overlap[i]     = hdir.make<TH1D>(Form("pl%i_clust_overlap",i),Form("overlap fraction for clusters on plane %i",i),101,-0,1.01);
@@ -496,8 +496,8 @@ namespace blip {
                   // fill dT histograms only if there is only 1 hit on each wire to be matched
                   if( fMakeHistos ) {
                     if( chanhitsMap_untracked[chA].size() == 1 && chanhitsMap_untracked[chB].size() == 1 ) {
-                      h_hit_dt[planeB]->Fill(dT); 
                       h_hit_dtfrac[planeB]->Fill(dT/maxWidth); 
+                      if( fabs(dT) < fHitMatchWidthFact*maxWidth ) h_hit_dt[planeB]->Fill(dT); 
                     }
                   }
 
@@ -643,26 +643,25 @@ namespace blip {
       //blips[i].EnergyESTAR = ESTAR->Interpolate(depEl, Efield); 
 
     }
-  
-        
 
 
-      /*
-      if( trk->Length() < 10. ) continue;
-      auto& a = trk->Vertex();
-      auto& b = trk->End();
-      TVector3 p1(a.X(), a.Y(), a.Z() );
-      TVector3 p2(b.X(), b.Y(), b.Z() );
-      for(size_t j=0; j<blips.size(); j++){
-        auto& b = blips[j];
-        TVector3 bp = b.Position;
-        float d = BlipUtils::DistToLine(p1,p2,bp);
-        if( d > 0 && (b.trkdist <0 || d < b.trkdist) ) {
-          b.trkdist = d;
-          b.trkid   = trk->ID();
+    // ================================================
+    // Save the true blip
+    // ================================================
+    for(size_t i=0; i<blips.size(); i++){
+      auto& b = blips[i];
+      float max = 0;
+      for(auto clustID : b.ClustIDs ) {
+        int edepid = hitclust[clustID].EdepID;
+        if( edepid <= 0 ) continue;
+        float E = trueblips[edepid].Energy;
+        if( E > max ) {
+          max = E;
+          b.truth = trueblips[edepid];
         }
       }
-      */
+    }
+    
     
   
   }//End main blip reco function
@@ -675,10 +674,10 @@ namespace blip {
     printf("  Input hit collection      : %s\n",          fHitProducer.c_str());
     printf("  Input trk collection      : %s\n",          fTrkProducer.c_str());
     printf("  Max wires per cluster     : %i\n",          fMaxWiresInCluster);
-    printf("  Max cluster timespan      : %f ticks\n",    fMaxClusterSpan);
+    printf("  Max cluster timespan      : %.1f ticks\n",    fMaxClusterSpan);
     printf("  Max match window          : %3.1f ticks\n", fHitMatchMaxTicks);
     printf("  Hit match RMS fact        : x%3.1f\n",      fHitMatchWidthFact);
-    printf("  Track-cylinder radius     : %f cm\n",       fCylinderRadius);
+    printf("  Track-cylinder radius     : %.1f cm\n",       fCylinderRadius);
     printf("  Applying cylinder cut?    : %i\n",          fApplyTrkCylinderCut);
     printf("  Picky blip mode?          : %i\n\n",        fPickyBlips);
   
