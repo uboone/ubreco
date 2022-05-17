@@ -141,12 +141,13 @@ namespace blip {
     float     z               = -999;       // Reconstructed Z [cm]
     
     // Plane-specific cluster info
-    int       clustID[kNplanes] = {-9};     // clust IDs per plane
-    int       nhits[kNplanes]   = {-9};     // NHits per cluster on each plane
-    int       nwires[kNplanes]  = {-9};     // NWires per cluster on each plane
-    float     timespan[kNplanes]= {-9};     // cluster timespan [ticks] per plane
-    std::set<int> ClustIDs;                 // IDs of associated blip::HitClusts
-    std::set<int> HitIDs;                   // IDs of associated recob::Hits
+    int       clustID[kNplanes]     = {-9};     // clust IDs per plane
+    float     matchscore[kNplanes]  ={-9};
+    int       nhits[kNplanes]       = {-9};     // NHits per cluster on each plane
+    int       nwires[kNplanes]      = {-9};     // NWires per cluster on each plane
+    float     timespan[kNplanes]    = {-9};     // cluster timespan [ticks] per plane
+    std::set<int> ClustIDs;                     // IDs of associated blip::HitClusts
+    std::set<int> HitIDs;                       // IDs of associated recob::Hits
 
     // Truth-matching information
     TrueBlip  truth;

@@ -189,7 +189,7 @@ void TrackMasker::produce(art::Event & e)
   // boolean designating each hit as tracked
   std::vector<bool> hitIsVetoed( hitlist.size(), false);
   
-  // map of hits to planes
+  // map of (un-vetoed) hits to planes
   std::map<size_t,std::vector<size_t>> planehitmap;
   
   // 2D wire-time coordinates for each hit
@@ -199,15 +199,6 @@ void TrackMasker::produce(art::Event & e)
   std::vector<size_t> flaggedhits;
 
   for (size_t h=0; h < hitlist.size(); h++) {
-    
-    // map to plane
-    planehitmap[hitlist[h]->WireID().Plane].push_back(h);
-    
-    // calculate wire-time coordinates of every hit so we aren't
-    // repeating these calculations a bunch of times later on
-    float w = hitlist[h]->WireID().Wire * pitch;
-    float t = hitlist[h]->PeakTime() * samplePeriod * driftSpeed;
-    wtpoint.at(h).Set(w,t);
     
     // find associated track
     auto const& trk_v = hit_trk_assn_v.at(h);
@@ -223,6 +214,14 @@ void TrackMasker::produce(art::Event & e)
       }
     
     }//endif track association exists
+    
+    // calculate wire-time coordinates of every hit so we aren't
+    // repeating these calculations a bunch of times later on
+    float w = hitlist[h]->WireID().Wire * pitch;
+    float t = hitlist[h]->PeakTime() * samplePeriod * driftSpeed;
+    wtpoint.at(h).Set(w,t);
+    
+    if( !hitIsVetoed[h] ) planehitmap[hitlist[h]->WireID().Plane].push_back(h);
   
   }//endloop over hits
   
@@ -237,11 +236,11 @@ void TrackMasker::produce(art::Event & e)
   //**************************************************
 
   for( auto const& h : flaggedhits ) {
-    
+   
     for(auto const& hh : planehitmap[hitlist.at(h)->WireID().Plane] ) {
-     
+
       // skip same hit (duh)
-      if( hh == h ) continue;
+      //if( hh == h ) continue;
         
       // skip hits that are already vetoed
       if ( hitIsVetoed[hh] ) continue;

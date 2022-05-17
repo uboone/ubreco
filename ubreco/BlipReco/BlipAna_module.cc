@@ -292,6 +292,7 @@ class BlipAnaTreeDataStruct
   short blip_nhits[kNplanes][kMaxBlips];  // hits per cluster on each plane
   short blip_nwires[kNplanes][kMaxBlips]; // wires per cluster on each plane
   float blip_timespan[kNplanes][kMaxBlips]; // cluster timespan on each plane [ticks]
+  float blip_matchscore[kNplanes][kMaxBlips]; // cluster matchscore on each plane
   
   // === Function for resetting data ===
   void Clear(){ 
@@ -430,6 +431,7 @@ class BlipAnaTreeDataStruct
       FillWith(blip_nhits[i],-9);
       FillWith(blip_nwires[i],-9);
       FillWith(blip_timespan[i],-9);
+      FillWith(blip_matchscore[i],-9);
     }
   }
 
@@ -534,10 +536,12 @@ class BlipAnaTreeDataStruct
       if( saveTruthInfo ) evtTree->Branch("blip_edepid",blip_edepid,"blip_edepid[nblips]/I");
       for(int i=0;i<kNplanes;i++) {
         evtTree->Branch(Form("blip_pl%i_clustid",i),blip_clustid[i],Form("blip_pl%i_clustid[nblips]/I",i));
-        if( i != caloPlane ) continue;
-        evtTree->Branch(Form("blip_pl%i_nhits",i),blip_nhits[i],    Form("blip_pl%i_nhits[nblips]/S",i));
-        evtTree->Branch(Form("blip_pl%i_nwires",i),blip_nwires[i],  Form("blip_pl%i_nwires[nblips]/S",i));
-        evtTree->Branch(Form("blip_pl%i_timespan",i),blip_timespan[i],  Form("blip_pl%i_timespan[nblips]/F",i));
+        if( i != caloPlane ) 
+          evtTree->Branch(Form("blip_pl%i_matchscore",i),blip_matchscore[i], Form("blip_pl%i_matchscore[nblips]/F",i));
+        //if( i != caloPlane ) continue;
+        //evtTree->Branch(Form("blip_pl%i_nhits",i),blip_nhits[i],    Form("blip_pl%i_nhits[nblips]/S",i));
+        //evtTree->Branch(Form("blip_pl%i_nwires",i),blip_nwires[i],  Form("blip_pl%i_nwires[nblips]/S",i));
+        //evtTree->Branch(Form("blip_pl%i_timespan",i),blip_timespan[i],  Form("blip_pl%i_timespan[nblips]/F",i));
       }
       
       //evtTree->Branch("total_blip_energy",&total_blip_energy,"total_blip_energy/F");
@@ -1215,10 +1219,11 @@ void BlipAna::analyze(const art::Event& evt)
     fData->blip_incylinder[i] = b.inCylinder;
    
     for(size_t ipl = 0; ipl<kNplanes; ipl++){
-      fData->blip_clustid[ipl][i] = b.clustID[ipl];
-      fData->blip_nhits[ipl][i]  = b.nhits[ipl];
-      fData->blip_nwires[ipl][i] = b.nwires[ipl];
-      fData->blip_timespan[ipl][i]=b.timespan[ipl];
+      fData->blip_clustid[ipl][i]     = b.clustID[ipl];
+      fData->blip_matchscore[ipl][i]  = b.matchscore[ipl];
+      fData->blip_nhits[ipl][i]       = b.nhits[ipl];
+      fData->blip_nwires[ipl][i]      = b.nwires[ipl];
+      fData->blip_timespan[ipl][i]    = b.timespan[ipl];
     }
    
     if( b.Charge[fCaloPlane] > 0 ) {
