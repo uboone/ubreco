@@ -546,6 +546,9 @@ namespace blip {
             // ----------------------------------------
             // make our new blip
             blip::Blip newBlip = BlipUtils::MakeBlip(hcGroup);
+            for(size_t pl=0; pl<kNplanes; pl++) {
+              newBlip.matchscore[pl] = clust_score[newBlip.clustID[pl]];
+            }
 
             // ----------------------------------------
             // if it isn't valid, forget it and move on
