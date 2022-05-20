@@ -260,7 +260,6 @@ class BlipAnaTreeDataStruct
   float clust_sumadc[kMaxHits];          // summed ADC of hits in cluster
   float clust_charge[kMaxHits];       // cluster charge at anode [e-]
   float clust_time[kMaxHits];         // cluster time-tick
-  float clust_time_w[kMaxHits];       // cluster time-tick (charge-weighted)
   float clust_time_err[kMaxHits];     // cluster time uncertainty
   float clust_startTime[kMaxHits];    // cluster start tick
   float clust_endTime[kMaxHits];      // cluster end tick
@@ -292,7 +291,7 @@ class BlipAnaTreeDataStruct
   short blip_nhits[kNplanes][kMaxBlips];  // hits per cluster on each plane
   short blip_nwires[kNplanes][kMaxBlips]; // wires per cluster on each plane
   float blip_timespan[kNplanes][kMaxBlips]; // cluster timespan on each plane [ticks]
-  float blip_matchscore[kNplanes][kMaxBlips]; // cluster matchscore on each plane
+  //float blip_matchscore[kNplanes][kMaxBlips]; // cluster matchscore on each plane
   
   // === Function for resetting data ===
   void Clear(){ 
@@ -399,7 +398,6 @@ class BlipAnaTreeDataStruct
     FillWith(clust_sumadc,       -9);
     FillWith(clust_charge,    -999);
     FillWith(clust_time,      -999);
-    FillWith(clust_time_w,    -999);
     FillWith(clust_time_err,  -999);
     FillWith(clust_startTime, -999);
     FillWith(clust_endTime,   -999);
@@ -431,7 +429,7 @@ class BlipAnaTreeDataStruct
       FillWith(blip_nhits[i],-9);
       FillWith(blip_nwires[i],-9);
       FillWith(blip_timespan[i],-9);
-      FillWith(blip_matchscore[i],-9);
+      //FillWith(blip_matchscore[i],-9);
     }
   }
 
@@ -536,8 +534,8 @@ class BlipAnaTreeDataStruct
       if( saveTruthInfo ) evtTree->Branch("blip_edepid",blip_edepid,"blip_edepid[nblips]/I");
       for(int i=0;i<kNplanes;i++) {
         evtTree->Branch(Form("blip_pl%i_clustid",i),blip_clustid[i],Form("blip_pl%i_clustid[nblips]/I",i));
-        if( i != caloPlane ) 
-          evtTree->Branch(Form("blip_pl%i_matchscore",i),blip_matchscore[i], Form("blip_pl%i_matchscore[nblips]/F",i));
+        //if( i != caloPlane ) 
+          //evtTree->Branch(Form("blip_pl%i_matchscore",i),blip_matchscore[i], Form("blip_pl%i_matchscore[nblips]/F",i));
         //if( i != caloPlane ) continue;
         //evtTree->Branch(Form("blip_pl%i_nhits",i),blip_nhits[i],    Form("blip_pl%i_nhits[nblips]/S",i));
         //evtTree->Branch(Form("blip_pl%i_nwires",i),blip_nwires[i],  Form("blip_pl%i_nwires[nblips]/S",i));
@@ -602,20 +600,20 @@ class BlipAnaTreeDataStruct
       //blipTree->Branch("blip_tpc",    &thisBlip.TPC,    "blip_tpc/S");
       blipTree->Branch("blip_nplanes",&thisBlip.NPlanes,"blip_nplanes/S");
       blipTree->Branch("blip_maxdiff",&thisBlip.MaxIntersectDiff,"blip_maxdiff/F");
-      blipTree->Branch("blip_x",      &thisBlip.x,      "blip_x/F");
-      blipTree->Branch("blip_y",      &thisBlip.y,      "blip_y/F");
-      blipTree->Branch("blip_z",      &thisBlip.z,      "blip_z/F");
+      blipTree->Branch("blip_x",      &thisBlip.X,      "blip_x/F");
+      blipTree->Branch("blip_y",      &thisBlip.Y,      "blip_y/F");
+      blipTree->Branch("blip_z",      &thisBlip.Z,      "blip_z/F");
       //blipTree->Branch("blip_charge", &thisBlip.Charge[2],"blip_charge/F");
       blipTree->Branch("blip_energy", &thisBlip.Energy, "blip_energy/F");
-      blipTree->Branch("blip_trkdist",&thisBlip.trkdist,"blip_trkdist/F");
+      blipTree->Branch("blip_trkdist",&thisBlip.TrkDist,"blip_trkdist/F");
       //blipTree->Branch("blip_trkid",  &thisBlip.trkid,  "blip_trkid/S");
       blipTree->Branch("blip_incylinder",&thisBlip.inCylinder,"blip_incylinder/O");
       for(int i=0; i<kNplanes; i++) {
-        blipTree->Branch(Form("blip_pl%i_clustid",i), &thisBlip.clustID[i], Form("blip_pl%i_clustid/I",i));
+        blipTree->Branch(Form("blip_pl%i_clustid",i), &thisBlip.ClustID[i], Form("blip_pl%i_clustid/I",i));
         if( i != caloPlane ) continue;
-        blipTree->Branch(Form("blip_pl%i_nhits",i),   &thisBlip.nhits[i],   Form("blip_pl%i_nhits/S",i));
-        blipTree->Branch(Form("blip_pl%i_nwires",i),  &thisBlip.nwires[i],  Form("blip_pl%i_nwires/S",i));
-        blipTree->Branch(Form("blip_pl%i_timespan",i),  &thisBlip.timespan[i],  Form("blip_pl%i_timespan/F",i));
+        blipTree->Branch(Form("blip_pl%i_nhits",i),   &thisBlip.NHits[i],   Form("blip_pl%i_nhits/S",i));
+        blipTree->Branch(Form("blip_pl%i_nwires",i),  &thisBlip.NWires[i],  Form("blip_pl%i_nwires/S",i));
+        blipTree->Branch(Form("blip_pl%i_timespan",i),  &thisBlip.Timespan[i],  Form("blip_pl%i_timespan/F",i));
       }
     }
    
@@ -680,6 +678,7 @@ class BlipAna : public art::EDAnalyzer
   int   fNumHitsMatched[3]  = {};
   int   fNumHitsTrue[3]     = {};
   int   fNum3DBlips         = 0;
+  int   fNum3DBlips3Plane   = 0;
   int   fNum3DBlipsTrue     = 0;
 
   // --- Histograms ---
@@ -700,15 +699,17 @@ class BlipAna : public art::EDAnalyzer
   TH1D*   h_hit_dt[kNplanes];
   TH1D*   h_hit_dtfrac[kNplanes];
   TH1D*   h_nmatches[3];
-  TH1D*   h_clust_matchScore[kNplanes];
-  TH1D*   h_clust_matchScore_3D[kNplanes];
+  //TH1D*   h_clust_matchScore[kNplanes];
+  //TH1D*   h_clust_matchScore_3D[kNplanes];
   TH1D*   h_nblips;
   TH1D*   h_nblips_tm;
+  TH1D*   h_blip_nplanes;
   TH1D*   h_blip_qcomp;
   TH1D*   h_blip_pur;
   TH2D*   h_blip_reszy;
   TH1D*   h_blip_resx;
   TH2D*   h_blip_zy;
+  TH2D*   h_blip_zy_3p;
   TH1D*   h_blip_sumadc;
   TH1D*   h_blip_charge;
   TH1D*   h_blip_charge_3p;
@@ -725,21 +726,24 @@ class BlipAna : public art::EDAnalyzer
 
     art::ServiceHandle<art::TFileService> tfs;
   
-    float blipMax = 300;    int blipBins  = 300;
+    float blipMax = 500;    int blipBins  = 500;
     h_nblips          = tfs->make<TH1D>("nblips","Reconstructed 3D blips per event",blipBins,0,blipMax);
     h_blip_zy         = tfs->make<TH2D>("blip_zy","3D blip location;Z [cm];Y [cm]",600,-100,1100,150,-150,150);
     h_blip_zy         ->SetOption("COLZ");
-    h_blip_sumadc     = tfs->make<TH1D>("blip_sumadc","3D blips;Integral on coll plane [ADC]",            200,0,100);
-    h_blip_charge     = tfs->make<TH1D>("blip_charge","3D blips;Charge [e-]",                             250,0,50e3);
-    h_blip_charge_3p  = tfs->make<TH1D>("blip_charge_3plane","3D blips w/match on ALL planes;Charge [e-]",250,0,50e3);
+    h_blip_zy_3p         = tfs->make<TH2D>("blip_zy_3plane","3D blip location (3-plane match);Z [cm];Y [cm]",600,-100,1100,150,-150,150);
+    h_blip_zy_3p         ->SetOption("COLZ");
       
     art::TFileDirectory dir_diag = tfs->mkdir("Diagnostics");
+    h_blip_nplanes    = dir_diag.make<TH1D>("blip_nplanes","Matched planes per blip",3,1,4);
+    h_blip_sumadc     = dir_diag.make<TH1D>("blip_sumadc","3D blips;Integral on coll plane [ADC]",            200,0,500);
+    h_blip_charge     = dir_diag.make<TH1D>("blip_charge","3D blips;Charge [e-]",                             200,0,100e3);
+    h_blip_charge_3p  = dir_diag.make<TH1D>("blip_charge_3plane","3D blips w/match on ALL planes;Charge [e-]",200,0,100e3);
     
-    float hitMax  = 3000;    int hitBins  = 3000;
-    float ampMax = 50;     int ampBins   = 500;
-    float rmsMax = 30;      int rmsBins   = 600;
-    float areaMax = 1000;   int areaBins  = 1000;
-    float ratioMax = 5.0;   int ratioBins = 250;
+    float hitMax  = 10000; int hitBins  = 1000;
+    float ampMax  = 50;   int ampBins   = 500;
+    float rmsMax  = 30;   int rmsBins   = 600;
+    float areaMax = 1000; int areaBins  = 1000;
+    float ratioMax= 5.0;  int ratioBins = 250;
     
     // MC histograms related to truth
     art::TFileDirectory dir_truth = dir_diag.mkdir("Truth");
@@ -755,14 +759,14 @@ class BlipAna : public art::EDAnalyzer
     h_alpha_qdep    = dir_truth.make<TH1D>("alpha_qdep","True charge deposited by alpha",500,0,10000);
     
     for(int i=0; i<kNplanes; i++) {
-      h_nhits[i]    = dir_diag.make<TH1D>(Form("pl%i_nhits",i),  Form("Plane %i;number of hits",i),hitBins,0,hitMax);
-      h_nhits_m[i]   = dir_diag.make<TH1D>(Form("pl%i_nhits_planematched",i), Form("Plane %i;number of plane-matched hits",i),hitBins,0,hitMax);
-      h_hitamp[i]   = dir_diag.make<TH1D>(Form("pl%i_hit_amp",i), Form("Plane %i hits;hit amplitude [ADC]",i),ampBins,0,ampMax);
-      h_hitsigt[i]   = dir_diag.make<TH1D>(Form("pl%i_hit_sigt",i), Form("Plane %i hits;hit time uncertainty [ADC]",i),200,0,5);
-      h_hitrms[i]   = dir_diag.make<TH1D>(Form("pl%i_hit_rms",i), Form("Plane %i hits;hit RMS [ADC]",i),rmsBins,0,rmsMax);
-      h_hitratio[i] = dir_diag.make<TH1D>(Form("pl%i_hit_ratio",i), Form("Plane %i hits;hit RMS/Amplitude ratio",i),ratioBins,0,ratioMax);
-      h_hitint[i]   = dir_diag.make<TH1D>(Form("pl%i_hit_integral",i), Form("Plane %i hits;hit integral [ADC]",i),areaBins,0,areaMax);
-      h_nhits_tm[i]   = dir_truth.make<TH1D>(Form("pl%i_nhits_truthmatched",i), Form("Plane %i;number of truth-matched hits",i),hitBins,0,hitMax);
+      h_nhits[i]      = dir_diag.make<TH1D>(Form("pl%i_nhits",i),  Form("Plane %i;total number of hits",i),hitBins,0,hitMax);
+      h_nhits_m[i]    = dir_diag.make<TH1D>(Form("pl%i_nhits_planematched",i), Form("Plane %i;total number of untracked plane-matched hits",i),hitBins,0,hitMax);
+      h_hitamp[i]     = dir_diag.make<TH1D>(Form("pl%i_hit_amp",i), Form("Plane %i hits;hit amplitude [ADC]",i),ampBins,0,ampMax);
+      h_hitrms[i]     = dir_diag.make<TH1D>(Form("pl%i_hit_rms",i), Form("Plane %i hits;hit RMS [ADC]",i),rmsBins,0,rmsMax);
+      h_hitratio[i]   = dir_diag.make<TH1D>(Form("pl%i_hit_ratio",i), Form("Plane %i hits;hit RMS/Amplitude ratio",i),ratioBins,0,ratioMax);
+      h_hitint[i]     = dir_diag.make<TH1D>(Form("pl%i_hit_integral",i), Form("Plane %i hits;hit integral [ADC]",i),areaBins,0,areaMax);
+      h_hitsigt[i]    = dir_diag.make<TH1D>(Form("pl%i_hit_sigt",i), Form("Plane %i hits;hit time uncertainty [ADC]",i),200,0,5);
+      h_nhits_tm[i]   = dir_truth.make<TH1D>(Form("pl%i_nhits_truthmatched",i), Form("Plane %i;number of untracked truth-matched hits",i),hitBins,0,hitMax);
       h_chargecomp[i] = dir_truth.make<TH1D>(Form("pl%i_hit_charge_completeness",i),Form("charge completness, plane %i",i),101,0,1.01);
       h_hitpur[i]     = dir_truth.make<TH1D>(Form("pl%i_hit_purity",i),Form("hit purity, plane %i",i),101,0,1.01);
       h_nelec_TrueVsReco[i] = dir_truth.make<TH2D>( Form("pl%i_nelec_TrueVsReco",i),
@@ -1039,7 +1043,7 @@ void BlipAna::analyze(const art::Event& evt)
   int nhits_untracked = 0;
   
   for(size_t i=0; i<hitlist.size(); i++){
-    
+   
     int plane = hitlist[i]->WireID().Plane;
     auto const& hinfo = fBlipAlg->hitinfo[i];
     
@@ -1155,7 +1159,6 @@ void BlipAna::analyze(const art::Event& evt)
     fData->clust_sumadc[i]    = clust.ADCs;
     fData->clust_charge[i]    = clust.Charge;
     fData->clust_time[i]      = clust.Time;
-    fData->clust_time_w[i]    = clust.WeightedTime;
     fData->clust_time_err[i]  = clust.TimeErr;
     fData->clust_startTime[i] = clust.StartTime;
     fData->clust_endTime[i]   = clust.EndTime;
@@ -1205,25 +1208,28 @@ void BlipAna::analyze(const art::Event& evt)
   fData->total_blip_energy  = 0;
   for(size_t i=0; i<fBlipAlg->blips.size(); i++){
     auto& b = fBlipAlg->blips[i];
+    
     fNum3DBlips++;
+    if( b.NPlanes == 3 ) fNum3DBlips3Plane++;
+
     nblips_total++;
     fData->blip_id[i]         = i;
     fData->blip_tpc[i]        = b.TPC;
     fData->blip_nplanes[i]    = b.NPlanes;
     fData->blip_maxdiff[i]    = b.MaxIntersectDiff;
-    fData->blip_x[i]          = b.x;
-    fData->blip_y[i]          = b.y;
-    fData->blip_z[i]          = b.z;
-    fData->blip_trkdist[i]    = b.trkdist;
-    fData->blip_trkid[i]      = b.trkid;
+    fData->blip_x[i]          = b.X;
+    fData->blip_y[i]          = b.Y;
+    fData->blip_z[i]          = b.Z;
+    fData->blip_trkdist[i]    = b.TrkDist;
+    fData->blip_trkid[i]      = b.TrkID;
     fData->blip_incylinder[i] = b.inCylinder;
    
     for(size_t ipl = 0; ipl<kNplanes; ipl++){
-      fData->blip_clustid[ipl][i]     = b.clustID[ipl];
-      fData->blip_matchscore[ipl][i]  = b.matchscore[ipl];
-      fData->blip_nhits[ipl][i]       = b.nhits[ipl];
-      fData->blip_nwires[ipl][i]      = b.nwires[ipl];
-      fData->blip_timespan[ipl][i]    = b.timespan[ipl];
+      fData->blip_clustid[ipl][i]     = b.ClustID[ipl];
+      //fData->blip_matchscore[ipl][i]  = b.MScore[ipl];
+      fData->blip_nhits[ipl][i]       = b.NHits[ipl];
+      fData->blip_nwires[ipl][i]      = b.NWires[ipl];
+      fData->blip_timespan[ipl][i]    = b.Timespan[ipl];
     }
    
     if( b.Charge[fCaloPlane] > 0 ) {
@@ -1233,17 +1239,21 @@ void BlipAna::analyze(const art::Event& evt)
       fData->total_blip_energy += b.Energy;
     }
     
-    h_blip_zy->Fill(b.Position.Z(),b.Position.Y());
+    h_blip_zy->Fill(b.Z, b.Y);
     h_blip_charge->Fill(b.Charge[fCaloPlane]);
     h_blip_sumadc->Fill(b.SumADC[fCaloPlane]);
-    if( b.NPlanes == kNplanes ) h_blip_charge_3p->Fill(b.Charge[fCaloPlane]);
+    h_blip_nplanes->Fill(b.NPlanes);
+    if( b.NPlanes == kNplanes ) {
+      h_blip_charge_3p->Fill(b.Charge[fCaloPlane]);
+      h_blip_zy_3p->Fill(b.Z, b.Y);
+    }
    
     // -----------------------------------------------
     // save the clustIDs and true energy deposits to the blip
     // (use the association between clust <--> edep)
     // -----------------------------------------------
     float max = 0;
-    for(auto clustID : b.ClustIDs ) {
+    for(auto clustID : b.ClustID_set ) {
       int edepid      = fData->clust_edepid[clustID];
       if( edepid >= 0 && edepid < fData->nedeps ) {
         float E = trueblips[edepid].Energy;
@@ -1319,13 +1329,15 @@ void BlipAna::endJob(){
   printf("\n***********************************************\n");
   fBlipAlg->PrintConfig();
   printf("BlipAna Summary\n\n");
-  printf("  Total events              : %i\n",        fNumEvents);
-  printf("  Blips per evt             : %.2f\n",       fNum3DBlips/float(fNumEvents));
+  printf("  Total events              : %i\n",            fNumEvents);
+  printf("  Blips per evt             : %.3f\n", fNum3DBlips/float(fNumEvents));
+  printf("  Matched planes per blip   : %.3f\n", h_blip_nplanes->GetMean());
   if(fIsMC){
-  printf("  MC-matched blips per evt  : %.2f\n",       fNum3DBlipsTrue/float(fNumEvents));
-  printf("  Blip charge completeness  : %.4f\n",        h_blip_qcomp->GetMean());
+  printf("  MC-matched blips per evt  : %.3f\n",       fNum3DBlipsTrue/float(fNumEvents));
+  printf("  Blip charge completeness  : %.4f +/- %.4f\n",       h_blip_qcomp->GetMean(), h_blip_qcomp->GetStdDev()/sqrt(fNumEvents));
+  printf("  Blip purity               : %.4f\n",       h_blip_pur->GetMean());
   }
-  printf("  Mean blip charge [e-]     : %.2f\n",      h_blip_charge->GetMean());
+  printf("  Mean blip charge [e-]     : %.0f\n",      h_blip_charge->GetMean());
   printf("\n");
   for(size_t i=0; i<kNplanes; i++){
   printf("  Plane %lu -------------------------\n",i);

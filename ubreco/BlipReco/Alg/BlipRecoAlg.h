@@ -74,8 +74,7 @@ namespace blip {
     void    RunBlipReco(const art::Event& evt);
     void    PrintConfig();
 
-    // Making these public allows for more memory-efficient
-    // access compared to 'getter' functions
+    // TO-DO: make these private and create getters instead
     std::vector<blip::HitInfo>      hitinfo;
     std::vector<blip::HitClust>     hitclust;
     std::vector<blip::Blip>         blips;  
@@ -101,9 +100,10 @@ namespace blip {
     std::vector<float>  fMaxHitGOF;
     float               fHitClustWidthFact;
     int                 fHitClustWireRange;
-    float               fHitMatchWidthFact;
-    float               fHitMatchMaxTicks;
-    float               fClustMatchMinScore;
+    std::vector<float>  fTimeOffsets;
+    float               fClustMatchMinOverlap;
+    float               fClustMatchSigmaFact;
+    float               fClustMatchMaxTicks;
     int                 fMaxWiresInCluster;
     float               fMaxClusterSpan;
     int                 fCaloPlane;
@@ -122,7 +122,6 @@ namespace blip {
     TH1D*   h_hit_dt[kNplanes];
     TH1D*   h_hit_dtfrac[kNplanes];
     TH1D*   h_nmatches[kNplanes];
-    TH1D*   h_clust_mScore[kNplanes];
 
   };
 

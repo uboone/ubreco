@@ -218,69 +218,71 @@ namespace BlipUtils {
  
   //=================================================================
   blip::HitClust MakeHitClust(blip::HitInfo const& hitinfo){
-    //art::Ptr<recob::Hit> hit = hitinfo.hit;
     blip::HitClust hc;
-    hc.LeadHit      = hitinfo.hit;
+    hc.LeadHit      = hitinfo.Hit;
     hc.LeadHitCharge= hitinfo.qcoll;
     hc.LeadHitID    = hitinfo.hitid;
     hc.LeadHitTime  = hitinfo.driftTicks;
-    hc.TPC          = hitinfo.hit->WireID().TPC;
-    hc.Plane        = hitinfo.hit->WireID().Plane;
+    hc.TPC          = hitinfo.Hit->WireID().TPC;
+    hc.Plane        = hitinfo.Hit->WireID().Plane;
     hc.G4ID         = hitinfo.g4id;
+    hc.G4PDG        = hitinfo.g4pdg;
     hc.G4IDs        .insert(hitinfo.g4ids.begin(), hitinfo.g4ids.end());
     hc.HitIDs       .insert(hitinfo.hitid);
-    hc.Wires        .insert(hitinfo.hit->WireID().Wire);
-    hc.ADCs         = hitinfo.hit->Integral();
-    hc.Charge       = hitinfo.qcoll;
-    hc.mapWireCharge[hitinfo.hit->WireID().Wire] = hitinfo.qcoll;
-    hc.mapTimeCharge[hitinfo.driftTicks] = hitinfo.qcoll;
+    hc.Wires        .insert(hitinfo.Hit->WireID().Wire);
+    hc.ADCs         = hitinfo.Hit->Integral();
+    hc.Charge       = (hitinfo.qcoll > 0)? hitinfo.qcoll : 0;
     hc.Time         = hitinfo.driftTicks;
-    hc.WeightedTime = hitinfo.driftTicks;
-    hc.TimeErr      = hitinfo.hit->RMS();
-    hc.StartTime    = hitinfo.driftTicks - hitinfo.hit->RMS();
-    hc.EndTime      = hitinfo.driftTicks + hitinfo.hit->RMS();
-    hc.StartWire    = hitinfo.hit->WireID().Wire; //LeadHitWire;
-    hc.EndWire      = hitinfo.hit->WireID().Wire; //hc.LeadHitWire;
+    hc.TimeErr      = hitinfo.Hit->RMS();
+    hc.StartTime    = hitinfo.driftTicks - hitinfo.Hit->RMS();
+    hc.EndTime      = hitinfo.driftTicks + hitinfo.Hit->RMS();
+    hc.StartWire    = hitinfo.Hit->WireID().Wire; //LeadHitWire;
+    hc.EndWire      = hitinfo.Hit->WireID().Wire; //hc.LeadHitWire;
+    hc.LeadHitWire  = hitinfo.Hit->WireID().Wire;
     hc.isValid      = true;
     hc.isMerged     = false;
     hc.isMatched    = false;
-    //auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    //hc.XPos         = detProp->ConvertTicksToX(hc.LeadHit->PeakTime(),hc.Plane,hc.TPC,0);
-    //hc.XPos         = ConvertTicksToX(hc.LeadHit->PeakTime(),hc.Plane,hc.TPC,0);
     return hc;
   }
 
   //=================================================================
   void GrowHitClust(blip::HitInfo const& hitinfo, blip::HitClust& hc){
-    art::Ptr<recob::Hit> hit = hitinfo.hit;
-    if( (int)hit->WireID().TPC   != hc.TPC ) return;
-    if( (int)hit->WireID().Plane != hc.Plane ) return;
+    art::Ptr<recob::Hit> theHit = hitinfo.Hit;
+    if( (int)theHit->WireID().TPC   != hc.TPC ) return;
+    if( (int)theHit->WireID().Plane != hc.Plane ) return;
     if( hc.HitIDs.find(hitinfo.hitid) != hc.HitIDs.end() ) return;
-    float q1      = hc.Charge;
-    float q2      = hitinfo.qcoll;
+    float q1      = (hc.Charge > 0) ? hc.Charge : 0;
+    float q2      = (hitinfo.qcoll > 0) ? hitinfo.qcoll : 0;
     hc.G4IDs      .insert(hitinfo.g4ids.begin(), hitinfo.g4ids.end());
     hc.HitIDs     .insert(hitinfo.hitid);
-    hc.Wires      .insert(hit->WireID().Wire);
+    hc.Wires      .insert(theHit->WireID().Wire);
     hc.StartWire  = *hc.Wires.begin();
     hc.EndWire    = *hc.Wires.rbegin();
-    hc.ADCs       += hitinfo.hit->Integral();
+    hc.ADCs       += theHit->Integral();
     hc.Charge     += hitinfo.qcoll;
-    hc.mapWireCharge[hit->WireID().Wire] += hitinfo.qcoll;
-    hc.mapTimeCharge[hitinfo.driftTicks] += hitinfo.qcoll;
     if( hitinfo.qcoll > hc.LeadHitCharge ) {
-      hc.LeadHit      = hit;
+      hc.LeadHit      = theHit;
+      hc.LeadHitWire  = hitinfo.wire;
       hc.LeadHitID    = hitinfo.hitid;
       hc.LeadHitCharge= hitinfo.qcoll;
       hc.LeadHitTime  = hitinfo.driftTicks;
       if( hitinfo.g4id >= 0 ) hc.G4ID = hitinfo.g4id;
     }
-    hc.StartTime  = std::min(hc.StartTime,hitinfo.driftTicks - hit->RMS());
-    hc.EndTime    = std::max(hc.EndTime,  hitinfo.driftTicks + hit->RMS());
-    hc.Time       = (hc.StartTime+hc.EndTime)/2.;
+    hc.StartTime  = std::min(hc.StartTime,hitinfo.driftTicks - theHit->RMS());
+    hc.EndTime    = std::max(hc.EndTime,  hitinfo.driftTicks + theHit->RMS());
+    
+    // Central "Time" for cluster is charge-weighted
     float w1 = q1/(q1+q2);
     float w2 = q2/(q1+q2);
-    hc.WeightedTime = w1*hc.WeightedTime + w2*hitinfo.driftTicks;
-    hc.TimeErr      = w1*hc.TimeErr       + w2*hitinfo.hit->RMS();
+    float t1 = hc.Time;
+    float t2 = hitinfo.driftTicks;
+    float err1 = hc.TimeErr;
+    float err2 = theHit->RMS();
+    float tw = w1*t1 + w2*t2;
+    float sig_sumSq = pow(w1*err1,2) + pow(w2*err2,2);
+    float err_sumSq = w1*pow(tw-t1,2) + w2*pow(tw-t2,2);
+    hc.Time     = tw;
+    hc.TimeErr  = sqrt( sig_sumSq + err_sumSq );
   }
 
   //=================================================================
@@ -298,10 +300,9 @@ namespace BlipUtils {
     hc.EndWire    = *hc.Wires.rbegin();
     hc.ADCs     += hc2.ADCs;
     hc.Charge   += hc2.Charge;
-    hc.mapWireCharge.insert(hc2.mapWireCharge.begin(),hc2.mapWireCharge.end());
-    hc.mapTimeCharge.insert(hc2.mapTimeCharge.begin(),hc2.mapTimeCharge.end());
     if( hc2.LeadHitCharge > hc.LeadHitCharge ) {
       hc.LeadHit      = hc2.LeadHit;
+      hc.LeadHitWire  = hc2.LeadHitWire;
       hc.LeadHitID    = hc2.LeadHitID;
       hc.LeadHitCharge= hc2.LeadHitCharge;
       hc.LeadHitTime  = hc2.LeadHitTime;
@@ -309,11 +310,20 @@ namespace BlipUtils {
     }
     hc.StartTime  = std::min(hc.StartTime,hc2.StartTime);
     hc.EndTime    = std::max(hc.EndTime,hc2.EndTime);
-    hc.Time       = (hc.StartTime+hc.EndTime)/2.;
+    
+    // Central "Time" for cluster is charge-weighted
     float w1 = q1/(q1+q2);
     float w2 = q2/(q1+q2);
-    hc.WeightedTime = w1*hc1.WeightedTime + w2*hc2.WeightedTime;
-    hc.TimeErr      = w1*hc1.TimeErr       + w2*hc2.TimeErr;
+    float t1 = hc1.Time;
+    float t2 = hc2.Time;
+    float err1 = hc1.TimeErr;
+    float err2 = hc2.TimeErr;
+    float tw = w1*t1 + w2*t2;
+    float sig_sumSq = pow(w1*err1,2) + pow(w2*err2,2);
+    float err_sumSq = w1*pow(tw-t1,2) + w2*pow(tw-t2,2);
+    hc.Time     = tw;
+    hc.TimeErr  = sqrt( sig_sumSq + err_sumSq );
+    
     return hc;
   }
 
@@ -338,24 +348,31 @@ namespace BlipUtils {
     int nPlanes = planeIDs.size();
     int TPC = hcs[0].TPC;
     
-    // Get DetectorClock (for tick period)
-    auto const* detClock = lar::providerFrom<detinfo::DetectorClocksService>();
 
+    // Get DetectorClock (for tick period)
+    //auto const* detClock = lar::providerFrom<detinfo::DetectorClocksService>();
+      
     // Calculate mean time and X (assuming in-time deposition)
-    auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    float t = 0, x = 0;
+    //float t = 0, x = 0;
+    float sum_peakT = 0;
+    float sum_driftT = 0;
     for(auto hc : hcs ) {
-      t += detClock->TPCClock().TickPeriod() * hc.Time/float(hcs.size());
-      x += detProp->ConvertTicksToX(hc.LeadHit->PeakTime(),hc.Plane,TPC,0)/float(hcs.size());
+      sum_driftT  += hc.Time;
+      sum_peakT   += hc.LeadHit->PeakTime();
     }
-    newblip.DriftTime = t;
+    newblip.DriftTime = sum_peakT/hcs.size();
+    
+    // X position
+    auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+    double driftVel = detProp->DriftVelocity(detProp->Efield(0),detProp->Temperature()); //*fudgeFact?
+    newblip.X = newblip.DriftTime * driftVel;
 
     // Look for valid wire intersections and calculate
     // the mean Y/Z position from these
     std::vector<TVector3> wirex;
     for(size_t i=0; i<hcs.size(); i++) {
-      newblip.ClustIDs.insert(hcs[i].ID);
-      newblip.HitIDs.insert(hcs[i].HitIDs.begin(), hcs[i].HitIDs.end());
+      newblip.ClustID_set.insert(hcs[i].ID);
+      newblip.HitID_set.insert(hcs[i].HitIDs.begin(), hcs[i].HitIDs.end());
       int pli = hcs[i].Plane;
       for(size_t j=i+1; j<hcs.size(); j++){
         int plj = hcs[j].Plane;
@@ -363,22 +380,22 @@ namespace BlipUtils {
         bool match3d = art::ServiceHandle<geo::Geometry>()->ChannelsIntersect(
           hcs[i].LeadHit->Channel(),hcs[j].LeadHit->Channel(),y,z);
         if( match3d ) {
+          TVector3 a(newblip.X, y, z);
+          wirex.push_back(a);
           newblip.SumADC[pli] = hcs[i].ADCs;
           newblip.SumADC[plj] = hcs[j].ADCs;
           newblip.Charge[pli] = hcs[i].Charge;
           newblip.Charge[plj] = hcs[j].Charge;
           newblip.Planes[pli] = true;
           newblip.Planes[plj] = true;
-          TVector3 a(x,y,z);
-          wirex.push_back(a);
-          newblip.clustID[pli] = hcs[i].ID;
-          newblip.clustID[plj] = hcs[j].ID;
-          newblip.nhits[pli]   = hcs[i].HitIDs.size();
-          newblip.nhits[plj]   = hcs[j].HitIDs.size();
-          newblip.nwires[pli]  = hcs[i].Wires.size();
-          newblip.nwires[plj]  = hcs[j].Wires.size();
-          newblip.timespan[pli]  = hcs[i].EndTime - hcs[i].StartTime;
-          newblip.timespan[plj]  = hcs[j].EndTime - hcs[j].StartTime;
+          newblip.ClustID[pli] = hcs[i].ID;
+          newblip.ClustID[plj] = hcs[j].ID;
+          newblip.NHits[pli]   = hcs[i].HitIDs.size();
+          newblip.NHits[plj]   = hcs[j].HitIDs.size();
+          newblip.NWires[pli]  = hcs[i].Wires.size();
+          newblip.NWires[plj]  = hcs[j].Wires.size();
+          newblip.Timespan[pli]  = hcs[i].EndTime - hcs[i].StartTime;
+          newblip.Timespan[plj]  = hcs[j].EndTime - hcs[j].StartTime;
         }
       }
     }
@@ -386,9 +403,8 @@ namespace BlipUtils {
       TVector3 vecmean;
       for(size_t i=0; i<wirex.size(); i++) vecmean += wirex[i] * (1./wirex.size());
       newblip.Position = vecmean;
-      newblip.x = vecmean.X();
-      newblip.y = vecmean.Y();
-      newblip.z = vecmean.Z();
+      newblip.Y = vecmean.Y();
+      newblip.Z = vecmean.Z();
       newblip.TPC = TPC;
       newblip.NPlanes = nPlanes;
       newblip.isValid = true;
@@ -405,6 +421,7 @@ namespace BlipUtils {
       newblip.MaxIntersectDiff = max;
     }
     return newblip;
+    
   }
 
 
@@ -442,13 +459,12 @@ namespace BlipUtils {
   
   //====================================================================
   bool DoHitClustsOverlap(blip::HitClust const& hc1, blip::HitClust const& hc2){
+    
     // only match across different wires in same TPC
     if( hc1.TPC != hc2.TPC    ) return false;
-    float x1 = hc1.StartTime;
-    float x2 = hc1.EndTime;
-    float y1 = hc2.StartTime;
-    float y2 = hc2.EndTime;
-    if( x1 <= y2 && y1 <= x2 ) return true;
+
+    if(     hc1.StartTime <= hc2.EndTime 
+        &&  hc2.StartTime <= hc1.EndTime )  return true;
     else return false;
   }
   bool DoHitClustsOverlap(blip::HitClust const& hc1, float t1, float t2 ){
@@ -460,29 +476,23 @@ namespace BlipUtils {
   }
 
   //====================================================================
+  // Calculates the level of time overlap between two clusters
   float CalcHitClustsOverlap(blip::HitClust const& hc1, blip::HitClust const& hc2){
-    float overlap = -1;
-    // only match across different wires in same TPC
-    if( hc1.TPC != hc2.TPC    ) return overlap;
+    float overlap_frac = -1;
       
-    if( DoHitClustsOverlap(hc1,hc2) ) {
-
+    if( hc1.TPC == hc2.TPC && DoHitClustsOverlap(hc1,hc2) ) {
       float x1 = hc1.StartTime;
       float x2 = hc1.EndTime;
       float y1 = hc2.StartTime;
       float y2 = hc2.EndTime;
-      
-      // overlap interval
-      float overlap_dt = std::min(x2-y1, y2-x1);
-
-      float max_dt = std::max(y2-y1, x2-x1);
-
-      overlap = overlap_dt / max_dt;
-
+      float full_range  = std::max(x2,y2) - std::min(x1,y1);
+      float sum         = (x2-x1) + (y2-y1);
+      float overlap     = std::max(float(0), sum - full_range);
+      float ave_dt      = sum/2.;
+      overlap_frac = overlap / ave_dt;
     }
     
-    return overlap;
-
+    return overlap_frac;
   }
 
   //====================================================================
@@ -493,7 +503,7 @@ namespace BlipUtils {
   
   //====================================================================
   bool DoHitClustsMatch(blip::HitClust const& hc1, blip::HitClust const& hc2, float minDiffTicks = 2){
-    if( fabs(hc1.WeightedTime-hc2.WeightedTime) < minDiffTicks ) return true;
+    if( fabs(hc1.Time-hc2.Time) < minDiffTicks ) return true;
     else return false;
   }
 
@@ -683,6 +693,36 @@ namespace BlipUtils {
   
   bool IsPointInAV(TVector3& v){
     return IsPointInAV(v.X(), v.Y(), v.Z());
+  }
+  
+  
+  //===========================================================================
+  bool IsPointAtBnd(float x, float y, float z){
+    
+    // Get geo boundaries
+    double xmin, xmax, ymin, ymax, zmin, zmax;
+    GetGeoBoundaries(xmin,xmax,ymin,ymax,zmin,zmax);
+    
+    // 5cm chosen arbitrarily... need to check what the
+    // space charge distortion is and find a better value
+    float margin = 5;
+    if(     fabs(x-xmin) < margin
+        ||  fabs(x-xmax) < margin
+        ||  fabs(y-ymax) < margin
+        ||  fabs(y-ymax) < margin
+        ||  fabs(z-zmax) < margin
+        ||  fabs(z-zmax) < margin
+      ) {
+      return true;
+
+    } else { 
+      return false;
+    }
+    
+  }
+  
+  bool IsPointAtBnd(TVector3& v){
+    return IsPointAtBnd(v.X(), v.Y(), v.Z());
   }
  
   //===========================================================================

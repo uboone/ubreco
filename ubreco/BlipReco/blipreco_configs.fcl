@@ -33,21 +33,23 @@ microboone_blipalg:
   GeantProducer:        "largeant"
   SimEDepProducer:      "ionization"
   CaloAlg:              @local::microboone_calo_mcc9_data
-  CaloPlane:            2     # plane used for calorimetry (2=collection)
-  MaxHitTrkLength:      5     # hits in trks > this length will be vetoed [cm]
-  DoHitFiltering:       true  # filter hits based on amp, width, RMS
-  MaxHitAmp:            200   # max allowable hit amplitude [ADC]
+  CaloPlane:            2      # plane used for calorimetry (2=collection)
+  MaxHitTrkLength:      5      # hits in trks > this length will be vetoed [cm]
+  DoHitFiltering:       true   # filter hits based on amp, width, RMS
+  MaxHitAmp:            200    # max allowable hit amplitude [ADC]
   MinHitRMS:            [ 0,  0,  0  ] # minimum hit RMS [ticks]
   MaxHitRMS:            [ 30, 30, 30 ] # maximum hit RMS [ticks]
-  HitClustWidthFact:    2.0   # controls distance scale used when clustering
-  HitClustWireRange:    1     # look N wires away when clustering hits
-  MaxWiresInCluster:    10    # max allowable wires in a cluster
-  MaxClusterSpan:       30    # max allowable time-ticks of a cluster
-  HitMatchWidthFact:    1.0   # hits must match with factor xRMS
-  HitMatchMaxTicks:     5     # max extent to match hits [ticks]
-  PickyBlips:           false # require 3 planes that all intersect at same point (+/- 5 cm)
-  ApplyTrkCylinderCut:  false # reject hits in track cone-cylinder regions
-  CylinderRadius:       15.   # cylinder cut radius [cm]
+  TimeOffsets:          [ 0,  0,  0  ] # hit time offsets [ticks]
+  HitClustWidthFact:    2.0    # distance scale when clustering hits (xRMS)
+  HitClustWireRange:    1      # look N wires away when clustering hits
+  MaxWiresInCluster:    10     # max allowable wires in a cluster
+  MaxClusterSpan:       50     # max allowable time-ticks of a cluster
+  ClustMatchMinOverlap: 0.7    # minimum fractional overlap to be eligible for matching
+  ClustMatchSigmaFact:  0.5    # cluster dT < factor*sigmaT (charge-weighted mean time)
+  ClustMatchMaxTicks:   1      # max extent to match clusters [ticks]
+  PickyBlips:           false  # require 3 planes that all intersect at same point (+/- 5 cm)
+  ApplyTrkCylinderCut:  false  # reject hits in track cone-cylinder regions
+  CylinderRadius:       15.    # cylinder cut radius [cm]
 }
 
 
@@ -58,7 +60,7 @@ microboone_blipana:
   module_type:        "BlipAna"
   BlipAlg:            @local::microboone_blipalg
   SaveTruthInfo:      true
-  SaveTrkInfo:        true 
+  SaveTrkInfo:        false 
   SaveHitInfo:        false
   SaveClustInfo:      true
   SaveEventTree:      true

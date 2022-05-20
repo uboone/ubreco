@@ -160,9 +160,9 @@ void BlipReco3D::produce(art::Event & evt)
     Double32_t xyz_err[6];
     Double32_t chiSquare = 0;
     Double32_t err = 0.; //b.MaxIntersectDiff?
-    xyz[0]      = b.x;
-    xyz[1]      = b.y;
-    xyz[2]      = b.z;
+    xyz[0]      = b.X;
+    xyz[1]      = b.Y;
+    xyz[2]      = b.Z;
     xyz_err[0]  = err;
     xyz_err[1]  = err;
     xyz_err[2]  = err;
@@ -175,7 +175,7 @@ void BlipReco3D::produce(art::Event & evt)
     
     
     // Hit associations 
-    for(auto& ihit : b.HitIDs ) {
+    for(auto& ihit : b.HitID_set ) {
       auto& hitptr = hitlist[ihit];
       util::CreateAssn(*this, evt, *SpacePoint_v, hitptr, *assn_hit_sps_v);
     }
