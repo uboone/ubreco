@@ -74,6 +74,8 @@ namespace BlipUtils {
   void    GetGeoBoundaries(double&,double&,double&,double&,double&,double&);
   bool    IsPointInAV(float,float,float);
   bool    IsPointInAV(TVector3&);
+  bool    IsPointAtBnd(float,float,float);
+  bool    IsPointAtBnd(TVector3&);
 
 }
 
