@@ -503,7 +503,7 @@ class BlipAnaTreeDataStruct
         //evtTree->Branch("clust_lhit_amp",clust_lhit_amp,"clust_lhit_amp[nclusts]/F");
         //evtTree->Branch("clust_lhit_rms",clust_lhit_rms,"clust_lhit_rms[nclusts]/F");
         //evtTree->Branch("clust_lhit_gof",clust_lhit_gof,"clust_lhit_gof[nclusts]/F");
-        //evtTree->Branch("clust_lhit_isfit",clust_lhit_isfit,"clust_lhit_isfit[nclusts]/O");
+        evtTree->Branch("clust_lhit_isfit",clust_lhit_isfit,"clust_lhit_isfit[nclusts]/O");
         //evtTree->Branch("clust_sumadc",clust_sumadc,"clust_sumadc[nclusts]/F");
         evtTree->Branch("clust_charge",clust_charge,"clust_charge[nclusts]/F");
         evtTree->Branch("clust_time",clust_time,"clust_time[nclusts]/F");
@@ -709,10 +709,10 @@ class BlipAna : public art::EDAnalyzer
   TH2D*   h_blip_reszy;
   TH1D*   h_blip_resx;
   TH2D*   h_blip_zy;
-  TH2D*   h_blip_zy_3p;
+  TH2D*   h_blip_zy_picky;
   TH1D*   h_blip_sumadc;
   TH1D*   h_blip_charge;
-  TH1D*   h_blip_charge_3p;
+  TH1D*   h_blip_charge_picky;
 
   // Some truth metrics for debugging
   TH1D*   h_qres_electrons;
@@ -730,14 +730,14 @@ class BlipAna : public art::EDAnalyzer
     h_nblips          = tfs->make<TH1D>("nblips","Reconstructed 3D blips per event",blipBins,0,blipMax);
     h_blip_zy         = tfs->make<TH2D>("blip_zy","3D blip location;Z [cm];Y [cm]",600,-100,1100,150,-150,150);
     h_blip_zy         ->SetOption("COLZ");
-    h_blip_zy_3p         = tfs->make<TH2D>("blip_zy_3plane","3D blip location (3-plane match);Z [cm];Y [cm]",600,-100,1100,150,-150,150);
-    h_blip_zy_3p         ->SetOption("COLZ");
+    h_blip_zy_picky         = tfs->make<TH2D>("blip_zy_picky","3D blip location (3-plane match, intersect #Delta < 3 cm);Z [cm];Y [cm]",600,-100,1100,150,-150,150);
+    h_blip_zy_picky         ->SetOption("COLZ");
       
     art::TFileDirectory dir_diag = tfs->mkdir("Diagnostics");
     h_blip_nplanes    = dir_diag.make<TH1D>("blip_nplanes","Matched planes per blip",3,1,4);
     h_blip_sumadc     = dir_diag.make<TH1D>("blip_sumadc","3D blips;Integral on coll plane [ADC]",            200,0,500);
     h_blip_charge     = dir_diag.make<TH1D>("blip_charge","3D blips;Charge [e-]",                             200,0,100e3);
-    h_blip_charge_3p  = dir_diag.make<TH1D>("blip_charge_3plane","3D blips w/match on ALL planes;Charge [e-]",200,0,100e3);
+    h_blip_charge_picky  = dir_diag.make<TH1D>("blip_charge_picky","3D blips (3-plane match, intersect #Delta < 3 cm);Charge [e-]",200,0,100e3);
     
     float hitMax  = 10000; int hitBins  = 1000;
     float ampMax  = 50;   int ampBins   = 500;
@@ -1243,9 +1243,9 @@ void BlipAna::analyze(const art::Event& evt)
     h_blip_charge->Fill(b.Charge[fCaloPlane]);
     h_blip_sumadc->Fill(b.SumADC[fCaloPlane]);
     h_blip_nplanes->Fill(b.NPlanes);
-    if( b.NPlanes == kNplanes ) {
-      h_blip_charge_3p->Fill(b.Charge[fCaloPlane]);
-      h_blip_zy_3p->Fill(b.Z, b.Y);
+    if( b.NPlanes == kNplanes && b.MaxIntersectDiff < 3 ) {
+      h_blip_charge_picky ->Fill(b.Charge[fCaloPlane]);
+      h_blip_zy_picky     ->Fill(b.Z, b.Y);
     }
    
     // -----------------------------------------------

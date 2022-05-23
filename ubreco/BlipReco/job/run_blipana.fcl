@@ -62,8 +62,6 @@ physics:
   
   analyzers:{
     blipana:          @local::microboone_blipana
-    #blipanaTrkMask:   @local::microboone_blipana
-    #blipanaCosFilt:   @local::microboone_blipana
   }
   
   ana:            [ blipana ]

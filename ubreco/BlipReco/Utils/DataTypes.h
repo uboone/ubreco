@@ -145,13 +145,22 @@ namespace blip {
     std::set<int> HitID_set;               // IDs of associated recob::Hits
     
     // Plane-specific information
-    bool   Planes[kNplanes];  // Match status for each plane
+    bool    Planes[kNplanes];  // Match status for each plane
     float   SumADC[kNplanes];   // Sum ADC per plane
     float   Charge[kNplanes];   // Charge (e-) on each plane
     int     ClustID[kNplanes];  // clust IDs per plane
     int     NHits[kNplanes];    // Number hits per plane
     int     NWires[kNplanes];   // Number wires per plane
     float   Timespan[kNplanes]; // Cluster timespan [ticks] per plane
+    
+    // Matching information per plane
+    //std::map<int,float> Match_dT;
+    //std::map<int,float> Match_dTfrac;
+    //std::map<int,float> Match_overlap;
+    float   Match_dT[kNplanes];
+    float   Match_dTfrac[kNplanes];
+    float   Match_overlap[kNplanes];
+    float   Match_score[kNplanes];
 
     // Truth-matching information
     TrueBlip  truth;
@@ -161,8 +170,12 @@ namespace blip {
     //----------------------------
     Blip() {
       for(size_t i=0; i<kNplanes; i++){
-        Planes[i] = false;
-        ClustID[i] = -9;
+        Planes[i]       = false;
+        ClustID[i]      = -9;
+        Match_dT[i]     = -999;
+        Match_dTfrac[i] = -999;
+        Match_overlap[i]= -9;
+        Match_score[i]  = -9;
       }
     }
 

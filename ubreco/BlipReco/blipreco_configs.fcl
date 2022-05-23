@@ -37,20 +37,30 @@ microboone_blipalg:
   MaxHitTrkLength:      5      # hits in trks > this length will be vetoed [cm]
   DoHitFiltering:       true   # filter hits based on amp, width, RMS
   MaxHitAmp:            200    # max allowable hit amplitude [ADC]
-  MinHitRMS:            [ 0,  0,  0  ] # minimum hit RMS [ticks]
-  MaxHitRMS:            [ 30, 30, 30 ] # maximum hit RMS [ticks]
-  TimeOffsets:          [ 0,  0,  0  ] # hit time offsets [ticks]
+  MinHitRMS:            [ 0,  0,  0  ] # minimum hit RMS perp lane [ticks]
+  MaxHitRMS:            [ 30, 30, 30 ] # maximum hit RMS per plane [ticks]
   HitClustWidthFact:    2.0    # distance scale when clustering hits (xRMS)
   HitClustWireRange:    1      # look N wires away when clustering hits
   MaxWiresInCluster:    10     # max allowable wires in a cluster
   MaxClusterSpan:       50     # max allowable time-ticks of a cluster
-  ClustMatchMinOverlap: 0.7    # minimum fractional overlap to be eligible for matching
-  ClustMatchSigmaFact:  0.5    # cluster dT < factor*sigmaT (charge-weighted mean time)
-  ClustMatchMaxTicks:   1      # max extent to match clusters [ticks]
+  #ClustMatchMinOverlap: 0.7    # minimum fractional overlap to be eligible for matching
+  #ClustMatchSigmaFact:  0.5    # cluster dT < factor*sigmaT (charge-weighted mean time)
+  #ClustMatchMaxTicks:   1      # max extent to match clusters [ticks]
+  ClustMatchMinOverlap: [ 0.6, 0.7 ]    # minimum fractional overlap to be eligible for matching
+  ClustMatchSigmaFact:  [ 0.6, 0.4 ]    # cluster dT < factor*sigmaT (charge-weighted mean time)
+  ClustMatchMaxTicks:   [ 2.0, 2.0 ]    # max extent to match clusters [ticks]
+  TimeOffsets:          [ 0.15, 0.15,  0 ]  # hit time offsets per plane [ticks]
   PickyBlips:           false  # require 3 planes that all intersect at same point (+/- 5 cm)
   ApplyTrkCylinderCut:  false  # reject hits in track cone-cylinder regions
   CylinderRadius:       15.    # cylinder cut radius [cm]
 }
+
+microboone_blipalg_data:              @local::microboone_blipalg
+#microboone_blipalg_data.TimeOffsets:  [ 0.15, 0.15, 0 ]
+microboone_blipalg_data.CaloAlg:	    @local::microboone_calo_mcc9_data
+
+microboone_blipalg_fullmc:            @local::microboone_blipalg
+microboone_blipalg_fullmc.CaloAlg:	  @local::microboone_calo_mcc9_mc
 
 
 # ===============================================
@@ -67,13 +77,6 @@ microboone_blipana:
   SaveBlipTree:       true
   #DebugMode: true
 }
-
-microboone_blipana_fullmc:                  @local::microboone_blipana
-microboone_blipana_fullmc.BlipAlg.CaloAlg:	@local::microboone_calo_mcc9_mc
-
-microboone_blipana_data:                    @local::microboone_blipana
-microboone_blipana_data.BlipAlg.CaloAlg:	  @local::microboone_calo_mcc9_data
-microboone_blipana_data.SaveTruthInfo:      false
 
 
 # ===============================================

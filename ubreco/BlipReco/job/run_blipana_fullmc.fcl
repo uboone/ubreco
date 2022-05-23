@@ -1,5 +1,5 @@
 #include "run_blipana.fcl"
 
-physics.analyzers.blipana:  @local::microboone_blipana_fullmc
-physics.analyzers.blipana.SaveHitInfo: true
+physics.analyzers.blipana.BlipAlg:      @local::microboone_blipalg_fullmc
+physics.analyzers.blipana.SaveHitInfo:  true
 
