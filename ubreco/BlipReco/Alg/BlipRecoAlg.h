@@ -102,8 +102,11 @@ namespace blip {
     int                 fHitClustWireRange;
     std::vector<float>  fTimeOffsets;
     std::vector<float>  fClustMatchMinOverlap;
-    std::vector<float>  fClustMatchSigmaFact;
-    std::vector<float>  fClustMatchMaxTicks;
+    //std::vector<float>  fClustMatchSigmaFact;
+    //std::vector<float>  fClustMatchMaxTicks;
+    //float               fClustMatchMinOverlap;
+    float               fClustMatchSigmaFact;
+    float               fClustMatchMaxTicks;
     int                 fMaxWiresInCluster;
     float               fMaxClusterSpan;
     int                 fCaloPlane;

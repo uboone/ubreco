@@ -44,11 +44,11 @@ microboone_blipalg:
   MaxWiresInCluster:    10     # max allowable wires in a cluster
   MaxClusterSpan:       50     # max allowable time-ticks of a cluster
   #ClustMatchMinOverlap: 0.7    # minimum fractional overlap to be eligible for matching
-  #ClustMatchSigmaFact:  0.5    # cluster dT < factor*sigmaT (charge-weighted mean time)
-  #ClustMatchMaxTicks:   1      # max extent to match clusters [ticks]
+  ClustMatchSigmaFact:  0.5    # cluster dT < factor*sigmaT (charge-weighted mean time)
+  ClustMatchMaxTicks:   2      # max extent to match clusters [ticks]
   ClustMatchMinOverlap: [ 0.6, 0.7 ]    # minimum fractional overlap to be eligible for matching
-  ClustMatchSigmaFact:  [ 0.6, 0.4 ]    # cluster dT < factor*sigmaT (charge-weighted mean time)
-  ClustMatchMaxTicks:   [ 2.0, 2.0 ]    # max extent to match clusters [ticks]
+  #ClustMatchSigmaFact:  [ 0.6, 0.4 ]    # cluster dT < factor*sigmaT (charge-weighted mean time)
+  #ClustMatchMaxTicks:   [ 2.0, 2.0 ]    # max extent to match clusters [ticks]
   TimeOffsets:          [ 0.15, 0.15,  0 ]  # hit time offsets per plane [ticks]
   PickyBlips:           false  # require 3 planes that all intersect at same point (+/- 5 cm)
   ApplyTrkCylinderCut:  false  # reject hits in track cone-cylinder regions

@@ -60,12 +60,12 @@ namespace blip {
     fHitClustWireRange  = pset.get<int>           ("HitClustWireRange", 1);
     
     fTimeOffsets          = pset.get<std::vector<float>>  ("TimeOffsets",{0.15, 0.15, 0.0});
-    //fClustMatchMinOverlap = pset.get<float>         ("ClustMatchMinOverlap",0.);
-    //fClustMatchSigmaFact  = pset.get<float>         ("ClustMatchSigmaFact", 0.4);
-    //fClustMatchMaxTicks   = pset.get<float>         ("ClustMatchMaxTicks",  3);
+    //fClustMatchMinOverlap = pset.get<float>         ("ClustMatchMinOverlap",0.6 );
+    fClustMatchSigmaFact  = pset.get<float>         ("ClustMatchSigmaFact", 0.5 );
+    fClustMatchMaxTicks   = pset.get<float>         ("ClustMatchMaxTicks",  2.0 );
     fClustMatchMinOverlap = pset.get<std::vector<float>>  ("ClustMatchMinOverlap",{0.6, 0.7});
-    fClustMatchSigmaFact  = pset.get<std::vector<float>>  ("ClustMatchSigmaFact", {0.5, 0.5});
-    fClustMatchMaxTicks   = pset.get<std::vector<float>>  ("ClustMatchMaxTicks",  {2., 2.});
+    //fClustMatchSigmaFact  = pset.get<std::vector<float>>  ("ClustMatchSigmaFact", {0.5, 0.5});
+    //fClustMatchMaxTicks   = pset.get<std::vector<float>>  ("ClustMatchMaxTicks",  {2., 2.});
 
     
     fCaloPlane          = pset.get<int>           ("CaloPlane",         2);
@@ -697,7 +697,7 @@ namespace blip {
               // Calculate the cluster overlap and skip if it isn't significant
               float overlapFrac = BlipUtils::CalcHitClustsOverlap(hcA,hcB);
               if( overlapFrac  > best_overlap )      best_overlap = overlapFrac;
-              if( overlapFrac < fClustMatchMinOverlap[planeB]) continue;
+              if( overlapFrac < fClustMatchMinOverlap [planeB] ) continue;
 
               // Check if the two channels actually intersect
               double y,z;
@@ -729,7 +729,8 @@ namespace blip {
               
             
               
-              float matchTol = std::min(fClustMatchMaxTicks[planeB], fClustMatchSigmaFact[planeB]*sigmaT);
+              //float matchTol = std::min(fClustMatchMaxTicks[planeB], fClustMatchSigmaFact[planeB]*sigmaT);
+              float matchTol = std::min(fClustMatchMaxTicks, fClustMatchSigmaFact*sigmaT);
               if( fabs(dt) < matchTol ) { 
               
                 map_clust_dt[j]       = dt;
@@ -939,19 +940,16 @@ namespace blip {
     //printf("  Hit match RMS fact        : x%3.1f\n",      fHitMatchWidthFact);
     
     //printf("  Min cluster overlap       : %3.1f\n",       fClustMatchMinOverlap);
+    printf("  Clust match sigma-factor  : %3.1f\n",       fClustMatchSigmaFact);
+    printf("  Clust match max dT        : %3.1f ticks\n", fClustMatchMaxTicks);
     
     printf("  Min cluster overlap       : ");
     for(auto val : fClustMatchMinOverlap) { printf("%3.1f   ",val); } printf("\n");
+    //printf("  Clust match sigma factor  : ");
+    //for(auto val : fClustMatchSigmaFact) { printf("%3.1f   ",val); } printf("\n");
+    //printf("  Clust match max ticks     : ");
+    //for(auto val : fClustMatchMaxTicks) { printf("%3.1f   ",val); } printf("\n");
     
-    printf("  Clust match sigma factor  : ");
-    for(auto val : fClustMatchSigmaFact) { printf("%3.1f   ",val); } printf("\n");
-    
-    printf("  Clust match max ticks     : ");
-    for(auto val : fClustMatchMaxTicks) { printf("%3.1f   ",val); } printf("\n");
-
-    //printf("  Clust match sigma-factor  : %3.1f\n",       fClustMatchSigmaFact);
-    //printf("  Clust match max dT        : %3.1f ticks\n", fClustMatchMaxTicks);
-    //}
     //printf("  Track-cylinder radius     : %.1f cm\n",       fCylinderRadius);
     //printf("  Applying cylinder cut?    : %i\n",          fApplyTrkCylinderCut);
     //printf("  Picky blip mode?          : %i\n",        fPickyBlips);
