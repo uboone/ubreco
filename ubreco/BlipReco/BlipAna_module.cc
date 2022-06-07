@@ -619,10 +619,12 @@ class BlipAna : public art::EDAnalyzer
   void analyze(const art::Event& evt);  // called per event
 
   private:
-  void PrintParticleInfo(size_t);
-  void PrintG4Info(const simb::MCParticle&);
-  void PrintClusterInfo(const blip::HitClust&);
-  void PrintHitInfo(const blip::HitInfo&);
+  void    PrintParticleInfo(size_t);
+  void    PrintG4Info(const simb::MCParticle&);
+  void    PrintClusterInfo(const blip::HitClust&);
+  void    PrintHitInfo(const blip::HitInfo&);
+  float   Truncate(float, int = 10);
+  double  Truncate(double, int = 10);
 
   // --- Data and calo objects ---
   BlipAnaTreeDataStruct*  fData;
@@ -1034,15 +1036,16 @@ void BlipAna::analyze(const art::Event& evt)
     const auto& endPt   = tracklist[i]->End();
     fData->trk_id[i]    = tracklist[i]->ID();
     fData->trk_npts[i]  = tracklist[i]->NumberTrajectoryPoints();
-    fData->trk_length[i]= tracklist[i]->Length();
-    fData->trk_startx[i]= startPt.X();
-    fData->trk_starty[i]= startPt.Y();
-    fData->trk_startz[i]= startPt.Z();
-    fData->trk_endx[i]  = endPt.X();
-    fData->trk_endy[i]  = endPt.Y();
-    fData->trk_endz[i]  = endPt.Z();
-    fData->trk_startd[i]= BlipUtils::DistToBoundary(startPt);
-    fData->trk_endd[i]  = BlipUtils::DistToBoundary(endPt);
+    fData->trk_length[i]= Truncate(tracklist[i]->Length());
+    fData->trk_startx[i]= Truncate(startPt.X());
+    fData->trk_starty[i]= Truncate(startPt.Y());
+    fData->trk_startz[i]= Truncate(startPt.Z());
+    fData->trk_endx[i]  = Truncate(endPt.X());
+    fData->trk_endy[i]  = Truncate(endPt.Y());
+    fData->trk_endz[i]  = Truncate(endPt.Z());
+    fData->trk_startd[i]= Truncate(BlipUtils::DistToBoundary(startPt));
+    fData->trk_endd[i]  = Truncate(BlipUtils::DistToBoundary(endPt));
+    //std::cout<<"Saving track of length "<<fData->trk_length[i]<<"\n";
   }
 
 
@@ -1168,18 +1171,18 @@ void BlipAna::analyze(const art::Event& evt)
     fData->clust_lhit_wire[i] = clust.LeadHitWire;
     fData->clust_lhit_chan[i] = clust.LeadHitChan;
     fData->clust_lhit_id[i]   = clust.LeadHitID;
-    fData->clust_lhit_amp[i]  = clust.LeadHit->PeakAmplitude();
-    fData->clust_lhit_rms[i]  = clust.LeadHit->RMS();
-    fData->clust_lhit_gof[i]  = clust.LeadHit->GoodnessOfFit();
+    fData->clust_lhit_amp[i]  = Truncate(clust.LeadHit->PeakAmplitude(),100);
+    fData->clust_lhit_rms[i]  = Truncate(clust.LeadHit->RMS(),10);
+    fData->clust_lhit_gof[i]  = Truncate(clust.LeadHit->GoodnessOfFit(),100);
     fData->clust_lhit_isfit[i]= (clust.LeadHit->GoodnessOfFit()>=0);
-    fData->clust_lhit_time[i] = clust.LeadHitTime;
-    fData->clust_sumadc[i]    = clust.ADCs;
-    fData->clust_charge[i]    = clust.Charge;
-    fData->clust_time[i]      = clust.Time;
-    fData->clust_time_err[i]  = clust.TimeErr;
-    fData->clust_startTime[i] = clust.StartTime;
-    fData->clust_endTime[i]   = clust.EndTime;
-    fData->clust_timespan[i]  = clust.EndTime-clust.StartTime;
+    fData->clust_lhit_time[i] = Truncate(clust.LeadHitTime);
+    fData->clust_sumadc[i]    = Truncate(clust.ADCs,100);
+    fData->clust_charge[i]    = Truncate(clust.Charge);
+    fData->clust_time[i]      = Truncate(clust.Time);
+    fData->clust_time_err[i]  = Truncate(clust.TimeErr,100);
+    fData->clust_startTime[i] = Truncate(clust.StartTime);
+    fData->clust_endTime[i]   = Truncate(clust.EndTime);
+    fData->clust_timespan[i]  = Truncate(clust.EndTime-clust.StartTime);
     fData->clust_ismatch[i]   = clust.isMatched;
     fData->clust_blipid[i]    = clust.BlipID;
 
@@ -1242,9 +1245,9 @@ void BlipAna::analyze(const art::Event& evt)
     fData->blip_x[i]          = b.X;
     fData->blip_y[i]          = b.Y;
     fData->blip_z[i]          = b.Z;
-    fData->blip_time[i]       = b.Time;
-    fData->blip_timespan[i]   = b.Timespan;
-    fData->blip_trkdist[i]    = b.TrkDist;
+    fData->blip_time[i]       = Truncate(b.Time);
+    fData->blip_timespan[i]   = Truncate(b.Timespan);
+    fData->blip_trkdist[i]    = Truncate(b.TrkDist);
     fData->blip_trkid[i]      = b.TrkID;
     fData->blip_incylinder[i] = b.inCylinder;
    
@@ -1256,9 +1259,17 @@ void BlipAna::analyze(const art::Event& evt)
       fData->blip_clust_endwire[ipl][i]   = b.clusters[ipl].StartWire;
       fData->blip_clust_nhits[ipl][i]     = b.clusters[ipl].NHits;
       fData->blip_clust_nwires[ipl][i]    = b.clusters[ipl].NWires;
-      fData->blip_clust_charge[ipl][i]    = b.clusters[ipl].Charge;
-      fData->blip_clust_lhit_rms[ipl][i]  = b.clusters[ipl].LeadHit->RMS();
-      fData->blip_clust_lhit_amp[ipl][i]  = b.clusters[ipl].LeadHit->PeakAmplitude();
+      fData->blip_clust_charge[ipl][i]    = Truncate(b.clusters[ipl].Charge);
+      fData->blip_clust_lhit_rms[ipl][i]  = Truncate(b.clusters[ipl].LeadHit->RMS());
+      fData->blip_clust_lhit_amp[ipl][i]  = Truncate(b.clusters[ipl].LeadHit->PeakAmplitude(),100);
+    }
+    
+    if( b.clusters[fCaloPlane].Charge > 0 ) {
+      fData->blip_charge[i]     = Truncate(b.clusters[fCaloPlane].Charge);
+      fData->blip_sumadc[i]     = b.clusters[fCaloPlane].ADCs;
+      fData->blip_energy[i]     = b.Energy;
+      h_blip_charge             ->Fill(b.clusters[fCaloPlane].Charge);
+      h_blip_sumadc             ->Fill(b.clusters[fCaloPlane].ADCs);
     }
 
     // Fill cluster charge 2D histograms
@@ -1277,13 +1288,6 @@ void BlipAna::analyze(const art::Event& evt)
       h_blip_charge_UV_picky->Fill( 0.001*b.clusters[0].Charge, 0.001*b.clusters[1].Charge );
     }
 
-    if( b.clusters[fCaloPlane].Charge > 0 ) {
-      fData->blip_charge[i]     = b.clusters[fCaloPlane].Charge;
-      fData->blip_sumadc[i]     = b.clusters[fCaloPlane].ADCs;
-      fData->blip_energy[i]     = b.Energy;
-      h_blip_charge             ->Fill(b.clusters[fCaloPlane].Charge);
-      h_blip_sumadc             ->Fill(b.clusters[fCaloPlane].ADCs);
-    }
     
     h_blip_zy     ->Fill(b.Z, b.Y);
     h_blip_nplanes->Fill(b.NPlanes);
@@ -1487,6 +1491,14 @@ void BlipAna::PrintClusterInfo(const blip::HitClust& hc){
     hc.EdepID,
     hc.isMatched
   );
+}
+
+float BlipAna::Truncate(float input, int multiplier){
+  return roundf( input * multiplier ) / multiplier;
+}
+
+double BlipAna::Truncate(double input, int multiplier){
+  return roundf( input * multiplier ) / multiplier;
 }
 
 

@@ -69,7 +69,7 @@ microboone_blipana:
   module_type:        "BlipAna"
   BlipAlg:            @local::microboone_blipalg
   SaveTruthInfo:      true
-  SaveTrkInfo:        false 
+  SaveTrkInfo:        true 
   SaveHitInfo:        false
   SaveClustInfo:      true
   SaveEventTree:      true
