@@ -175,9 +175,11 @@ void BlipReco3D::produce(art::Event & evt)
     
     
     // Hit associations 
-    for(auto& ihit : b.HitID_set ) {
-      auto& hitptr = hitlist[ihit];
-      util::CreateAssn(*this, evt, *SpacePoint_v, hitptr, *assn_hit_sps_v);
+    for(auto& hc : b.clusters ) {
+      for(auto& ihit : hc.HitIDs ) {
+        auto& hitptr = hitlist[ihit];
+        util::CreateAssn(*this, evt, *SpacePoint_v, hitptr, *assn_hit_sps_v);
+      }
     }
   
   }

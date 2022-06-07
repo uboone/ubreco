@@ -53,7 +53,7 @@ namespace BlipUtils {
   bool      DoChannelsIntersect(int,int);
   bool      DoHitClustsMatch(blip::HitClust const&, blip::HitClust const&,float);
   float     ModBoxRecomb(float,float);
-  float     ConvertTicksToX(float, int, int, int);
+  //float     ConvertTicksToX(float, int, int, int);
   blip::HitClust  MakeHitClust(blip::HitInfo const&);
   blip::HitClust  MergeHitClusts(blip::HitClust&, blip::HitClust&);
   blip::Blip      MakeBlip(std::vector<blip::HitClust> const&);

@@ -43,34 +43,8 @@ namespace blip {
     TVector3 endPoint;      
   };
   
-  struct HitInfo {
-    art::Ptr<recob::Hit> Hit;
-    int   hitid         = -9;
-    int   plane         = -9;
-    int   tpc           = -9;
-    int   wire          = -9;
-    int   trkid         = -9;
-    int   shwrid        = -9;
-    bool  ismatch       = false;
-    bool  isneartrk     = false;
-    float trkdist2D     = -9;
-    int   blipid        = -9;
-    int   clustid       = -9;
-    int   g4id          = -9;
-    int   g4pdg         = -999;
-    float g4frac        = -99;
-    float g4energy      = -999;
-    float g4charge      = -999;
-    float qcoll         = -999;
-    float driftTicks    = -999999;
-    bool  rmsCut        = false;
-    bool  ratioCut      = false;
-    si_t  g4ids;
-    TVector2 point2D;
-  };
-
   struct TrueBlip {
-    int       ID;
+    int       ID            = -9;
     bool      isValid       = false;
     int       TPC           = -9;
     int       LeadG4ID      = -9;
@@ -89,25 +63,49 @@ namespace blip {
     vint_t      PDGs;
   };
 
+  struct HitInfo {
+    art::Ptr<recob::Hit> Hit;
+    int   hitid         = -9;
+    int   plane         = -9;
+    int   tpc           = -9;
+    int   wire          = -9;
+    int   chan          = -9;
+    int   trkid         = -9;
+    int   shwrid        = -9;
+    int   clustid       = -9;
+    int   blipid        = -9;
+    bool  ismatch       = false;
+    int   neighbors     = -9;
+    float charge        = -999;     // [e-]
+    float driftTime     = -999999;  // [tick]
+    int   g4id          = -9;
+    int   g4pdg         = -999;
+    float g4frac        = -99;      
+    float g4charge      = -999;     // [e-]
+    float g4energy      = -999;     // [MeV]
+  };
   
   struct HitClust {
-    art::Ptr<recob::Hit> LeadHit;
-    int     ID              = -9;
-    bool    isValid         = false;
-    bool    isMerged        = false;
-    bool    isMatched       = false;
+    art::Ptr<recob::Hit>  LeadHit;
     int     LeadHitID       = -999;
     float   LeadHitCharge   = -999;
     float   LeadHitTime     = -999;
     int     LeadHitWire     = -999;
+    int     LeadHitChan     = -999;
+    int     ID              = -9;
+    bool    isMerged        = false;
+    bool    isMatched       = false;
     int     TPC             = -9;
     int     Plane           = -9;
+    int     NHits           = -9;
+    int     NWires          = -9;
     float   ADCs            = -999;
     float   Charge          = -999;
     float   Time            = -999;
     float   TimeErr         = -999;
     float   StartTime       = -999;
     float   EndTime         = -999;
+    float   Timespan        = -999;
     int     StartWire       = -999;
     int     EndWire         = -999;
     int     BlipID          = -9;
@@ -116,22 +114,20 @@ namespace blip {
     float   G4Energy        = -9;
     float   G4PDG           = -999;
     si_t    HitIDs;
-    si_t    G4IDs;
     si_t    Wires;
-    //mif_t   mapWireCharge;
-    //mff_t   mapTimeCharge;
+    std::map<int,TVector3> IntersectLocations;
   };
 
   struct Blip {
-
+    
     int       ID              = -9;         // Blip ID / index
     bool      isValid         = false;      // Blip passes basic checks
     int       TPC             = -9;         // TPC
     int       NPlanes         = -9;         // Num. matched planes
-    float     Energy          = -999;       // Energy (const dE/dx = 2 MeV/cm)
+    float     Energy          = -999;       // Energy (const dE/dx, fcl-configurable)
     float     EnergyESTAR     = -999;       // Energy (ESTAR method from ArgoNeuT)
-    float     DriftTime       = -999;       // Drift time (ticks)
-    float     MaxIntersectDiff= -9;         // Max diff. btwn wire intersections
+    float     Time            = -999;       // Drift time [ticks]
+    float     Timespan        = -999;       // time span of longest cluster [ticks]
     float     TrkDist         = -9;         // Distance to cloest track
     int       TrkID           = -9;         // ID of closest track
     bool      inCylinder      = false;      // Is it in a cone/cylinder region? 
@@ -139,39 +135,22 @@ namespace blip {
     float     X               = -999;       // Reconstructed X [cm]
     float     Y               = -999;       // Reconstructed Y [cm]
     float     Z               = -999;       // Reconstructed Z [cm]
+    float     SigmaYZ         = -9.;
     
-    // Sets of cluster and hit IDs
-    std::set<int> ClustID_set;             // IDs of associated blip::HitClusts
-    std::set<int> HitID_set;               // IDs of associated recob::Hits
-    
-    // Plane-specific information
-    bool    Planes[kNplanes];  // Match status for each plane
-    float   SumADC[kNplanes];   // Sum ADC per plane
-    float   Charge[kNplanes];   // Charge (e-) on each plane
-    int     ClustID[kNplanes];  // clust IDs per plane
-    int     NHits[kNplanes];    // Number hits per plane
-    int     NWires[kNplanes];   // Number wires per plane
-    float   Timespan[kNplanes]; // Cluster timespan [ticks] per plane
-    
-    // Matching information per plane
-    //std::map<int,float> Match_dT;
-    //std::map<int,float> Match_dTfrac;
-    //std::map<int,float> Match_overlap;
+    // Plane/cluster-specific information
+    blip::HitClust clusters[kNplanes];
     float   Match_dT[kNplanes];
     float   Match_dTfrac[kNplanes];
     float   Match_overlap[kNplanes];
     float   Match_score[kNplanes];
-
-    // Truth-matching information
-    TrueBlip  truth;
+    
+    // Truth-matched energy deposition
+    blip::TrueBlip truth;
     
     //----------------------------
     // Initialize the blip
-    //----------------------------
     Blip() {
       for(size_t i=0; i<kNplanes; i++){
-        Planes[i]       = false;
-        ClustID[i]      = -9;
         Match_dT[i]     = -999;
         Match_dTfrac[i] = -999;
         Match_overlap[i]= -9;

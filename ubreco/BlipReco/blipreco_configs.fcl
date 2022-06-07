@@ -33,30 +33,29 @@ microboone_blipalg:
   GeantProducer:        "largeant"
   SimEDepProducer:      "ionization"
   CaloAlg:              @local::microboone_calo_mcc9_data
-  CaloPlane:            2      # plane used for calorimetry (2=collection)
-  MaxHitTrkLength:      5      # hits in trks > this length will be vetoed [cm]
-  DoHitFiltering:       true   # filter hits based on amp, width, RMS
-  MaxHitAmp:            200    # max allowable hit amplitude [ADC]
-  MinHitRMS:            [ 0,  0,  0  ] # minimum hit RMS perp lane [ticks]
-  MaxHitRMS:            [ 30, 30, 30 ] # maximum hit RMS per plane [ticks]
-  HitClustWidthFact:    2.0    # distance scale when clustering hits (xRMS)
-  HitClustWireRange:    1      # look N wires away when clustering hits
-  MaxWiresInCluster:    10     # max allowable wires in a cluster
-  MaxClusterSpan:       50     # max allowable time-ticks of a cluster
-  #ClustMatchMinOverlap: 0.7    # minimum fractional overlap to be eligible for matching
-  ClustMatchSigmaFact:  0.5    # cluster dT < factor*sigmaT (charge-weighted mean time)
-  ClustMatchMaxTicks:   2      # max extent to match clusters [ticks]
-  ClustMatchMinOverlap: [ 0.6, 0.7 ]    # minimum fractional overlap to be eligible for matching
-  #ClustMatchSigmaFact:  [ 0.6, 0.4 ]    # cluster dT < factor*sigmaT (charge-weighted mean time)
-  #ClustMatchMaxTicks:   [ 2.0, 2.0 ]    # max extent to match clusters [ticks]
-  TimeOffsets:          [ 0.15, 0.15,  0 ]  # hit time offsets per plane [ticks]
-  PickyBlips:           false  # require 3 planes that all intersect at same point (+/- 5 cm)
-  ApplyTrkCylinderCut:  false  # reject hits in track cone-cylinder regions
-  CylinderRadius:       15.    # cylinder cut radius [cm]
+  CaloPlane:            2               # plane used for calorimetry (2=collection)
+  dEdx:                 2.0             # assumed dE/dx for recombination corrections
+  MaxHitTrkLength:      5.0             # hits in trks > this length will be vetoed [cm]
+  DoHitFiltering:       true            # filter hits based on amp, width, RMS
+  MaxHitAmp:            200             # max allowable hit amplitude [ADC]
+  MinHitRMS:            [ 0,  0,  0  ]  # minimum hit RMS perp lane [ticks]
+  MaxHitRMS:            [ 30, 30, 30 ]  # maximum hit RMS per plane [ticks]
+  HitClustWidthFact:    2.0             # distance scale when clustering hits (xRMS)
+  HitClustWireRange:    1               # look N wires away when clustering hits
+  MaxWiresInCluster:    10              # max allowable wires in a cluster
+  MaxClusterSpan:       50              # max allowable time-ticks of a cluster
+  TimeOffsets:          [0.15,0.15,0]   # hit time offsets per plane [ticks]
+  ClustMatchMinOverlap: 0.5             # minimum fractional overlap to be eligible for matching
+  ClustMatchSigmaFact:  1.0             # cluster dT < factor*sigmaT (charge-weighted mean time)
+  ClustMatchMaxTicks:   5               # max extent to match clusters [ticks]
+  ClustMatchMaxQRatio:  4               # max allowed charge ratio of two clusters to be matched
+  ClustMatchQDiffLimit: 10e3            # clusters w/charge-diff > this will be subject to QRatio cut [e-]
+  PickyBlips:           false           # require 3 planes that all intersect at ~same point
+  ApplyTrkCylinderCut:  false           # reject hits in track cone-cylinder regions
+  CylinderRadius:       15              # cylinder cut radius [cm]
 }
 
 microboone_blipalg_data:              @local::microboone_blipalg
-#microboone_blipalg_data.TimeOffsets:  [ 0.15, 0.15, 0 ]
 microboone_blipalg_data.CaloAlg:	    @local::microboone_calo_mcc9_data
 
 microboone_blipalg_fullmc:            @local::microboone_blipalg
@@ -74,10 +73,18 @@ microboone_blipana:
   SaveHitInfo:        false
   SaveClustInfo:      true
   SaveEventTree:      true
-  SaveBlipTree:       true
+  SaveBlipTree:       false
   #DebugMode: true
 }
 
+# Drop truth and cluster info from TTree for data
+# to reduce output file size
+microboone_blipana_data:                @local::microboone_blipana
+microboone_blipana_data.BlipAlg:        @local::microboone_blipalg_data
+microboone_blipana_data.SaveHitInfo:    false
+microboone_blipana_data.SaveTruthInfo:  false
+microboone_blipana_data.SaveBlipTree:   true
+#microboone_blipana_data.SavePlaneInfo:  [ false, false, true ]
 
 # ===============================================
 # TrackMasker settings
