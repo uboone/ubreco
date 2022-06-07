@@ -2,8 +2,7 @@
 #include "particleinventoryservice.fcl"
 #include "services_microboone.fcl"
 #include "calorimetry_microboone.fcl"
-#include "triggeralgo_service.fcl"
-#include "cosmicfilter.fcl"
+#include "time_memory_tracker_microboone.fcl"
 #include "blipreco_configs.fcl"
 
 process_name: BlipAna
@@ -21,6 +20,7 @@ services:
   DetectorClocksService:    @local::microboone_detectorclocks
   Geometry:                 @local::microboone_geo
   LArProperties:            @local::microboone_properties
+  TimeTracker:              @local::microboone_time_tracker
 }
 
 # Enable BackTracker to work on overlay MC
@@ -54,11 +54,6 @@ source: {
 # Define and schedule filter/producer/analyzers
 physics:
 {
-  
-  #producers:{
-    #trackmasker:        @local::microboone_trackmasker
-    #cosmicfilter:       @local::CosmicFilter
-  #}
   
   analyzers:{
     blipana:          @local::microboone_blipana

@@ -1,4 +1,3 @@
 #include "run_blipana.fcl"
 
-physics.analyzers.blipana.BlipAlg:        @local::microboone_blipalg_data
-physics.analyzers.blipana.SaveTruthInfo:  false
+physics.analyzers.blipana:        @local::microboone_blipana_data

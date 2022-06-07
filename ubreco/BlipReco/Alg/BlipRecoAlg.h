@@ -35,7 +35,6 @@
 #include "lardataobj/AnalysisBase/BackTrackerMatchingData.h"
 #include "larsim/MCCheater/ParticleInventoryService.h"
 #include "larcore/Geometry/Geometry.h"
-#include "lardataobj/AnalysisBase/Calorimetry.h"
 #include "larreco/Calorimetry/CalorimetryAlg.h"
 
 // Microboone includes
@@ -57,6 +56,7 @@
 #include <iostream>
 #include <memory>
 #include <math.h>
+#include <limits>
 
 
 namespace blip {
@@ -100,33 +100,40 @@ namespace blip {
     std::vector<float>  fMaxHitGOF;
     float               fHitClustWidthFact;
     int                 fHitClustWireRange;
+    float               fMatchQDiffLimit;
+    float               fMatchMaxQRatio;
     std::vector<float>  fTimeOffsets;
-    std::vector<float>  fClustMatchMinOverlap;
-    //std::vector<float>  fClustMatchSigmaFact;
-    //std::vector<float>  fClustMatchMaxTicks;
-    //float               fClustMatchMinOverlap;
-    float               fClustMatchSigmaFact;
-    float               fClustMatchMaxTicks;
+    float               fMatchMinOverlap;
+    float               fMatchSigmaFact;
+    float               fMatchMaxTicks;
     int                 fMaxWiresInCluster;
+    float               fMinClusterCharge;
     float               fMaxClusterSpan;
     int                 fCaloPlane;
     bool                fPickyBlips;
     
     bool                fApplyTrkCylinderCut;
     float               fCylinderRadius; 
-    
+   
+    float               fdEdx;
+
     // --- Calorimetry alg ---
     calo::CalorimetryAlg*   fCaloAlg;
   
     // --- Histograms ---
     TH1D*   h_clust_nwires;
     TH1D*   h_clust_timespan;
+    TH1D*   h_blip_maxdt;
+    TH1D*   h_blip_picky_maxdt;
     TH1D*   h_clust_overlap[kNplanes];
     TH1D*   h_clust_dt[kNplanes];
     TH1D*   h_clust_dtfrac[kNplanes];
+    TH2D*   h_clust_q[kNplanes]; 
+    TH2D*   h_clust_q_cut[kNplanes]; 
     TH1D*   h_clust_picky_overlap[kNplanes];
     TH1D*   h_clust_picky_dt[kNplanes];
     TH1D*   h_clust_picky_dtfrac[kNplanes];
+    TH2D*   h_clust_picky_q[kNplanes]; 
     TH1D*   h_clust_score[kNplanes];
     TH1D*   h_clust_picky_score[kNplanes];
     TH1D*   h_nmatches[kNplanes];

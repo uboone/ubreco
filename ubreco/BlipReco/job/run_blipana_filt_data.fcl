@@ -1,8 +1,6 @@
 #include "run_blipana_filt.fcl"
 
-physics.analyzers.blipana.BlipAlg:                @local::microboone_blipalg_data
-physics.analyzers.blipana.SaveTruthInfo:          false
+physics.analyzers.blipana:          @local::microboone_blipana_data
 
-physics.analyzers.blipanaTrkMask.BlipAlg:         @local::microboone_blipalg_data
+physics.analyzers.blipanaTrkMask:   @local::microboone_blipana_data
 physics.analyzers.blipanaTrkMask.BlipAlg.HitProducer: "trackmasker"
-physics.analyzers.blipanaTrkMask.SaveTruthInfo:   false
