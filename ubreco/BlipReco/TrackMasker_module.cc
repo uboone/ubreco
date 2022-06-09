@@ -92,8 +92,8 @@ private:
   
   // TODO: remove these hard-coded conversion values
   float pitch        = 0.3;    // cm
-  float samplePeriod = 0.5;    // us
-  float driftSpeed   = 0.1041; // cm/us
+  //float samplePeriod = 0.5;    // us
+  //float driftSpeed   = 0.1041; // cm/us
 
 };
 
@@ -217,8 +217,11 @@ void TrackMasker::produce(art::Event & e)
     
     // calculate wire-time coordinates of every hit so we aren't
     // repeating these calculations a bunch of times later on
+    auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+    double samplePeriod = lar::providerFrom<detinfo::DetectorClocksService>()->TPCClock().TickPeriod();
+    double driftVel     = detProp->DriftVelocity(detProp->Efield(0),detProp->Temperature()); 
     float w = hitlist[h]->WireID().Wire * pitch;
-    float t = hitlist[h]->PeakTime() * samplePeriod * driftSpeed;
+    float t = hitlist[h]->PeakTime() * samplePeriod * driftVel;
     wtpoint.at(h).Set(w,t);
     
     if( !hitIsVetoed[h] ) planehitmap[hitlist[h]->WireID().Plane].push_back(h);

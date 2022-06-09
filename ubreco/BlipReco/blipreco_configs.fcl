@@ -37,11 +37,8 @@ microboone_blipalg:
   dEdx:                 2.0             # assumed dE/dx for recombination corrections
   MaxHitTrkLength:      5.0             # hits in trks > this length will be vetoed [cm]
   DoHitFiltering:       true            # filter hits based on amp, width, RMS
-  MaxHitAmp:            200             # max allowable hit amplitude [ADC]
-  MinHitRMS:            [ 0,  0,  0  ]  # minimum hit RMS perp lane [ticks]
-  MaxHitRMS:            [ 30, 30, 30 ]  # maximum hit RMS per plane [ticks]
-  HitClustWidthFact:    2.0             # distance scale when clustering hits (xRMS)
-  HitClustWireRange:    1               # look N wires away when clustering hits
+  MaxHitMult:           5               # max hits allowed in pulse train 
+  HitClustWireRange:    2               # look N wires away when clustering hits
   MaxWiresInCluster:    10              # max allowable wires in a cluster
   MaxClusterSpan:       50              # max allowable time-ticks of a cluster
   TimeOffsets:          [0.15,0.15,0]   # hit time offsets per plane [ticks]
@@ -69,7 +66,7 @@ microboone_blipana:
   module_type:        "BlipAna"
   BlipAlg:            @local::microboone_blipalg
   SaveTruthInfo:      true
-  SaveTrkInfo:        true 
+  SaveTrkInfo:        false
   SaveHitInfo:        false
   SaveClustInfo:      true
   SaveEventTree:      true
@@ -94,7 +91,7 @@ microboone_trackmasker:
   HitProducer:        "gaushit" 
   TrkProducer:        "pandora"
   MinTrkLength:       5   # cm
-  MinTrkLengthVeto:   10  # cm
+  MinTrkLengthVeto:   15  # cm
   VetoRadius:         15  # cm
 }
 

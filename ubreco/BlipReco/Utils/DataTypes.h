@@ -4,12 +4,12 @@
 
 #include <vector>
 
-typedef std::vector<int> vint_t;
-typedef std::vector<bool> vbool_t;
-typedef std::vector<float> vfloat_t;
-typedef std::set<int> si_t;
-typedef std::map<int,float> mif_t;
-typedef std::map<float,float> mff_t;
+typedef std::vector<int>        vint_t;
+typedef std::vector<bool>       vbool_t;
+typedef std::vector<float>      vfloat_t;
+typedef std::set<int>           si_t;
+typedef std::map<int,float>     mif_t;
+typedef std::map<float,float>   mff_t;
 
 const int kNplanes  = 3;  
 
@@ -92,6 +92,8 @@ namespace blip {
     float   LeadHitTime     = -999;
     int     LeadHitWire     = -999;
     int     LeadHitChan     = -999;
+    float   CentHitTime     = -999;
+    int     CentHitChan     = -999;
     int     ID              = -9;
     bool    isMerged        = false;
     bool    isMatched       = false;
@@ -103,6 +105,8 @@ namespace blip {
     float   Charge          = -999;
     float   Time            = -999;
     float   TimeErr         = -999;
+    float   StartHitTime    = -999;
+    float   EndHitTime      = -999;
     float   StartTime       = -999;
     float   EndTime         = -999;
     float   Timespan        = -999;
@@ -116,6 +120,9 @@ namespace blip {
     si_t    HitIDs;
     si_t    Wires;
     std::map<int,TVector3> IntersectLocations;
+    
+    vfloat_t  HitTimes;
+    vint_t    HitChans;
   };
 
   struct Blip {
@@ -127,7 +134,6 @@ namespace blip {
     float     Energy          = -999;       // Energy (const dE/dx, fcl-configurable)
     float     EnergyESTAR     = -999;       // Energy (ESTAR method from ArgoNeuT)
     float     Time            = -999;       // Drift time [ticks]
-    float     Timespan        = -999;       // time span of longest cluster [ticks]
     float     TrkDist         = -9;         // Distance to cloest track
     int       TrkID           = -9;         // ID of closest track
     bool      inCylinder      = false;      // Is it in a cone/cylinder region? 
@@ -136,7 +142,11 @@ namespace blip {
     float     Y               = -999;       // Reconstructed Y [cm]
     float     Z               = -999;       // Reconstructed Z [cm]
     float     SigmaYZ         = -9.;
-    
+    int       MaxWireSpan     = -9;
+    float     dX              = -9;
+    float     dYZ             = -9;
+    float     Length          = -9;
+
     // Plane/cluster-specific information
     blip::HitClust clusters[kNplanes];
     float   Match_dT[kNplanes];
