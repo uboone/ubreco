@@ -80,7 +80,7 @@ namespace blip {
     std::vector<blip::Blip>         blips;  
     std::vector<blip::TrueBlip>     trueblips;
     std::vector<blip::ParticleInfo> pinfo;
-
+    
    private:
     
     // --- FCL configs ---
@@ -93,11 +93,15 @@ namespace blip {
     float               fTrueBlipMergeDist;
     bool                fDoHitFiltering;
     float               fMaxHitTrkLength;
-    float               fMaxHitAmp;
+    std::vector<float>  fMinHitAmp;
+    std::vector<float>  fMaxHitAmp;
     std::vector<float>  fMinHitRMS;
     std::vector<float>  fMaxHitRMS;
     std::vector<float>  fMinHitGOF;
     std::vector<float>  fMaxHitGOF;
+    std::vector<float>  fMinHitRatio;
+    std::vector<float>  fMaxHitRatio;
+    int                 fMaxHitMult;
     float               fHitClustWidthFact;
     int                 fHitClustWireRange;
     float               fMatchQDiffLimit;
@@ -106,6 +110,7 @@ namespace blip {
     float               fMatchMinOverlap;
     float               fMatchSigmaFact;
     float               fMatchMaxTicks;
+    //int                 fMatchMaxCandidates;
     int                 fMaxWiresInCluster;
     float               fMinClusterCharge;
     float               fMaxClusterSpan;

@@ -3,6 +3,18 @@
 namespace BlipUtils {
 
   //============================================================================
+  /*
+  void InitializeDetProps(){
+    auto const* detProp   = lar::providerFrom<detinfo::DetectorPropertiesService>();
+    _samplePeriod  = lar::providerFrom<detinfo::DetectorClocksService>()->TPCClock().TickPeriod();
+    _driftVelocity = detProp->DriftVelocity(detProp->Efield(0),detProp->Temperature()); 
+    _tick_to_cm    = _samplePeriod * _driftVelocity;
+    for(size_t i=0; i<kNplanes; i++) 
+      _wirePitch[i] = art::ServiceHandle<geo::Geometry>()->WirePitch(i);
+  }
+  */
+  
+  //============================================================================
   // Find total visible energy deposited in the LAr, and number of electrons deposited
   // and drifted to the anode.
   void CalcTotalDep(float& energy, int& ne_dep, float& ne_anode, SEDVec_t& sedvec){
@@ -232,7 +244,6 @@ namespace BlipUtils {
     hc.HitIDs       .insert(hitinfo.hitid);
     hc.Wires        .insert(hitinfo.wire);
     hc.NHits        = hc.HitIDs.size();
-    hc.NWires       = hc.Wires.size();
     hc.ADCs         = hitinfo.Hit->Integral();
     hc.Charge       = (hitinfo.charge > 0)? hitinfo.charge : 0;
     hc.Time         = hitinfo.driftTime;
@@ -242,8 +253,15 @@ namespace BlipUtils {
     hc.Timespan     = hc.EndTime - hc.StartTime;
     hc.StartWire    = hitinfo.wire;
     hc.EndWire      = hitinfo.wire; 
+    hc.NWires       = 1;
     hc.isMerged     = false;
     hc.isMatched    = false;
+    
+    hc.HitTimes     .push_back(hitinfo.driftTime);
+    hc.HitChans     .push_back(hitinfo.chan);
+    hc.CentHitTime  = hitinfo.driftTime;
+    hc.CentHitChan  = hitinfo.chan;
+    
     return hc;
   }
 
@@ -253,11 +271,11 @@ namespace BlipUtils {
     if( hitinfo.plane != hc.Plane ) return;
     if( hc.HitIDs.find(hitinfo.hitid) != hc.HitIDs.end() ) return;
     hc.HitIDs     .insert(hitinfo.hitid);
-    hc.Wires      .insert(hitinfo.wire);
     hc.NHits      = hc.HitIDs.size();
-    hc.NWires     = hc.Wires.size();
+    hc.Wires      .insert(hitinfo.wire);
     hc.StartWire  = *hc.Wires.begin();
     hc.EndWire    = *hc.Wires.rbegin();
+    hc.NWires     = 1 + (hc.EndWire-hc.StartWire);
     hc.ADCs       += hitinfo.Hit->Integral();
     hc.Charge     += hitinfo.charge;
     if( hitinfo.charge > hc.LeadHitCharge ) {
@@ -286,12 +304,24 @@ namespace BlipUtils {
     float err_sumSq = w1*pow(tw-t1,2) + w2*pow(tw-t2,2);
     hc.Time     = tw;
     hc.TimeErr  = sqrt( sig_sumSq + err_sumSq );
+    //hc.TimeErr  = std::min( fabs(hc.Time-hc.StartTime), fabs(hc.Time-hc.EndTime) );
+   
+    hc.HitTimes   .push_back(hitinfo.driftTime);
+    hc.HitChans   .push_back(hitinfo.chan);
+    for(size_t i=0; i<hc.HitTimes.size(); i++){
+      float dt = fabs(hc.HitTimes.at(i)-hc.Time);
+      if( dt < fabs(hc.CentHitTime-hc.Time) ) {
+        hc.CentHitTime = hc.HitTimes.at(i);
+        hc.CentHitChan = hc.HitChans.at(i);
+      }
+    }
+  
   }
 
   //=================================================================
   blip::HitClust MergeHitClusts(blip::HitClust& hc1, blip::HitClust& hc2){
-    float q1      = hc1.Charge;
-    float q2      = hc2.Charge;
+    float q1  = hc1.Charge;
+    float q2  = hc2.Charge;
     blip::HitClust hc = hc1;
     if( (hc1.TPC != hc2.TPC)||(hc1.Plane != hc2.Plane) ) return hc;
     hc1.isMerged = true;
@@ -299,9 +329,9 @@ namespace BlipUtils {
     hc.HitIDs     .insert(hc2.HitIDs.begin(),     hc2.HitIDs.end());
     hc.Wires      .insert(hc2.Wires.begin(),      hc2.Wires.end());
     hc.NHits      = hc.HitIDs.size();
-    hc.NWires     = hc.Wires.size();
     hc.StartWire  = *hc.Wires.begin();
     hc.EndWire    = *hc.Wires.rbegin();
+    hc.NWires     = 1 + (hc.EndWire-hc.StartWire);
     hc.ADCs       += hc2.ADCs;
     hc.Charge     += hc2.Charge;
     if( hc2.LeadHitCharge > hc.LeadHitCharge ) {
@@ -328,6 +358,17 @@ namespace BlipUtils {
     float err_sumSq = w1*pow(tw-t1,2) + w2*pow(tw-t2,2);
     hc.Time     = tw;
     hc.TimeErr  = sqrt( sig_sumSq + err_sumSq );
+   // hc.TimeErr  = std::min( fabs(hc.Time-hc.StartTime), fabs(hc.Time-hc.EndTime) );
+    
+    hc.HitTimes   .insert(hc.HitTimes.end(),hc2.HitTimes.begin(),hc2.HitTimes.end());
+    hc.HitChans   .insert(hc.HitChans.end(),hc2.HitChans.begin(),hc2.HitChans.end());
+    for(size_t i=0; i<hc.HitTimes.size(); i++){
+      float dt = fabs(hc.HitTimes.at(i)-hc.Time);
+      if( dt < fabs(hc.CentHitTime-hc.Time) ) {
+        hc.CentHitTime = hc.HitTimes.at(i);
+        hc.CentHitChan = hc.HitChans.at(i);
+      }
+    }
     
     return hc;
   }
@@ -335,11 +376,13 @@ namespace BlipUtils {
   //=================================================================
   blip::Blip MakeBlip( std::vector<blip::HitClust> const& hcs){
     
-    blip::Blip newblip;
+    blip::Blip  newblip;
     
+    // ------------------------------------------------
     // Must be 1-3 clusts (no more, no less!)
     if( hcs.size() > 3  || hcs.size() < 1 ) return newblip;
 
+    // ------------------------------------------------
     // All hits must be in same TPC, and no 2 planes can be repeated
     std::set<int> planeIDs;
     for(size_t i=0; i<hcs.size(); i++) {
@@ -352,25 +395,41 @@ namespace BlipUtils {
     
     newblip.TPC     = hcs[0].TPC;
     newblip.NPlanes = planeIDs.size();
-    
-    // detector properties
-    auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    double samplePeriod = lar::providerFrom<detinfo::DetectorClocksService>()->TPCClock().TickPeriod();
-    double driftVel     = detProp->DriftVelocity(detProp->Efield(0),detProp->Temperature()); //*fudgeFact?
+   
+    // ------------------------------------------------
+    // detector properties initialization
+    //if( _tick_to_cm < 0 ) InitializeDetProps();
+    auto const* detProp   = lar::providerFrom<detinfo::DetectorPropertiesService>();
+    double samplePeriod  = lar::providerFrom<detinfo::DetectorClocksService>()->TPCClock().TickPeriod();
+    double driftVelocity = detProp->DriftVelocity(detProp->Efield(0),detProp->Temperature()); 
+    double tick_to_cm    = samplePeriod * driftVelocity;
 
+    // ------------------------------------------------
     // Mean drift time and X-position 
     newblip.Time = 0;
+    float t_min = 99e9;
+    float t_max = -99e9;
     for(auto hc : hcs ) {
-      newblip.Time  += hc.Time / float(hcs.size());
-      if( hc.Timespan > newblip.Timespan ) newblip.Timespan = hc.Timespan;
+      newblip.Time      += hc.Time / float(hcs.size());
+      t_min = std::min( t_min, hc.StartTime );
+      t_max = std::max( t_max, hc.EndTime   );
     }
-    newblip.X = newblip.Time * samplePeriod * driftVel;
+    newblip.X         = newblip.Time  * tick_to_cm;
+    newblip.dX        = (t_max-t_min) * tick_to_cm;
     
-    // Look for valid wire intersections and calculate
-    // the mean Y/Z position from these
+    // ------------------------------------------------
+    // Look for valid wire intersections between 
+    // central-most hits in each cluster
     std::vector<TVector3> wirex;
     for(size_t i=0; i<hcs.size(); i++) {
       int pli = hcs[i].Plane;
+      
+      // use view with the maximal wire extent to calculate transverse (YZ) length
+      if( hcs[i].NWires > newblip.MaxWireSpan ) {
+        newblip.MaxWireSpan = hcs[i].NWires;
+        newblip.dYZ         = hcs[i].NWires * art::ServiceHandle<geo::Geometry>()->WirePitch(i);
+      }
+  
       for(size_t j=i+1; j<hcs.size(); j++){
         int plj = hcs[j].Plane;
           
@@ -379,13 +438,11 @@ namespace BlipUtils {
         // If this was already calculated, use that
         if( hcs[i].IntersectLocations.count(hcs[j].ID) ) {
           match3d = true;
-
           y = hcs[i].IntersectLocations.find(hcs[j].ID)->second.Y();
           z = hcs[i].IntersectLocations.find(hcs[j].ID)->second.Z();
-          //z = hcs[i].IntersectLocations[hcs[j].ID].second.Z();
         } else {
           match3d = art::ServiceHandle<geo::Geometry>()
-            ->ChannelsIntersect(hcs[i].LeadHitChan,hcs[j].LeadHitChan,y,z);
+            ->ChannelsIntersect(hcs[i].CentHitChan,hcs[j].CentHitChan,y,z);
         }
 
         if( match3d ) {
@@ -406,9 +463,12 @@ namespace BlipUtils {
 
     // Loop over the intersection points and calculate average position
     for(auto& v : wirex ) newblip.Position += v * (1./wirex.size());
-    newblip.Y = newblip.Position.Y();
-    newblip.Z = newblip.Position.Z();
+    newblip.Y     = newblip.Position.Y();
+    newblip.Z     = newblip.Position.Z();
     
+    // Calculate "length"
+    newblip.Length= sqrt( pow(newblip.dYZ,2) + pow(newblip.dX,2) );
+
     // Calculate uncertainty in YZ coordinate if possible
     if( wirex.size() >= 2 ) {
       newblip.SigmaYZ = 0.;
@@ -423,7 +483,6 @@ namespace BlipUtils {
     return newblip;
     
   }
-
 
 
   //====================================================================
@@ -478,20 +537,16 @@ namespace BlipUtils {
   //====================================================================
   // Calculates the level of time overlap between two clusters
   float CalcHitClustsOverlap(blip::HitClust const& hc1, blip::HitClust const& hc2){
-    float overlap_frac = -1;
-      
-    if( hc1.TPC == hc2.TPC && DoHitClustsOverlap(hc1,hc2) ) {
-      float x1 = hc1.StartTime;
-      float x2 = hc1.EndTime;
-      float y1 = hc2.StartTime;
-      float y2 = hc2.EndTime;
-      float full_range  = std::max(x2,y2) - std::min(x1,y1);
-      float sum         = (x2-x1) + (y2-y1);
-      float overlap     = std::max(float(0), sum - full_range);
-      if( overlap > 0 ) overlap_frac = 2. * overlap / sum;
-    }
-    
-    return overlap_frac;
+    return CalcOverlap(hc1.StartTime,hc1.EndTime,hc2.StartTime,hc2.EndTime);
+  }
+
+  float CalcOverlap(const float& x1, const float& x2, const float& y1, const float& y2){
+    float full_range = std::max(x2,y2) - std::min(x1,y1);
+    float sum        = (x2-x1) + (y2-y1);
+    float overlap    = std::max(float(0), sum-full_range);
+    //if( overlap > 0 ) return overlap / full_range; //(0.5*sum)
+    if( overlap > 0 ) return 2. * overlap / sum;
+    else              return -1;
   }
 
   //====================================================================
