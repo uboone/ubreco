@@ -82,7 +82,10 @@ namespace BlipUtils {
 
     // Pathlength (in AV) and start/end point
     pinfo.pathLength  = PathLength( part, pinfo.startPoint, pinfo.endPoint);
-    
+
+    // Central position of trajectory
+    pinfo.position    = 0.5*(pinfo.startPoint+pinfo.endPoint);
+
     // Energy/charge deposited by this particle, found using SimEnergyDeposits 
     pinfo.depEnergy     = 0;
     pinfo.depElectrons  = 0;
@@ -155,30 +158,39 @@ namespace BlipUtils {
 
     // Check that path length isn't zero
     if( !pinfo.pathLength ) return;
-    
+
     // If this is a new blip, initialize
-    if( tblip.G4IDs.size() == 0 ) {
-      tblip.StartPoint  = pinfo.startPoint;
+    if( !tblip.G4EnergyMap.size() ) {
+      tblip.Position    = pinfo.position;
       tblip.Time        = pinfo.time;
-    } 
     
-    // Check that the particle creation time isn't too much
-    // different from the original blip
-    if ( fabs(tblip.Time - pinfo.time) > 3 ) return; 
-    
-    tblip.G4IDs       .push_back(part.TrackId());
-    tblip.PDGs       .push_back(part.PdgCode());
+    // .. otherwise, check that the new particle
+    // creation time is comparable to existing blip.
+    // then calculate new energy-weighted position.
+    } else if ( fabs(tblip.Time-pinfo.time) < 3 ) {
+      float totE = tblip.Energy + pinfo.depEnergy;
+      float w1 = tblip.Energy/totE;
+      float w2 = pinfo.depEnergy/totE;
+      tblip.Position    = w1*tblip.Position + w2*pinfo.position;
+      tblip.Time        = w1*tblip.Time     + w2*pinfo.time;
+      tblip.LeadEnergy  = pinfo.depEnergy;
+  
+    // ... if the particle isn't a match, show's over
+    } else {
+      return;
+    }
+
     tblip.Energy      += pinfo.depEnergy;
     tblip.DepElectrons+= pinfo.depElectrons;
     tblip.NumElectrons+= pinfo.numElectrons;
-    tblip.EndPoint    = pinfo.endPoint;
-    tblip.Position    = (tblip.StartPoint + tblip.EndPoint)*0.5;
-    tblip.Length      += pinfo.pathLength;
+
+    tblip.G4EnergyMap[part.TrackId()] += pinfo.depEnergy;
+    tblip.G4PDGMap[part.TrackId()]    = part.PdgCode();
     if(pinfo.depEnergy > tblip.LeadEnergy ) {
-      tblip.LeadEnergy = pinfo.depEnergy;
-      tblip.LeadG4ID = part.TrackId();
+      tblip.LeadEnergy  = pinfo.depEnergy;
+      tblip.LeadG4ID    = part.TrackId();
       tblip.LeadG4Index = pinfo.index;
-      tblip.LeadG4PDG = part.PdgCode();
+      tblip.LeadG4PDG   = part.PdgCode();
     }
   }
 
@@ -189,6 +201,7 @@ namespace BlipUtils {
     if( dmin <= 0 ) return;
     std::vector<blip::TrueBlip> vtb_merged;
     std::vector<bool> isGrouped(vtb.size(),false);
+    
     for(size_t i=0; i<vtb.size(); i++){
       if( isGrouped.at(i) ) continue;
       else isGrouped.at(i) = true;
@@ -203,16 +216,18 @@ namespace BlipUtils {
         float d = (blip_i.Position-blip_j.Position).Mag();
         if( d < dmin ) {
           isGrouped.at(j) = true;
+          float totE = blip_i.Energy + blip_j.Energy;
+          float w1 = blip_i.Energy/totE;
+          float w2 = blip_j.Energy/totE;
           blip_i.Energy       += blip_j.Energy;
           blip_i.DepElectrons += blip_j.DepElectrons;
           blip_i.NumElectrons += blip_j.NumElectrons;
-          blip_i.EndPoint = blip_j.EndPoint;
-          blip_i.Position = (blip_i.EndPoint+blip_i.StartPoint)*0.5;
-          blip_i.Length   = (blip_i.EndPoint-blip_i.StartPoint).Mag();
-          for(size_t kk=0; kk<blip_j.G4IDs.size(); kk++)
-            blip_i.G4IDs.push_back(blip_j.G4IDs.at(kk)); 
-          for(size_t kk=0; kk<blip_j.PDGs.size(); kk++)
-            blip_i.PDGs.push_back(blip_j.PDGs.at(kk));
+          blip_i.Position     = w1*blip_i.Position + w2*blip_j.Position;
+          blip_i.Time         = w1*blip_i.Time     + w2*blip_j.Time; 
+          
+          blip_i.G4EnergyMap.insert(blip_j.G4EnergyMap.begin(), blip_j.G4EnergyMap.end());
+          blip_i.G4PDGMap.insert(blip_j.G4PDGMap.begin(), blip_j.G4PDGMap.end());
+          
           if( blip_j.LeadEnergy > blip_i.LeadEnergy ) {
             blip_i.LeadEnergy = blip_j.LeadEnergy;
             blip_i.LeadG4ID = blip_j.LeadG4ID;
@@ -231,12 +246,10 @@ namespace BlipUtils {
   //=================================================================
   blip::HitClust MakeHitClust(blip::HitInfo const& hitinfo){
     blip::HitClust hc;
-    hc.LeadHit      = hitinfo.Hit;
-    hc.LeadHitCharge= hitinfo.charge;
-    hc.LeadHitID    = hitinfo.hitid;
-    hc.LeadHitTime  = hitinfo.driftTime;
-    hc.LeadHitWire  = hitinfo.wire;
-    hc.LeadHitChan  = hitinfo.chan;
+    //hc.LeadHit      = hitinfo.Hit;
+    //hc.LeadHitCharge= hitinfo.charge;
+    //hc.LeadHitID    = hitinfo.hitid;
+    hc.Amplitude    = hitinfo.Hit->PeakAmplitude();
     hc.TPC          = hitinfo.tpc;
     hc.Plane        = hitinfo.plane;
     hc.G4ID         = hitinfo.g4id;
@@ -259,9 +272,11 @@ namespace BlipUtils {
     
     hc.HitTimes     .push_back(hitinfo.driftTime);
     hc.HitChans     .push_back(hitinfo.chan);
+    hc.HitWires     .push_back(hitinfo.wire);
     hc.CentHitTime  = hitinfo.driftTime;
     hc.CentHitChan  = hitinfo.chan;
-    
+    hc.CentHitWire  = hitinfo.wire;
+
     return hc;
   }
 
@@ -279,17 +294,21 @@ namespace BlipUtils {
     hc.ADCs       += hitinfo.Hit->Integral();
     hc.Charge     += hitinfo.charge;
     if( hitinfo.charge > hc.LeadHitCharge ) {
-      hc.LeadHit      = hitinfo.Hit;
-      hc.LeadHitID    = hitinfo.hitid;
-      hc.LeadHitCharge= hitinfo.charge;
-      hc.LeadHitTime  = hitinfo.driftTime;
-      hc.LeadHitWire  = hitinfo.wire;
-      if( hitinfo.g4id >= 0 ) hc.G4ID = hitinfo.g4id;
+      hc.LeadHitCharge  = hitinfo.charge;
+      if( hitinfo.g4id >= 0 ) {
+        hc.G4ID   = hitinfo.g4id;
+        hc.G4PDG  = hitinfo.g4pdg;
+      }
+      //hc.LeadHit      = hitinfo.Hit;
+      //hc.LeadHitID    = hitinfo.hitid;
+      //hc.LeadHitTime  = hitinfo.driftTime;
+      //hc.LeadHitWire  = hitinfo.wire;
     }
     hc.StartTime  = std::min(hc.StartTime,hitinfo.driftTime - hitinfo.Hit->RMS());
     hc.EndTime    = std::max(hc.EndTime,  hitinfo.driftTime + hitinfo.Hit->RMS());
     hc.Timespan   = hc.EndTime - hc.StartTime;
-    
+    hc.Amplitude  = std::max(hc.Amplitude, hitinfo.Hit->PeakAmplitude() );
+
     // Central "Time" for cluster is charge-weighted
     float q1 = hc.Charge;
     float q2 = (hitinfo.charge > 0) ? hitinfo.charge : 0;
@@ -297,22 +316,21 @@ namespace BlipUtils {
     float w2 = q2/(q1+q2);
     float t1 = hc.Time;
     float t2 = hitinfo.driftTime;
-    float err1 = hc.TimeErr;
-    float err2 = hitinfo.Hit->RMS();
     float tw = w1*t1 + w2*t2;
-    float sig_sumSq = pow(w1*err1,2) + pow(w2*err2,2);
+    float sig_sumSq = pow(w1*hc.TimeErr,2) + pow(w2*hitinfo.Hit->RMS(),2);
     float err_sumSq = w1*pow(tw-t1,2) + w2*pow(tw-t2,2);
     hc.Time     = tw;
     hc.TimeErr  = sqrt( sig_sumSq + err_sumSq );
-    //hc.TimeErr  = std::min( fabs(hc.Time-hc.StartTime), fabs(hc.Time-hc.EndTime) );
    
     hc.HitTimes   .push_back(hitinfo.driftTime);
     hc.HitChans   .push_back(hitinfo.chan);
+    hc.HitWires   .push_back(hitinfo.wire);
     for(size_t i=0; i<hc.HitTimes.size(); i++){
       float dt = fabs(hc.HitTimes.at(i)-hc.Time);
       if( dt < fabs(hc.CentHitTime-hc.Time) ) {
         hc.CentHitTime = hc.HitTimes.at(i);
         hc.CentHitChan = hc.HitChans.at(i);
+        hc.CentHitWire = hc.HitWires.at(i);
       }
     }
   
@@ -334,31 +352,28 @@ namespace BlipUtils {
     hc.NWires     = 1 + (hc.EndWire-hc.StartWire);
     hc.ADCs       += hc2.ADCs;
     hc.Charge     += hc2.Charge;
-    if( hc2.LeadHitCharge > hc.LeadHitCharge ) {
-      hc.LeadHit      = hc2.LeadHit;
-      hc.LeadHitID    = hc2.LeadHitID;
+    if( hc2.LeadHitCharge > hc1.LeadHitCharge ) {
       hc.LeadHitCharge= hc2.LeadHitCharge;
-      hc.LeadHitTime  = hc2.LeadHitTime;
-      hc.LeadHitWire  = hc2.LeadHitWire;
-      if( hc2.G4ID >= 0 ) hc.G4ID = hc2.G4ID;
+      if( hc2.G4ID >= 0 ) {
+        hc.G4ID   = hc2.G4ID;
+        hc.G4PDG  = hc2.G4PDG; 
+      }
     }
-    hc.StartTime  = std::min(hc.StartTime,hc2.StartTime);
-    hc.EndTime    = std::max(hc.EndTime,hc2.EndTime);
+    hc.StartTime  = std::min(hc1.StartTime,hc2.StartTime);
+    hc.EndTime    = std::max(hc1.EndTime,hc2.EndTime);
     hc.Timespan   = hc.EndTime - hc.StartTime;
+    hc.Amplitude  = std::max(hc1.Amplitude, hc2.Amplitude);
     
     // Central "Time" for cluster is charge-weighted
     float w1 = q1/(q1+q2);
     float w2 = q2/(q1+q2);
     float t1 = hc1.Time;
     float t2 = hc2.Time;
-    float err1 = hc1.TimeErr;
-    float err2 = hc2.TimeErr;
     float tw = w1*t1 + w2*t2;
-    float sig_sumSq = pow(w1*err1,2) + pow(w2*err2,2);
+    float sig_sumSq = pow(w1*hc1.TimeErr,2) + pow(w2*hc2.TimeErr,2);
     float err_sumSq = w1*pow(tw-t1,2) + w2*pow(tw-t2,2);
     hc.Time     = tw;
     hc.TimeErr  = sqrt( sig_sumSq + err_sumSq );
-   // hc.TimeErr  = std::min( fabs(hc.Time-hc.StartTime), fabs(hc.Time-hc.EndTime) );
     
     hc.HitTimes   .insert(hc.HitTimes.end(),hc2.HitTimes.begin(),hc2.HitTimes.end());
     hc.HitChans   .insert(hc.HitChans.end(),hc2.HitChans.begin(),hc2.HitChans.end());
@@ -367,6 +382,7 @@ namespace BlipUtils {
       if( dt < fabs(hc.CentHitTime-hc.Time) ) {
         hc.CentHitTime = hc.HitTimes.at(i);
         hc.CentHitChan = hc.HitChans.at(i);
+        hc.CentHitWire = hc.HitWires.at(i);
       }
     }
     
