@@ -40,27 +40,26 @@ namespace blip {
     float time              = -9;
     float endtime           = -9;
     TVector3 startPoint;      
-    TVector3 endPoint;      
+    TVector3 endPoint;
+    TVector3 position;
   };
   
   struct TrueBlip {
     int       ID            = -9;
     bool      isValid       = false;
     int       TPC           = -9;
-    int       LeadG4ID      = -9;
-    int       LeadG4Index   = -9;
-    int       LeadG4PDG     = -9;
-    float     LeadEnergy    = -9;
     float     Energy        = 0;
     int       DepElectrons  = 0;
     float     NumElectrons  = 0; // (post-drift)
     float     Length        = 0;
     float     Time          = -999e9;
+    int       LeadG4ID      = -9;
+    int       LeadG4Index   = -9;
+    int       LeadG4PDG     = -9;
+    float     LeadEnergy    = -9;
+    mif_t     G4EnergyMap;
+    mif_t     G4PDGMap;
     TVector3  Position;
-    TVector3  StartPoint;
-    TVector3  EndPoint;
-    vint_t      G4IDs;
-    vint_t      PDGs;
   };
 
   struct HitInfo {
@@ -86,15 +85,16 @@ namespace blip {
   };
   
   struct HitClust {
-    art::Ptr<recob::Hit>  LeadHit;
-    int     LeadHitID       = -999;
+    //art::Ptr<recob::Hit>  LeadHit;
+    //int     LeadHitID       = -999;
     float   LeadHitCharge   = -999;
-    float   LeadHitTime     = -999;
-    int     LeadHitWire     = -999;
-    int     LeadHitChan     = -999;
+    //float   LeadHitTime     = -999;
+    int     ID              = -9;
+    //int     LeadHitWire     = -999;
+    //int     LeadHitChan     = -999;
     float   CentHitTime     = -999;
     int     CentHitChan     = -999;
-    int     ID              = -9;
+    int     CentHitWire     = -999;
     bool    isMerged        = false;
     bool    isMatched       = false;
     int     TPC             = -9;
@@ -102,6 +102,7 @@ namespace blip {
     int     NHits           = -9;
     int     NWires          = -9;
     float   ADCs            = -999;
+    float   Amplitude       = -999;
     float   Charge          = -999;
     float   Time            = -999;
     float   TimeErr         = -999;
@@ -115,14 +116,15 @@ namespace blip {
     int     BlipID          = -9;
     int     EdepID          = -9;
     int     G4ID            = -9;
-    float   G4Energy        = -9;
     float   G4PDG           = -999;
+    //float   G4Energy        = -9;
     si_t    HitIDs;
     si_t    Wires;
     std::map<int,TVector3> IntersectLocations;
     
     vfloat_t  HitTimes;
     vint_t    HitChans;
+    vint_t    HitWires;
   };
 
   struct Blip {

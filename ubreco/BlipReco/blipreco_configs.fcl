@@ -70,18 +70,12 @@ microboone_blipana:
   SaveHitInfo:        false
   SaveClustInfo:      true
   SaveEventTree:      true
-  SaveBlipTree:       false
-  #DebugMode: true
 }
 
-# Drop truth and cluster info from TTree for data
-# to reduce output file size
 microboone_blipana_data:                @local::microboone_blipana
 microboone_blipana_data.BlipAlg:        @local::microboone_blipalg_data
 microboone_blipana_data.SaveHitInfo:    false
 microboone_blipana_data.SaveTruthInfo:  false
-microboone_blipana_data.SaveBlipTree:   true
-#microboone_blipana_data.SavePlaneInfo:  [ false, false, true ]
 
 # ===============================================
 # TrackMasker settings
