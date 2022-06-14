@@ -213,7 +213,10 @@ class ParticleDump;
       std::string endProc         = particle->EndProcess().c_str();  
       TVector3 loc0               = particle->Position(0).Vect();
       TVector3 locf               = particle->Position(last).Vect();
-      
+      float fracPx                    = particle->Px()/particle->P();
+      float fracPy                    = particle->Py()/particle->P();
+      float fracPz                    = particle->Pz()/particle->P();
+
       if( pdg == 22 && proc == "nCapture" && mother == 1 ) {
         //isNCapture = true;
         NCapture_Point = loc0;
@@ -307,13 +310,14 @@ class ParticleDump;
           //std::string timeString = stream.str();
 
           //printf("  %5i PDG: %11i, dL: %5.1fcm, XYZ: (%7.1f,%7.1f,%7.1f),  KE0: %7.3f, KEf: %7.3f, T0: %8.8s, moth: %5i, %20.20s -->%20.20s, nD: %i\n",
-          printf("  %5i PDG: %11i, dL: %6.1fcm, XYZ: (%7.1f,%7.1f,%7.1f),  KE0: %7.3f, T0: %8.2f us, moth: %5i, %20.20s -->%20.20s, nD: %i\n",
+          printf("  %5i PDG: %11i, dL: %6.1fcm, XYZ: (%7.1f,%7.1f,%7.1f),  dir: (%5.3f, %5.3f, %5.3f), KE0: %7.3f, T0: %7.2f us, moth: %5i, %18.18s -->%18.18s, nD: %i\n",
             trackId,
             pdg,
             dL,
             loc0.X(),
             loc0.Y(),
             loc0.Z(),
+            fracPx, fracPy, fracPz, 
             KE0,
             //KEf,
             T0, //timeString.c_str(),
