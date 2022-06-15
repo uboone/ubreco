@@ -4,8 +4,10 @@ BEGIN_PROLOG
 UBWCFlashFinder:
 {
   module_type: UBWCFlashFinder
-  OpDataProducerBeam: "pmtreadout"
-  OpDataProducerCosmic: "pmtreadout"
+  OpDataLGProducerBeam: "pmtreadout"
+  OpDataHGProducerBeam: "pmtreadout"
+  OpDataLGProducerCosmic: "pmtreadout"
+  OpDataHGProducerCosmic: "pmtreadout"
   OpDataTypes:	  ["OpdetBeamHighGain","OpdetBeamLowGain","OpdetCosmicHighGain","OpdetCosmicLowGain"]
   FlashProducts:	["beam","cosmic"]
   SaturationProducts:	["MergedBeam","MergedCosmic"]

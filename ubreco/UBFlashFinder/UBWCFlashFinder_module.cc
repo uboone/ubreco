@@ -65,8 +65,10 @@ private:
 
   // Declare member data here.
   typedef enum {kBeamHighGain=0,kBeamLowGain,kCosmicHighGain,kCosmicLowGain} OpDiscrTypes;
-  std::string _OpDataProducerBeam;
-  std::string _OpDataProducerCosmic;
+  std::string _OpDataLGProducerBeam;
+  std::string _OpDataHGProducerBeam;
+  std::string _OpDataLGProducerCosmic;
+  std::string _OpDataHGProducerCosmic;
   std::string _OpSatDataProducer;
   std::vector<std::string> _OpDataTypes;
   std::string _TriggerProducer;
@@ -126,8 +128,10 @@ UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
 // :
 // Initialize member data here.
 {
-  _OpDataProducerBeam = p.get<std::string>("OpDataProducerBeam", "pmtreadout" );   // Waveform Module name, to get waveforms
-  _OpDataProducerCosmic = p.get<std::string>("OpDataProducerCosmic", "pmtreadout" );   // Waveform Module name, to get waveforms
+  _OpDataLGProducerBeam = p.get<std::string>("OpDataLGProducerBeam", "pmtreadout" );   // Waveform Module name, to get waveforms
+  _OpDataHGProducerBeam = p.get<std::string>("OpDataHGProducerBeam", "pmtreadout" );   // Waveform Module name, to get waveforms
+  _OpDataLGProducerCosmic = p.get<std::string>("OpDataLGProducerCosmic", "pmtreadout" );   // Waveform Module name, to get waveforms
+  _OpDataHGProducerCosmic = p.get<std::string>("OpDataHGProducerCosmic", "pmtreadout" );   // Waveform Module name, to get waveforms
   _OpSatDataProducer = p.get<std::string>("OpSatDataProducer", "saturation" );   // Saturation corrected waveforms
   _OpDataTypes       = p.get<std::vector<std::string> >("OpDataTypes");
   _flashProducts     = p.get<std::vector<std::string> >("FlashProducts");
@@ -308,13 +312,15 @@ void UBWCFlashFinder::reco_default(art::Event &evt, double &triggerTime){
   art::Handle< std::vector< raw::OpDetWaveform > > wfCLGHandle;
   art::Handle< std::vector< raw::OpDetWaveform > > wfBLGHandle;
 
-  evt.getByLabel( _OpDataProducerBeam, _OpDataTypes[kBeamHighGain], wfBHGHandle);
+  evt.getByLabel( _OpDataHGProducerBeam, _OpDataTypes[kBeamHighGain], wfBHGHandle);
   std::vector<raw::OpDetWaveform> const& opwfms_bhg(*wfBHGHandle);
-  evt.getByLabel( _OpDataProducerBeam, _OpDataTypes[kBeamLowGain], wfBLGHandle);
+  std::cout << "High gain: " << opwfms_bhg.size() << std::endl;
+  evt.getByLabel( _OpDataLGProducerBeam, _OpDataTypes[kBeamLowGain], wfBLGHandle);
   std::vector<raw::OpDetWaveform> const& opwfms_blg(*wfBLGHandle);
-  evt.getByLabel( _OpDataProducerCosmic, _OpDataTypes[kCosmicHighGain], wfCHGHandle);
+  std::cout << "Low gain: " << opwfms_blg.size() << std::endl;
+  evt.getByLabel( _OpDataHGProducerCosmic, _OpDataTypes[kCosmicHighGain], wfCHGHandle);
   std::vector<raw::OpDetWaveform> const& opwfms_chg(*wfCHGHandle);
-  evt.getByLabel( _OpDataProducerCosmic, _OpDataTypes[kCosmicLowGain], wfCLGHandle);
+  evt.getByLabel( _OpDataLGProducerCosmic, _OpDataTypes[kCosmicLowGain], wfCLGHandle);
   std::vector<raw::OpDetWaveform> const& opwfms_clg(*wfCLGHandle);
 
   std::vector<raw::OpDetWaveform> sort_blg;
