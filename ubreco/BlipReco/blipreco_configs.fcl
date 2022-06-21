@@ -37,7 +37,6 @@ microboone_blipalg:
   dEdx:                 2.0             # assumed dE/dx for recombination corrections
   MaxHitTrkLength:      5.0             # hits in trks > this length will be vetoed [cm]
   DoHitFiltering:       true            # filter hits based on amp, width, RMS
-  MaxHitMult:           5               # max hits allowed in pulse train 
   HitClustWireRange:    2               # look N wires away when clustering hits
   MaxWiresInCluster:    10              # max allowable wires in a cluster
   MaxClusterSpan:       50              # max allowable time-ticks of a cluster

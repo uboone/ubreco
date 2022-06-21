@@ -96,7 +96,7 @@ namespace blip {
     fPickyBlips         = pset.get<bool>          ("PickyBlips",        false);
     fApplyTrkCylinderCut= pset.get<bool>          ("ApplyTrkCylinderCut",false);
     fCylinderRadius     = pset.get<float>         ("CylinderRadius",    15);
-    fMaxHitMult         = pset.get<int>               ("MaxHitMult",  5);
+    fMaxHitMult         = pset.get<int>               ("MaxHitMult",  99e9);
     fMinHitRMS          = pset.get<std::vector<float>>  ("MinHitRMS",  {-99e9,-99e9,-99e9});
     fMaxHitRMS          = pset.get<std::vector<float>>  ("MaxHitRMS",  { 99e9, 99e9, 99e9});
     fMinHitAmp          = pset.get<std::vector<float>>  ("MinHitAmp",  {-99e9,-99e9,-99e9});
