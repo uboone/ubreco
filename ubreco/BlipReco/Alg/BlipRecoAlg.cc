@@ -96,7 +96,7 @@ namespace blip {
     fPickyBlips         = pset.get<bool>          ("PickyBlips",        false);
     fApplyTrkCylinderCut= pset.get<bool>          ("ApplyTrkCylinderCut",false);
     fCylinderRadius     = pset.get<float>         ("CylinderRadius",    15);
-    fMaxHitMult         = pset.get<int>               ("MaxHitMult",  99e9);
+    fMaxHitMult         = pset.get<int>               ("MaxHitMult",    9999);
     fMinHitRMS          = pset.get<std::vector<float>>  ("MinHitRMS",  {-99e9,-99e9,-99e9});
     fMaxHitRMS          = pset.get<std::vector<float>>  ("MaxHitRMS",  { 99e9, 99e9, 99e9});
     fMinHitAmp          = pset.get<std::vector<float>>  ("MinHitAmp",  {-99e9,-99e9,-99e9});
@@ -238,7 +238,6 @@ namespace blip {
     std::map<size_t,std::vector<size_t>> trkhitMap;
     for(size_t i=0; i<tracklist.size(); i++) 
       trkindexmap[tracklist.at(i)->ID()] = i;
-
     
 
     //=======================================
@@ -296,19 +295,19 @@ namespace blip {
    
       // find associated track
       if (fmtrk.isValid()){ 
-        if (fmtrk.at(i).size())  hitinfo[i].trkid = trkindexmap[fmtrk.at(i)[0]->ID()];
+        if (fmtrk.at(i).size())  hitinfo[i].trkid = fmtrk.at(i)[0]->ID(); //trkindexmap[fmtrk.at(i)[0]->ID()];
       
         // if the hit collection didn't have associations made
         // to the tracks, try gaushit instead
       } else if (fmtrkGH.isValid()) {
         int gi = map_gh[i];
-        if (fmtrkGH.at(gi).size()) hitinfo[i].trkid=trkindexmap[fmtrkGH.at(gi)[0]->ID()];
+        if (fmtrkGH.at(gi).size()) hitinfo[i].trkid= fmtrkGH.at(gi)[0]->ID(); //trkindexmap[fmtrkGH.at(gi)[0]->ID()];
       }
 
       // add to the channel hit map
       chanhitsMap[chan].push_back(i);
       planehitsMap[plane].push_back(i);
-      if( hitinfo[i].trkid <= 0 ) {
+      if( hitinfo[i].trkid < 0 ) {
         chanhitsMap_untracked[chan].push_back(i);
         nhits_untracked++;
       }
@@ -340,10 +339,11 @@ namespace blip {
     
     // Basic track inclusion cut: exclude hits that were tracked
     for(size_t i=0; i<hitlist.size(); i++){
-      int trkid = hitinfo[i].trkid;
-      if( trkid >= 0 ) {
-        if( tracklist[trkid]->Length() > fMaxHitTrkLength ) hitIsGood[i] = false;
-      }
+      if( !hitinfo[i].trkid) continue;
+      auto it = trkindexmap.find(hitinfo[i].trkid);
+      if( it == trkindexmap.end() ) continue;
+      int trkindex = it->second;
+      if( tracklist[trkindex]->Length() > fMaxHitTrkLength ) hitIsGood[i] = false;
     }
 
     // Filter based on hit properties
@@ -617,7 +617,6 @@ namespace blip {
               newBlip.Match_dTfrac[pl]  = map_clust_dtfrac[hc.ID];
               newBlip.Match_overlap[pl] = map_clust_overlap[hc.ID];
               newBlip.Match_score[pl]   = map_clust_score[hc.ID];
-              
               hitclust[hc.ID].isMatched = true;
               for(auto hit : hitclust[hc.ID].HitIDs) hitinfo[hit].ismatch = true;
             }
@@ -641,10 +640,26 @@ namespace blip {
               continue;
             }
             
+            
+            // ----------------------------------------
+            // if the clusters were tracked, save the length and dEdx 
+            // from that track; require that all 3 clusters have the 
+            // same Track ID associated or else we do nothing
+            if( newBlip.TrkID >= 0 ) {
+              float L = tracklist[trkindexmap[newBlip.TrkID]]->Length();
+              if( L <= 2.*(newBlip.dX+newBlip.dYZ) ) 
+                newBlip.Length = tracklist[trkindexmap[newBlip.TrkID]]->Length();
+            } 
+            //else {
+            //  newBlip.Length = sqrt( pow(newBlip.dX,2) + pow(newBlip.dYZ,2) );
+            //}
+
+            
             // ----------------------------------------
             // apply cylinder cut 
             for(auto& trk : tracklist ){
               if( trk->Length() < fMaxHitTrkLength ) continue;
+              if( trk->ID()     == newBlip.TrkID ) continue;
               auto& a = trk->Vertex();
               auto& b = trk->End();
               TVector3 p1(a.X(), a.Y(), a.Z() );
@@ -658,9 +673,9 @@ namespace blip {
               
               if( d > 0 ) {
                 // update closest trkdist
-                if( newBlip.TrkDist < 0 || d < newBlip.TrkDist ) {
-                  newBlip.TrkDist = d;
-                  newBlip.TrkID = trk->ID();
+                if( newBlip.ProxTrkDist < 0 || d < newBlip.ProxTrkDist ) {
+                  newBlip.ProxTrkDist = d;
+                  newBlip.ProxTrkID = trk->ID();
                 }
 
                 // need to do some math to figure out if this is in
@@ -685,6 +700,8 @@ namespace blip {
               hitclust[hc.ID].BlipID = newBlip.ID;
               for( auto& h : hc.HitIDs ) hitinfo[h].blipid = newBlip.ID;
             }
+
+
           
           }//endif ncands > 0
           
