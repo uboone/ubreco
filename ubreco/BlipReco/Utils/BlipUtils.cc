@@ -256,6 +256,7 @@ namespace BlipUtils {
     hc.G4PDG        = hitinfo.g4pdg;
     hc.HitIDs       .insert(hitinfo.hitid);
     hc.Wires        .insert(hitinfo.wire);
+    
     hc.NHits        = hc.HitIDs.size();
     hc.ADCs         = hitinfo.Hit->Integral();
     hc.Charge       = (hitinfo.charge > 0)? hitinfo.charge : 0;
@@ -269,7 +270,10 @@ namespace BlipUtils {
     hc.NWires       = 1;
     hc.isMerged     = false;
     hc.isMatched    = false;
-    
+    hc.TrkID        = hitinfo.trkid;
+
+    hc.TrkIDs[hitinfo.trkid]++;
+
     hc.HitTimes     .push_back(hitinfo.driftTime);
     hc.HitChans     .push_back(hitinfo.chan);
     hc.HitWires     .push_back(hitinfo.wire);
@@ -299,10 +303,6 @@ namespace BlipUtils {
         hc.G4ID   = hitinfo.g4id;
         hc.G4PDG  = hitinfo.g4pdg;
       }
-      //hc.LeadHit      = hitinfo.Hit;
-      //hc.LeadHitID    = hitinfo.hitid;
-      //hc.LeadHitTime  = hitinfo.driftTime;
-      //hc.LeadHitWire  = hitinfo.wire;
     }
     hc.StartTime  = std::min(hc.StartTime,hitinfo.driftTime - hitinfo.Hit->RMS());
     hc.EndTime    = std::max(hc.EndTime,  hitinfo.driftTime + hitinfo.Hit->RMS());
@@ -321,7 +321,16 @@ namespace BlipUtils {
     float err_sumSq = w1*pow(tw-t1,2) + w2*pow(tw-t2,2);
     hc.Time     = tw;
     hc.TimeErr  = sqrt( sig_sumSq + err_sumSq );
-   
+    
+    hc.TrkIDs[hitinfo.trkid]++;
+    for(auto& idc : hc.TrkIDs ) {
+      // if it's a tie, assign it to highest trkID
+      int n = idc.second;
+      int n0 = hc.TrkIDs[hc.TrkID];
+      if(       n == n0 ) hc.TrkID = std::max(idc.first,hc.TrkID);
+      else if ( n > n0  ) hc.TrkID = idc.first;
+    }
+    
     hc.HitTimes   .push_back(hitinfo.driftTime);
     hc.HitChans   .push_back(hitinfo.chan);
     hc.HitWires   .push_back(hitinfo.wire);
@@ -332,7 +341,9 @@ namespace BlipUtils {
         hc.CentHitChan = hc.HitChans.at(i);
         hc.CentHitWire = hc.HitWires.at(i);
       }
+     
     }
+    
   
   }
 
@@ -375,6 +386,15 @@ namespace BlipUtils {
     hc.Time     = tw;
     hc.TimeErr  = sqrt( sig_sumSq + err_sumSq );
     
+    for(auto idCount : hc2.TrkIDs ) hc.TrkIDs[idCount.first] += idCount.second;
+    for(auto& idc : hc.TrkIDs ) {
+      // if it's a tie, assign it to highest trkID
+      int n = idc.second;
+      int n0 = hc.TrkIDs[hc.TrkID];
+      if(       n == n0 ) hc.TrkID = std::max(idc.first,hc.TrkID);
+      else if ( n > n0  ) hc.TrkID = idc.first;
+    }
+    
     hc.HitTimes   .insert(hc.HitTimes.end(),hc2.HitTimes.begin(),hc2.HitTimes.end());
     hc.HitChans   .insert(hc.HitChans.end(),hc2.HitChans.begin(),hc2.HitChans.end());
     for(size_t i=0; i<hc.HitTimes.size(); i++){
@@ -384,6 +404,7 @@ namespace BlipUtils {
         hc.CentHitChan = hc.HitChans.at(i);
         hc.CentHitWire = hc.HitWires.at(i);
       }
+      
     }
     
     return hc;
@@ -481,9 +502,15 @@ namespace BlipUtils {
     for(auto& v : wirex ) newblip.Position += v * (1./wirex.size());
     newblip.Y     = newblip.Position.Y();
     newblip.Z     = newblip.Position.Z();
-    
-    // Calculate "length"
-    newblip.Length= sqrt( pow(newblip.dYZ,2) + pow(newblip.dX,2) );
+   
+    // Is this blip associated with a specific track ID?
+    newblip.TrkID = hcs[0].TrkID;
+    for(auto& hc : hcs ) {
+      if( hc.TrkID != newblip.TrkID ) {
+        newblip.TrkID = -9;
+        break;
+      }
+    }
 
     // Calculate uncertainty in YZ coordinate if possible
     if( wirex.size() >= 2 ) {

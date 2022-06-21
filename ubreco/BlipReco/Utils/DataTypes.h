@@ -8,6 +8,7 @@ typedef std::vector<int>        vint_t;
 typedef std::vector<bool>       vbool_t;
 typedef std::vector<float>      vfloat_t;
 typedef std::set<int>           si_t;
+typedef std::map<int,int>       mii_t;
 typedef std::map<int,float>     mif_t;
 typedef std::map<float,float>   mff_t;
 
@@ -118,13 +119,17 @@ namespace blip {
     int     G4ID            = -9;
     float   G4PDG           = -999;
     //float   G4Energy        = -9;
+    int     TrkID           = -9;
     si_t    HitIDs;
     si_t    Wires;
-    std::map<int,TVector3> IntersectLocations;
+    mii_t   TrkIDs;
     
+    std::map<int,TVector3> IntersectLocations;
+
     vfloat_t  HitTimes;
     vint_t    HitChans;
     vint_t    HitWires;
+    //vint_t    HitTrkIDs;
   };
 
   struct Blip {
@@ -133,21 +138,23 @@ namespace blip {
     bool      isValid         = false;      // Blip passes basic checks
     int       TPC             = -9;         // TPC
     int       NPlanes         = -9;         // Num. matched planes
+    int       MaxWireSpan     = -9;         // Maximum span of wires on any plane cluster
     float     Energy          = -999;       // Energy (const dE/dx, fcl-configurable)
     float     EnergyESTAR     = -999;       // Energy (ESTAR method from ArgoNeuT)
     float     Time            = -999;       // Drift time [ticks]
-    float     TrkDist         = -9;         // Distance to cloest track
-    int       TrkID           = -9;         // ID of closest track
+    float     ProxTrkDist     = -9;         // Distance to cloest track
+    int       ProxTrkID       = -9;         // ID of closest track
     bool      inCylinder      = false;      // Is it in a cone/cylinder region? 
+    
     TVector3  Position;                     // 3D position TVector3
     float     X               = -999;       // Reconstructed X [cm]
     float     Y               = -999;       // Reconstructed Y [cm]
     float     Z               = -999;       // Reconstructed Z [cm]
-    float     SigmaYZ         = -9.;
-    int       MaxWireSpan     = -9;
-    float     dX              = -9;
-    float     dYZ             = -9;
-    float     Length          = -9;
+    float     SigmaYZ         = -9.;        // Uncertainty in YZ intersect [cm]
+    float     dX              = -9;         // Equivalent length along drift direction [cm] 
+    float     dYZ             = -9;         // Approximate length scale in YZ space [cm]
+    float     TrkID           = -9;         // Track ID (if hits were 3D-tracked)
+    float     Length          = -9;         // Length of 3D track (if applicable)
 
     // Plane/cluster-specific information
     blip::HitClust clusters[kNplanes];
@@ -159,7 +166,6 @@ namespace blip {
     // Truth-matched energy deposition
     blip::TrueBlip truth;
     
-    //----------------------------
     // Initialize the blip
     Blip() {
       for(size_t i=0; i<kNplanes; i++){
