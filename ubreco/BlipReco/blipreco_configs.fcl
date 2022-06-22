@@ -34,7 +34,7 @@ microboone_blipalg:
   SimEDepProducer:      "ionization"
   CaloAlg:              @local::microboone_calo_mcc9_data
   CaloPlane:            2               # plane used for calorimetry (2=collection)
-  dEdx:                 2.0             # assumed dE/dx for recombination corrections
+  dEdx:                 1.8             # assumed dE/dx for recombination corrections
   MaxHitTrkLength:      5.0             # hits in trks > this length will be vetoed [cm]
   DoHitFiltering:       true            # filter hits based on amp, width, RMS
   HitClustWireRange:    2               # look N wires away when clustering hits
