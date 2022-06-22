@@ -231,7 +231,8 @@ class BlipAnaTreeDataStruct
   float blip_sigmayz[kMaxBlips];      // difference in wire intersection points
   float blip_dx[kMaxBlips];           // dX [cm]
   float blip_dyz[kMaxBlips];
-  float blip_length[kMaxBlips];       // if this blip was tracked, get 3D length
+  float blip_trklength[kMaxBlips];       // if this blip was tracked, get 3D length
+  float blip_length[kMaxBlips];       // rough size estimation based on time-tick extent and wire span
   float blip_sumadc[kMaxBlips];          // integrated ADCs 
   float blip_charge[kMaxBlips];       // blip charge at anode [e-]
   float blip_energy[kMaxBlips];       // blip energy [MeV]
@@ -368,6 +369,7 @@ class BlipAnaTreeDataStruct
     FillWith(blip_sigmayz,    -9);
     FillWith(blip_dx,         -9);
     FillWith(blip_dyz,        -9);
+    FillWith(blip_trklength,     -9);
     FillWith(blip_length,     -9);
     FillWith(blip_sumadc,     -999);
     FillWith(blip_charge,     -999);
@@ -474,6 +476,7 @@ class BlipAnaTreeDataStruct
     evtTree->Branch("blip_dx",blip_dx,"blip_dx[nblips]/F");
     evtTree->Branch("blip_dyz",blip_dyz,"blip_dyz[nblips]/F");
     evtTree->Branch("blip_length",blip_length,"blip_length[nblips]/F");
+    evtTree->Branch("blip_trklength",blip_trklength,"blip_trklength[nblips]/F");
     evtTree->Branch("blip_charge",blip_charge,"blip_charge[nblips]/F");
     evtTree->Branch("blip_energy",blip_energy,"blip_energy[nblips]/F");
     evtTree->Branch("blip_proxtrkdist",blip_proxtrkdist,"blip_proxtrkdist[nblips]/F");
@@ -521,7 +524,7 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("part_startT",part_startT,"part_startT[nparticles]/F");
       //evtTree->Branch("part_endT",part_endT,"part_endT[nparticles]/F");
       evtTree->Branch("part_pathlen",part_pathlen,"part_pathlen[nparticles]/F");
-      //evtTree->Branch("part_depEnergy",part_depEnergy,"part_depEnergy[nparticles]/F");
+      evtTree->Branch("part_depEnergy",part_depEnergy,"part_depEnergy[nparticles]/F");
       //evtTree->Branch("part_depElectrons",part_depElectrons,"part_depElectrons[nparticles]/I");
       //evtTree->Branch("part_numElectrons",part_numElectrons,"part_numElectrons[nparticles]/F");
       //evtTree->Branch("part_process",&part_process);
@@ -682,8 +685,8 @@ class BlipAna : public art::EDAnalyzer
     h_blip_charge_UV_picky ->SetOption("COLZ");
 
     float hitMax  = 15000; int hitBins  = 1500;
-    float ampMax  = 50;   int ampBins   = 500;
-    float rmsMax  = 30;   int rmsBins   = 600;
+    float ampMax  = 50;   int ampBins   = 250;
+    float rmsMax  = 30;   int rmsBins   = 300;
     float ratioMax = 5;   int ratioBins = 250;
 
     // MC histograms related to truth
@@ -890,7 +893,9 @@ void BlipAna::analyze(const art::Event& evt)
       //fData->total_depEnergy     += pinfo[i].depEnergy;
       //fData->total_depElectrons  += pinfo[i].depElectrons;
       //fData->total_numElectrons  += pinfo[i].numElectrons;
-
+      
+      //std::cout<<"  G4 ID "<<i<<", PDG: "<<pPart->PdgCode()<<", mother: "<<pPart->Mother()<<", KE0: "<<pinfo[i].KE<<", eDep: "<<pinfo[i].depEnergy<<"\n";
+      
       // Save to TTree object
       if(i<kMaxG4){
         fData->part_trackID[i]         = pPart->TrackId();
@@ -922,6 +927,7 @@ void BlipAna::analyze(const art::Event& evt)
         fData->part_isPrimary[i]       = pinfo[i].isPrimary;
         if( fDebugMode ) PrintParticleInfo(i);
       }
+    
     } // endloop over G4 particles
     
     std::cout<<"True total energy deposited: "<<total_depEnergy<<" MeV \n";
@@ -1130,7 +1136,7 @@ void BlipAna::analyze(const art::Event& evt)
     fData->clust_starttime[i] = Truncate(clust.StartTime);
     fData->clust_endtime[i]   = Truncate(clust.EndTime);
     fData->clust_charge[i]    = Truncate(clust.Charge,10);
-    fData->clust_amp[i]       = clust.Amplitude;
+    fData->clust_amp[i]       = Truncate(clust.Amplitude,0.01);
     fData->clust_ismatch[i]   = clust.isMatched;
     fData->clust_blipid[i]    = clust.BlipID;
 
@@ -1190,13 +1196,14 @@ void BlipAna::analyze(const art::Event& evt)
     fData->blip_tpc[i]        = b.TPC;
     fData->blip_nplanes[i]    = b.NPlanes;
     //fData->blip_maxdiff[i]    = b.MaxIntersectDiff;
-    fData->blip_sigmayz[i]    = b.SigmaYZ;
-    fData->blip_dx[i]         = b.dX;
-    fData->blip_dyz[i]        = b.dYZ;
-    fData->blip_x[i]          = b.X;
-    fData->blip_y[i]          = b.Y;
-    fData->blip_z[i]          = b.Z;
-    fData->blip_length[i]     = b.Length;   
+    fData->blip_sigmayz[i]    = Truncate(b.SigmaYZ,0.01);
+    fData->blip_dx[i]         = Truncate(b.dX,0.001);
+    fData->blip_dyz[i]        = Truncate(b.dYZ,0.001);
+    fData->blip_x[i]          = Truncate(b.X,0.1);
+    fData->blip_y[i]          = Truncate(b.Y,0.1);
+    fData->blip_z[i]          = Truncate(b.Z,0.1);
+    fData->blip_trklength[i]     = Truncate(b.Length,0.01);
+    fData->blip_length[i]     = sqrt( pow(b.dX,2) + pow(b.dYZ,2) );
     fData->blip_time[i]       = Truncate(b.Time);
     fData->blip_proxtrkdist[i]= Truncate(b.ProxTrkDist);
     fData->blip_proxtrkid[i]  = b.ProxTrkID;

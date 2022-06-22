@@ -311,6 +311,8 @@ namespace blip {
         chanhitsMap_untracked[chan].push_back(i);
         nhits_untracked++;
       }
+      
+      //printf("  %lu   plane: %i,  wire: %i, time: %i\n",i,hitinfo[i].plane,hitinfo[i].wire,int(hitinfo[i].driftTime));
 
     }//endloop over hits
      
@@ -639,7 +641,7 @@ namespace blip {
             } else if ( fPickyBlips ) {
               continue;
             }
-            
+
             
             // ----------------------------------------
             // if the clusters were tracked, save the length and dEdx 
