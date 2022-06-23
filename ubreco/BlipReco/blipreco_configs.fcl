@@ -37,7 +37,7 @@ microboone_blipalg:
   dEdx:                 1.8             # assumed dE/dx for recombination corrections
   MaxHitTrkLength:      5.0             # hits in trks > this length will be vetoed [cm]
   DoHitFiltering:       true            # filter hits based on amp, width, RMS
-  HitClustWireRange:    2               # look N wires away when clustering hits
+  #MinHitRMS:            [2.3,2.0,2.5]   # min allowaed hit RMS; coherent noise tends to have small RMS
   MaxWiresInCluster:    10              # max allowable wires in a cluster
   MaxClusterSpan:       50              # max allowable time-ticks of a cluster
   TimeOffsets:          [0.15,0.15,0]   # hit time offsets per plane [ticks]
@@ -47,8 +47,8 @@ microboone_blipalg:
   ClustMatchMaxQRatio:  4               # max allowed charge ratio of two clusters to be matched
   ClustMatchQDiffLimit: 10e3            # clusters w/charge-diff > this will be subject to QRatio cut [e-]
   PickyBlips:           false           # require 3 planes that all intersect at ~same point
-  ApplyTrkCylinderCut:  false           # reject hits in track cone-cylinder regions
-  CylinderRadius:       15              # cylinder cut radius [cm]
+  ApplyTrkCylinderCut:  false           # reject blips in track cone-cylinder regions
+  CylinderRadius:       15              # 3D cylinder cut radius [cm]
 }
 
 microboone_blipalg_data:              @local::microboone_blipalg
