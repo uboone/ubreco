@@ -11,42 +11,38 @@ namespace blip {
     this->reconfigure(pset);
    
     // create diagnostic histograms
-    if( fMakeHistos ) {
-      art::ServiceHandle<art::TFileService> tfs;
-      art::TFileDirectory hdir = tfs->mkdir("BlipRecoAlg");
-      
-      h_clust_nwires    = hdir.make<TH1D>("clust_nwires","Clusters (pre-cut);Wires in cluster",100,0,100);
-      h_clust_timespan  = hdir.make<TH1D>("clust_timespan","Clusters (pre-cut);Time span [ticks]",100,0,100);
-      //h_blip_maxdt      = hdir.make<TH1D>("blip_maxdt","Maximum dT between any 2 clusters in blip",100,0,10.);
-      //h_blip_picky_maxdt= hdir.make<TH1D>("blip_picky_maxdt","Maximum dT between any 2 clusters in picky blip",100,0,10.);
-      
-      int qbins = 200;
-      float qmax = 100;
-      for(int i=0; i<kNplanes; i++) {
-        //h_hit_mult[i]         = hdir.make<TH1D>(Form("pl%i_hit_mult",i),      Form("Plane %i;Num same-wire hits within +/- 50 ticks",i),20,0,20);
-        if( i == fCaloPlane ) continue;
-        h_clust_overlap[i]      = hdir.make<TH1D>(Form("pl%i_clust_overlap",i),   Form("Plane %i clusters;Overlap fraction",i),101,0,1.01);
-        h_clust_dtfrac[i]       = hdir.make<TH1D>(Form("pl%i_clust_dtfrac",i),    Form("Plane %i clusters;dT/#sigma",i),300,-3,3);
-        h_clust_dt[i]           = hdir.make<TH1D>(Form("pl%i_clust_dt",i),        Form("Plane %i clusters;dT [ticks]",i),300,-15,15);
-        h_clust_score[i]        = hdir.make<TH1D>(Form("pl%i_clust_score",i),    Form("Plane %i clusters;Match score",i),101,0,1.01);
-        h_clust_q[i]     = hdir.make<TH2D>(Form("pl%i_clust_charge",i),  
-          Form("Pre-cut;Plane %i cluster charge [#times 10^{3} e-];Plane %i cluster charge [#times 10^{3}]",fCaloPlane,i),
-          qbins,0,qmax,qbins,0,qmax);
-        h_clust_q[i]    ->SetOption("colz");
-        h_clust_q_cut[i]     = hdir.make<TH2D>(Form("pl%i_clust_charge_cut",i),  
-          Form("Post-cut;Plane %i cluster charge [#times 10^{3} e-];Plane %i cluster charge [#times 10^{3}]",fCaloPlane,i),
-          qbins,0,qmax,qbins,0,qmax);
-        h_clust_q_cut[i]    ->SetOption("colz");
-        h_clust_picky_overlap[i]   = hdir.make<TH1D>(Form("pl%i_clust_picky_overlap",i),Form("Plane %i clusters (3 planes, intersect #Delta < 0.5 cm);Overlap fraction",i),101,0,1.01);
-        h_clust_picky_dtfrac[i]    = hdir.make<TH1D>(Form("pl%i_clust_picky_dtfrac",i), Form("Plane %i clusters (3 planes, intersect #Delta < 0.5 cm);dT/#sigma",i),300,-3,3);
-        h_clust_picky_dt[i]        = hdir.make<TH1D>(Form("pl%i_clust_picky_dt",i),     Form("Plane %i clusters (3 planes, intersect #Delta < 0.5 cm);dT [ticks]",i),300,-15,15);
-        h_clust_picky_q[i]  = hdir.make<TH2D>(Form("pl%i_clust_picky_charge",i),  
-          Form("3 planes, intersect #Delta < 0.5 cm;Plane %i cluster charge [#times 10^{-3} e-];Plane %i cluster charge [#times 10^{3}]",fCaloPlane,i),
-          qbins,0,qmax,qbins,0,qmax);
-        h_clust_picky_q[i]     ->SetOption("colz");
-        h_clust_picky_score[i]     = hdir.make<TH1D>(Form("pl%i_clust_picky_score",i),  Form("Plane %i clusters (3 planes, intersect #Delta < 0.5 cm);Match score",i),101,0,1.01);
-        h_nmatches[i]         = hdir.make<TH1D>(Form("pl%i_nmatches",i),                Form("number of plane%i matches to single collection cluster",i),20,0,20);
-      }
+    art::ServiceHandle<art::TFileService> tfs;
+    art::TFileDirectory hdir = tfs->mkdir("BlipRecoAlg");
+    
+    h_clust_nwires    = hdir.make<TH1D>("clust_nwires","Clusters (pre-cut);Wires in cluster",100,0,100);
+    h_clust_timespan  = hdir.make<TH1D>("clust_timespan","Clusters (pre-cut);Time span [ticks]",100,0,100);
+    
+    int qbins = 200;
+    float qmax = 100;
+    for(int i=0; i<kNplanes; i++) {
+      //h_hit_mult[i]         = hdir.make<TH1D>(Form("pl%i_hit_mult",i),      Form("Plane %i;Num same-wire hits within +/- 50 ticks",i),20,0,20);
+      if( i == fCaloPlane ) continue;
+      h_clust_overlap[i]      = hdir.make<TH1D>(Form("pl%i_clust_overlap",i),   Form("Plane %i clusters;Overlap fraction",i),101,0,1.01);
+      h_clust_dtfrac[i]       = hdir.make<TH1D>(Form("pl%i_clust_dtfrac",i),    Form("Plane %i clusters;dT/#sigma",i),300,-3,3);
+      h_clust_dt[i]           = hdir.make<TH1D>(Form("pl%i_clust_dt",i),        Form("Plane %i clusters;dT [ticks]",i),300,-15,15);
+      //h_clust_score[i]        = hdir.make<TH1D>(Form("pl%i_clust_score",i),    Form("Plane %i clusters;Match score",i),101,0,1.01);
+      h_clust_q[i]     = hdir.make<TH2D>(Form("pl%i_clust_charge",i),  
+        Form("Pre-cut;Plane %i cluster charge [#times 10^{3} e-];Plane %i cluster charge [#times 10^{3}]",fCaloPlane,i),
+        qbins,0,qmax,qbins,0,qmax);
+      h_clust_q[i]    ->SetOption("colz");
+      h_clust_q_cut[i]     = hdir.make<TH2D>(Form("pl%i_clust_charge_cut",i),  
+        Form("Post-cut;Plane %i cluster charge [#times 10^{3} e-];Plane %i cluster charge [#times 10^{3}]",fCaloPlane,i),
+        qbins,0,qmax,qbins,0,qmax);
+      h_clust_q_cut[i]    ->SetOption("colz");
+      h_clust_picky_overlap[i]   = hdir.make<TH1D>(Form("pl%i_clust_picky_overlap",i),Form("Plane %i clusters (3 planes, intersect #Delta < 0.5 cm);Overlap fraction",i),101,0,1.01);
+      h_clust_picky_dtfrac[i]    = hdir.make<TH1D>(Form("pl%i_clust_picky_dtfrac",i), Form("Plane %i clusters (3 planes, intersect #Delta < 0.5 cm);dT/#sigma",i),300,-3,3);
+      h_clust_picky_dt[i]        = hdir.make<TH1D>(Form("pl%i_clust_picky_dt",i),     Form("Plane %i clusters (3 planes, intersect #Delta < 0.5 cm);dT [ticks]",i),300,-15,15);
+      h_clust_picky_q[i]  = hdir.make<TH2D>(Form("pl%i_clust_picky_charge",i),  
+        Form("3 planes, intersect #Delta < 0.5 cm;Plane %i cluster charge [#times 10^{3} e-];Plane %i cluster charge [#times 10^{3}]",fCaloPlane,i),
+        qbins,0,qmax,qbins,0,qmax);
+      h_clust_picky_q[i]     ->SetOption("colz");
+      //h_clust_picky_score[i]     = hdir.make<TH1D>(Form("pl%i_clust_picky_score",i),  Form("Plane %i clusters (3 planes, intersect #Delta < 0.5 cm);Match score",i),101,0,1.01);
+      h_nmatches[i]         = hdir.make<TH1D>(Form("pl%i_nmatches",i),                Form("number of plane%i matches to single collection cluster",i),20,0,20);
     }
   
   }
@@ -67,45 +63,45 @@ namespace blip {
   // Reconfigure fcl parameters
   //###########################################################
   void BlipRecoAlg::reconfigure( fhicl::ParameterSet const& pset ){
+    
     fHitProducer        = pset.get<std::string>   ("HitProducer",       "pandora");
     fTrkProducer        = pset.get<std::string>   ("TrkProducer",       "gaushit");
     fGeantProducer      = pset.get<std::string>   ("GeantProducer",     "largeant");
     fSimDepProducer     = pset.get<std::string>   ("SimEDepProducer",   "ionization");
-    fMakeHistos         = pset.get<bool>          ("MakeHistograms",    true);
+    
     fTrueBlipMergeDist  = pset.get<float>         ("TrueBlipMergeDist", 0.3);
-    fDoHitFiltering     = pset.get<bool>          ("DoHitFiltering",     true);
+    
+    fDoHitFiltering     = pset.get<bool>                ("DoHitFiltering",  true);
+    fMaxHitTrkLength    = pset.get<float>               ("MaxHitTrkLength", 5);
+    fMaxHitMult         = pset.get<int>                 ("MaxHitMult",      9999);
+    fMaxHitAmp          = pset.get<float>               ("MaxHitAmp",       200);  
+    fMinHitAmp          = pset.get<std::vector<float>>  ("MinHitAmp",       {-99e9,-99e9,-99e9});
+    fMaxHitRMS          = pset.get<std::vector<float>>  ("MaxHitRMS",       { 99e9, 99e9, 99e9});
+    fMinHitRMS          = pset.get<std::vector<float>>  ("MinHitRMS",       {-99e9,-99e9,-99e9});
+    fMaxHitRatio        = pset.get<std::vector<float>>  ("MaxHitRatio",     { 99e9, 99e9, 99e9});
+    fMinHitRatio        = pset.get<std::vector<float>>  ("MinHitRatio",     {-99e9,-99e9,-99e9});
+    fMaxHitGOF          = pset.get<std::vector<float>>  ("MaxHitGOF",       { 99e9, 99e9, 99e9});
+    fMinHitGOF          = pset.get<std::vector<float>>  ("MinHitGOF",       {-99e9,-99e9,-99e9});
+    
     fHitClustWidthFact  = pset.get<float>         ("HitClustWidthFact", 2.0);
     fHitClustWireRange  = pset.get<int>           ("HitClustWireRange", 1);
-    
-    fTimeOffsets        = pset.get<std::vector<float>>  ("TimeOffsets", {0.,0.,0.});
-    fMatchMinOverlap    = pset.get<float>         ("ClustMatchMinOverlap",0.5 );
-    fMatchSigmaFact     = pset.get<float>         ("ClustMatchSigmaFact", 1.0 );
-    fMatchMaxTicks      = pset.get<float>         ("ClustMatchMaxTicks",  5.0 );
-    //fMatchMinOverlap = pset.get<std::vector<float>>  ("ClustMatchMinOverlap",{0.5, 0.5});
-    //fMatchSigmaFact  = pset.get<std::vector<float>>  ("ClustMatchSigmaFact", {1.0, 1.0});
-    //fMatchMaxTicks      = pset.get<std::vector<float>>  ("ClustMatchMaxTicks",  {3., 3.});
-    fMatchQDiffLimit    = pset.get<float>               ("ClustMatchQDiffLimit", 15e3);
-    fMatchMaxQRatio     = pset.get<float>               ("ClustMatchMaxQRatio",   3);
-    //fMatchMaxCandidates = pset.get<int>                 ("ClustMatchMaxCandidates", 9e99);
-
-    fCaloPlane          = pset.get<int>           ("CaloPlane",         2);
-    fMaxHitTrkLength    = pset.get<float>         ("MaxHitTrkLength",   5);
-    fMaxWiresInCluster  = pset.get<int>           ("MaxWiresInCluster", 7);
+    fMaxWiresInCluster  = pset.get<int>           ("MaxWiresInCluster", 10);
     fMaxClusterSpan     = pset.get<float>         ("MaxClusterSpan",    30);
     fMinClusterCharge   = pset.get<float>         ("MinClusterCharge",  500);
+
+    fTimeOffsets        = pset.get<std::vector<float>>("TimeOffsets", {0.,0.,0.});
+    fMatchMinOverlap    = pset.get<float>         ("ClustMatchMinOverlap",  0.5 );
+    fMatchSigmaFact     = pset.get<float>         ("ClustMatchSigmaFact",   1.0 );
+    fMatchMaxTicks      = pset.get<float>         ("ClustMatchMaxTicks",    5.0 );
+    fMatchQDiffLimit    = pset.get<float>         ("ClustMatchQDiffLimit",  15e3);
+    fMatchMaxQRatio     = pset.get<float>         ("ClustMatchMaxQRatio",   4);
+
     fPickyBlips         = pset.get<bool>          ("PickyBlips",        false);
     fApplyTrkCylinderCut= pset.get<bool>          ("ApplyTrkCylinderCut",false);
     fCylinderRadius     = pset.get<float>         ("CylinderRadius",    15);
-    fMaxHitMult         = pset.get<int>               ("MaxHitMult",    9999);
-    fMinHitRMS          = pset.get<std::vector<float>>  ("MinHitRMS",  {-99e9,-99e9,-99e9});
-    fMaxHitRMS          = pset.get<std::vector<float>>  ("MaxHitRMS",  { 99e9, 99e9, 99e9});
-    fMinHitAmp          = pset.get<std::vector<float>>  ("MinHitAmp",  {-99e9,-99e9,-99e9});
-    fMaxHitAmp          = pset.get<std::vector<float>>  ("MaxHitAmp",  { 99e9, 99e9, 99e9});
-    fMinHitRatio        = pset.get<std::vector<float>>  ("MinHitRatio",  {-99e9,-99e9,-99e9});
-    fMaxHitRatio        = pset.get<std::vector<float>>  ("MaxHitRatio",  { 99e9, 99e9, 99e9});
-    fMinHitGOF          = pset.get<std::vector<float>>  ("MinHitGOF",  {-99e9,-99e9,-99e9});
-    fMaxHitGOF          = pset.get<std::vector<float>>  ("MaxHitGOF",  { 99e9, 99e9, 99e9});
+    
     fCaloAlg            = new calo::CalorimetryAlg( pset.get<fhicl::ParameterSet>("CaloAlg") );
+    fCaloPlane          = pset.get<int>           ("CaloPlane",         2);
     fdEdx               = pset.get<float>         ("dEdx",2.0);
 
   }
@@ -355,20 +351,20 @@ namespace blip {
         if( !hitIsGood[i] ) continue;
         hitIsGood[i] = false;
         int plane = hit->WireID().Plane;
-        // goodness of fit
-        //if( hit->GoodnessOfFit() < fMinHitGOF[plane] ) continue;
-        //if( hit->GoodnessOfFit() > fMaxHitGOF[plane] ) continue;
-        // hit width and amplitude
-        if( hit->RMS() < fMinHitRMS[plane] ) continue;
-        if( hit->RMS() > fMaxHitRMS[plane] ) continue;
-        if( hitlist[i]->Multiplicity() > fMaxHitMult ) continue;
+        if( hit->RMS()            < fMinHitRMS[plane] ) continue;
+        if( hit->RMS()            > fMaxHitRMS[plane] ) continue;
+        if( hit->Multiplicity()   > fMaxHitMult )       continue;
+        if( hit->PeakAmplitude()  > fMaxHitAmp )        continue;
         /*
+        // goodness of fit
+        if( hit->GoodnessOfFit() < fMinHitGOF[plane] ) continue;
+        if( hit->GoodnessOfFit() > fMaxHitGOF[plane] ) continue;
         float hit_ratio = hit->RMS() / hit->PeakAmplitude();
         if( hit->PeakAmplitude() < fMinHitAmp[plane] ) continue;
-        if( hit->PeakAmplitude() > fMaxHitAmp[plane] ) continue;
         if( hit_ratio < fMinHitRatio[plane] ) continue;
         if( hit_ratio > fMaxHitRatio[plane] ) continue;
         */
+        
         // we survived the gauntlet of cuts -- hit is good!
         hitIsGood[i] = true;
       }
@@ -424,10 +420,8 @@ namespace blip {
         } while ( hitsAdded!=0 );
         
         float span = hc.EndTime - hc.StartTime;
-        if( fMakeHistos ) {
-          h_clust_nwires->Fill(hc.NWires);
-          h_clust_timespan->Fill(span);
-        }
+        h_clust_nwires->Fill(hc.NWires);
+        h_clust_timespan->Fill(span);
           
         // basic cluster checks
         if( span      > fMaxClusterSpan   )   continue;
@@ -510,10 +504,10 @@ namespace blip {
             int planeB = hitclusts_planeB.first;
             if( planeB == planeA ) continue;
 
-            float best_score    = -9;
-            float best_overlap  = -9;
-            float best_dT       = 999;
-            float best_dTfrac   = 999;
+            //float best_score    = -9;
+            //float best_overlap  = -9;
+            //float best_dT       = 999;
+            //float best_dTfrac   = 999;
 
             // Loop over all non-matched clusts on this plane
             for(auto const& j : hitclusts_planeB.second ) {
@@ -522,7 +516,8 @@ namespace blip {
               
               // Calculate the cluster overlap
               float overlapFrac = BlipUtils::CalcHitClustsOverlap(hcA,hcB);
-              if( overlapFrac > best_overlap     ) best_overlap = overlapFrac;
+              //if( overlapFrac > best_overlap     ) best_overlap = overlapFrac;
+              h_clust_overlap[planeB]->Fill(overlapFrac);
               if( overlapFrac < fMatchMinOverlap ) continue;
               
               // Check that the two central channels overlap
@@ -550,18 +545,20 @@ namespace blip {
               //float sigmaT  = std::min( hcA.TimeErr, hcB.TimeErr );
               float dtfrac  = dt/sigmaT;
               
-
               // score to combine information
-              float score = overlapFrac * exp(-fabs(ratio-1.)) * exp(-fabs(dtfrac)); //exp(-fabs(dtfrac)) * exp(-fabs(ratio));
+              float score = overlapFrac * exp(-fabs(ratio-1.)) * exp(-fabs(dtfrac));
               
               //std::cout<<"cluster 1 span: "<<hcA.Timespan<<"   cluster 2 span: "<<hcB.Timespan
               //<<" overlap "<<overlapFrac<<"  Qratio "<<ratio
               //<<"  dT "<<dt<<"     sigmaT = "<<sigmaT<<" "<<dtfrac
               //<<"   score "<<score<<"\n";
               
-              if( fabs(dtfrac) < fabs(best_dTfrac)) best_dTfrac  = dtfrac;
-              if( fabs(dt)     < fabs(best_dT)    ) best_dT      = dt;
-              if( score        > best_score       ) best_score   = score;
+              //if( fabs(dtfrac) < fabs(best_dTfrac)) best_dTfrac  = dtfrac;
+              //if( fabs(dt)     < fabs(best_dT)    ) best_dT      = dt;
+              //if( score        > best_score       ) best_score   = score;
+              h_clust_dtfrac[planeB]->Fill(dtfrac);
+              h_clust_dt[planeB]->Fill(dt);
+              //h_clust_score[planeB]->Fill(score);
               
               // Evalulate the dT match; skip if not within range
               float matchTol = std::min(fMatchMaxTicks, fMatchSigmaFact*sigmaT);
@@ -575,10 +572,10 @@ namespace blip {
             
             }
               
-            h_clust_overlap[planeB]->Fill(best_overlap);
-            h_clust_dtfrac[planeB]->Fill(best_dTfrac);
-            h_clust_dt[planeB]->Fill(best_dT);
-            h_clust_score[planeB]->Fill(best_score);
+            //h_clust_overlap[planeB]->Fill(best_overlap);
+            //h_clust_dtfrac[planeB]->Fill(best_dTfrac);
+            //h_clust_dt[planeB]->Fill(best_dT);
+            //h_clust_score[planeB]->Fill(best_score);
 
           }//endloop over other planes
           
@@ -635,7 +632,7 @@ namespace blip {
                 h_clust_picky_dtfrac[ipl] ->Fill(newBlip.Match_dTfrac[ipl]);
                 h_clust_picky_dt[ipl]     ->Fill(newBlip.Match_dT[ipl]);
                 h_clust_picky_q[ipl]->Fill(0.001*newBlip.clusters[fCaloPlane].Charge,0.001*newBlip.clusters[ipl].Charge);
-                h_clust_picky_score[ipl]  ->Fill(newBlip.Match_score[ipl]);
+                //h_clust_picky_score[ipl]  ->Fill(newBlip.Match_score[ipl]);
               }
 
             } else if ( fPickyBlips ) {
