@@ -139,7 +139,6 @@ namespace BlipUtils {
         }
       }
 
-      if( tb.Energy) tb.isValid = true;
       tb.ID = trueblips.size();
       trueblips.push_back(tb);
     
@@ -252,8 +251,8 @@ namespace BlipUtils {
     hc.Amplitude    = hitinfo.Hit->PeakAmplitude();
     hc.TPC          = hitinfo.tpc;
     hc.Plane        = hitinfo.plane;
-    hc.G4ID         = hitinfo.g4id;
-    hc.G4PDG        = hitinfo.g4pdg;
+    //hc.G4ID         = hitinfo.g4id;
+    //hc.G4PDG        = hitinfo.g4pdg;
     hc.HitIDs       .insert(hitinfo.hitid);
     hc.Wires        .insert(hitinfo.wire);
     
@@ -280,7 +279,10 @@ namespace BlipUtils {
     hc.CentHitTime  = hitinfo.driftTime;
     hc.CentHitChan  = hitinfo.chan;
     hc.CentHitWire  = hitinfo.wire;
+    
+    if( hitinfo.g4id > 0 ) hc.G4IDs.insert(hitinfo.g4id);
 
+    hc.isValid = true;
     return hc;
   }
 
@@ -297,13 +299,16 @@ namespace BlipUtils {
     hc.NWires     = 1 + (hc.EndWire-hc.StartWire);
     hc.ADCs       += hitinfo.Hit->Integral();
     hc.Charge     += hitinfo.charge;
-    if( hitinfo.charge > hc.LeadHitCharge ) {
-      hc.LeadHitCharge  = hitinfo.charge;
-      if( hitinfo.g4id >= 0 ) {
-        hc.G4ID   = hitinfo.g4id;
-        hc.G4PDG  = hitinfo.g4pdg;
-      }
-    }
+   
+    if( hitinfo.g4id > 0 ) hc.G4IDs.insert(hitinfo.g4id);
+
+    //if( hitinfo.charge > hc.LeadHitCharge ) {
+    //  hc.LeadHitCharge  = hitinfo.charge;
+    //  if( hitinfo.g4id >= 0 ) {
+    //    hc.G4ID   = hitinfo.g4id;
+    //    hc.G4PDG  = hitinfo.g4pdg;
+    //  }
+    //}
     hc.StartTime  = std::min(hc.StartTime,hitinfo.driftTime - hitinfo.Hit->RMS());
     hc.EndTime    = std::max(hc.EndTime,  hitinfo.driftTime + hitinfo.Hit->RMS());
     hc.Timespan   = hc.EndTime - hc.StartTime;
@@ -363,13 +368,16 @@ namespace BlipUtils {
     hc.NWires     = 1 + (hc.EndWire-hc.StartWire);
     hc.ADCs       += hc2.ADCs;
     hc.Charge     += hc2.Charge;
-    if( hc2.LeadHitCharge > hc1.LeadHitCharge ) {
-      hc.LeadHitCharge= hc2.LeadHitCharge;
-      if( hc2.G4ID >= 0 ) {
-        hc.G4ID   = hc2.G4ID;
-        hc.G4PDG  = hc2.G4PDG; 
-      }
-    }
+    
+    hc.G4IDs      .insert(hc2.G4IDs.begin(),      hc2.G4IDs.end());
+    
+    //if( hc2.LeadHitCharge > hc1.LeadHitCharge ) {
+    //  hc.LeadHitCharge= hc2.LeadHitCharge;
+    //  if( hc2.G4ID >= 0 ) {
+    //    hc.G4ID   = hc2.G4ID;
+    //    hc.G4PDG  = hc2.G4PDG; 
+    //  }
+    //}
     hc.StartTime  = std::min(hc1.StartTime,hc2.StartTime);
     hc.EndTime    = std::max(hc1.EndTime,hc2.EndTime);
     hc.Timespan   = hc.EndTime - hc.StartTime;
@@ -409,6 +417,7 @@ namespace BlipUtils {
     
     return hc;
   }
+
 
   //=================================================================
   blip::Blip MakeBlip( std::vector<blip::HitClust> const& hcs){

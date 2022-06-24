@@ -47,13 +47,11 @@ namespace blip {
   
   struct TrueBlip {
     int       ID            = -9;
-    bool      isValid       = false;
     int       TPC           = -9;
+    float     Time          = -999e9;
     float     Energy        = 0;
     int       DepElectrons  = 0;
-    float     NumElectrons  = 0; // (post-drift)
-    float     Length        = 0;
-    float     Time          = -999e9;
+    int       NumElectrons  = 0; // (post-drift)
     int       LeadG4ID      = -9;
     int       LeadG4Index   = -9;
     int       LeadG4PDG     = -9;
@@ -88,9 +86,10 @@ namespace blip {
   struct HitClust {
     //art::Ptr<recob::Hit>  LeadHit;
     //int     LeadHitID       = -999;
-    float   LeadHitCharge   = -999;
+    //float   LeadHitCharge   = -999;
     //float   LeadHitTime     = -999;
     int     ID              = -9;
+    bool    isValid         = false;
     //int     LeadHitWire     = -999;
     //int     LeadHitChan     = -999;
     float   CentHitTime     = -999;
@@ -116,13 +115,16 @@ namespace blip {
     int     EndWire         = -999;
     int     BlipID          = -9;
     int     EdepID          = -9;
-    int     G4ID            = -9;
-    float   G4PDG           = -999;
-    //float   G4Energy        = -9;
     int     TrkID           = -9;
+    
     si_t    HitIDs;
     si_t    Wires;
     mii_t   TrkIDs;
+    
+    si_t    G4IDs;
+    //int     LeadG4ID        = -9;
+    //int     LeadG4PDG       = -9;
+    //float   LeadG4Energy    = -9;
     
     std::map<int,TVector3> IntersectLocations;
 

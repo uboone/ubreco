@@ -105,7 +105,7 @@ namespace blip {
     int                 fHitClustWireRange;
     float               fMatchQDiffLimit;
     float               fMatchMaxQRatio;
-    std::vector<float>  fTimeOffsets;
+    //std::vector<float>  fTimeOffsets;
     float               fMatchMinOverlap;
     float               fMatchSigmaFact;
     float               fMatchMaxTicks;
@@ -127,17 +127,20 @@ namespace blip {
     // --- Histograms ---
     TH1D*   h_clust_nwires;
     TH1D*   h_clust_timespan;
+    
     TH1D*   h_clust_overlap[kNplanes];
-    TH1D*   h_clust_dtfrac[kNplanes];
     TH1D*   h_clust_dt[kNplanes];
+    TH1D*   h_clust_dtfrac[kNplanes];
     TH2D*   h_clust_q[kNplanes]; 
     TH2D*   h_clust_q_cut[kNplanes]; 
+    
     TH1D*   h_clust_picky_overlap[kNplanes];
     TH1D*   h_clust_picky_dt[kNplanes];
     TH1D*   h_clust_picky_dtfrac[kNplanes];
     TH2D*   h_clust_picky_q[kNplanes]; 
     //TH1D*   h_clust_score[kNplanes];
     //TH1D*   h_clust_picky_score[kNplanes];
+    
     TH1D*   h_nmatches[kNplanes];
 
   };

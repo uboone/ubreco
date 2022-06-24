@@ -561,7 +561,7 @@ class BlipAna : public art::EDAnalyzer
 
   private:
   void    PrintParticleInfo(size_t);
-  void    PrintG4Info(const simb::MCParticle&);
+  void    PrintTrueBlipInfo(size_t);
   void    PrintClusterInfo(const blip::HitClust&);
   void    PrintHitInfo(const blip::HitInfo&);
   float   Truncate(float, double = 0.1);
@@ -856,6 +856,9 @@ void BlipAna::analyze(const art::Event& evt)
  
   // flag this data as MC
   if( plist.size() ) fIsMC = true;
+  
+  std::cout<<"Found "<<hitlist.size()<<" hits from "<<fHitProducer<<"\n";
+  std::cout<<"Found "<<tracklist.size()<<" tracks from "<<fTrkProducer<<"\n";
 
 
   //====================================
@@ -871,6 +874,7 @@ void BlipAna::analyze(const art::Event& evt)
   //====================================
   // Save MCParticle information
   //====================================
+  std::map<int,int> map_g4id_index;
   if( plist.size() ) {
     
     std::vector<blip::ParticleInfo> pinfo = fBlipAlg->pinfo;
@@ -880,10 +884,12 @@ void BlipAna::analyze(const art::Event& evt)
     //fData->total_numElectrons = 0;
 
     // Loop through the MCParticles
+    if( fDebugMode ) std::cout<<"\nLooping over G4 MCParticles: \n";
     for(size_t i = 0; i<plist.size(); i++){
       auto pPart = plist[i];
-  
-    
+      
+      map_g4id_index[pPart->TrackId()] = i;
+
       total_depEnergy       += pinfo[i].depEnergy;
       total_depElectrons    += pinfo[i].depElectrons;
       ////total_numElectrons    += pinfo[i].numElectrons;
@@ -927,7 +933,7 @@ void BlipAna::analyze(const art::Event& evt)
     
     } // endloop over G4 particles
     
-    std::cout<<"True total energy deposited: "<<total_depEnergy<<" MeV \n";
+    if( fDebugMode ) std::cout<<"True total energy deposited: "<<total_depEnergy<<" MeV \n";
   
   }//endif particles found in event
 
@@ -941,7 +947,9 @@ void BlipAna::analyze(const art::Event& evt)
   std::vector<blip::TrueBlip> trueblips = fBlipAlg->trueblips;
   fData->nedeps = (int)trueblips.size();
   if( trueblips.size() ) {
-    std::cout<<"Found "<<trueblips.size()<<" true blips\n";
+    //std::cout<<"Found "<<trueblips.size()<<" true blips\n";
+
+    if( fDebugMode ) std::cout<<"\nLooping over true blips:\n";
     for(size_t i=0; i<trueblips.size(); i++ ) {
       fData->edep_tpc[i]      = trueblips.at(i).TPC;
       fData->edep_energy[i]   = trueblips.at(i).Energy;
@@ -956,19 +964,11 @@ void BlipAna::analyze(const art::Event& evt)
       
       float ne = trueblips.at(i).NumElectrons;
       total_numElectrons += ne;
-      if( trueblips.at(i).Energy > 2 ) total_numElectrons_2MeV += ne;
-      
-      if( fDebugMode ) {
-        std::cout
-        <<"   ~ "<<i<<"  "<<trueblips.at(i).ID<<"  "<<trueblips.at(i).Energy<<" MeV, "
-        <<" ds= "<<trueblips.at(i).Length<<" cm, "
-        <<" trkID= "<<trueblips.at(i).LeadG4ID<<", pdg "<<trueblips.at(i).LeadG4PDG<<"\n";
-      }
+      if( trueblips.at(i).Energy < 2 ) total_numElectrons_2MeV += ne;
+      if( fDebugMode ) PrintTrueBlipInfo(i);
     }
   }//endif trueblips were made
   
-  std::cout<<"Found "<<hitlist.size()<<" hits from "<<fHitProducer<<"\n";
-  std::cout<<"Found "<<tracklist.size()<<" tracks from "<<fTrkProducer<<"\n";
   
 
 
@@ -1116,6 +1116,7 @@ void BlipAna::analyze(const art::Event& evt)
   //=============================================
   fData->nclusts = (int)fBlipAlg->hitclust.size();
   //std::cout<<"Looping over the clusts...\n";
+  if( fDebugMode ) std::cout<<"\nLooping over clusters...\n";
   for(size_t i=0; i < fBlipAlg->hitclust.size(); i++){
     auto const& clust = fBlipAlg->hitclust[i];
     if( !fSavePlaneInfo[clust.Plane] ) continue;
@@ -1143,13 +1144,11 @@ void BlipAna::analyze(const art::Event& evt)
     // and figure out the true G4 charge, energy, etc
     int tbi = clust.EdepID;
     if( tbi >= 0 && tbi < (int)fBlipAlg->trueblips.size() ) {
-      
       auto const& trueBlip = fBlipAlg->trueblips[tbi];
       fData->edep_clustid[tbi] = clust.ID;
       fData->clust_edepid[i]   = trueBlip.ID;
       fData->clust_g4energy[i] = trueBlip.Energy; 
       fData->clust_g4charge[i] = trueBlip.NumElectrons;
-      
       // fill histograms of electron/alpha charge resolution,
       // also derive the electron-to-ADC factor (this ~should~ 
       // match up with CalAreaConstants!)
@@ -1161,10 +1160,11 @@ void BlipAna::analyze(const art::Event& evt)
           if( fabs(pdg) == 1000020040 ) h_qres_alphas   ->Fill( (q-qt)/qt );
           h_adc_factor->Fill( clust.ADCs / qt );
       }
-
-    }//endloop over trueblips
     
-    if( fDebugMode && clust.Plane == 2 ) PrintClusterInfo(clust);
+    }
+      
+    if( fDebugMode ) PrintClusterInfo(clust);
+    
   
   }//endloop over 2D hit clusters
 
@@ -1313,7 +1313,7 @@ void BlipAna::analyze(const art::Event& evt)
   }
 
   std::cout<<"Reconstructed "<<fBlipAlg->blips.size()<<" 3D blips";
-  if( nblips_matched ) std::cout<<" ("<<nblips_matched<<" were truth-matched)";
+  if( nblips_matched ) std::cout<<"; "<<nblips_matched<<" were truth-matched";
   std::cout<<"\n";
 
   if( fDebugMode ) {
@@ -1403,20 +1403,12 @@ void BlipAna::PrintParticleInfo(size_t i){
   ); 
 }
 
-void BlipAna::PrintG4Info(const simb::MCParticle& part){
-  printf("  trkID: %-6i PDG: %-8i XYZ= %7.1f %7.1f %7.1f, endXYZ: %7.1f %7.1f %7.1f, KE0=%8.1f, moth=%5i, %12s, ND=%i\n",
-   (int)part.TrackId(),
-   (int)part.PdgCode(),
-   (float)part.Vx(),
-   (float)part.Vy(),
-   (float)part.Vz(),
-   (float)(part.EndPosition()[0]),
-   (float)(part.EndPosition()[1]),
-   (float)(part.EndPosition()[2]),
-   float(1e3*(part.E()-part.Mass())),
-   (int)part.Mother(),
-   part.Process().c_str(),
-   (int)part.NumberDaughters()
+void BlipAna::PrintTrueBlipInfo(size_t i){
+  printf("  %5i  G4ID: %-6i PDG: %-8i Energy:%8.3f MeV\n",
+   (int)i,
+   fData->edep_g4id[i],
+   fData->edep_pdg[i],
+   fData->edep_energy[i]
   ); 
 }
 
@@ -1433,14 +1425,16 @@ void BlipAna::PrintHitInfo(const blip::HitInfo& hi){
 }
 
 void BlipAna::PrintClusterInfo(const blip::HitClust& hc){
-  printf("  ID: %4i, TPC: %i, plane: %i, time: %7.2f, leadWire: %3i, mult: %3i, leadG4: %4i, edepid: %i, isMatched: %i\n",
+  printf("  ID: %4i, TPC: %i, plane: %i, time range: %7.2f - %7.2f, timespan: %6.2f, leadWire: %3i, nwires: %3i, nhits: %3i, edepid: %i, isMatched: %i\n",
     hc.ID,
     hc.TPC,
     hc.Plane,
-    hc.Time,
+    hc.StartTime,
+    hc.EndTime,
+    hc.Timespan,
     hc.CentHitWire,
+    hc.NWires,
     hc.NHits,
-    hc.G4ID,
     hc.EdepID,
     hc.isMatched
   );
