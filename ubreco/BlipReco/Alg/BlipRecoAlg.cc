@@ -15,7 +15,7 @@ namespace blip {
     art::TFileDirectory hdir = tfs->mkdir("BlipRecoAlg");
     
     h_clust_nwires    = hdir.make<TH1D>("clust_nwires","Clusters (pre-cut);Wires in cluster",100,0,100);
-    h_clust_timespan  = hdir.make<TH1D>("clust_timespan","Clusters (pre-cut);Time span [ticks]",100,0,100);
+    h_clust_timespan  = hdir.make<TH1D>("clust_timespan","Clusters (pre-cut);Time span [ticks]",300,0,300);
     
     int qbins = 200;
     float qmax = 100;
@@ -23,26 +23,24 @@ namespace blip {
       //h_hit_mult[i]         = hdir.make<TH1D>(Form("pl%i_hit_mult",i),      Form("Plane %i;Num same-wire hits within +/- 50 ticks",i),20,0,20);
       if( i == fCaloPlane ) continue;
       h_clust_overlap[i]      = hdir.make<TH1D>(Form("pl%i_clust_overlap",i),   Form("Plane %i clusters;Overlap fraction",i),101,0,1.01);
-      h_clust_dtfrac[i]       = hdir.make<TH1D>(Form("pl%i_clust_dtfrac",i),    Form("Plane %i clusters;dT/#sigma",i),300,-3,3);
       h_clust_dt[i]           = hdir.make<TH1D>(Form("pl%i_clust_dt",i),        Form("Plane %i clusters;dT [ticks]",i),300,-15,15);
-      //h_clust_score[i]        = hdir.make<TH1D>(Form("pl%i_clust_score",i),    Form("Plane %i clusters;Match score",i),101,0,1.01);
+      h_clust_dtfrac[i]      = hdir.make<TH1D>(Form("pl%i_clust_dtfrac",i),    Form("Plane %i clusters;Charge-weighted mean dT/RMS",i),60,-3,3);
       h_clust_q[i]     = hdir.make<TH2D>(Form("pl%i_clust_charge",i),  
-        Form("Pre-cut;Plane %i cluster charge [#times 10^{3} e-];Plane %i cluster charge [#times 10^{3}]",fCaloPlane,i),
+        Form("Pre-cut;Plane %i cluster charge [#times10^{3} e-];Plane %i cluster charge [#times10^{3}]",fCaloPlane,i),
         qbins,0,qmax,qbins,0,qmax);
       h_clust_q[i]    ->SetOption("colz");
       h_clust_q_cut[i]     = hdir.make<TH2D>(Form("pl%i_clust_charge_cut",i),  
-        Form("Post-cut;Plane %i cluster charge [#times 10^{3} e-];Plane %i cluster charge [#times 10^{3}]",fCaloPlane,i),
+        Form("Post-cut;Plane %i cluster charge [#times10^{3} e-];Plane %i cluster charge [#times10^{3}]",fCaloPlane,i),
         qbins,0,qmax,qbins,0,qmax);
       h_clust_q_cut[i]    ->SetOption("colz");
-      h_clust_picky_overlap[i]   = hdir.make<TH1D>(Form("pl%i_clust_picky_overlap",i),Form("Plane %i clusters (3 planes, intersect #Delta < 0.5 cm);Overlap fraction",i),101,0,1.01);
-      h_clust_picky_dtfrac[i]    = hdir.make<TH1D>(Form("pl%i_clust_picky_dtfrac",i), Form("Plane %i clusters (3 planes, intersect #Delta < 0.5 cm);dT/#sigma",i),300,-3,3);
-      h_clust_picky_dt[i]        = hdir.make<TH1D>(Form("pl%i_clust_picky_dt",i),     Form("Plane %i clusters (3 planes, intersect #Delta < 0.5 cm);dT [ticks]",i),300,-15,15);
+      h_clust_picky_overlap[i]   = hdir.make<TH1D>(Form("pl%i_clust_picky_overlap",i),  Form("Plane %i clusters (3 planes, intersect #Delta cut);Overlap fraction",i),101,0,1.01);
+      h_clust_picky_dt[i]        = hdir.make<TH1D>(Form("pl%i_clust_picky_dt",i),       Form("Plane %i clusters (3 planes, intersect #Delta cut);dT [ticks]",i),300,-15,15);
+      h_clust_picky_dtfrac[i]      = hdir.make<TH1D>(Form("pl%i_clust_picky_dtfrac",i),Form("Plane %i clusters (3 planes, intersect #Delta cut);Charge-weighted mean dT/RMS",i),60,-3,3);
       h_clust_picky_q[i]  = hdir.make<TH2D>(Form("pl%i_clust_picky_charge",i),  
         Form("3 planes, intersect #Delta < 0.5 cm;Plane %i cluster charge [#times 10^{3} e-];Plane %i cluster charge [#times 10^{3}]",fCaloPlane,i),
         qbins,0,qmax,qbins,0,qmax);
       h_clust_picky_q[i]     ->SetOption("colz");
-      //h_clust_picky_score[i]     = hdir.make<TH1D>(Form("pl%i_clust_picky_score",i),  Form("Plane %i clusters (3 planes, intersect #Delta < 0.5 cm);Match score",i),101,0,1.01);
-      h_nmatches[i]         = hdir.make<TH1D>(Form("pl%i_nmatches",i),                Form("number of plane%i matches to single collection cluster",i),20,0,20);
+      h_nmatches[i]         = hdir.make<TH1D>(Form("pl%i_nmatches",i),Form("number of plane%i matches to single collection cluster",i),20,0,20);
     }
   
   }
@@ -89,9 +87,9 @@ namespace blip {
     fMaxClusterSpan     = pset.get<float>         ("MaxClusterSpan",    30);
     fMinClusterCharge   = pset.get<float>         ("MinClusterCharge",  500);
 
-    fTimeOffsets        = pset.get<std::vector<float>>("TimeOffsets", {0.,0.,0.});
+    //fTimeOffsets        = pset.get<std::vector<float>>("TimeOffsets", {0.,0.,0.});
     fMatchMinOverlap    = pset.get<float>         ("ClustMatchMinOverlap",  0.5 );
-    fMatchSigmaFact     = pset.get<float>         ("ClustMatchSigmaFact",   1.0 );
+    fMatchSigmaFact     = pset.get<float>         ("ClustMatchSigmaFact",   1.0);
     fMatchMaxTicks      = pset.get<float>         ("ClustMatchMaxTicks",    5.0 );
     fMatchQDiffLimit    = pset.get<float>         ("ClustMatchQDiffLimit",  15e3);
     fMatchMaxQRatio     = pset.get<float>         ("ClustMatchMaxQRatio",   4);
@@ -193,12 +191,12 @@ namespace blip {
     // hit collection is some filtered subset of gaushit, in order to
     // use gaushitTruthMatch later on)
     std::map< int, int > map_gh;
-    
+   
+    // Map G4IDs to their respective index in the particle list
+    std::map< int, int > map_g4id_index;
+
     if( plist.size() || fmhh.isValid() ) {
 
-      //std::cout<<"Found "<<plist.size()<<" particles from "<<fGeantProducer<<"\n";
-      //std::cout<<"Found "<<sedlist.size()<<" sim energy deposits from "<<fSimDepProducer<<"\n";
-      
       isMC = true;
       pinfo.resize(plist.size());
     
@@ -213,11 +211,10 @@ namespace blip {
     
       // Loop through the MCParticles
       for(size_t i = 0; i<plist.size(); i++){
-        //auto pPart = plist[i];
-        //BlipUtils::FillParticleInfo( *pPart, pinfo[i], sedlist );
         BlipUtils::FillParticleInfo( *plist[i], pinfo[i], sedlist );
         pinfo[i].index = i;
-      } // endloop over G4 particles
+        map_g4id_index[pinfo[i].trackId] = i;
+      }
       
       // Calculate the true blips
       BlipUtils::MakeTrueBlips(pinfo, trueblips);
@@ -230,10 +227,9 @@ namespace blip {
     // Map track IDs to the index in the vector
     //=======================================
     //std::cout<<"Looping over tracks...\n";
-    std::map<size_t,size_t> trkindexmap;
-    std::map<size_t,std::vector<size_t>> trkhitMap;
+    std::map<size_t,size_t> map_trkid_index;
     for(size_t i=0; i<tracklist.size(); i++) 
-      trkindexmap[tracklist.at(i)->ID()] = i;
+      map_trkid_index[tracklist.at(i)->ID()] = i;
     
 
     //=======================================
@@ -258,15 +254,9 @@ namespace blip {
       hitinfo[i].tpc        = thisHit->WireID().TPC;
       hitinfo[i].plane      = thisHit->WireID().Plane;
       hitinfo[i].charge     = fCaloAlg->ElectronsFromADCArea(thisHit->Integral(),plane);
-      hitinfo[i].driftTime  = thisHit->PeakTime() - detProp->GetXTicksOffset(plane,0,0) - fTimeOffsets[plane];
+      hitinfo[i].driftTime  = thisHit->PeakTime() - detProp->GetXTicksOffset(plane,0,0); // - fTimeOffsets[plane];
 
       if( isMC ) {
-        // find G4 particle ID for leading contributor (Requires SimChannels, which are dropped by default)
-        //if( blip::DoesHitHaveSimChannel(thisHit) ){
-        //  BlipUtils::HitTruth( thisHit, hitinfo[i].g4id, hitinfo[i].g4frac, hitinfo[i].g4energy, hitinfo[i].g4charge);
-        //  hitinfo[i].g4ids = BlipUtils::HitTruthIds(thisHit);
-        //}
-        // Update 5/2/22: Use gaushitTruthMatch in MicroBooNE
         hitinfo[i].g4energy = 0;
         hitinfo[i].g4charge = 0;
         int igh = map_gh[i]; 
@@ -276,7 +266,6 @@ namespace blip {
           fmhh.get(igh,pvec,btvec);
           float max = -9;
           for(size_t j=0; j<pvec.size(); j++){
-            //hitinfo[i].g4ids.insert(pvec.at(j)->TrackId()); 
             hitinfo[i].g4energy += btvec.at(j)->energy;
             hitinfo[i].g4charge += btvec.at(j)->numElectrons;
             if( btvec.at(j)->energy > max ) {
@@ -307,15 +296,9 @@ namespace blip {
         chanhitsMap_untracked[chan].push_back(i);
         nhits_untracked++;
       }
-      
       //printf("  %lu   plane: %i,  wire: %i, time: %i\n",i,hitinfo[i].plane,hitinfo[i].wire,int(hitinfo[i].driftTime));
 
     }//endloop over hits
-     
-    //std::cout<<"Found "<<hitlist.size()<<" hits from "<<fHitProducer<<" ("<<nhits_untracked<<" untracked)\n";
-    //std::cout<<"Found "<<tracklist.size()<<" tracks from "<<fTrkProducer<<"\n";
-
-
 
 
     //=================================================================
@@ -338,8 +321,8 @@ namespace blip {
     // Basic track inclusion cut: exclude hits that were tracked
     for(size_t i=0; i<hitlist.size(); i++){
       if( !hitinfo[i].trkid) continue;
-      auto it = trkindexmap.find(hitinfo[i].trkid);
-      if( it == trkindexmap.end() ) continue;
+      auto it = map_trkid_index.find(hitinfo[i].trkid);
+      if( it == map_trkid_index.end() ) continue;
       int trkindex = it->second;
       if( tracklist[trkindex]->Length() > fMaxHitTrkLength ) hitIsGood[i] = false;
     }
@@ -370,7 +353,7 @@ namespace blip {
       }
     }
 
-    
+  
     // ---------------------------------------------------
     // Hit clustering
     // ---------------------------------------------------
@@ -436,10 +419,10 @@ namespace blip {
         for(auto const& hitID : hc.HitIDs) hitinfo[hitID].clustid = hc.ID;
          
         // ... and find the associated truth-blip
-        if( hc.G4ID > 0 ) {
+        if( hc.G4IDs.size() ) {
           for(size_t j=0; j< trueblips.size(); j++){
-            int tbG4 = trueblips[j].LeadG4ID;
-            if( tbG4 >= 0 && tbG4 == hc.G4ID ) {
+            if( hc.G4IDs.count(trueblips[j].LeadG4ID)) {
+              // we have a match!
               hc.EdepID = trueblips[j].ID;
               break;
             }
@@ -504,96 +487,84 @@ namespace blip {
             int planeB = hitclusts_planeB.first;
             if( planeB == planeA ) continue;
 
-            //float best_score    = -9;
-            //float best_overlap  = -9;
-            //float best_dT       = 999;
-            //float best_dTfrac   = 999;
-
             // Loop over all non-matched clusts on this plane
             for(auto const& j : hitclusts_planeB.second ) {
               auto& hcB = hitclust[j];
               if( hcB.isMatched ) continue;
               
+              // ***********************************
               // Calculate the cluster overlap
+              // ***********************************
               float overlapFrac = BlipUtils::CalcHitClustsOverlap(hcA,hcB);
-              //if( overlapFrac > best_overlap     ) best_overlap = overlapFrac;
               h_clust_overlap[planeB]->Fill(overlapFrac);
               if( overlapFrac < fMatchMinOverlap ) continue;
               
-              // Check that the two central channels overlap
-              // TODO: find better way to do this for multi-wire clusters...
+              // *******************************************
+              // Check that the two central wires intersect
+              // *******************************************
               double y, z;
-              bool intersect = art::ServiceHandle<geo::Geometry>()
-                ->ChannelsIntersect(hcA.CentHitChan,hcB.CentHitChan,y,z);
-              if ( !intersect ) continue;
-
-              // Save intersect location
+              int chanA = hcA.CentHitChan;
+              int chanB = hcB.CentHitChan;
+              if( !art::ServiceHandle<geo::Geometry>()
+                ->ChannelsIntersect(chanA,chanB,y,z)) continue;
+              // Save intersect location, so we don't have to
+              // make another call to the Geometry service later
               TVector3 xloc(0,y,z);
               hcA.IntersectLocations[hcB.ID] = xloc;
               hcB.IntersectLocations[hcA.ID] = xloc;
-             
+              
+              // *******************************************
+              // Calculate time difference for start/end, and
+              // check that Q-weighted means are comparable
+              // *******************************************
+              float dt_start  = (hcB.StartTime - hcA.StartTime);
+              float dt_end    = (hcB.EndTime   - hcA.EndTime);
+              float dt        = ( fabs(dt_start) < fabs(dt_end) ) ? dt_start : dt_end;
+              h_clust_dt[planeB]->Fill(dt);
+              if( fabs(dt) > fMatchMaxTicks ) continue;
+              
+              // Charge-weighted mean:
+              float sigmaT = std::sqrt(pow(hcA.TimeErr,2)+pow(hcB.TimeErr,2));
+              float dtfrac = (hcB.Time - hcA.Time) / sigmaT;
+              h_clust_dtfrac[planeB]->Fill(dtfrac);
+              if( fabs(dtfrac) > fMatchSigmaFact ) continue;
+
+              // *******************************************
               // Check relative charge between clusters
+              // *******************************************
               float qdiff     = fabs(hcB.Charge-hcA.Charge);
               float ratio     = std::max(hcA.Charge,hcB.Charge)/std::min(hcA.Charge,hcB.Charge);
               h_clust_q[planeB]->Fill(0.001*hcA.Charge,0.001*hcB.Charge);
               if( qdiff > _matchQDiffLimit && ratio > _matchMaxQRatio ) continue;
               h_clust_q_cut[planeB]->Fill(0.001*hcA.Charge,0.001*hcB.Charge);
               
-              // Check for a match
-              float dt      = (hcB.Time - hcA.Time);
-              float sigmaT  = sqrt( pow(hcA.TimeErr,2) + pow(hcB.TimeErr,2) );
-              //float sigmaT  = std::min( hcA.TimeErr, hcB.TimeErr );
-              float dtfrac  = dt/sigmaT;
-              
-              // score to combine information
-              float score = overlapFrac * exp(-fabs(ratio-1.)) * exp(-fabs(dtfrac));
-              
-              //std::cout<<"cluster 1 span: "<<hcA.Timespan<<"   cluster 2 span: "<<hcB.Timespan
-              //<<" overlap "<<overlapFrac<<"  Qratio "<<ratio
-              //<<"  dT "<<dt<<"     sigmaT = "<<sigmaT<<" "<<dtfrac
-              //<<"   score "<<score<<"\n";
-              
-              //if( fabs(dtfrac) < fabs(best_dTfrac)) best_dTfrac  = dtfrac;
-              //if( fabs(dt)     < fabs(best_dT)    ) best_dT      = dt;
-              //if( score        > best_score       ) best_score   = score;
-              h_clust_dtfrac[planeB]->Fill(dtfrac);
-              h_clust_dt[planeB]->Fill(dt);
-              //h_clust_score[planeB]->Fill(score);
-              
-              // Evalulate the dT match; skip if not within range
-              float matchTol = std::min(fMatchMaxTicks, fMatchSigmaFact*sigmaT);
-              if( fabs(dt) > matchTol ) continue;
-              
+              // **************************************************
+              // We made it through the cuts -- the match is good!
+              // Combine metrics into a consolidated "score" that 
+              // we can use later in the case of degenerate matches.
+              // **************************************************
+              float score = overlapFrac * exp(-fabs(ratio-1.)) * exp(-fabs(dt)/float(fMatchMaxTicks));
               map_clust_dt[j]       = dt;
-              map_clust_dtfrac[j]   = dt/sigmaT;
+              map_clust_dtfrac[j]   = dtfrac;
               map_clust_overlap[j]  = overlapFrac;
               map_clust_score[j]    = score;
               cands[planeB]         .insert(j);
             
             }
               
-            //h_clust_overlap[planeB]->Fill(best_overlap);
-            //h_clust_dtfrac[planeB]->Fill(best_dTfrac);
-            //h_clust_dt[planeB]->Fill(best_dT);
-            //h_clust_score[planeB]->Fill(best_score);
-
           }//endloop over other planes
           
           // ---------------------------------------------------
           // loop over the candidates found on each plane
           // and select the one with the largest score
-          //std::cout<<"Checking candidate matches to collPlane cluster "<<i<<"\n";
           if( cands.size() ) {
-            
+           
             for(auto& c : cands ) {
               int plane = c.first;
               h_nmatches[plane]->Fill(c.second.size());
-              //std::cout<<"  found "<<c.second.size()<<" on plane "<<c.first<<"\n";
-              //if( c.second.size() > fMatchMaxCandidates ) continue;
               float bestScore   = -9;
               int   bestID      = -9;
               for(auto cid : c.second) {
-                //std::cout<<"   "<<cid<<"    "<<map_clust_overlap[cid]<<"\n";
                 if( map_clust_score[cid] > bestScore ) {
                   bestScore = map_clust_score[cid];
                   bestID = cid;
@@ -622,9 +593,8 @@ namespace blip {
 
             // ----------------------------------------
             // if we are being picky...
-            if(     newBlip.NPlanes == kNplanes &&  newBlip.SigmaYZ < 0.5 ) {
-                //&&  newBlip.dYZ     < 1.0 
-                //&&  newBlip.dX      < 0.7 ){
+            if(  newBlip.NPlanes == kNplanes 
+              && newBlip.SigmaYZ <  std::max(1.,0.5*newBlip.dYZ) ) {
               
               for(int ipl = 0; ipl < kNplanes; ipl++) {
                 if( ipl == fCaloPlane ) continue;
@@ -641,17 +611,14 @@ namespace blip {
 
             
             // ----------------------------------------
-            // if the clusters were tracked, save the length and dEdx 
-            // from that track; require that all 3 clusters have the 
-            // same Track ID associated or else we do nothing
+            // If this blip was also included in a recob::Track,
+            // then save the length of that track to the object
+            // for use in dE/dx discrimination
             if( newBlip.TrkID >= 0 ) {
-              float L = tracklist[trkindexmap[newBlip.TrkID]]->Length();
+              float L = tracklist[map_trkid_index[newBlip.TrkID]]->Length();
               if( L <= 2.*(newBlip.dX+newBlip.dYZ) ) 
-                newBlip.Length = tracklist[trkindexmap[newBlip.TrkID]]->Length();
+                newBlip.Length = tracklist[map_trkid_index[newBlip.TrkID]]->Length();
             } 
-            //else {
-            //  newBlip.Length = sqrt( pow(newBlip.dX,2) + pow(newBlip.dYZ,2) );
-            //}
 
             
             // ----------------------------------------
@@ -686,7 +653,7 @@ namespace blip {
                 }
               }
             }//endloop over trks
-            
+           
             if( fApplyTrkCylinderCut && newBlip.inCylinder ) continue;
             
             // ----------------------------------------
@@ -700,19 +667,14 @@ namespace blip {
               for( auto& h : hc.HitIDs ) hitinfo[h].blipid = newBlip.ID;
             }
 
-
-          
+  
           }//endif ncands > 0
-          
         }//endloop over caloplane ("Plane A") clusters
       }//endif calo plane has clusters
     }//endloop over TPCs
   
 
 
-
-    //std::cout<<"Reconstructed "<<blips.size()<<" 3D blips\n";
-  
     // =============================================================================
     // Calculate blip energy assuming T = T_beam (eventually can do more complex stuff
     // like associating blip with some nearby track/shower and using its tagged T0)
@@ -724,9 +686,9 @@ namespace blip {
     // Retrieve lifetime
     const lariov::UBElectronLifetimeProvider& elifetime_provider = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
     float _electronLifetime = elifetime_provider.Lifetime() * 1e3; // convert ms --> mus
-    
+   
     for(size_t i=0; i<blips.size(); i++){
-
+      
       // if charge isn't physical, skip
       if( blips[i].clusters[fCaloPlane].Charge < 0 ) continue;
 
@@ -754,20 +716,20 @@ namespace blip {
 
 
     // ================================================
-    // Save the true blip
+    // Save the true blip into the object;
+    // each cluster must match to the same energy dep
     // ================================================
     for(size_t i=0; i<blips.size(); i++){
       auto& b = blips[i];
-      float max = 0;
+      std::set<int> set_edepids;
+      bool badmatch = false;
       for(auto& hc : b.clusters ) {
-        int edepid = hc.EdepID;
-        if( edepid <= 0 ) continue;
-        float E = trueblips[edepid].Energy;
-        if( E > max ) {
-          max = E;
-          b.truth = trueblips[edepid];
-        }
+        if( !hc.isValid ) continue; 
+        if( hc.EdepID < 0 ) break;
+        set_edepids.insert( hc.EdepID );
       }
+      if( !badmatch && set_edepids.size() == 1 ) 
+        b.truth = trueblips[*set_edepids.begin()];
     }
   
   }//End main blip reco function
@@ -782,7 +744,6 @@ namespace blip {
     printf("  Input trk collection      : %s\n",          fTrkProducer.c_str());
     printf("  Max wires per cluster     : %i\n",          fMaxWiresInCluster);
     printf("  Max cluster timespan      : %.1f ticks\n",    fMaxClusterSpan);
-    //printf("  Max match window          : %3.1f ticks\n", fHitMatchMaxTicks);
     printf("  Min cluster overlap       : %4.1f\n",       fMatchMinOverlap);
     printf("  Clust match sigma-factor  : %4.1f\n",       fMatchSigmaFact);
     printf("  Clust match max dT        : %4.1f ticks\n", fMatchMaxTicks);
