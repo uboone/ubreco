@@ -229,6 +229,7 @@ class BlipAnaTreeDataStruct
   float blip_sigmayz[kMaxBlips];      // difference in wire intersection points
   float blip_dx[kMaxBlips];           // dX [cm]
   float blip_dyz[kMaxBlips];
+  int   blip_trkid[kMaxBlips];
   float blip_trklength[kMaxBlips];       // if this blip was tracked, get 3D length
   float blip_size[kMaxBlips];       // rough size estimation based on time-tick extent and wire span
   float blip_sumadc[kMaxBlips];          // integrated ADCs 
@@ -368,6 +369,7 @@ class BlipAnaTreeDataStruct
     FillWith(blip_dx,         -9);
     FillWith(blip_dyz,        -9);
     FillWith(blip_trklength,     -9);
+    FillWith(blip_trkid,      -9);
     FillWith(blip_size,     -9);
     FillWith(blip_sumadc,     -999);
     FillWith(blip_charge,     -999);
@@ -474,6 +476,7 @@ class BlipAnaTreeDataStruct
     evtTree->Branch("blip_dx",blip_dx,"blip_dx[nblips]/F");
     evtTree->Branch("blip_dyz",blip_dyz,"blip_dyz[nblips]/F");
     evtTree->Branch("blip_size",blip_size,"blip_size[nblips]/F");
+    evtTree->Branch("blip_trkid",blip_trkid,"blip_trkid[nblips]/I");
     evtTree->Branch("blip_trklength",blip_trklength,"blip_trklength[nblips]/F");
     evtTree->Branch("blip_charge",blip_charge,"blip_charge[nblips]/F");
     evtTree->Branch("blip_energy",blip_energy,"blip_energy[nblips]/F");
@@ -1257,6 +1260,7 @@ void BlipAna::analyze(const art::Event& evt)
     fData->blip_dx[i]         = b.dX;
     fData->blip_dyz[i]        = b.dYZ;
     fData->blip_size[i]       = sqrt( pow(b.dX,2) + pow(b.dYZ,2) );
+    fData->blip_trkid[i]      = b.TrkID;
     fData->blip_trklength[i]  = b.Length;
     fData->blip_time[i]       = b.Time;
     fData->blip_proxtrkdist[i]= b.ProxTrkDist;
