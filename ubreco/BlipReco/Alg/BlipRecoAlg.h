@@ -41,6 +41,7 @@
 #include "ubevt/Database/UbooneElectronLifetimeProvider.h"
 #include "ubevt/Database/UbooneElectronLifetimeService.h"
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
+//#include "larevt/SpaceCharge/SpaceCharge.h"
 
 // Blip-specific utils
 #include "ubreco/BlipReco/Utils/BlipUtils.h"
@@ -120,6 +121,7 @@ namespace blip {
     float               fCylinderRadius; 
    
     float               fdEdx;
+    bool                fDoLifetimeCorr;
 
     // --- Calorimetry alg ---
     calo::CalorimetryAlg*   fCaloAlg;

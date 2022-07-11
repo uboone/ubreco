@@ -86,7 +86,8 @@ namespace BlipUtils {
   bool    IsPointInAV(TVector3&);
   bool    IsPointAtBnd(float,float,float);
   bool    IsPointAtBnd(TVector3&);
-
+  geo::Point_t GetCoordsSCE(geo::Point_t&);
+  
 }
 
 #endif

@@ -23,8 +23,8 @@ namespace blip {
       //h_hit_mult[i]         = hdir.make<TH1D>(Form("pl%i_hit_mult",i),      Form("Plane %i;Num same-wire hits within +/- 50 ticks",i),20,0,20);
       if( i == fCaloPlane ) continue;
       h_clust_overlap[i]      = hdir.make<TH1D>(Form("pl%i_clust_overlap",i),   Form("Plane %i clusters;Overlap fraction",i),101,0,1.01);
-      h_clust_dt[i]           = hdir.make<TH1D>(Form("pl%i_clust_dt",i),        Form("Plane %i clusters;dT [ticks]",i),300,-15,15);
-      h_clust_dtfrac[i]      = hdir.make<TH1D>(Form("pl%i_clust_dtfrac",i),    Form("Plane %i clusters;Charge-weighted mean dT/RMS",i),60,-3,3);
+      h_clust_dt[i]           = hdir.make<TH1D>(Form("pl%i_clust_dt",i),        Form("Plane %i clusters;dT [ticks]",i),200,-10,10);
+      h_clust_dtfrac[i]      = hdir.make<TH1D>(Form("pl%i_clust_dtfrac",i),    Form("Plane %i clusters;Charge-weighted mean dT/RMS",i),120,-3,3);
       h_clust_q[i]     = hdir.make<TH2D>(Form("pl%i_clust_charge",i),  
         Form("Pre-cut;Plane %i cluster charge [#times10^{3} e-];Plane %i cluster charge [#times10^{3}]",fCaloPlane,i),
         qbins,0,qmax,qbins,0,qmax);
@@ -34,8 +34,8 @@ namespace blip {
         qbins,0,qmax,qbins,0,qmax);
       h_clust_q_cut[i]    ->SetOption("colz");
       h_clust_picky_overlap[i]   = hdir.make<TH1D>(Form("pl%i_clust_picky_overlap",i),  Form("Plane %i clusters (3 planes, intersect #Delta cut);Overlap fraction",i),101,0,1.01);
-      h_clust_picky_dt[i]        = hdir.make<TH1D>(Form("pl%i_clust_picky_dt",i),       Form("Plane %i clusters (3 planes, intersect #Delta cut);dT [ticks]",i),300,-15,15);
-      h_clust_picky_dtfrac[i]      = hdir.make<TH1D>(Form("pl%i_clust_picky_dtfrac",i),Form("Plane %i clusters (3 planes, intersect #Delta cut);Charge-weighted mean dT/RMS",i),60,-3,3);
+      h_clust_picky_dt[i]        = hdir.make<TH1D>(Form("pl%i_clust_picky_dt",i),       Form("Plane %i clusters (3 planes, intersect #Delta cut);dT [ticks]",i),200,-10,10);
+      h_clust_picky_dtfrac[i]      = hdir.make<TH1D>(Form("pl%i_clust_picky_dtfrac",i),Form("Plane %i clusters (3 planes, intersect #Delta cut);Charge-weighted mean dT/RMS",i),120,-3,3);
       h_clust_picky_q[i]  = hdir.make<TH2D>(Form("pl%i_clust_picky_charge",i),  
         Form("3 planes, intersect #Delta < 0.5 cm;Plane %i cluster charge [#times 10^{3} e-];Plane %i cluster charge [#times 10^{3}]",fCaloPlane,i),
         qbins,0,qmax,qbins,0,qmax);
@@ -93,15 +93,16 @@ namespace blip {
     fMatchMaxTicks      = pset.get<float>         ("ClustMatchMaxTicks",    5.0 );
     fMatchQDiffLimit    = pset.get<float>         ("ClustMatchQDiffLimit",  15e3);
     fMatchMaxQRatio     = pset.get<float>         ("ClustMatchMaxQRatio",   4);
+    
 
-    fPickyBlips         = pset.get<bool>          ("PickyBlips",        false);
-    fApplyTrkCylinderCut= pset.get<bool>          ("ApplyTrkCylinderCut",false);
+    fPickyBlips         = pset.get<bool>          ("PickyBlips",          false);
+    fApplyTrkCylinderCut= pset.get<bool>          ("ApplyTrkCylinderCut", false);
     fCylinderRadius     = pset.get<float>         ("CylinderRadius",    15);
     
     fCaloAlg            = new calo::CalorimetryAlg( pset.get<fhicl::ParameterSet>("CaloAlg") );
-    fCaloPlane          = pset.get<int>           ("CaloPlane",         2);
-    fdEdx               = pset.get<float>         ("dEdx",2.0);
-
+    fCaloPlane          = pset.get<int>           ("CaloPlane",             2);
+    fdEdx               = pset.get<float>         ("dEdx",                  2.0);
+    fDoLifetimeCorr     = pset.get<bool>          ("DoLifetimeCorrection",  false);
   }
 
 
@@ -135,6 +136,7 @@ namespace blip {
     
     // --- detector properties
     auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+
 
     // -- geometry
     art::ServiceHandle<geo::Geometry> geom;
@@ -230,7 +232,6 @@ namespace blip {
     std::map<size_t,size_t> map_trkid_index;
     for(size_t i=0; i<tracklist.size(); i++) 
       map_trkid_index[tracklist.at(i)->ID()] = i;
-    
 
     //=======================================
     // Fill vector of hit info
@@ -614,10 +615,12 @@ namespace blip {
             // If this blip was also included in a recob::Track,
             // then save the length of that track to the object
             // for use in dE/dx discrimination
-            if( newBlip.TrkID >= 0 ) {
-              float L = tracklist[map_trkid_index[newBlip.TrkID]]->Length();
+            int trkid = newBlip.TrkID;
+            if( trkid >= 0 ) {
+              int index = map_trkid_index[trkid];
+              float L = tracklist[index]->Length();
               if( L <= 2.*(newBlip.dX+newBlip.dYZ) ) 
-                newBlip.Length = tracklist[map_trkid_index[newBlip.TrkID]]->Length();
+                newBlip.Length = tracklist[index]->Length();
             } 
 
             
@@ -674,64 +677,94 @@ namespace blip {
     }//endloop over TPCs
   
 
-
-    // =============================================================================
-    // Calculate blip energy assuming T = T_beam (eventually can do more complex stuff
-    // like associating blip with some nearby track/shower and using its tagged T0)
-    //    Method 1: Assume a dE/dx = 2 MeV/cm for electrons, use that + local E-field
-    //              calculate recombination.
-    //    Method 2: ESTAR lookup table method ala ArgoNeuT
-    // =============================================================================
-    
-    // Retrieve lifetime
-    const lariov::UBElectronLifetimeProvider& elifetime_provider = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
-    float _electronLifetime = elifetime_provider.Lifetime() * 1e3; // convert ms --> mus
-   
+    // Loop over the vector of blips and do more stuff for each
     for(size_t i=0; i<blips.size(); i++){
-      
-      // if charge isn't physical, skip
-      if( blips[i].clusters[fCaloPlane].Charge < 0 ) continue;
+      auto& blip = blips[i];
 
-      auto const* SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
-      float       td = (blips[i].Time > 0) ? blips[i].Time : 0;
-      float       depEl   = blips[i].clusters[fCaloPlane].Charge;
-      if( td )    depEl   *= exp( - td / _electronLifetime ); 
-      auto const  blipPos = blips[i].Position;
-      float       Efield  = detProp->Efield(0);
-      if( SCE->EnableSimEfieldSCE() ) {
-        geo::Point_t point = {double(blipPos.X()), double(blipPos.Y()), double(blipPos.Z())};
-        auto const EfieldOffsets = SCE->GetEfieldOffsets(point);
-        Efield *= std::hypot(1+EfieldOffsets.X(), EfieldOffsets.Y(), EfieldOffsets.Z());
+      // ================================================================================
+      // Calculate blip energy assuming T = T_beam (eventually can do more complex stuff
+      // like associating blip with some nearby track/shower and using its tagged T0)
+      //    Method 1: Assume a dE/dx = 2 MeV/cm for electrons, use that + local E-field
+      //              calculate recombination.
+      //    Method 2: ESTAR lookup table method ala ArgoNeuT
+      // ================================================================================
+    
+      // if charge isn't physical, skip
+      if( blip.clusters[fCaloPlane].Charge < 0 ) continue;
+        
+        //const lariov::UBElectronLifetimeProvider& elp = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
+        const auto& elp = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
+        float _electronLifetime = elp.Lifetime() * 1e3; // convert ms --> mus
+       
+        float depEl   = blip.clusters[fCaloPlane].Charge;
+        float Efield  = detProp->Efield(0);
+      
+        // Lifetime correction is disabled by default. Without knowing the exact
+        // T0 of a blip, attempting to apply this correction based on its time
+        // can do more harm than good!
+        if( fDoLifetimeCorr ) {
+          float td  = (blip.Time > 0) ? blip.Time : 0;
+          depEl     *= exp( - td/_electronLifetime ); 
+        }
+      
+      /*
+      // --------------------
+      // SCE corrections
+      // Note that SCE maps are in different coordinates; 3D position
+      // must be converted before passed (see Utils/BlipUtils.cc)
+      geo::Point_t point( blip.Position.X(),blip.Position.Y(),blip.Position.Z() );
+      // TODO: THIS DOESN'T WORK (as of 2022/07/11)
+      // Based on larreco/Calorimetry/Calorimetry_module.cc.
+      // Sign of offsets is different for X vs. Y/Z 
+      auto const* SCE     = lar::providerFrom<spacecharge::SpaceChargeService>();
+      if( SCE->EnableCalSpatialSCE() ) {
+        auto point_sce = BlipUtils::GetCoordsSCE(point);
+
+        geo::Vector_t loc_offset = SCE->GetPosOffsets(point_sce);
+        std::cout<<"Correcting blip XYZ: "<<point.X()<<", "<<point.Y()<<", "<<point.Z()<<"\n";
+        std::cout<<"weird sce coords: "<<point_sce.X()<<"  "<<point_sce.Y()<<"  "<<point_sce.Z()<<"\n";
+        //std::cout<<"Offset: "<<loc_offset.X()<<"  "<<loc_offset.Y()<<"  "<<loc_offset.Z()<<"\n";
+        point.SetX( point.X() - loc_offset.X() );
+        point.SetY( point.Y() + loc_offset.Y() );
+        point.SetZ( point.Z() + loc_offset.Z() );
       }
+
+      // TODO: THIS DOESN'T WORK (as of 2022/07/11)
+      if( SCE->EnableCalEfieldSCE() ) {
+        auto point_sce = BlipUtils::GetCoordsSCE(point);
+        auto const field_offset = SCE->GetEfieldOffsets(point_sce);
+        //std::cout<<"Field offset "<<field_offset.X()<<"  "<<field_offset.Y()<<"\n";
+        Efield *= std::hypot(1+field_offset.X(),field_offset.Y(),field_offset.Z());
+      }
+      */
       
       // METHOD 1
       float recomb = BlipUtils::ModBoxRecomb(fdEdx,Efield);
-      blips[i].Energy = depEl * (1./recomb) * 23.6e-6;
+      blip.Energy = depEl * (1./recomb) * 23.6e-6;
 
       // METHOD 2
       //std::cout<<"Calculating ESTAR energy dep...  "<<depEl<<", "<<Efield<<"\n";
       //blips[i].EnergyESTAR = ESTAR->Interpolate(depEl, Efield); 
 
-    }
-
-
-    // ================================================
-    // Save the true blip into the object;
-    // each cluster must match to the same energy dep
-    // ================================================
-    for(size_t i=0; i<blips.size(); i++){
-      auto& b = blips[i];
+    
+      
+      // ================================================
+      // Save the true blip into the object;
+      // each cluster must match to the same energy dep
+      // ================================================
       std::set<int> set_edepids;
       bool badmatch = false;
-      for(auto& hc : b.clusters ) {
+      for(auto& hc : blip.clusters ) {
         if( !hc.isValid ) continue; 
         if( hc.EdepID < 0 ) break;
         set_edepids.insert( hc.EdepID );
       }
       if( !badmatch && set_edepids.size() == 1 ) 
-        b.truth = trueblips[*set_edepids.begin()];
-    }
-  
+        blip.truth = trueblips[*set_edepids.begin()];
+    
+
+    }//endloop over blip vector
+
   }//End main blip reco function
   
   

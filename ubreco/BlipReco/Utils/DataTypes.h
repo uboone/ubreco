@@ -155,7 +155,8 @@ namespace blip {
     float     SigmaYZ         = -9.;        // Uncertainty in YZ intersect [cm]
     float     dX              = -9;         // Equivalent length along drift direction [cm] 
     float     dYZ             = -9;         // Approximate length scale in YZ space [cm]
-    float     TrkID           = -9;         // Track ID (if hits were 3D-tracked)
+    
+    int       TrkID           = -9;         // Track ID (if hits were 3D-tracked)
     float     Length          = -9;         // Length of 3D track (if applicable)
 
     // Plane/cluster-specific information
@@ -177,7 +178,7 @@ namespace blip {
         Match_score[i]  = -9;
       }
     }
-
+    
   };
   
 }

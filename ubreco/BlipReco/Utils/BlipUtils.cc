@@ -831,6 +831,14 @@ namespace BlipUtils {
     return IsPointAtBnd(v.X(), v.Y(), v.Z());
   }
 
+  geo::Point_t GetCoordsSCE(geo::Point_t& point){
+    // Convert XYZ to SCE map coordinates (DocDB-38160, DocDB-30268)
+    double xval = 2.50 - (2.50/2.56) * point.X()/100.;
+    double yval = (2.50/2.33) * ( point.Y()/100. + 1.165 );
+    double zval = (10.0/10.37) * point.Z()/100.;
+    return geo::Point_t{ xval, yval, zval };
+  }
+
   /*
   //===========================================================================
   float ConvertTicksToX(float peakTime, int plane, int tpc, int cryo) {

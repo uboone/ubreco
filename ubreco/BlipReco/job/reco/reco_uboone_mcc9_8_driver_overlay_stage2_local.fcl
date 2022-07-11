@@ -3,6 +3,7 @@
 microboone_tfile_metadata.GenerateTFileMetadata: [ true, false ]
 source.maxEvents: -1
 
+# Don't drop SimChannels!!! They're useful!
 outputs.out1.outputCommands: [
    "keep *_*_*_*",
    "drop raw::RawDigit*_*_*_*",
@@ -20,4 +21,48 @@ outputs.out1.outputCommands: [
    "drop *_sps3d_noreg_*",
    "drop *_sps3d_pre_*",
    "drop *_*calo*_*_*"
+]
+
+# Disabling some reco modules that are irrelevent to
+# blip-making and/or don't work on the radon R&D datasets
+physics.reco: [
+      "rns",
+      "crttzero",
+      #"wcopflash",
+      #"pandoraWriter",
+      "pandoraPatRec",
+      "pandoraAllOutcomesTrack",
+      "pandoraAllOutcomesShower",
+      "pandora",
+      "pandoratag",
+      "pandoraContTag",
+      #"pandoraMCSMu",
+      "pandoracalo",
+      #"pandorapid",
+      #"pandoracali",
+      #"pandoracalipid",
+      "pandoracaloSCE",
+      #"pandorapidSCE",
+      #"pandoracaliSCE",
+      #"pandoracalipidSCE",
+      "pandoraKalmanTrack",
+      #"pandoraKalmanShower",
+      #"pandoraKalmanTracktag",
+      "pandoraKalmanTrackcalo"
+      #"pandoraKalmanTrackpid",
+      #"pandoraKalmanTrackcali",
+      #"pandoraKalmanTrackcalipid",
+      #"pandoraKalmanShowertag",
+      #"pandoraKalmanShowercalo",
+      #"pandoraKalmanShowerpid",
+      #"pandoraKalmanShowercali",
+      #"pandoraKalmanShowercalipid",
+      #"shrreco3d",
+      #"pandoraGeomVertexFit"
+      #"pandoraCrtHitMatch",
+      #"sps3d",
+      #"dbcluster3d",
+      #"trajcluster",
+      #"trajclusterKalmanTrack",
+      #"tcshower"
 ]
