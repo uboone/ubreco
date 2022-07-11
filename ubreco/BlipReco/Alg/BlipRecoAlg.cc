@@ -692,20 +692,18 @@ namespace blip {
       // if charge isn't physical, skip
       if( blip.clusters[fCaloPlane].Charge < 0 ) continue;
         
-        //const lariov::UBElectronLifetimeProvider& elp = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
-        const auto& elp = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
-        float _electronLifetime = elp.Lifetime() * 1e3; // convert ms --> mus
-       
-        float depEl   = blip.clusters[fCaloPlane].Charge;
-        float Efield  = detProp->Efield(0);
+      float depEl   = blip.clusters[fCaloPlane].Charge;
+      float Efield  = detProp->Efield(0);
       
-        // Lifetime correction is disabled by default. Without knowing the exact
-        // T0 of a blip, attempting to apply this correction based on its time
-        // can do more harm than good!
-        if( fDoLifetimeCorr ) {
-          float td  = (blip.Time > 0) ? blip.Time : 0;
-          depEl     *= exp( - td/_electronLifetime ); 
-        }
+      // Lifetime correction is disabled by default. Without knowing the exact
+      // T0 of a blip, attempting to apply this correction based on its reconstructed
+      // time can do more harm than good!
+      if( fDoLifetimeCorr ) {
+        const auto& elp = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
+        float lifetime = elp.Lifetime() * 1e3; // convert ms --> mus
+        float td  = (blip.Time > 0) ? blip.Time : 0;
+        depEl     *= exp( - td/lifetime); 
+      }
       
       /*
       // --------------------
