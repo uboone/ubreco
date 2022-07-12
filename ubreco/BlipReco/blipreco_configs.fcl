@@ -33,6 +33,7 @@ microboone_blipalg:
   GeantProducer:        "largeant"
   SimEDepProducer:      "ionization"
   CaloAlg:              @local::microboone_calo_mcc9_data
+  DoLifetimeCorrection: false           # correct blips for lifetime assuming T0 = 0
   CaloPlane:            2               # plane used for calorimetry (2=collection)
   dEdx:                 2.0             # assumed dE/dx for recombination corrections
   MaxHitTrkLength:      5.0             # hits in trks > this length will be vetoed [cm]
