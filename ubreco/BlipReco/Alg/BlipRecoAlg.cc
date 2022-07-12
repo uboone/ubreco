@@ -702,7 +702,7 @@ namespace blip {
         const auto& elp = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
         float lifetime = elp.Lifetime() * 1e3; // convert ms --> mus
         float td  = (blip.Time > 0) ? blip.Time : 0;
-        depEl     *= exp( - td/lifetime); 
+        depEl     *= exp( td/lifetime ); 
       }
       
       /*
