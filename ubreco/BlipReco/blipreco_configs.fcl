@@ -32,10 +32,6 @@ microboone_blipalg:
   TrkProducer:          "pandora"
   GeantProducer:        "largeant"
   SimEDepProducer:      "ionization"
-  CaloAlg:              @local::microboone_calo_mcc9_data
-  DoLifetimeCorrection: false           # correct blips for lifetime assuming T0 = 0
-  CaloPlane:            2               # plane used for calorimetry (2=collection)
-  dEdx:                 2.0             # assumed dE/dx for recombination corrections
   MaxHitTrkLength:      5.0             # hits in trks > this length will be vetoed [cm]
   DoHitFiltering:       true            # filter hits based on amp, width, RMS
   MaxWiresInCluster:    10              # max allowable wires in a cluster
@@ -48,6 +44,10 @@ microboone_blipalg:
   PickyBlips:           false           # require 3 planes that all intersect at ~same point
   ApplyTrkCylinderCut:  false           # reject blips in track cone-cylinder regions
   CylinderRadius:       15.0            # 3D cylinder cut radius [cm]
+  CaloAlg:              @local::microboone_calo_mcc9_data
+  CaloPlane:            2               # plane used for calorimetry (2=collection)
+  CalodEdx:             2.0             # assumed dE/dx for recombination corrections
+  CaloLifetimeCorr:     false           # correct blips for lifetime assuming T0 = 0
 }
 
 microboone_blipalg_data:              @local::microboone_blipalg

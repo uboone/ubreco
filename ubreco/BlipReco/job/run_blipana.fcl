@@ -27,6 +27,12 @@ services:
 services.BackTrackerService.BackTracker.OverrideRealData: true
 services.BackTrackerService.BackTracker.G4ModuleLabel: "driftWC:simpleSC" # default is "largeant"
 
+# Turn off SCE corrections to energy; analyzers confident in the T0 (i.e., X position) 
+# of their selected blips can switch this on as they see fit
+services.SpaceCharge.EnableCorrSCE:       false
+services.SpaceCharge.EnableCalEfieldSCE:  false
+services.SpaceCharge.EnableCalSpatialSCE: false
+
 # Suppress common warning messages
 services.message.destinations.STDCOUT: {
   categories: {

@@ -100,9 +100,9 @@ namespace blip {
     fCylinderRadius     = pset.get<float>         ("CylinderRadius",    15);
     
     fCaloAlg            = new calo::CalorimetryAlg( pset.get<fhicl::ParameterSet>("CaloAlg") );
-    fCaloPlane          = pset.get<int>           ("CaloPlane",             2);
-    fdEdx               = pset.get<float>         ("dEdx",                  2.0);
-    fDoLifetimeCorr     = pset.get<bool>          ("DoLifetimeCorrection",  false);
+    fCaloPlane          = pset.get<int>           ("CaloPlane",               2);
+    fCalodEdx           = pset.get<float>         ("CalodEdx",                2.0);
+    fCaloLifetimeCorr   = pset.get<bool>          ("CaloLifetimeCorr",        false);
   }
 
 
@@ -136,11 +136,11 @@ namespace blip {
     
     // --- detector properties
     auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-
+    auto const* SCE     = reinterpret_cast<spacecharge::SpaceChargeMicroBooNE const*>(lar::providerFrom<spacecharge::SpaceChargeService>());
 
     // -- geometry
     art::ServiceHandle<geo::Geometry> geom;
-  
+
     // -- G4 particles
     art::Handle< std::vector<simb::MCParticle> > pHandle;
     std::vector<art::Ptr<simb::MCParticle> > plist;
@@ -688,63 +688,43 @@ namespace blip {
       //              calculate recombination.
       //    Method 2: ESTAR lookup table method ala ArgoNeuT
       // ================================================================================
-    
-      // if charge isn't physical, skip
-      if( blip.clusters[fCaloPlane].Charge < 0 ) continue;
         
-      float depEl   = blip.clusters[fCaloPlane].Charge;
+      float depEl   = std::max(0.0,(double)blip.clusters[fCaloPlane].Charge);
       float Efield  = detProp->Efield(0);
       
-      // Lifetime correction is disabled by default. Without knowing the exact
-      // T0 of a blip, attempting to apply this correction based on its reconstructed
-      // time can do more harm than good!
-      if( fDoLifetimeCorr ) {
+      // --- Lifetime correction ---
+      // Ddisabled by default. Without knowing real T0 of a blip, attempting to 
+      // apply this correction can do more harm than good!
+      if( fCaloLifetimeCorr ) {
         const auto& elp = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
         float lifetime = elp.Lifetime() * 1e3; // convert ms --> mus
         float td  = (blip.Time > 0) ? blip.Time : 0;
         depEl     *= exp( td/lifetime ); 
       }
       
-      /*
-      // --------------------
-      // SCE corrections
-      // Note that SCE maps are in different coordinates; 3D position
-      // must be converted before passed (see Utils/BlipUtils.cc)
+      // --- SCE corrections ---
+      // 1) Spatial correction
       geo::Point_t point( blip.Position.X(),blip.Position.Y(),blip.Position.Z() );
-      // TODO: THIS DOESN'T WORK (as of 2022/07/11)
-      // Based on larreco/Calorimetry/Calorimetry_module.cc.
-      // Sign of offsets is different for X vs. Y/Z 
-      auto const* SCE     = lar::providerFrom<spacecharge::SpaceChargeService>();
       if( SCE->EnableCalSpatialSCE() ) {
-        auto point_sce = BlipUtils::GetCoordsSCE(point);
-
-        geo::Vector_t loc_offset = SCE->GetPosOffsets(point_sce);
-        std::cout<<"Correcting blip XYZ: "<<point.X()<<", "<<point.Y()<<", "<<point.Z()<<"\n";
-        std::cout<<"weird sce coords: "<<point_sce.X()<<"  "<<point_sce.Y()<<"  "<<point_sce.Z()<<"\n";
-        //std::cout<<"Offset: "<<loc_offset.X()<<"  "<<loc_offset.Y()<<"  "<<loc_offset.Z()<<"\n";
-        point.SetX( point.X() - loc_offset.X() );
-        point.SetY( point.Y() + loc_offset.Y() );
-        point.SetZ( point.Z() + loc_offset.Z() );
+        // TODO: Deal with cases where X falls outside AV (diffuse out-of-time signal)
+        //       For example, maybe re-assign to center of drift volume?
+        //if( !BlipUtils::IsPointInAV(blip.Position) ) point.SetX( geom->DetHalfWidth() );
+        geo::Vector_t loc_offset = SCE->GetCalPosOffsets(point);
+        point.SetXYZ(point.X()-loc_offset.X(),point.Y()+loc_offset.Y(),point.Z()+loc_offset.Z());
       }
-
-      // TODO: THIS DOESN'T WORK (as of 2022/07/11)
+      // 2) E-field correction
       if( SCE->EnableCalEfieldSCE() ) {
-        auto point_sce = BlipUtils::GetCoordsSCE(point);
-        auto const field_offset = SCE->GetEfieldOffsets(point_sce);
-        //std::cout<<"Field offset "<<field_offset.X()<<"  "<<field_offset.Y()<<"\n";
+        auto const field_offset = SCE->GetCalEfieldOffsets(point);
         Efield *= std::hypot(1+field_offset.X(),field_offset.Y(),field_offset.Z());
       }
-      */
       
       // METHOD 1
-      float recomb = BlipUtils::ModBoxRecomb(fdEdx,Efield);
+      float recomb = BlipUtils::ModBoxRecomb(fCalodEdx,Efield);
       blip.Energy = depEl * (1./recomb) * 23.6e-6;
 
-      // METHOD 2
+      // METHOD 2 (TODO)
       //std::cout<<"Calculating ESTAR energy dep...  "<<depEl<<", "<<Efield<<"\n";
       //blips[i].EnergyESTAR = ESTAR->Interpolate(depEl, Efield); 
-
-    
       
       // ================================================
       // Save the true blip into the object;
