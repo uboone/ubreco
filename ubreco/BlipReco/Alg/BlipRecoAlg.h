@@ -40,8 +40,9 @@
 // Microboone includes
 #include "ubevt/Database/UbooneElectronLifetimeProvider.h"
 #include "ubevt/Database/UbooneElectronLifetimeService.h"
-#include "larevt/SpaceChargeServices/SpaceChargeService.h"
-//#include "larevt/SpaceCharge/SpaceCharge.h"
+//#include "larevt/SpaceChargeServices/SpaceChargeService.h"
+#include "ubevt/SpaceChargeServices/SpaceChargeServiceMicroBooNE.h"
+#include "ubevt/SpaceCharge/SpaceChargeMicroBooNE.h"
 
 // Blip-specific utils
 #include "ubreco/BlipReco/Utils/BlipUtils.h"
@@ -110,39 +111,31 @@ namespace blip {
     float               fMatchMinOverlap;
     float               fMatchSigmaFact;
     float               fMatchMaxTicks;
-    //int                 fMatchMaxCandidates;
     int                 fMaxWiresInCluster;
     float               fMinClusterCharge;
     float               fMaxClusterSpan;
-    int                 fCaloPlane;
     bool                fPickyBlips;
-    
     bool                fApplyTrkCylinderCut;
     float               fCylinderRadius; 
-   
-    float               fdEdx;
-    bool                fDoLifetimeCorr;
-
-    // --- Calorimetry alg ---
+ 
+    // --- Calorimetry configs ---
     calo::CalorimetryAlg*   fCaloAlg;
+    int                 fCaloPlane;
+    float               fCalodEdx;
+    bool                fCaloLifetimeCorr;
   
     // --- Histograms ---
     TH1D*   h_clust_nwires;
     TH1D*   h_clust_timespan;
-    
     TH1D*   h_clust_overlap[kNplanes];
     TH1D*   h_clust_dt[kNplanes];
     TH1D*   h_clust_dtfrac[kNplanes];
     TH2D*   h_clust_q[kNplanes]; 
     TH2D*   h_clust_q_cut[kNplanes]; 
-    
     TH1D*   h_clust_picky_overlap[kNplanes];
     TH1D*   h_clust_picky_dt[kNplanes];
     TH1D*   h_clust_picky_dtfrac[kNplanes];
     TH2D*   h_clust_picky_q[kNplanes]; 
-    //TH1D*   h_clust_score[kNplanes];
-    //TH1D*   h_clust_picky_score[kNplanes];
-    
     TH1D*   h_nmatches[kNplanes];
 
   };
