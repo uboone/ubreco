@@ -48,11 +48,11 @@ namespace BlipUtils {
   // Functions related to blip reconstruction
   //###################################################
   //void      InitializeDetProps();
-  void      FillParticleInfo(simb::MCParticle const&, blip::ParticleInfo&, SEDVec_t&);
+  void      FillParticleInfo(simb::MCParticle const&, blip::ParticleInfo&, SEDVec_t&, int plane=2);
+  //void      CalcPartDrift(blip::ParticleInfo&, int);
   void      CalcTotalDep(float&,int&,float&, SEDVec_t&);
-  void      CalcPartDrift(int,float&);
-  void      MakeTrueBlips(std::vector<blip::ParticleInfo> const&, std::vector<blip::TrueBlip>&);
-  void      GrowTrueBlip(blip::ParticleInfo const&, blip::TrueBlip&);
+  void      MakeTrueBlips(std::vector<blip::ParticleInfo>&, std::vector<blip::TrueBlip>&);
+  void      GrowTrueBlip(blip::ParticleInfo&, blip::TrueBlip&);
   void      MergeTrueBlips(std::vector<blip::TrueBlip>&, float);
   void      GrowHitClust(blip::HitInfo const&, blip::HitClust&);
   bool      DoHitsOverlap(art::Ptr<recob::Hit> const&, art::Ptr<recob::Hit> const&);

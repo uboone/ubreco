@@ -52,6 +52,7 @@ namespace blip {
     float     Energy        = 0;
     int       DepElectrons  = 0;
     int       NumElectrons  = 0; // (post-drift)
+    float     DriftTime     = -9;
     int       LeadG4ID      = -9;
     int       LeadG4Index   = -9;
     int       LeadG4PDG     = -9;
