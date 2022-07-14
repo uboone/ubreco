@@ -39,30 +39,39 @@ namespace BlipUtils {
   }
 
 
+  /*
   //==========================================================================
   // Get total electrons drifted to anode by this particle
-  void CalcPartDrift(int trackID, float& ne_drift){
-    if( ne_drift < 0 ) ne_drift = 0;
+  void CalcPartDrift(int trackID, int plane, int& ne_drift){
+    // Check each of the 3 views and choose the most complete
     std::vector<geo::View_t> views={geo::kU, geo::kV, geo::kW};
-    float ne = 0;
-    int nviews = 0;
-    for(auto view : views ) {
+    for(size_t ip = 0; ip < views.size(); ip++){
+      if( plane >= 0 && (int)ip != plane  ) continue;
       std::vector<const sim::IDE* > ides
-        = art::ServiceHandle<cheat::BackTrackerService>()->TrackIdToSimIDEs_Ps(trackID, view);
+        = art::ServiceHandle<cheat::BackTrackerService>()->TrackIdToSimIDEs_Ps(trackID, views[ip]);
       if( ides.size() ) {
-        nviews++;
+        int ne = 0;
         for (auto ide: ides) ne += ide->numElectrons;
+        if( ne > ne_drift ) ne_drift = ne;
       }
     }
-    if( nviews ) ne_drift = ne / float(nviews);
+    return;
+    
+    int ne = 0;
+    std::vector<const sim::IDE* > ides
+    //    = art::ServiceHandle<cheat::BackTrackerService>()->TrackIdToSimIDEs_Ps(trackID,geo::kW);
+        = art::ServiceHandle<cheat::BackTrackerService>()->TrackIdToSimIDEs_Ps(trackID,views[plane]);
+    for (auto& ide: ides) ne_drift += ide->numElectrons;
     return;
   }
+  */
 
   
+
   //===========================================================================
   // Provided a MCParticle, calculate everything we'll need for later calculations
   // and save into ParticleInfo object
-  void FillParticleInfo( const simb::MCParticle& part, blip::ParticleInfo& pinfo, SEDVec_t& sedvec){
+  void FillParticleInfo( const simb::MCParticle& part, blip::ParticleInfo& pinfo, SEDVec_t& sedvec, int caloPlane){
     
     // Get important info and do conversions
     pinfo.particle    = part;
@@ -95,43 +104,37 @@ namespace BlipUtils {
         pinfo.depElectrons  += sed->NumElectrons();
       }
     }
-
-    // Electrons drifted to wires
-    CalcPartDrift( pinfo.trackId, pinfo.numElectrons );
+    
+    return;
   
   }
-
 
   //===================================================================
   // Provided a vector of all particle information for event, fill a
   // vector of true blips
-  void MakeTrueBlips( const std::vector<blip::ParticleInfo>& pinfo, std::vector<blip::TrueBlip>& trueblips ) {
+  void MakeTrueBlips( std::vector<blip::ParticleInfo>& pinfo, std::vector<blip::TrueBlip>& trueblips ) {
     
     for(size_t i=0; i<pinfo.size(); i++){
+      auto& part = pinfo[i].particle;
       
-      blip::TrueBlip tb;
-      
-      auto part = pinfo[i].particle;
+      // If this is a photon or neutron, don't even bother!
+      if( part.PdgCode() == 2112 || part.PdgCode() == 22 ) continue;
 
       // If this is an electron that came from another electron, it would 
       // have already been grouped as part of the contiguous "blip" previously.
       std::string proc = part.Process();
       if( part.PdgCode() == 11 && ( proc == "eIoni" || proc == "muIoni" || proc == "hIoni") ) continue;
-    
-      // If this is a photon or neutron, don't even bother!
-      if( part.PdgCode() == 2112 || part.PdgCode() == 22 ) continue;
-
-      // Only count protons < 3 MeV KE
-      if( part.PdgCode() == 2212 && pinfo[i].depEnergy > 3. ) continue;
 
       // Create the new blip
+      blip::TrueBlip tb;
       GrowTrueBlip(pinfo[i],tb);
+      if( !tb.Energy ) continue;  
 
       // We want to loop through any contiguous electrons (produced
       // with process "eIoni") and add the energy they deposit into this blip.
       if( part.NumberDaughters() ) {
         for(size_t j=0; j<pinfo.size(); j++){
-          simb::MCParticle p = pinfo[j].particle;
+          simb::MCParticle& p = pinfo[j].particle;
           std::string pr = p.Process();
           if( p.PdgCode() != 2112 && (pr == "eIoni" || pr == "muIoni" || pr == "hIoni") ){
             if( IsAncestorOf(p.TrackId(),part.TrackId(),true) ) GrowTrueBlip(pinfo[j],tb);
@@ -141,16 +144,16 @@ namespace BlipUtils {
 
       tb.ID = trueblips.size();
       trueblips.push_back(tb);
-    
+
     }
     
   }
   
   
   //====================================================================
-  void GrowTrueBlip( blip::ParticleInfo const& pinfo, blip::TrueBlip& tblip ) {
+  void GrowTrueBlip( blip::ParticleInfo& pinfo, blip::TrueBlip& tblip ) {
     
-    simb::MCParticle part = pinfo.particle;
+    simb::MCParticle& part = pinfo.particle;
 
     // Skip neutrons, photons
     if( part.PdgCode() == 2112 || part.PdgCode() == 22 ) return;
@@ -173,7 +176,6 @@ namespace BlipUtils {
       tblip.Position    = w1*tblip.Position + w2*pinfo.position;
       tblip.Time        = w1*tblip.Time     + w2*pinfo.time;
       tblip.LeadEnergy  = pinfo.depEnergy;
-  
     // ... if the particle isn't a match, show's over
     } else {
       return;
@@ -182,6 +184,10 @@ namespace BlipUtils {
     tblip.Energy      += pinfo.depEnergy;
     tblip.DepElectrons+= pinfo.depElectrons;
     tblip.NumElectrons+= pinfo.numElectrons;
+    
+    auto const* detProp   = lar::providerFrom<detinfo::DetectorPropertiesService>();
+    float driftVel = detProp->DriftVelocity(detProp->Efield(0),detProp->Temperature());
+    tblip.DriftTime = tblip.Position.X() / driftVel;
 
     tblip.G4EnergyMap[part.TrackId()] += pinfo.depEnergy;
     tblip.G4PDGMap[part.TrackId()]    = part.PdgCode();
@@ -223,6 +229,7 @@ namespace BlipUtils {
           blip_i.NumElectrons += blip_j.NumElectrons;
           blip_i.Position     = w1*blip_i.Position + w2*blip_j.Position;
           blip_i.Time         = w1*blip_i.Time     + w2*blip_j.Time; 
+          blip_i.DriftTime    = w1*blip_i.DriftTime+ w2*blip_j.DriftTime; 
           
           blip_i.G4EnergyMap.insert(blip_j.G4EnergyMap.begin(), blip_j.G4EnergyMap.end());
           blip_i.G4PDGMap.insert(blip_j.G4PDGMap.begin(), blip_j.G4PDGMap.end());
@@ -596,7 +603,6 @@ namespace BlipUtils {
     float full_range = std::max(x2,y2) - std::min(x1,y1);
     float sum        = (x2-x1) + (y2-y1);
     float overlap    = std::max(float(0), sum-full_range);
-    //if( overlap > 0 ) return overlap / full_range; //(0.5*sum)
     if( overlap > 0 ) return 2. * overlap / sum;
     else              return -1;
   }

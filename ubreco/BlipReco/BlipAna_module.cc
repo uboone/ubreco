@@ -143,7 +143,8 @@ class BlipAnaTreeDataStruct
   int   edep_blipid[kMaxEDeps];   // reconstructed blip ID
   float edep_energy[kMaxEDeps];   // total energy deposited (MeV)
   int   edep_electrons[kMaxEDeps];// total ionization electrons deposited
-  float edep_charge[kMaxEDeps];   // total electrons reaching anode wires
+  int   edep_charge[kMaxEDeps];   // total electrons reaching anode wires
+  float edep_tdrift[kMaxEDeps];   // drift time for this energy dep
   float edep_x[kMaxEDeps];        // x (cm)
   float edep_y[kMaxEDeps];        // y (cm)
   float edep_z[kMaxEDeps];        // z (cm)
@@ -294,6 +295,7 @@ class BlipAnaTreeDataStruct
     FillWith(edep_energy, -999);
     FillWith(edep_electrons,  -999);
     FillWith(edep_charge, -999);
+    FillWith(edep_tdrift, -999);
     FillWith(edep_x,      -99999.);
     FillWith(edep_y,      -99999.);
     FillWith(edep_z,      -99999.);
@@ -533,7 +535,8 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("edep_clustid",edep_clustid,"edep_clustid[nedeps]/I"); 
       evtTree->Branch("edep_energy",edep_energy,"edep_energy[nedeps]/F"); 
       evtTree->Branch("edep_electrons",edep_electrons,"edep_electrons[nedeps]/I"); 
-      evtTree->Branch("edep_charge",edep_charge,"edep_charge[nedeps]/F"); 
+      evtTree->Branch("edep_charge",edep_charge,"edep_charge[nedeps]/I"); 
+      //evtTree->Branch("edep_tdrift",edep_tdrift,"edep_tdrift[nedeps]/F"); 
       evtTree->Branch("edep_x",edep_x,"edep_x[nedeps]/F"); 
       evtTree->Branch("edep_y",edep_y,"edep_y[nedeps]/F"); 
       evtTree->Branch("edep_z",edep_z,"edep_z[nedeps]/F"); 
@@ -641,6 +644,7 @@ class BlipAna : public art::EDAnalyzer
   TH2D*   h_blip_charge_UV_picky;
 
   // Some truth metrics for debugging
+  TH1D*   h_true_lifetime;
   TH1D*   h_qres_electrons;
   TH1D*   h_qres_alphas;
   TH1D*   h_adc_factor;
@@ -695,6 +699,7 @@ class BlipAna : public art::EDAnalyzer
     h_blip_reszy    = dir_truth.make<TH2D>("blip_res_zy","Blip position resolution;Z_{reco} - Z_{true} [cm];Y_{reco} - Y_{true} [cm]",150,-15,15,150,-15,15);
       h_blip_reszy  ->SetOption("colz");
     h_blip_resx     = dir_truth.make<TH1D>("blip_res_x","Blip position resolution;X_{reco} - X_{true} [cm]",150,-15,15);
+    h_true_lifetime   = dir_truth.make<TH1D>("blip_true_lifetime","Calculated charge attenuation;Lifetime [#mus]",500,0,100e3);
     h_qres_electrons= dir_truth.make<TH1D>("qres_electrons","Collection plane;Cluster charge resolution: ( reco-true ) / true",200,-1.,1.);
     h_qres_alphas   = dir_truth.make<TH1D>("qres_alphas","Collection plane;Cluster charge resolution: ( reco-true ) / true",200,-1.,1.);
     h_adc_factor    = dir_truth.make<TH1D>("adc_per_e","Collection plane;ADC per electron",200,0,0.01);
@@ -969,10 +974,20 @@ void BlipAna::analyze(const art::Event& evt)
       fData->edep_g4index[i]  = trueblips.at(i).LeadG4Index;
       fData->edep_pdg[i]      = trueblips.at(i).LeadG4PDG;
       
+      float nd = trueblips.at(i).DepElectrons;
       float ne = trueblips.at(i).NumElectrons;
+      float td = trueblips.at(i).DriftTime;
       total_numElectrons += ne;
       if( trueblips.at(i).Energy < 2 ) total_numElectrons_2MeV += ne;
       if( fDebugMode ) PrintTrueBlipInfo(i);
+      
+      // calculate simulated lifetime
+      if( ne && nd && td ) {
+        //std::cout<<"Calculating charge attenuation for Qdep "<<nd<<" --> "<<ne<<" over time "<<td<<"\n";
+        float tau = td * 1./log(nd/ne);
+        //std::cout<<"tau = "<<tau<<"\n";
+        h_true_lifetime->Fill(tau);
+      }
     }
   }//endif trueblips were made
   
@@ -1445,7 +1460,7 @@ void BlipAna::endJob(){
 //###################################################
 
 void BlipAna::PrintParticleInfo(size_t i){
-  printf("  %5i  trkID: %-6i PDG: %-8i XYZ= %7.1f %7.1f %7.1f, dL=%7.1f, KE0=%8.2f, Edep=%8.3f, T=%10.2f, moth=%5i, %12s, ND=%i\n",
+  printf("  %5i  trkID: %-6i PDG: %-8i XYZ= %7.1f %7.1f %7.1f, dL=%7.1f, KE0=%8.3f, Edep=%8.3f, T=%10.2f, moth=%5i, %12s, ND=%i\n",
    (int)i,
    fData->part_trackID[i],
    fData->part_pdg[i],
@@ -1453,7 +1468,7 @@ void BlipAna::PrintParticleInfo(size_t i){
    fData->part_startPointy[i],
    fData->part_startPointz[i],
    fData->part_pathlen[i], 
-   fData->part_E[i]-fData->part_mass[i],
+   fData->part_KE[i],
    fData->part_depEnergy[i],
    fData->part_startT[i]/1e3,
    fData->part_mother[i],
@@ -1463,11 +1478,15 @@ void BlipAna::PrintParticleInfo(size_t i){
 }
 
 void BlipAna::PrintTrueBlipInfo(size_t i){
-  printf("  %5i  G4ID: %-6i PDG: %-8i Energy:%8.3f MeV\n",
+  printf("  %5i  G4ID: %-6i PDG: %-8i Energy:%8.3f, Charge: %8i e-, XYZ: %7.2f, %7.2f, %7.2f\n",
    (int)i,
    fData->edep_g4id[i],
    fData->edep_pdg[i],
-   fData->edep_energy[i]
+   fData->edep_energy[i],
+   fData->edep_charge[i],
+   fData->edep_x[i],
+   fData->edep_y[i],
+   fData->edep_z[i]
   ); 
 }
 

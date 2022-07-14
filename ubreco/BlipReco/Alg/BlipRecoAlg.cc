@@ -9,7 +9,7 @@ namespace blip {
   BlipRecoAlg::BlipRecoAlg( fhicl::ParameterSet const& pset )
   {
     this->reconfigure(pset);
-   
+    
     // create diagnostic histograms
     art::ServiceHandle<art::TFileService> tfs;
     art::TFileDirectory hdir = tfs->mkdir("BlipRecoAlg");
@@ -152,7 +152,7 @@ namespace blip {
     std::vector<art::Ptr<sim::SimEnergyDeposit> > sedlist;
     if (evt.getByLabel(fSimDepProducer,sedHandle)) 
       art::fill_ptr_vector(sedlist, sedHandle);
-  
+    
     // -- hits (from input module)
     art::Handle< std::vector<recob::Hit> > hitHandle;
     std::vector<art::Ptr<recob::Hit> > hitlist;
@@ -181,6 +181,22 @@ namespace blip {
     // -- gaushit <-> particle associations
     art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> fmhh(hitHandleGH,evt,"gaushitTruthMatch");
 
+
+    //======================================================
+    // Use SimChannels to make a map of the collected charge
+    // for every G4 particle, instead of relying on the TDC-tick
+    // matching that's done by BackTracker's other functions
+    //======================================================
+    std::map<int,int> map_g4id_charge;
+    for(auto const &chan : art::ServiceHandle<cheat::BackTrackerService>()->SimChannels()) {
+      if( geom->View(chan->Channel()) != geo::kW ) continue;
+      for(auto const &tdcide : chan->TDCIDEMap() ) {
+        for(const auto& ide : tdcide.second) {
+          if( ide.trackID < 0 ) continue;
+          map_g4id_charge[ide.trackID] += ide.numElectrons;
+        }
+      }
+    }
     
     //==================================================
     // Use G4 information to determine the "true"
@@ -213,14 +229,18 @@ namespace blip {
     
       // Loop through the MCParticles
       for(size_t i = 0; i<plist.size(); i++){
-        BlipUtils::FillParticleInfo( *plist[i], pinfo[i], sedlist );
-        pinfo[i].index = i;
-        map_g4id_index[pinfo[i].trackId] = i;
+        BlipUtils::FillParticleInfo( *plist[i], pinfo[i], sedlist, fCaloPlane);
+        //BlipUtils::CalcPartDrift( pinfo[i], fCaloPlane )
+        int g4id = pinfo[i].trackId;
+        if( map_g4id_charge[g4id] ) pinfo[i].numElectrons = map_g4id_charge[g4id];
+        pinfo[i].index        = i;
+        map_g4id_index[g4id]  = i;
       }
       
       // Calculate the true blips
       BlipUtils::MakeTrueBlips(pinfo, trueblips);
       BlipUtils::MergeTrueBlips(trueblips, fTrueBlipMergeDist);
+    
     }
   
 
