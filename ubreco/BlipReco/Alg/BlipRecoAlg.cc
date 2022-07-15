@@ -190,8 +190,8 @@ namespace blip {
     std::map<int,int> map_g4id_charge;
     for(auto const &chan : art::ServiceHandle<cheat::BackTrackerService>()->SimChannels()) {
       if( geom->View(chan->Channel()) != geo::kW ) continue;
-      for(auto const &tdcide : chan->TDCIDEMap() ) {
-        for(const auto& ide : tdcide.second) {
+      for(auto const& tdcide : chan->TDCIDEMap() ) {
+        for(auto const& ide : tdcide.second) {
           if( ide.trackID < 0 ) continue;
           map_g4id_charge[ide.trackID] += ide.numElectrons;
         }
