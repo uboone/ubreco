@@ -23,9 +23,11 @@ services:
   TimeTracker:              @local::microboone_time_tracker
 }
 
-# Enable BackTracker to work on overlay MC
+# Enable BackTracker to work on overlay MC.
+# We use SimChannels from largeant because the ones from driftWC (WireCell)
+# show inaccurate amounts of collected charge -- need to look into this!
 services.BackTrackerService.BackTracker.OverrideRealData: true
-services.BackTrackerService.BackTracker.G4ModuleLabel: "driftWC:simpleSC" # default is "largeant"
+services.BackTrackerService.BackTracker.G4ModuleLabel: "largeant" #"driftWC:simpleSC"
 
 # Turn off SCE corrections to energy; analyzers confident in the T0 (i.e., X position) 
 # of their selected blips can switch this on as they see fit

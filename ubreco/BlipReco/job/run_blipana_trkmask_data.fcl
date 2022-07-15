@@ -1,3 +1,0 @@
-#include "run_blipana_filt_data.fcl"
-physics.ana: [ blipanaTrkMask ] 
-

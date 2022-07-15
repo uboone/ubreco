@@ -50,13 +50,6 @@ microboone_blipalg:
   CaloLifetimeCorr:     false           # correct blips for lifetime assuming T0 = 0
 }
 
-microboone_blipalg_data:              @local::microboone_blipalg
-microboone_blipalg_data.CaloAlg:	    @local::microboone_calo_mcc9_data
-
-microboone_blipalg_fullmc:            @local::microboone_blipalg
-microboone_blipalg_fullmc.CaloAlg:	  @local::microboone_calo_mcc9_mc
-
-
 # ===============================================
 # Main BlipAna settings (TTree + diagnostic hists)
 microboone_blipana:
@@ -70,10 +63,14 @@ microboone_blipana:
   SaveEventTree:      true
 }
 
-microboone_blipana_data:                @local::microboone_blipana
-microboone_blipana_data.BlipAlg:        @local::microboone_blipalg_data
-microboone_blipana_data.SaveHitInfo:    false
-microboone_blipana_data.SaveTruthInfo:  false
+microboone_blipana_data:                    @local::microboone_blipana
+microboone_blipana_data.BlipAlg.CaloAlg:    @local::microboone_calo_mcc9_data
+microboone_blipana_data.SaveHitInfo:        false
+microboone_blipana_data.SaveTruthInfo:      false
+
+microboone_blipana_fullmc:                  @local::microboone_blipana
+microboone_blipana_fullmc.BlipAlg.CaloAlg:  @local::microboone_calo_mcc9_mc
+microboone_blipana_fullmc.SaveHitInfo:      true
 
 # ===============================================
 # TrackMasker settings
