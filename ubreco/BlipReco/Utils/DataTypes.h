@@ -162,13 +162,15 @@ namespace blip {
 
     // Plane/cluster-specific information
     blip::HitClust clusters[kNplanes];
+    
+    // Truth-matched energy deposition
+    blip::TrueBlip truth;
+    
     float   Match_dT[kNplanes];
     float   Match_dTfrac[kNplanes];
     float   Match_overlap[kNplanes];
     float   Match_score[kNplanes];
     
-    // Truth-matched energy deposition
-    blip::TrueBlip truth;
     
     // Initialize the blip
     Blip() {

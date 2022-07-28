@@ -939,7 +939,7 @@ void BlipAna::analyze(const art::Event& evt)
         fData->part_depElectrons[i]    = pinfo[i].depElectrons;
         //fData->part_numElectrons[i]    = pinfo[i].numElectrons;
         fData->part_isPrimary[i]       = pinfo[i].isPrimary;
-        //if( fDebugMode ) PrintParticleInfo(i);
+        if( fDebugMode ) PrintParticleInfo(i);
       }
     
     } // endloop over G4 particles
@@ -971,6 +971,7 @@ void BlipAna::analyze(const art::Event& evt)
       fData->edep_x[i]        = trueblip.Position.X();
       fData->edep_y[i]        = trueblip.Position.Y();
       fData->edep_z[i]        = trueblip.Position.Z();
+      fData->edep_tdrift[i]   = trueblip.DriftTime;
       fData->edep_g4id[i]     = trueblip.LeadG4ID;
       fData->edep_g4index[i]  = trueblip.LeadG4Index;
       fData->edep_pdg[i]      = trueblip.LeadG4PDG;
@@ -1456,7 +1457,7 @@ void BlipAna::PrintHitInfo(const blip::HitInfo& hi){
 }
 
 void BlipAna::PrintClusterInfo(const blip::HitClust& hc){
-  printf("  ID: %4i, TPC: %i, plane: %i, time range: %7.2f - %7.2f, timespan: %6.2f, leadWire: %3i, nwires: %3i, nhits: %3i, edepid: %i, isMatched: %i\n",
+  printf("  ID: %4i, TPC: %i, plane: %i, time range: %7.2f - %7.2f, timespan: %6.2f, leadWire: %3i, nwires: %3i, nhits: %3i, edepid: %i, isMatched: %i, trkID: %i\n",
     hc.ID,
     hc.TPC,
     hc.Plane,
@@ -1467,7 +1468,8 @@ void BlipAna::PrintClusterInfo(const blip::HitClust& hc){
     hc.NWires,
     hc.NHits,
     hc.EdepID,
-    hc.isMatched
+    hc.isMatched,
+    hc.TrkID
   );
 }
 
