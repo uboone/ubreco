@@ -180,8 +180,26 @@ namespace blip {
   
     // -- gaushit <-> particle associations
     art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> fmhh(hitHandleGH,evt,"gaushitTruthMatch");
-
-
+    
+    //===============================================================
+    // Map of each hit to its gaushit index (needed if the provided
+    // hit collection is some filtered subset of gaushit, in order to
+    // use gaushitTruthMatch later on)
+    //===============================================================
+    std::map< int, int > map_gh;
+    for(auto& h : hitlist ) {
+      if( fHitProducer == "gaushit" ) { // if input collection is gaushit, this is trivial 
+        map_gh[h.key()] = h.key(); 
+        continue; 
+      }
+      for (auto& gh : hitlistGH ){     // otherwise, find the matching gaushit
+        if( gh->PeakTime() == h->PeakTime() && gh->Channel() == h->Channel() ) {
+          map_gh[h.key()] = gh.key(); 
+          break; 
+        }
+      }
+    }
+    
     //======================================================
     // Use SimChannels to make a map of the collected charge
     // for every G4 particle, instead of relying on the TDC-tick
@@ -203,29 +221,17 @@ namespace blip {
     // blips in this event.
     //==================================================
     
-    bool isMC = false;
+    bool isMC = (plist.size() > 0 );
     
-    // Map of each hit to its gaushit index (needed if the provided
-    // hit collection is some filtered subset of gaushit, in order to
-    // use gaushitTruthMatch later on)
-    std::map< int, int > map_gh;
    
     // Map G4IDs to their respective index in the particle list
     std::map< int, int > map_g4id_index;
 
-    if( plist.size() || fmhh.isValid() ) {
+    if( isMC ) {
+    //if( plist.size() || fmhh.isValid() ) {
 
-      isMC = true;
       pinfo.resize(plist.size());
     
-      for(auto& h : hitlist ) {
-        if( fHitProducer == "gaushit" ) { // if input collection is gaushit, this is trivial 
-          map_gh[h.key()] = h.key(); continue; }
-        for (auto& gh : hitlistGH ){     // otherwise, find the matching gaushit
-          if( gh->PeakTime() == h->PeakTime() && gh->Channel() == h->Channel() ) {
-            map_gh[h.key()] = gh.key(); break; }
-        }
-      }
     
       // Loop through the MCParticles
       for(size_t i = 0; i<plist.size(); i++){
@@ -298,16 +304,17 @@ namespace blip {
           }
         }
       }
-   
-      // find associated track
-      if (fmtrk.isValid()){ 
-        if (fmtrk.at(i).size())  hitinfo[i].trkid = fmtrk.at(i)[0]->ID(); //trkindexmap[fmtrk.at(i)[0]->ID()];
       
-        // if the hit collection didn't have associations made
-        // to the tracks, try gaushit instead
-      } else if (fmtrkGH.isValid()) {
+
+      // find associated track
+      if( fHitProducer == "gaushit" && fmtrk.isValid() ) {
+        if(fmtrk.at(i).size()) hitinfo[i].trkid = fmtrk.at(i)[0]->ID();
+      
+      // if the hit collection didn't have associations made
+      // to the tracks, try gaushit instead
+      } else if ( fmtrkGH.isValid() && map_gh.size() ) {
         int gi = map_gh[i];
-        if (fmtrkGH.at(gi).size()) hitinfo[i].trkid= fmtrkGH.at(gi)[0]->ID(); //trkindexmap[fmtrkGH.at(gi)[0]->ID()];
+        if (fmtrkGH.at(gi).size()) hitinfo[i].trkid= fmtrkGH.at(gi)[0]->ID(); 
       }
 
       // add to the channel hit map
@@ -337,23 +344,24 @@ namespace blip {
     // Create a series of masks that we'll update as we go along
     std::vector<bool> hitIsGood(hitlist.size(),     true);
     std::vector<bool> hitIsClustered(hitlist.size(),false);
-
     
     // Basic track inclusion cut: exclude hits that were tracked
     for(size_t i=0; i<hitlist.size(); i++){
-      if( !hitinfo[i].trkid) continue;
+      if( hitinfo[i].trkid < 0 ) continue;
       auto it = map_trkid_index.find(hitinfo[i].trkid);
       if( it == map_trkid_index.end() ) continue;
       int trkindex = it->second;
-      if( tracklist[trkindex]->Length() > fMaxHitTrkLength ) hitIsGood[i] = false;
+      if( tracklist[trkindex]->Length() > fMaxHitTrkLength ) {
+        hitIsGood[i] = false;
+      }
     }
 
     // Filter based on hit properties
     if( fDoHitFiltering ) {
       for(size_t i=0; i<hitlist.size(); i++){
-        auto& hit = hitlist[i];
         if( !hitIsGood[i] ) continue;
         hitIsGood[i] = false;
+        auto& hit = hitlist[i];
         int plane = hit->WireID().Plane;
         if( hit->RMS()            < fMinHitRMS[plane] ) continue;
         if( hit->RMS()            > fMaxHitRMS[plane] ) continue;

@@ -520,13 +520,28 @@ namespace BlipUtils {
     newblip.Z     = newblip.Position.Z();
    
     // Is this blip associated with a specific track ID?
-    newblip.TrkID = hcs[0].TrkID;
+    std::map<int,int> trk_id_count;
     for(auto& hc : hcs ) {
+      if( hc.TrkID >= 0 ) {
+        trk_id_count[hc.TrkID]++;
+        if( trk_id_count[hc.TrkID] >= trk_id_count[newblip.TrkID] ){
+          newblip.TrkID = hc.TrkID;
+        }
+      }
+    }
+
+    /*
+    newblip.TrkID = hcs[0].TrkID;
+    std::cout<<"Making new blip with track ID "<<newblip.TrkID<<"\n";
+    for(auto& hc : hcs ) {
+      std::cout<<"hc.TrkID = "<<hc.TrkID<<"\n";
       if( hc.TrkID != newblip.TrkID ) {
+        std::cout<<"uh oh, this cluster isn't matched to same track...\n";
         newblip.TrkID = -9;
         break;
       }
     }
+    */
 
     // Calculate uncertainty in YZ coordinate if possible
     if( wirex.size() >= 2 ) {
@@ -749,11 +764,10 @@ namespace BlipUtils {
     // a = point on a line
     // n = unit vector pointing along line
     // --> d = norm[ (p-a) - ((p-a) dot n) * n ]
-    TVector3 a = L1;
-    TVector3 n = (L2-a).Unit();
-    TVector3 b = (p-a);
-    
-    double  projLen = b.Dot(n);
+    TVector3 a      = L1;
+    TVector3 n      = (L2-a).Unit();
+    TVector3 b      = (p-a);
+    double  projLen  = b.Dot(n);
     double d = -1;
     /*
     if      ( projLen < 0             ) d = (p-L1).Mag();
