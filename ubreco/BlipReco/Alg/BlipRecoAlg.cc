@@ -204,6 +204,9 @@ namespace blip {
     // Use SimChannels to make a map of the collected charge
     // for every G4 particle, instead of relying on the TDC-tick
     // matching that's done by BackTracker's other functions
+    //
+    // NOTE: Default SimChannels are set to "driftWC:simpleSC",
+    // which have been scaled by "gain_fudge_factor" = 0.826!!
     //======================================================
     std::map<int,int> map_g4id_charge;
     for(auto const &chan : art::ServiceHandle<cheat::BackTrackerService>()->SimChannels()) {
@@ -211,7 +214,7 @@ namespace blip {
       for(auto const& tdcide : chan->TDCIDEMap() ) {
         for(auto const& ide : tdcide.second) {
           if( ide.trackID < 0 ) continue;
-          map_g4id_charge[ide.trackID] += ide.numElectrons;
+          map_g4id_charge[ide.trackID] += ide.numElectrons / 0.826;
         }
       }
     }
@@ -729,7 +732,7 @@ namespace blip {
         float td  = (blip.Time > 0) ? blip.Time : 0;
         depEl     *= exp( td/lifetime ); 
       }
-      
+
       // --- SCE corrections ---
       // 1) Spatial correction
       geo::Point_t point( blip.Position.X(),blip.Position.Y(),blip.Position.Z() );
@@ -743,9 +746,9 @@ namespace blip {
       // 2) E-field correction
       if( SCE->EnableCalEfieldSCE() ) {
         auto const field_offset = SCE->GetCalEfieldOffsets(point);
-        Efield *= std::hypot(1+field_offset.X(),field_offset.Y(),field_offset.Z());
+        Efield = std::hypot(Efield+field_offset.X(),field_offset.Y(),field_offset.Z());
       }
-      
+        
       // METHOD 1
       float recomb = BlipUtils::ModBoxRecomb(fCalodEdx,Efield);
       blip.Energy = depEl * (1./recomb) * 23.6e-6;

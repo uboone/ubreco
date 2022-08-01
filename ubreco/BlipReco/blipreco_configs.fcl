@@ -46,7 +46,7 @@ microboone_blipalg:
   CylinderRadius:       15.0            # 3D cylinder cut radius [cm]
   CaloAlg:              @local::microboone_calo_mcc9_data
   CaloPlane:            2               # plane used for calorimetry (2=collection)
-  CalodEdx:             2.0             # assumed dE/dx for recombination corrections
+  CalodEdx:             2.3             # assumed dE/dx for recombination corrections
   CaloLifetimeCorr:     false           # correct blips for lifetime assuming T0 = 0
 }
 

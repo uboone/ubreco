@@ -650,6 +650,7 @@ class BlipAna : public art::EDAnalyzer
   TH1D*   h_adc_factor;
   TH1D*   h_alpha_qdep;
 
+
   // Initialize histograms
   void InitializeHistograms(){
 
@@ -708,7 +709,7 @@ class BlipAna : public art::EDAnalyzer
     h_ntrks           = dir_diag.make<TH1D>("ntrks","Number of reconstructed tracks per event",150,0,150);
     h_trk_length      = dir_diag.make<TH1D>("trk_length",";Track length [cm]",1000,0,500);
     h_trk_xspan       = dir_diag.make<TH1D>("trk_xspan",";Track dX [cm]",300,0,300);
-
+    
     for(int i=0; i<kNplanes; i++) {
       h_nhits[i]      = dir_diag.make<TH1D>(Form("pl%i_nhits",i),  Form("Plane %i;total number of hits",i),hitBins,0,hitMax);
       h_nhits_ut[i]   = dir_diag.make<TH1D>(Form("pl%i_nhits_untracked",i),  Form("Plane %i;total number of untracked hits",i),hitBins,0,hitMax);
@@ -1172,13 +1173,14 @@ void BlipAna::analyze(const art::Event& evt)
   if( fDebugMode ) std::cout<<"\nLooping over clusters...\n";
   for(size_t i=0; i < fBlipAlg->hitclust.size(); i++){
     auto const& clust = fBlipAlg->hitclust[i];
-    if( !fSavePlaneInfo[clust.Plane] ) continue;
     fData->clust_id[i]        = clust.ID;
     fData->clust_tpc[i]       = clust.TPC;
     fData->clust_plane[i]     = clust.Plane;
     fData->clust_wire[i]      = clust.CentHitWire;
     fData->clust_startwire[i] = clust.StartWire;
     fData->clust_endwire[i]   = clust.EndWire;
+    
+    if( !fSavePlaneInfo[clust.Plane] ) continue;
     fData->clust_nwires[i]    = clust.NWires;
     fData->clust_nhits[i]     = clust.NHits;
     

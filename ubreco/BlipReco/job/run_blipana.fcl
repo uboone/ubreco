@@ -24,10 +24,11 @@ services:
 }
 
 # Enable BackTracker to work on overlay MC.
-# We use SimChannels from largeant because the ones from driftWC (WireCell)
-# show inaccurate amounts of collected charge -- need to look into this!
+# Note: SimChannels from driftWC (WireCell) show inaccurate amounts 
+# of collected charge -- need to look into this! Until then, we
+# scale this up by the WC "gain_fudge_factor" to correct it.
 services.BackTrackerService.BackTracker.OverrideRealData: true
-services.BackTrackerService.BackTracker.G4ModuleLabel: "largeant" #"driftWC:simpleSC"
+services.BackTrackerService.BackTracker.G4ModuleLabel: "driftWC:simpleSC" #"largeant"
 
 # Turn off SCE corrections to energy; analyzers confident in the T0 (i.e., X position) 
 # of their selected blips can switch this on as they see fit

@@ -19,18 +19,18 @@ physics.reco: [
       #"pandoraMCSMu",
       "pandoracalo",
       #"pandorapid",
-      #"pandoracali",
+      "pandoracali",
       #"pandoracalipid",
       "pandoracaloSCE",
       #"pandorapidSCE",
-      #"pandoracaliSCE",
+      "pandoracaliSCE",
       #"pandoracalipidSCE",
       "pandoraKalmanTrack",
       #"pandoraKalmanShower",
       #"pandoraKalmanTracktag",
       "pandoraKalmanTrackcalo"
       #"pandoraKalmanTrackpid",
-      #"pandoraKalmanTrackcali",
+      "pandoraKalmanTrackcali",
       #"pandoraKalmanTrackcalipid",
       #"pandoraKalmanShowertag",
       #"pandoraKalmanShowercalo",
@@ -46,5 +46,15 @@ physics.reco: [
       #"trajclusterKalmanTrack",
       #"tcshower"
 ]
+
+
+
+
+
+
+
+
+
+
 
 

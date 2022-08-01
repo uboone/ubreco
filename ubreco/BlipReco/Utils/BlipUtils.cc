@@ -28,12 +28,12 @@ namespace BlipUtils {
     }
     
     // electrons drifted to collection plane wires
+    art::ServiceHandle<geo::Geometry> geom;
     ne_anode = 0;
     for(auto const &chan : art::ServiceHandle<cheat::BackTrackerService>()->SimChannels()) {
+      if( geom->View(chan->Channel()) != geo::kW ) continue;
       for(auto const &tdcide : chan->TDCIDEMap() ) {
-        for(const auto& ide : tdcide.second) {
-          ne_anode += ide.numElectrons/art::ServiceHandle<geo::Geometry>()->Nplanes();
-        }
+        for(const auto& ide : tdcide.second) ne_anode += ide.numElectrons;
       }
     }
   }
