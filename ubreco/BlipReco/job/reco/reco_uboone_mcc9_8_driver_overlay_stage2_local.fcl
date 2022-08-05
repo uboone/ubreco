@@ -3,6 +3,8 @@
 microboone_tfile_metadata.GenerateTFileMetadata: [ true, false ]
 source.maxEvents: -1
 
+#include "select_reco2_modules.fcl"
+
 # Don't drop SimChannels!!! They're useful!
 outputs.out1.outputCommands: [
    "keep *_*_*_*",
@@ -10,7 +12,8 @@ outputs.out1.outputCommands: [
    "drop optdata::ChannelDataGroup_*_*_*",
    "drop recob::Wires_*nfspl1_*_*",
    #"drop sim::SimChannels_*_*_*",
-   #"drop sim::SimEnergyDeposits_largeant_*_*",
+   #"drop sim::SimChannels_largeant_*_*",
+   "drop sim::SimEnergyDeposits_largeant_*_*",
    "drop sim::MCHitCollections_*_*_*",
    "drop *_pandoraAllOutcomesTrack_*_*",
    "drop *_pandoraAllOutcomesShower_*_*",
@@ -22,59 +25,4 @@ outputs.out1.outputCommands: [
    "drop *_sps3d_pre_*",
    "drop *_*calo*_*_*"
 ]
-
-# Disabling some reco modules that are irrelevent to
-# blip-making and/or don't work on the radon R&D datasets
-physics.reco: [
-      "rns",
-      "crttzero",
-      #"wcopflash",
-      #"pandoraWriter",
-      "pandoraPatRec",
-      "pandoraAllOutcomesTrack",
-      "pandoraAllOutcomesShower",
-      "pandora",
-      "pandoratag",
-      "pandoraContTag",
-      #"pandoraMCSMu",
-      "pandoracalo",
-      #"pandorapid",
-      "pandoracali",
-      #"pandoracalipid",
-      "pandoracaloSCE",
-      #"pandorapidSCE",
-      "pandoracaliSCE",
-      #"pandoracalipidSCE",
-      "pandoraKalmanTrack",
-      #"pandoraKalmanShower",
-      #"pandoraKalmanTracktag",
-      "pandoraKalmanTrackcalo"
-      #"pandoraKalmanTrackpid",
-      "pandoraKalmanTrackcali",
-      #"pandoraKalmanTrackcalipid",
-      #"pandoraKalmanShowertag",
-      #"pandoraKalmanShowercalo",
-      #"pandoraKalmanShowerpid",
-      #"pandoraKalmanShowercali",
-      #"pandoraKalmanShowercalipid",
-      #"shrreco3d",
-      #"pandoraGeomVertexFit"
-      #"pandoraCrtHitMatch",
-      #"sps3d",
-      #"dbcluster3d",
-      #"trajcluster",
-      #"trajclusterKalmanTrack",
-      #"tcshower"
-]
-
-
-
-
-
-
-
-
-
-
-
 

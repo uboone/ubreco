@@ -66,6 +66,7 @@ namespace blip {
     fTrkProducer        = pset.get<std::string>   ("TrkProducer",       "gaushit");
     fGeantProducer      = pset.get<std::string>   ("GeantProducer",     "largeant");
     fSimDepProducer     = pset.get<std::string>   ("SimEDepProducer",   "ionization");
+    fSimChanProducer    = pset.get<std::string>   ("SimChanProducer",   "driftWC:simpleSC");
     
     fTrueBlipMergeDist  = pset.get<float>         ("TrueBlipMergeDist", 0.3);
     
@@ -153,6 +154,12 @@ namespace blip {
     if (evt.getByLabel(fSimDepProducer,sedHandle)) 
       art::fill_ptr_vector(sedlist, sedHandle);
     
+    // -- SimChannels (usually dropped in reco)
+    art::Handle<std::vector<sim::SimChannel> > simchanHandle;
+    std::vector<art::Ptr<sim::SimChannel> > simchanlist;
+    if (evt.getByLabel(fSimChanProducer,simchanHandle)) 
+      art::fill_ptr_vector(simchanlist, simchanHandle);
+    
     // -- hits (from input module)
     art::Handle< std::vector<recob::Hit> > hitHandle;
     std::vector<art::Ptr<recob::Hit> > hitlist;
@@ -204,17 +211,16 @@ namespace blip {
     // Use SimChannels to make a map of the collected charge
     // for every G4 particle, instead of relying on the TDC-tick
     // matching that's done by BackTracker's other functions
-    //
-    // NOTE: Default SimChannels are set to "driftWC:simpleSC",
-    // which have been scaled by "gain_fudge_factor" = 0.826!!
     //======================================================
-    std::map<int,int> map_g4id_charge;
-    for(auto const &chan : art::ServiceHandle<cheat::BackTrackerService>()->SimChannels()) {
+    std::map<int,double> map_g4id_charge;
+    for(auto const &chan : simchanlist ) {
       if( geom->View(chan->Channel()) != geo::kW ) continue;
       for(auto const& tdcide : chan->TDCIDEMap() ) {
         for(auto const& ide : tdcide.second) {
           if( ide.trackID < 0 ) continue;
-          map_g4id_charge[ide.trackID] += ide.numElectrons / 0.826;
+          double ne = ide.numElectrons;
+          if( fSimChanProducer == "driftWC:simpleSC" ) ne *= 1/0.826;
+          map_g4id_charge[ide.trackID] += ne;
         }
       }
     }
@@ -241,7 +247,7 @@ namespace blip {
         BlipUtils::FillParticleInfo( *plist[i], pinfo[i], sedlist, fCaloPlane);
         //BlipUtils::CalcPartDrift( pinfo[i], fCaloPlane )
         int g4id = pinfo[i].trackId;
-        if( map_g4id_charge[g4id] ) pinfo[i].numElectrons = map_g4id_charge[g4id];
+        if( map_g4id_charge[g4id] ) pinfo[i].numElectrons = (int)map_g4id_charge[g4id];
         pinfo[i].index        = i;
         map_g4id_index[g4id]  = i;
       }
@@ -722,7 +728,7 @@ namespace blip {
         
       float depEl   = std::max(0.0,(double)blip.clusters[fCaloPlane].Charge);
       float Efield  = detProp->Efield(0);
-      
+
       // --- Lifetime correction ---
       // Ddisabled by default. Without knowing real T0 of a blip, attempting to 
       // apply this correction can do more harm than good!

@@ -74,7 +74,6 @@ namespace BlipUtils {
   void    HitTruth(art::Ptr<recob::Hit> const&, int&, float&, float&, float&);
   si_t    HitTruthIds( art::Ptr<recob::Hit> const&);
   bool    G4IdToMCTruth( int const, art::Ptr<simb::MCTruth>&);
-  bool    DoesHitHaveSimChannel( art::Ptr<recob::Hit> const&);
   double  PathLength(const simb::MCParticle&, TVector3&, TVector3&);
   double  PathLength(const simb::MCParticle&);
   bool    IsAncestorOf(int, int, bool);

@@ -28,10 +28,11 @@ microboone_calo_mcc9_data:
 # Main BlipAlg settings
 microboone_blipalg:
 {
-  HitProducer:          "gaushit"
-  TrkProducer:          "pandora"
-  GeantProducer:        "largeant"
-  SimEDepProducer:      "ionization"
+  HitProducer:          "gaushit"       # input recob::Hits to use for blip reconstruction
+  TrkProducer:          "pandora"       # input recob::Tracks to use for blip reconstruction
+  GeantProducer:        "largeant"      # input sim::MCParticles (getting true particle info)
+  SimEDepProducer:      "ionization"    # input sim::SimEnergyDeposits (getting energy/electrons deposited)
+  SimChanProducer:      "driftWC:simpleSC" # label for sim::SimChannels (getting drifted charge; optional)
   MaxHitTrkLength:      5.0             # hits in trks > this length will be vetoed [cm]
   DoHitFiltering:       true            # filter hits based on amp, width, RMS
   MaxWiresInCluster:    10              # max allowable wires in a cluster
@@ -61,6 +62,7 @@ microboone_blipana:
   SaveHitInfo:        false
   SaveClustInfo:      true
   SaveEventTree:      true
+  DebugMode:          false
 }
 
 microboone_blipana_data:                    @local::microboone_blipana
