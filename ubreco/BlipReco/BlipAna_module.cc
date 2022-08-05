@@ -648,7 +648,6 @@ class BlipAna : public art::EDAnalyzer
   TH1D*   h_qres_electrons;
   TH1D*   h_qres_alphas;
   TH1D*   h_adc_factor;
-  TH1D*   h_alpha_qdep;
 
 
   // Initialize histograms
@@ -700,11 +699,10 @@ class BlipAna : public art::EDAnalyzer
     h_blip_reszy    = dir_truth.make<TH2D>("blip_res_zy","Blip position resolution;Z_{reco} - Z_{true} [cm];Y_{reco} - Y_{true} [cm]",150,-15,15,150,-15,15);
       h_blip_reszy  ->SetOption("colz");
     h_blip_resx     = dir_truth.make<TH1D>("blip_res_x","Blip position resolution;X_{reco} - X_{true} [cm]",150,-15,15);
-    h_true_lifetime   = dir_truth.make<TH1D>("blip_true_lifetime","Calculated charge attenuation;Lifetime [#mus]",2000,0,2000e3);
+    h_true_lifetime   = dir_truth.make<TH1D>("blip_true_lifetime","Calculated charge attenuation;Lifetime [#mus]",200,0,200e3);
     h_qres_electrons= dir_truth.make<TH1D>("qres_electrons","Collection plane;Cluster charge resolution: ( reco-true ) / true",200,-1.,1.);
     h_qres_alphas   = dir_truth.make<TH1D>("qres_alphas","Collection plane;Cluster charge resolution: ( reco-true ) / true",200,-1.,1.);
     h_adc_factor    = dir_truth.make<TH1D>("adc_per_e","Collection plane;ADC per electron",200,0,0.01);
-    h_alpha_qdep    = dir_truth.make<TH1D>("alpha_qdep","True charge deposited by alpha",500,0,10000);
     
     h_ntrks           = dir_diag.make<TH1D>("ntrks","Number of reconstructed tracks per event",150,0,150);
     h_trk_length      = dir_diag.make<TH1D>("trk_length",";Track length [cm]",1000,0,500);
@@ -982,11 +980,10 @@ void BlipAna::analyze(const art::Event& evt)
       total_numElectrons += ne;
       if( trueblip.Energy < 2 ) total_numElectrons_2MeV += ne;
       if( fDebugMode ) PrintTrueBlipInfo(trueblip);
-      
+
       // calculate simulated lifetime
-      if( ne>10e3 && ne<ne_dep ) {
-        //std::cout<<"Actual lifetime from service: "<<electronLifetime<<"\n";
-        float tau = trueblip.DriftTime * pow( log(ne_dep/float(ne)), -1);
+      if( ne>1000 && ne<ne_dep ) {
+        float tau = trueblip.DriftTime * 1./log(ne_dep/float(ne));
         h_true_lifetime->Fill(tau);
       }
     }
@@ -1228,7 +1225,7 @@ void BlipAna::analyze(const art::Event& evt)
     
     }
       
-    if( fDebugMode ) PrintClusterInfo(clust);
+    //if( fDebugMode ) PrintClusterInfo(clust);
     
   }//endloop over 2D hit clusters
 
@@ -1434,15 +1431,16 @@ void BlipAna::PrintParticleInfo(size_t i){
 }
 
 void BlipAna::PrintTrueBlipInfo(const blip::TrueBlip& tb){
-  printf("  %5i  G4ID: %-6i PDG: %-8i Energy:%8.3f, Charge: %8i e-, XYZ: %7.2f, %7.2f, %7.2f\n",
+  printf("  %5i  G4ID: %-6i PDG: %-10i XYZ: %7.2f, %7.2f, %7.2f, %8.3f MeV, %8i e- deposited, %8i e- @anode\n",
    tb.ID,
    tb.LeadG4ID,
    tb.LeadG4PDG,
-   tb.Energy,
-   tb.NumElectrons,
    tb.Position.X(),
    tb.Position.Y(),
-   tb.Position.Z()
+   tb.Position.Z(),
+   tb.Energy,
+   tb.DepElectrons,
+   tb.NumElectrons
   ); 
 }
 
