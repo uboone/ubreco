@@ -160,9 +160,9 @@ void BlipReco3D::produce(art::Event & evt)
     Double32_t xyz_err[6];
     Double32_t chiSquare = 0;
     Double32_t err = 0.; //b.MaxIntersectDiff?
-    xyz[0]      = b.X;
-    xyz[1]      = b.Y;
-    xyz[2]      = b.Z;
+    xyz[0]      = b.Position.X();
+    xyz[1]      = b.Position.Y();
+    xyz[2]      = b.Position.Z();
     xyz_err[0]  = err;
     xyz_err[1]  = err;
     xyz_err[2]  = err;
