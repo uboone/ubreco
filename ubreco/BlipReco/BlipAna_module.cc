@@ -1252,9 +1252,9 @@ void BlipAna::analyze(const art::Event& evt)
     fData->blip_id[i]         = i;
     fData->blip_tpc[i]        = b.TPC;
     fData->blip_nplanes[i]    = b.NPlanes;
-    fData->blip_x[i]          = b.X;
-    fData->blip_y[i]          = b.Y;
-    fData->blip_z[i]          = b.Z;
+    fData->blip_x[i]          = b.Position.X();
+    fData->blip_y[i]          = b.Position.Y();
+    fData->blip_z[i]          = b.Position.Z();
     fData->blip_sigmayz[i]    = b.SigmaYZ;
     fData->blip_dx[i]         = b.dX;
     fData->blip_dyz[i]        = b.dYZ;
@@ -1299,14 +1299,14 @@ void BlipAna::analyze(const art::Event& evt)
       nblips_picky++;
       fNum3DBlipsPicky++;
       h_blip_charge_picky ->Fill(b.clusters[fCaloPlane].Charge);
-       h_blip_zy_picky     ->Fill(b.Z, b.Y);
+       h_blip_zy_picky     ->Fill(b.Position.Z(), b.Position.Y());
       
       h_blip_charge_YU_picky->Fill( 0.001*b.clusters[2].Charge, 0.001*b.clusters[0].Charge );
       h_blip_charge_YV_picky->Fill( 0.001*b.clusters[2].Charge, 0.001*b.clusters[1].Charge );
       h_blip_charge_UV_picky->Fill( 0.001*b.clusters[0].Charge, 0.001*b.clusters[1].Charge );
     }
 
-    h_blip_zy     ->Fill(b.Z, b.Y);
+    h_blip_zy     ->Fill(b.Position.Z(), b.Position.Y());
     h_blip_nplanes->Fill(b.NPlanes);
    
     // -----------------------------------------------

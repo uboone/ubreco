@@ -398,18 +398,6 @@ namespace BlipUtils {
     double driftVelocity = detProp->DriftVelocity(detProp->Efield(0),detProp->Temperature()); 
     double tick_to_cm    = samplePeriod * driftVelocity;
 
-    // ------------------------------------------------
-    // Mean drift time and X-position 
-    newblip.Time = 0;
-    float t_min = 99e9;
-    float t_max = -99e9;
-    for(auto hc : hcs ) {
-      newblip.Time      += hc.Time / float(hcs.size());
-      t_min = std::min( t_min, hc.StartTime );
-      t_max = std::max( t_max, hc.EndTime   );
-    }
-    newblip.X         = newblip.Time  * tick_to_cm;
-    newblip.dX        = (t_max-t_min) * tick_to_cm;
     
     // ------------------------------------------------
     // Look for valid wire intersections between 
@@ -440,7 +428,7 @@ namespace BlipUtils {
         }
 
         if( match3d ) {
-          TVector3 a(newblip.X, y, z);
+          TVector3 a(0., y, z);
           wirex.push_back(a);
           newblip.clusters[pli] = hcs[i];
           newblip.clusters[plj] = hcs[j];
@@ -454,32 +442,42 @@ namespace BlipUtils {
     // If there were 3 or more planes matched, require
     // that there be at least 3 intersection points.
     if( newblip.NPlanes >= 3 && wirex.size() < 3 ) return newblip;
-
-    // Loop over the intersection points and calculate average position
-    for(auto& v : wirex ) newblip.Position += v * (1./wirex.size());
-    newblip.Y     = newblip.Position.Y();
-    newblip.Z     = newblip.Position.Z();
-   
+    
+    
+    // Loop over the intersection points and calculate average position in 
+    // YZ-plane, as well as the mean difference between intersection points.
+    newblip.Position.SetXYZ(0,0,0);
+    if( wirex.size() == 1 ) {
+      newblip.Position= wirex[0];
+    } else {
+      newblip.SigmaYZ = 0;
+      double fact = 1./wirex.size();
+      for(auto& v : wirex ) newblip.Position  += v * fact;
+      for(auto& v : wirex ) newblip.SigmaYZ   += (v-newblip.Position).Mag() * fact;
+    }
+    
+    // Calculate mean drift time and X-position 
+    newblip.Time = 0;
+    float t_min = 99e9;
+    float t_max = -99e9;
+    for(auto hc : hcs ) {
+      newblip.Time      += hc.Time / float(hcs.size());
+      t_min = std::min( t_min, hc.StartTime );
+      t_max = std::max( t_max, hc.EndTime   );
+    }
+    newblip.Position.SetX(newblip.Time*tick_to_cm);
+    newblip.dX = (t_max-t_min) * tick_to_cm;
+    
     // Is this blip associated with a specific track ID?
     std::map<int,int> trk_id_count;
     for(auto& hc : hcs ) {
       if( hc.TrkID >= 0 ) {
         trk_id_count[hc.TrkID]++;
-        if( trk_id_count[hc.TrkID] >= trk_id_count[newblip.TrkID] ){
+        if( trk_id_count[hc.TrkID] >= trk_id_count[newblip.TrkID] )
           newblip.TrkID = hc.TrkID;
-        }
       }
     }
 
-    // Calculate uncertainty in YZ coordinate if possible
-    //if( wirex.size() > 2 ) {
-      newblip.SigmaYZ = 0.;
-      for(auto& v : wirex ) 
-        newblip.SigmaYZ += (v-newblip.Position).Mag() / wirex.size();
-    //}
-
-    //std::cout<<"Success! "<<newblip.clusters[0].Charge<<"    "<<newblip.clusters[1].Charge<<"    "<<newblip.clusters[2].Charge<<"\n";
-    
     // OK, we made it! Flag as "valid" and ship it out.
     newblip.isValid = true;
     return newblip;

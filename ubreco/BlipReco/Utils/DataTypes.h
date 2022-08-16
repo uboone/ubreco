@@ -150,9 +150,6 @@ namespace blip {
     bool      inCylinder      = false;      // Is it in a cone/cylinder region? 
     
     TVector3  Position;                     // 3D position TVector3
-    float     X               = -999;       // Reconstructed X [cm]
-    float     Y               = -999;       // Reconstructed Y [cm]
-    float     Z               = -999;       // Reconstructed Z [cm]
     float     SigmaYZ         = -9.;        // Uncertainty in YZ intersect [cm]
     float     dX              = -9;         // Equivalent length along drift direction [cm] 
     float     dYZ             = -9;         // Approximate length scale in YZ space [cm]
@@ -181,6 +178,11 @@ namespace blip {
         Match_score[i]  = -9;
       }
     }
+
+    // Prototype getter functions
+    double X() { return Position.X(); }
+    double Y() { return Position.Y(); }
+    double Z() { return Position.Z(); }
     
   };
   

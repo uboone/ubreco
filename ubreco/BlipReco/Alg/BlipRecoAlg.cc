@@ -82,7 +82,7 @@ namespace blip {
     fMaxHitGOF          = pset.get<std::vector<float>>  ("MaxHitGOF",       { 99e9, 99e9, 99e9});
     fMinHitGOF          = pset.get<std::vector<float>>  ("MinHitGOF",       {-99e9,-99e9,-99e9});
     
-    fHitClustWidthFact  = pset.get<float>         ("HitClustWidthFact", 2.0);
+    fHitClustWidthFact  = pset.get<float>         ("HitClustWidthFact", 3.0);
     fHitClustWireRange  = pset.get<int>           ("HitClustWireRange", 1);
     fMaxWiresInCluster  = pset.get<int>           ("MaxWiresInCluster", 10);
     fMaxClusterSpan     = pset.get<float>         ("MaxClusterSpan",    30);
