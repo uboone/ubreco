@@ -446,7 +446,11 @@ void UBWCFlashFinder::fill_wfmcollection(double triggerTime,
 					 std::vector<raw::OpDetWaveform> opwfms,
 					 int type,
 					 ::wcopreco::OpWaveformCollection &wfm_collection) {
-  
+
+  if ( (type == ::wcopreco::kbeam_hg)||(type==::wcopreco::kbeam_lg) || (type==::wcopreco::kbeam_merged) ){
+    std::sort(opwfms.begin(),opwfms.end());
+  }
+
   for(auto &opwfm : opwfms)  {
     int ch = opwfm.ChannelNumber();
     double timestamp = opwfm.TimeStamp();
@@ -459,7 +463,9 @@ void UBWCFlashFinder::fill_wfmcollection(double triggerTime,
       for (int bin=0; bin<flash_pset._get_cfg_deconvolver()._get_nbins_beam(); bin++) {
 	wfm[bin]=(double)opwfm[bin];
       }
-      wfm_collection.add_waveform(wfm);
+      if(wfm_collection.get_channel2index(ch%100).size()==0){
+	wfm_collection.add_waveform(wfm);
+      }
     }
 
     if ( (type == ::wcopreco::kcosmic_hg)||(type==::wcopreco::kcosmic_lg) || (type==::wcopreco::kcosmic_merged) ){
