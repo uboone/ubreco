@@ -78,9 +78,6 @@ private:
   bool _useExtSat;
   float _OpDetFreq;
 
-  // Testing sorting fix
-  bool fTest;
-
   std::vector<std::string> _flashProducts;
   std::vector<std::string> _saturationProducts;
   ::wcopreco::Config_Params flash_pset;
@@ -145,9 +142,6 @@ UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
   _useExtSat         = p.get<bool>("ExtSaturation",false);
   _OpDetFreq         = p.get<float>("OpDetFreq");
   _saveAnaTree       = p.get<bool>("SaveAnaTree");
-
-  // Testing sorting fix
-  fTest              = p.get<bool>("Test",false);
 
   // configure
   flash_pset.set_do_swap_channels(_remap_ch);
@@ -454,18 +448,6 @@ void UBWCFlashFinder::fill_wfmcollection(double triggerTime,
 					 int type,
 					 ::wcopreco::OpWaveformCollection &wfm_collection) {
 
-  if (fTest){
-    if ( (type == ::wcopreco::kbeam_hg)||(type==::wcopreco::kbeam_lg) || (type==::wcopreco::kbeam_merged) ){
-      std::sort(opwfms.begin(),opwfms.end());
-    }
-    std::cout << "With sorting" << std::endl;
-    std:: cout << "sorted input of size " << opwfms.size() << std::endl;
-  }
-  else{
-    std::cout << "Without sorting" << std::endl;
-    std::cout << "unsorted input of size " << opwfms.size() << std::endl;
-  }
-
   for(auto &opwfm : opwfms)  {
     int ch = opwfm.ChannelNumber();
     double timestamp = opwfm.TimeStamp();
@@ -478,20 +460,19 @@ void UBWCFlashFinder::fill_wfmcollection(double triggerTime,
       for (int bin=0; bin<flash_pset._get_cfg_deconvolver()._get_nbins_beam(); bin++) {
 	wfm[bin]=(double)opwfm[bin];
       }
-      std::cout << "size of channel2index vector for ch" << ch%100 <<" " << wfm_collection.get_channel2index(ch%100).size() << std::endl;
-      if(fTest){
-	if(wfm_collection.get_channel2index(ch%100).size()==0){
-	  wfm_collection.add_waveform(wfm);
-	  std::cout << "With sorting: filling wfm for ch" <<ch%100 <<" time " << timestamp-triggerTime << std::endl; 
-	}
-	else{
-	  std::cout << "With sorting: skipping wfm for ch" <<ch%100 <<" time " << timestamp-triggerTime << std::endl; 
-	}
+
+      if(wfm_collection.get_channel2index(ch%100).size()==0){
+	wfm_collection.add_waveform(wfm);
       }
       else{
-	wfm_collection.add_waveform(wfm);
-	std::cout << "Without sorting: filling wfm for ch" <<ch%100 <<" time " << timestamp-triggerTime << std::endl; 
-      }
+	auto prev = wfm_collection.at(wfm_collection.get_channel2index(ch%100)[0]);
+	if(prev.get_time_from_trigger() > (timestamp-triggerTime)){
+	  wfm_collection.at(wfm_collection.get_channel2index(ch%100)[0]).swap(wfm);
+	  wfm_collection.at(wfm_collection.get_channel2index(ch%100)[0]).set_time_from_trigger(timestamp-triggerTime);
+	}
+	else{
+	} 
+      }      
     }
 
     if ( (type == ::wcopreco::kcosmic_hg)||(type==::wcopreco::kcosmic_lg) || (type==::wcopreco::kcosmic_merged) ){
@@ -501,14 +482,8 @@ void UBWCFlashFinder::fill_wfmcollection(double triggerTime,
       }
       wfm_collection.add_waveform(wfm);
     }
-
   }
-  if(fTest){
-    std::cout << "With sorting: size of wfm_collection " << wfm_collection.size() <<" of type " << type << std::endl;
-  }
-  else{
-    std::cout << "Without sorting: size of wfm_collection " << wfm_collection.size() <<" of type " << type << std::endl;
-  }
+  
   return;
 }
 //--------------------------------//
