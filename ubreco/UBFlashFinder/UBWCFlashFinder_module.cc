@@ -77,6 +77,7 @@ private:
   bool _remap_ch;
   bool _useExtSat;
   float _OpDetFreq;
+
   std::vector<std::string> _flashProducts;
   std::vector<std::string> _saturationProducts;
   ::wcopreco::Config_Params flash_pset;
@@ -446,7 +447,7 @@ void UBWCFlashFinder::fill_wfmcollection(double triggerTime,
 					 std::vector<raw::OpDetWaveform> opwfms,
 					 int type,
 					 ::wcopreco::OpWaveformCollection &wfm_collection) {
-  
+
   for(auto &opwfm : opwfms)  {
     int ch = opwfm.ChannelNumber();
     double timestamp = opwfm.TimeStamp();
@@ -459,7 +460,19 @@ void UBWCFlashFinder::fill_wfmcollection(double triggerTime,
       for (int bin=0; bin<flash_pset._get_cfg_deconvolver()._get_nbins_beam(); bin++) {
 	wfm[bin]=(double)opwfm[bin];
       }
-      wfm_collection.add_waveform(wfm);
+
+      if(wfm_collection.get_channel2index(ch%100).size()==0){
+	wfm_collection.add_waveform(wfm);
+      }
+      else{
+	auto prev = wfm_collection.at(wfm_collection.get_channel2index(ch%100)[0]);
+	if(prev.get_time_from_trigger() > (timestamp-triggerTime)){
+	  wfm_collection.at(wfm_collection.get_channel2index(ch%100)[0]).swap(wfm);
+	  wfm_collection.at(wfm_collection.get_channel2index(ch%100)[0]).set_time_from_trigger(timestamp-triggerTime);
+	}
+	else{
+	} 
+      }      
     }
 
     if ( (type == ::wcopreco::kcosmic_hg)||(type==::wcopreco::kcosmic_lg) || (type==::wcopreco::kcosmic_merged) ){
@@ -469,8 +482,8 @@ void UBWCFlashFinder::fill_wfmcollection(double triggerTime,
       }
       wfm_collection.add_waveform(wfm);
     }
-
   }
+  
   return;
 }
 //--------------------------------//
