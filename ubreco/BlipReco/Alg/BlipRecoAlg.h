@@ -84,7 +84,7 @@ namespace blip {
     std::vector<blip::ParticleInfo> pinfo;
     
    private:
-    
+
     // --- FCL configs ---
     std::string         fHitProducer;
     std::string         fTrkProducer;
@@ -115,6 +115,7 @@ namespace blip {
     int                 fMaxWiresInCluster;
     float               fMinClusterCharge;
     float               fMaxClusterSpan;
+    int                 fMinMatchedPlanes;
     bool                fPickyBlips;
     bool                fApplyTrkCylinderCut;
     float               fCylinderRadius; 

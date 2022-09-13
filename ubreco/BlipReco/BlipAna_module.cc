@@ -97,6 +97,7 @@ class BlipAnaTreeDataStruct
   // --- Event information ---   
   int           event;                    // event number
   int           run;                      // run number
+  int           subrun;                   // subrun number
   unsigned int  timestamp;                // unix time of event
   float         lifetime;                 // electron lifetime
 
@@ -257,6 +258,7 @@ class BlipAnaTreeDataStruct
   void Clear(){ 
     event                 = -999; // --- event-wide info ---
     run                   = -999;
+    subrun                = -999; 
     lifetime              = -999;
     timestamp             = -999;
     //total_depEnergy       = -999;
@@ -410,6 +412,7 @@ class BlipAnaTreeDataStruct
     evtTree = tfs->make<TTree>(treeName.c_str(),"analysis tree");
     evtTree->Branch("event",&event,"event/I");
     evtTree->Branch("run",&run,"run/I");
+    evtTree->Branch("subrun",&subrun,"subrun/I");
     evtTree->Branch("timestamp",&timestamp,"timestamp/i");
     evtTree->Branch("lifetime",&lifetime,"lifetime/F");
   
@@ -460,8 +463,8 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("clust_nwires",   clust_nwires,   "clust_nwires[nclusts]/I");
       evtTree->Branch("clust_nhits",    clust_nhits,    "clust_nhits[nclusts]/I");
       evtTree->Branch("clust_time",     clust_time,     "clust_time[nclusts]/F");
-      evtTree->Branch("clust_rms",      clust_rms,      "clust_rms[nclusts]/F");
-      evtTree->Branch("clust_amp",      clust_amp,      "clust_amp[nclusts]/F");
+      //evtTree->Branch("clust_rms",      clust_rms,      "clust_rms[nclusts]/F");
+      //evtTree->Branch("clust_amp",      clust_amp,      "clust_amp[nclusts]/F");
       evtTree->Branch("clust_charge",   clust_charge,   "clust_charge[nclusts]/F");
       evtTree->Branch("clust_ismatch",  clust_ismatch,  "clust_ismatch[nclusts]/O");
       evtTree->Branch("clust_blipid",   clust_blipid,   "clust_blipid[nclusts]/I");
@@ -519,7 +522,7 @@ class BlipAnaTreeDataStruct
       //evtTree->Branch("part_endPointx",part_endPointx,"part_endPointx[nparticles]/F");
       //evtTree->Branch("part_endPointy",part_endPointy,"part_endPointy[nparticles]/F");
       //evtTree->Branch("part_endPointz",part_endPointz,"part_endPointz[nparticles]/F");
-      evtTree->Branch("part_startT",part_startT,"part_startT[nparticles]/F");
+      //evtTree->Branch("part_startT",part_startT,"part_startT[nparticles]/F");
       //evtTree->Branch("part_endT",part_endT,"part_endT[nparticles]/F");
       evtTree->Branch("part_pathlen",part_pathlen,"part_pathlen[nparticles]/F");
       evtTree->Branch("part_depEnergy",part_depEnergy,"part_depEnergy[nparticles]/F");
@@ -609,6 +612,7 @@ class BlipAna : public art::EDAnalyzer
   TH1D*   h_hitratio[kNplanes];
   //TH1D*   h_hitint[kNplanes];
   TH1D*   h_hitmult[kNplanes];
+  TH2D*   h_hit_charge_vs_rms[kNplanes];
   TH2D*   h_nelec_TrueVsReco[kNplanes];
   TH1D*   h_nelec_Resolution[kNplanes];
   TH1D*   h_chargecomp[kNplanes];
@@ -713,7 +717,9 @@ class BlipAna : public art::EDAnalyzer
       h_nhits_ut[i]   = dir_diag.make<TH1D>(Form("pl%i_nhits_untracked",i),  Form("Plane %i;total number of untracked hits",i),hitBins,0,hitMax);
       h_nhits_m[i]    = dir_diag.make<TH1D>(Form("pl%i_nhits_planematched",i), Form("Plane %i;total number of untracked plane-matched hits",i),hitBins,0,hitMax);
       h_hitamp[i]     = dir_diag.make<TH1D>(Form("pl%i_hit_amp",i), Form("Plane %i untracked hits;hit amplitude [ADC]",i),ampBins,0,ampMax);
-      h_hitrms[i]     = dir_diag.make<TH1D>(Form("pl%i_hit_rms",i), Form("Plane %i untracked hits;hit RMS [ADC]",i),rmsBins,0,rmsMax);
+      h_hitrms[i]             = dir_diag.make<TH1D>(Form("pl%i_hit_rms",i), Form("Plane %i untracked hits;hit RMS [ADC]",i),rmsBins,0,rmsMax);
+      h_hit_charge_vs_rms[i]  = dir_diag.make<TH2D>(Form("pl%i_hit_charge_vs_rms",i), Form("Plane %i untracked hits;hit charge [e-];hit RMS [ADC]",i),100,0,50e3,100,0,10);
+      h_hit_charge_vs_rms[i] ->SetOption("colz");
       h_hitratio[i]   = dir_diag.make<TH1D>(Form("pl%i_hit_ratio",i), Form("Plane %i untracked hits;hit RMS/Amplitude ratio",i),ratioBins,0,ratioMax);
       //h_hitint[i]     = dir_diag.make<TH1D>(Form("pl%i_hit_integral",i), Form("Plane %i hits;hit integral [ADC]",i),areaBins,0,areaMax);
       h_hitmult[i]     = dir_diag.make<TH1D>(Form("pl%i_hit_multiplicity",i), Form("Plane %i untracked hits;multiplicity [ADC]",i),30,0,30);
@@ -779,6 +785,7 @@ void BlipAna::analyze(const art::Event& evt)
   fData            ->Clear();
   fData->event      = evt.id().event();
   fData->run        = evt.id().run();
+  fData->subrun     = evt.id().subRun();
   fIsRealData       = evt.isRealData();
   fNumEvents++;
 
@@ -1064,6 +1071,7 @@ void BlipAna::analyze(const art::Event& evt)
         h_hitratio[plane]  ->Fill(hitlist[i]->RMS()/hitlist[i]->PeakAmplitude());
         //h_hitint[plane]    ->Fill(hitlist[i]->Integral());
         h_hitmult[plane]    ->Fill(hitlist[i]->Multiplicity());
+        h_hit_charge_vs_rms[plane]->Fill(hinfo.charge,hitlist[i]->RMS());
       //}
     } 
     
@@ -1170,14 +1178,15 @@ void BlipAna::analyze(const art::Event& evt)
   if( fDebugMode ) std::cout<<"\nLooping over clusters...\n";
   for(size_t i=0; i < fBlipAlg->hitclust.size(); i++){
     auto const& clust = fBlipAlg->hitclust[i];
+    if( !fSavePlaneInfo[clust.Plane] ) continue;
     fData->clust_id[i]        = clust.ID;
     fData->clust_tpc[i]       = clust.TPC;
     fData->clust_plane[i]     = clust.Plane;
+    
+    
     fData->clust_wire[i]      = clust.CentHitWire;
     fData->clust_startwire[i] = clust.StartWire;
     fData->clust_endwire[i]   = clust.EndWire;
-    
-    if( !fSavePlaneInfo[clust.Plane] ) continue;
     fData->clust_nwires[i]    = clust.NWires;
     fData->clust_nhits[i]     = clust.NHits;
     
@@ -1355,8 +1364,7 @@ void BlipAna::analyze(const art::Event& evt)
       <<"\n";
     }
   }
-  
-  
+ 
   
   //====================================
   // Fill TTree

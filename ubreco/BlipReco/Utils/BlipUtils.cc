@@ -443,7 +443,6 @@ namespace BlipUtils {
     // that there be at least 3 intersection points.
     if( newblip.NPlanes >= 3 && wirex.size() < 3 ) return newblip;
     
-    
     // Loop over the intersection points and calculate average position in 
     // YZ-plane, as well as the mean difference between intersection points.
     newblip.Position.SetXYZ(0,0,0);
@@ -454,6 +453,9 @@ namespace BlipUtils {
       double fact = 1./wirex.size();
       for(auto& v : wirex ) newblip.Position  += v * fact;
       for(auto& v : wirex ) newblip.SigmaYZ   += (v-newblip.Position).Mag() * fact;
+      // Ensure that difference between intersection points is
+      // consistent with the maximal wire extent
+      if( newblip.SigmaYZ > std::max(1.,0.5*newblip.dYZ) ) return newblip;
     }
     
     // Calculate mean drift time and X-position 
