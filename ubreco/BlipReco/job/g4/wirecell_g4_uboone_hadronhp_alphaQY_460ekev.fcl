@@ -1,0 +1,9 @@
+#include "wirecell_g4_uboone_hadronhp.fcl"
+#
+
+# NEST predicts ~330-400 e-/MeV
+# LArG4 simulates a charge deposition of ~530 e-/MeV
+# using Modified-Box recombination model.
+# Here we simulate ~460 e/keV
+physics.producers.largeant.AlphaScaleFactor: 0.875
+physics.producers.ionization.AlphaScaleFactor: 0.875

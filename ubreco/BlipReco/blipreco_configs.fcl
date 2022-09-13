@@ -43,13 +43,15 @@ microboone_blipalg:
   ClustMatchSigmaFact:  0.8             #// max extent for matching charge-weighted time [xRMS]
   ClustMatchMaxQRatio:  4.0             #// max allowed charge ratio of two clusters to be matched
   ClustMatchQDiffLimit: 10e3            #// if charge-diff >, clusters are subject to QRatio cut above [e-]
+  MinMatchedPlanes:     2               #// minimum number of planes matched for 3D blip
   PickyBlips:           false           #// require 3 planes that all intersect at ~same point
   ApplyTrkCylinderCut:  false           #// reject blips in track cone-cylinder regions
   CylinderRadius:       15.0            #// 3D cylinder cut radius [cm]
   CaloAlg:              @local::microboone_calo_mcc9_data
   CaloPlane:            2               #// plane used for calorimetry (2=collection)
-  CalodEdx:             2.3             #// assumed dE/dx for recombination corrections
   CaloLifetimeCorr:     false           #// correct blips for lifetime assuming T0 = 0
+  CalodEdx:             2.8             #// assumed dE/dx for MeV-scale recombination corrections
+                                        #// (for electrons < 5 MeV, ave dE/dx ~ 2.8 MeV/cm)
 }
 
 # ===============================================

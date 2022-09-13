@@ -10,6 +10,15 @@ namespace blip {
   {
     this->reconfigure(pset);
     
+    auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+
+    printf("******************************************\n");
+    printf("Initializing BlipRecoAlg...\n");
+    printf("  - Efield: %f kV/cm\n",detProp->Efield(0));
+    printf("  - using dE/dx: %f MeV/cm\n",fCalodEdx);
+    printf("  - equiv. recomb: %f\n",BlipUtils::ModBoxRecomb(fCalodEdx,detProp->Efield(0)));
+    printf("*******************************************\n");
+
     // create diagnostic histograms
     art::ServiceHandle<art::TFileService> tfs;
     art::TFileDirectory hdir = tfs->mkdir("BlipRecoAlg");
@@ -95,14 +104,14 @@ namespace blip {
     fMatchQDiffLimit    = pset.get<float>         ("ClustMatchQDiffLimit",  15e3);
     fMatchMaxQRatio     = pset.get<float>         ("ClustMatchMaxQRatio",   4);
     
-
+    fMinMatchedPlanes   = pset.get<int>           ("MinMatchedPlanes",    2);
     fPickyBlips         = pset.get<bool>          ("PickyBlips",          false);
     fApplyTrkCylinderCut= pset.get<bool>          ("ApplyTrkCylinderCut", false);
     fCylinderRadius     = pset.get<float>         ("CylinderRadius",    15);
     
     fCaloAlg            = new calo::CalorimetryAlg( pset.get<fhicl::ParameterSet>("CaloAlg") );
     fCaloPlane          = pset.get<int>           ("CaloPlane",               2);
-    fCalodEdx           = pset.get<float>         ("CalodEdx",                2.0);
+    fCalodEdx           = pset.get<float>         ("CalodEdx",                2.8);
     fCaloLifetimeCorr   = pset.get<bool>          ("CaloLifetimeCorr",        false);
   }
 
@@ -616,6 +625,7 @@ namespace blip {
             // make our new blip, but if it isn't valid, forget it and move on
             blip::Blip newBlip = BlipUtils::MakeBlip(hcGroup);
             if( !newBlip.isValid ) continue;
+            if( newBlip.NPlanes < fMinMatchedPlanes ) continue;
 
             // ----------------------------------------
             // save matching information
@@ -631,9 +641,7 @@ namespace blip {
 
             // ----------------------------------------
             // if we are being picky...
-            if(  newBlip.NPlanes == kNplanes 
-              && newBlip.SigmaYZ <  std::max(1.,0.5*newBlip.dYZ) ) {
-              
+            if(  newBlip.NPlanes > 2 && newBlip.SigmaYZ <  1. ) {
               for(int ipl = 0; ipl < kNplanes; ipl++) {
                 if( ipl == fCaloPlane ) continue;
                 h_clust_picky_overlap[ipl]->Fill(newBlip.Match_overlap[ipl]);
@@ -642,7 +650,6 @@ namespace blip {
                 h_clust_picky_q[ipl]->Fill(0.001*newBlip.clusters[fCaloPlane].Charge,0.001*newBlip.clusters[ipl].Charge);
                 //h_clust_picky_score[ipl]  ->Fill(newBlip.Match_score[ipl]);
               }
-
             } else if ( fPickyBlips ) {
               continue;
             }
