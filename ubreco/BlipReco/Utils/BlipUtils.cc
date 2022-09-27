@@ -214,19 +214,19 @@ namespace BlipUtils {
   //=================================================================
   blip::HitClust MakeHitClust(blip::HitInfo const& hitinfo){
     blip::HitClust hc;
-    hc.Amplitude    = hitinfo.Hit->PeakAmplitude();
     hc.TPC          = hitinfo.tpc;
     hc.Plane        = hitinfo.plane;
     hc.HitIDs       .insert(hitinfo.hitid);
     hc.Wires        .insert(hitinfo.wire);
-    
     hc.NHits        = hc.HitIDs.size();
-    hc.ADCs         = hitinfo.Hit->Integral();
+    
+    hc.Amplitude    = hitinfo.amp;
+    hc.ADCs         = hitinfo.ADCs;
     hc.Charge       = (hitinfo.charge > 0)? hitinfo.charge : 0;
     hc.Time         = hitinfo.driftTime;
-    hc.TimeErr      = hitinfo.Hit->RMS();
-    hc.StartTime    = hitinfo.driftTime - hitinfo.Hit->RMS();
-    hc.EndTime      = hitinfo.driftTime + hitinfo.Hit->RMS();
+    hc.TimeErr      = hitinfo.rms;
+    hc.StartTime    = hitinfo.driftTime - hitinfo.rms;
+    hc.EndTime      = hitinfo.driftTime + hitinfo.rms;
     hc.Timespan     = hc.EndTime - hc.StartTime;
     hc.StartWire    = hitinfo.wire;
     hc.EndWire      = hitinfo.wire; 
@@ -261,15 +261,15 @@ namespace BlipUtils {
     hc.StartWire  = *hc.Wires.begin();
     hc.EndWire    = *hc.Wires.rbegin();
     hc.NWires     = 1 + (hc.EndWire-hc.StartWire);
-    hc.ADCs       += hitinfo.Hit->Integral();
+    hc.ADCs       += hitinfo.ADCs;
     hc.Charge     += hitinfo.charge;
    
     if( hitinfo.g4id > 0 ) hc.G4IDs.insert(hitinfo.g4id);
 
-    hc.StartTime  = std::min(hc.StartTime,hitinfo.driftTime - hitinfo.Hit->RMS());
-    hc.EndTime    = std::max(hc.EndTime,  hitinfo.driftTime + hitinfo.Hit->RMS());
+    hc.StartTime  = std::min(hc.StartTime,hitinfo.driftTime - hitinfo.rms);
+    hc.EndTime    = std::max(hc.EndTime,  hitinfo.driftTime + hitinfo.rms);
     hc.Timespan   = hc.EndTime - hc.StartTime;
-    hc.Amplitude  = std::max(hc.Amplitude, hitinfo.Hit->PeakAmplitude() );
+    hc.Amplitude  = std::max(hc.Amplitude, hitinfo.amp );
 
     // Central "Time" for cluster is charge-weighted
     float q1 = hc.Charge;
@@ -279,7 +279,7 @@ namespace BlipUtils {
     float t1 = hc.Time;
     float t2 = hitinfo.driftTime;
     float tw = w1*t1 + w2*t2;
-    float sig_sumSq = pow(w1*hc.TimeErr,2) + pow(w2*hitinfo.Hit->RMS(),2);
+    float sig_sumSq = pow(w1*hc.TimeErr,2) + pow(w2*hitinfo.rms,2);
     float err_sumSq = w1*pow(tw-t1,2) + w2*pow(tw-t2,2);
     hc.Time     = tw;
     hc.TimeErr  = sqrt( sig_sumSq + err_sumSq );
@@ -642,11 +642,13 @@ namespace BlipUtils {
     bool	  first	= true; 
     // Loop over points (start with 2nd)
     for(int i = 1; i < n; ++i) {
-      TVector3 p1(part.Vx(i),part.Vy(i),part.Vz(i));
+      //TVector3 p1(part.Vx(i),part.Vy(i),part.Vz(i));
+      const auto& p1 = part.Position(i).Vect();
+      const auto& p0 = part.Position(i-1).Vect();
       if(	  p1.X() >= xmin && p1.X() <= xmax
         &&  p1.Y() >= ymin && p1.Y() <= ymax
         &&  p1.Z() >= zmin && p1.Z() <= zmax ) {
-        TVector3 p0(part.Vx(i-1),part.Vy(i-1),part.Vz(i-1));
+        //TVector3 p0(part.Vx(i-1),part.Vy(i-1),part.Vz(i-1));
         L += (p1-p0).Mag();
         if(first)	start = p1; 
         first = false;
@@ -683,9 +685,10 @@ namespace BlipUtils {
     // a = point on a line
     // n = unit vector pointing along line
     // --> d = norm[ (p-a) - ((p-a) dot n) * n ]
-    TVector3 a      = L1;
-    TVector3 n      = (L2-a).Unit();
-    TVector3 b      = (p-a);
+    // In our case, 'a' = L1
+    //TVector3 a      = L1;
+    TVector3 n      = (L2-L1).Unit();
+    TVector3 b      = (p-L1);
     double  projLen  = b.Dot(n);
     double d = -1;
     /*
@@ -693,12 +696,13 @@ namespace BlipUtils {
     else if ( projLen > (L2-L1).Mag() ) d = (p-L2).Mag();
     else                                d = (b-projLen*n).Mag();
     */
-
-    if( projLen > 0 && projLen < (L2-L1).Mag() ) 
-      d = (b-projLen*n).Mag();
-   
-    return d;
+    if( projLen > 0 && projLen < (L2-L1).Mag() ) {
+      d = (b-projLen*n).Mag(); 
+    } else {
+      d = std::min( (p-L1).Mag(), (p-L2).Mag() );
+    }
     
+    return d;
   }
   
   double DistToLine2D(TVector2& L1, TVector2& L2, TVector2& p){

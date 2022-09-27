@@ -75,7 +75,7 @@ namespace blip {
     void    reconfigure(fhicl::ParameterSet const& pset );
     void    RunBlipReco(const art::Event& evt);
     void    PrintConfig();
-
+    
     // TO-DO: make these private and create getters instead
     std::vector<blip::HitInfo>      hitinfo;
     std::vector<blip::HitClust>     hitclust;
