@@ -87,13 +87,11 @@ private:
   double fVetoRadius;
 
   // Vector to hold hit indices to be removed
-  std::vector<size_t> _vetohits;
-  
+  std::vector<size_t>   _vetohits;
+  std::vector<size_t>   _flaggedhits;
   
   // TODO: remove these hard-coded conversion values
   float pitch        = 0.3;    // cm
-  //float samplePeriod = 0.5;    // us
-  //float driftSpeed   = 0.1041; // cm/us
 
 };
 
@@ -113,6 +111,9 @@ TrackMasker::TrackMasker(fhicl::ParameterSet const & p)
 
   // min means min!
   fMinTrkLength = std::min(fMinTrkLength, fMinTrkLengthVeto);
+
+  _flaggedhits  .reserve(50000);
+  _vetohits     .reserve(50000);
 }
 
 
@@ -145,17 +146,15 @@ void TrackMasker::produce(art::Event & e)
   
   // produce hits
   std::unique_ptr< std::vector<recob::Hit> > Hit_v(new std::vector<recob::Hit>);
-  
+ 
   // clear track-like hit vector
   _vetohits.clear();
+  _flaggedhits.clear();
 
   std::cout<<"Found "<<hit_h->size()<<" hits from "<<fHitProducer<<"\n";
   std::cout<<"Found "<<trk_h->size()<<" tracks from "<<fTrkProducer<<"\n";
   
   
-  
-      
-
   //***************************************************
   // First go through tracks and designate which ones
   // pass our track length cuts by saving a map based
@@ -164,20 +163,14 @@ void TrackMasker::produce(art::Event & e)
   
   // Map of track ID to track length
   std::map<size_t,double> trklmap;
-  
   for( size_t t=0; t < trklist.size(); t++ ) {
-    
     auto const& trk = trklist[t];
-    
     // must be some minimum length
     if (trk->Length() < fMinTrkLength) continue;
-
     // and track length must be < twice start-end distance
-    if (trk->Length() > 2 * (trk->Vertex()-trk->End()).R() ) continue;
-
+    //if (trk->Length() > 2 * (trk->Vertex()-trk->End()).R() ) continue;
     trklmap[trk->ID()] = (double)trk->Length();
   }
-
   std::cout<<" --> "<<trklmap.size()<<" of those tracks pass trk length cut (> "<<fMinTrkLength<<" cm)\n";
 
 
@@ -188,48 +181,45 @@ void TrackMasker::produce(art::Event & e)
   
   // boolean designating each hit as tracked
   std::vector<bool> hitIsVetoed( hitlist.size(), false);
-  
+
   // map of (un-vetoed) hits to planes
   std::map<size_t,std::vector<size_t>> planehitmap;
   
   // 2D wire-time coordinates for each hit
   std::vector<TVector2> wtpoint( hitlist.size());
 
-  // hits that are in tracks satisfying the veto region reqs
-  std::vector<size_t> flaggedhits;
+  auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+  double samplePeriod = lar::providerFrom<detinfo::DetectorClocksService>()->TPCClock().TickPeriod();
+  double driftVel     = detProp->DriftVelocity(detProp->Efield(0),detProp->Temperature()); 
 
   for (size_t h=0; h < hitlist.size(); h++) {
     
     // find associated track
     auto const& trk_v = hit_trk_assn_v.at(h);
     if( trk_v.size() ) {
-      
       size_t trkID = trk_v.at(0)->ID();
-      if( trklmap.find(trkID) != trklmap.end() ) {
+      double len = trklmap[trkID];
+      if( len > 0 ) {
         hitIsVetoed[h] = true;
         _vetohits.push_back(h);
-        if( trklmap[trkID] >= fMinTrkLengthVeto ){
-          flaggedhits.push_back(h);
+        if( len >= fMinTrkLengthVeto ){
+          _flaggedhits.push_back(h);
         }
       }
-    
     }//endif track association exists
+    
+    if( !hitIsVetoed[h] ) planehitmap[hitlist[h]->WireID().Plane].push_back(h);
     
     // calculate wire-time coordinates of every hit so we aren't
     // repeating these calculations a bunch of times later on
-    auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    double samplePeriod = lar::providerFrom<detinfo::DetectorClocksService>()->TPCClock().TickPeriod();
-    double driftVel     = detProp->DriftVelocity(detProp->Efield(0),detProp->Temperature()); 
     float w = hitlist[h]->WireID().Wire * pitch;
     float t = hitlist[h]->PeakTime() * samplePeriod * driftVel;
     wtpoint.at(h).Set(w,t);
-    
-    if( !hitIsVetoed[h] ) planehitmap[hitlist[h]->WireID().Plane].push_back(h);
   
   }//endloop over hits
   
   std::cout<<" --> removed "<<_vetohits.size()<<" tracked hits\n";
-  std::cout<<" --> flagged "<<flaggedhits.size()<<" hits in tracks long enough to apply veto radius\n";
+  std::cout<<" --> flagged "<<_flaggedhits.size()<<" hits in tracks long enough to apply veto radius\n";
   size_t veto_hits_trk = _vetohits.size();
   
   //***************************************************
@@ -238,44 +228,31 @@ void TrackMasker::produce(art::Event & e)
   // are within the veto radius.
   //**************************************************
 
-  for( auto const& h : flaggedhits ) {
-   
-    for(auto const& hh : planehitmap[hitlist.at(h)->WireID().Plane] ) {
-
-      // skip same hit (duh)
-      //if( hh == h ) continue;
-        
-      // skip hits that are already vetoed
-      if ( hitIsVetoed[hh] ) continue;
-      
+  for( auto const& h : _flaggedhits ) {
+    for(auto const& hh : planehitmap[hitlist[h]->WireID().Plane] ) {
+      // skip hits that are already vetoed or on wrong plane
+      if( hitIsVetoed[hh] ) continue;
       float dw = fabs(wtpoint.at(hh).X()-wtpoint.at(h).X());
       float dt = fabs(wtpoint.at(hh).Y()-wtpoint.at(h).Y());
-      
       // skip hits on far-away wires
       if( dw > fVetoRadius ) continue;
-
       // skip hits that are sufficiently separated in time
       if( dt > fVetoRadius ) continue;
-      
       // finally, check 2D proximity
       if( sqrt( pow(dw,2)+pow(dt,2) ) > fVetoRadius ) continue;
-      
       _vetohits.push_back(hh);
       hitIsVetoed[hh] = true;
-
     }
   }
   
   std::cout<<" --> vetoed additional "<<_vetohits.size()-veto_hits_trk<<" hits within radius\n";
 
 
-
   // ********************************************
   // finally, save hits that weren't marked veto
   // ********************************************
   for (size_t h=0; h < hit_h->size(); h++) {
-    if (std::find(_vetohits.begin(),_vetohits.end(),h) == _vetohits.end() )
-      Hit_v->emplace_back(hit_h->at(h));
+    if( !hitIsVetoed[h] ) Hit_v->emplace_back(hit_h->at(h));
   }
 
   

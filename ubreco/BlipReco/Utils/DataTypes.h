@@ -63,36 +63,33 @@ namespace blip {
   };
 
   struct HitInfo {
-    art::Ptr<recob::Hit> Hit;
+    //art::Ptr<recob::Hit> Hit;
     int   hitid         = -9;
     int   plane         = -9;
     int   tpc           = -9;
     int   wire          = -9;
     int   chan          = -9;
+    float amp           = -9;
+    float rms           = -9;
     int   trkid         = -9;
     int   shwrid        = -9;
     int   clustid       = -9;
     int   blipid        = -9;
     bool  ismatch       = false;
-    int   neighbors     = -9;
-    float charge        = -999;     // [e-]
+    float ADCs          = -999;     // [ADCs]
+    int   charge        = -999;     // [e-]
+    float peakTime      = -999999;
     float driftTime     = -999999;  // [tick]
     int   g4id          = -9;
     int   g4pdg         = -999;
+    int   g4charge      = -999;     // [e-]
     float g4frac        = -99;      
-    float g4charge      = -999;     // [e-]
     float g4energy      = -999;     // [MeV]
   };
   
   struct HitClust {
-    //art::Ptr<recob::Hit>  LeadHit;
-    //int     LeadHitID       = -999;
-    //float   LeadHitCharge   = -999;
-    //float   LeadHitTime     = -999;
     int     ID              = -9;
     bool    isValid         = false;
-    //int     LeadHitWire     = -999;
-    //int     LeadHitChan     = -999;
     float   CentHitTime     = -999;
     int     CentHitChan     = -999;
     int     CentHitWire     = -999;
@@ -117,22 +114,15 @@ namespace blip {
     int     BlipID          = -9;
     int     EdepID          = -9;
     int     TrkID           = -9;
-    
     si_t    HitIDs;
     si_t    Wires;
     mii_t   TrkIDs;
-    
     si_t    G4IDs;
-    //int     LeadG4ID        = -9;
-    //int     LeadG4PDG       = -9;
-    //float   LeadG4Energy    = -9;
-    
-    std::map<int,TVector3> IntersectLocations;
-
     vfloat_t  HitTimes;
     vint_t    HitChans;
     vint_t    HitWires;
-    //vint_t    HitTrkIDs;
+    
+    std::map<int,TVector3> IntersectLocations;
   };
 
   struct Blip {
@@ -155,7 +145,6 @@ namespace blip {
     float     dYZ             = -9;         // Approximate length scale in YZ space [cm]
     
     int       TrkID           = -9;         // Track ID (if hits were 3D-tracked)
-    float     Length          = -9;         // Length of 3D track (if applicable)
 
     // Plane/cluster-specific information
     blip::HitClust clusters[kNplanes];
@@ -163,21 +152,21 @@ namespace blip {
     // Truth-matched energy deposition
     blip::TrueBlip truth;
     
-    float   Match_dT[kNplanes];
-    float   Match_dTfrac[kNplanes];
-    float   Match_overlap[kNplanes];
-    float   Match_score[kNplanes];
+    //float   Match_dT[kNplanes];
+    //float   Match_dTfrac[kNplanes];
+    //float   Match_overlap[kNplanes];
+    //float   Match_score[kNplanes];
     
     
     // Initialize the blip
-    Blip() {
-      for(size_t i=0; i<kNplanes; i++){
-        Match_dT[i]     = -999;
-        Match_dTfrac[i] = -999;
-        Match_overlap[i]= -9;
-        Match_score[i]  = -9;
-      }
-    }
+    //Blip() {
+    //  for(size_t i=0; i<kNplanes; i++){
+    //    Match_dT[i]     = -999;
+    //    Match_dTfrac[i] = -999;
+    //    Match_overlap[i]= -9;
+    //    Match_score[i]  = -9;
+    //  }
+    //}
 
     // Prototype getter functions
     double X() { return Position.X(); }

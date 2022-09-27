@@ -35,7 +35,7 @@ namespace blip {
       h_clust_dt[i]           = hdir.make<TH1D>(Form("pl%i_clust_dt",i),        Form("Plane %i clusters;dT [ticks]",i),200,-10,10);
       h_clust_dtfrac[i]      = hdir.make<TH1D>(Form("pl%i_clust_dtfrac",i),    Form("Plane %i clusters;Charge-weighted mean dT/RMS",i),120,-3,3);
       h_clust_q[i]     = hdir.make<TH2D>(Form("pl%i_clust_charge",i),  
-        Form("Pre-cut;Plane %i cluster charge [#times10^{3} e-];Plane %i cluster charge [#times10^{3}]",fCaloPlane,i),
+        Form("Pre-cut;Plane %i cluster charge [#times10^{3} e-];Plane %i cluster charge [#times10^{3} e-]",fCaloPlane,i),
         qbins,0,qmax,qbins,0,qmax);
       h_clust_q[i]    ->SetOption("colz");
       h_clust_q_cut[i]     = hdir.make<TH2D>(Form("pl%i_clust_charge_cut",i),  
@@ -46,7 +46,7 @@ namespace blip {
       h_clust_picky_dt[i]        = hdir.make<TH1D>(Form("pl%i_clust_picky_dt",i),       Form("Plane %i clusters (3 planes, intersect #Delta cut);dT [ticks]",i),200,-10,10);
       h_clust_picky_dtfrac[i]      = hdir.make<TH1D>(Form("pl%i_clust_picky_dtfrac",i),Form("Plane %i clusters (3 planes, intersect #Delta cut);Charge-weighted mean dT/RMS",i),120,-3,3);
       h_clust_picky_q[i]  = hdir.make<TH2D>(Form("pl%i_clust_picky_charge",i),  
-        Form("3 planes, intersect #Delta < 0.5 cm;Plane %i cluster charge [#times 10^{3} e-];Plane %i cluster charge [#times 10^{3}]",fCaloPlane,i),
+        Form("3 planes, intersect #Delta < 0.5 cm;Plane %i cluster charge [#times 10^{3} e-];Plane %i cluster charge [#times 10^{3} e-]",fCaloPlane,i),
         qbins,0,qmax,qbins,0,qmax);
       h_clust_picky_q[i]     ->SetOption("colz");
       h_nmatches[i]         = hdir.make<TH1D>(Form("pl%i_nmatches",i),Form("number of plane%i matches to single collection cluster",i),20,0,20);
@@ -238,33 +238,24 @@ namespace blip {
     // Use G4 information to determine the "true"
     // blips in this event.
     //==================================================
-    
     bool isMC = (plist.size() > 0 );
     
-   
     // Map G4IDs to their respective index in the particle list
     std::map< int, int > map_g4id_index;
 
+    // Loop through the MCParticles
     if( isMC ) {
-    //if( plist.size() || fmhh.isValid() ) {
-
       pinfo.resize(plist.size());
-    
-    
-      // Loop through the MCParticles
       for(size_t i = 0; i<plist.size(); i++){
         BlipUtils::FillParticleInfo( *plist[i], pinfo[i], sedlist, fCaloPlane);
-        //BlipUtils::CalcPartDrift( pinfo[i], fCaloPlane )
         int g4id = pinfo[i].trackId;
         if( map_g4id_charge[g4id] ) pinfo[i].numElectrons = (int)map_g4id_charge[g4id];
         pinfo[i].index        = i;
         map_g4id_index[g4id]  = i;
       }
-      
       // Calculate the true blips
       BlipUtils::MakeTrueBlips(pinfo, trueblips);
       BlipUtils::MergeTrueBlips(trueblips, fTrueBlipMergeDist);
-    
     }
   
 
@@ -292,13 +283,17 @@ namespace blip {
       auto const& thisHit = hitlist[i];
       int   chan    = thisHit->Channel();
       int   plane   = thisHit->WireID().Plane;
-      hitinfo[i].Hit        = thisHit;
+      //hitinfo[i].Hit        = thisHit;
       hitinfo[i].hitid      = i;
       hitinfo[i].wire       = thisHit->WireID().Wire;
       hitinfo[i].chan       = thisHit->Channel();
       hitinfo[i].tpc        = thisHit->WireID().TPC;
       hitinfo[i].plane      = thisHit->WireID().Plane;
+      hitinfo[i].amp        = thisHit->PeakAmplitude();
+      hitinfo[i].rms        = thisHit->RMS();
+      hitinfo[i].ADCs       = thisHit->Integral();
       hitinfo[i].charge     = fCaloAlg->ElectronsFromADCArea(thisHit->Integral(),plane);
+      hitinfo[i].peakTime   = thisHit->PeakTime();
       hitinfo[i].driftTime  = thisHit->PeakTime() - detProp->GetXTicksOffset(plane,0,0); // - fTimeOffsets[plane];
 
       if( isMC ) {
@@ -439,7 +434,7 @@ namespace blip {
               
               float t1 = hitinfo[hj].driftTime;
               float t2 = hitinfo[hii].driftTime;
-              float rms_sum = (hitlist[hj]->RMS() + hitlist[hii]->RMS());
+              float rms_sum = (hitinfo[hii].rms + hitinfo[hj].rms);
               if( fabs(t1-t2) > fHitClustWidthFact * rms_sum ) continue;
               BlipUtils::GrowHitClust(hitinfo[hj],hc);
               hitIsClustered[hj] = true;
@@ -605,7 +600,6 @@ namespace blip {
           // loop over the candidates found on each plane
           // and select the one with the largest score
           if( cands.size() ) {
-           
             for(auto& c : cands ) {
               int plane = c.first;
               h_nmatches[plane]->Fill(c.second.size());
@@ -617,7 +611,6 @@ namespace blip {
                   bestID = cid;
                 }
               }
-              
               if( bestID >= 0 ) hcGroup.push_back(hitclust[bestID]);
             }
             
@@ -626,19 +619,38 @@ namespace blip {
             blip::Blip newBlip = BlipUtils::MakeBlip(hcGroup);
             if( !newBlip.isValid ) continue;
             if( newBlip.NPlanes < fMinMatchedPlanes ) continue;
+            
+            // ---------------------------------------
+            // does this qualify as a "picky" blip?
+            bool picky = ( newBlip.NPlanes > 2 && newBlip.SigmaYZ < 1. );
 
             // ----------------------------------------
             // save matching information
             for(auto& hc : hcGroup ) {
-              int pl = hc.Plane;
-              newBlip.Match_dT[pl]      = map_clust_dt[hc.ID];
-              newBlip.Match_dTfrac[pl]  = map_clust_dtfrac[hc.ID];
-              newBlip.Match_overlap[pl] = map_clust_overlap[hc.ID];
-              newBlip.Match_score[pl]   = map_clust_score[hc.ID];
+              //int pl = hc.Plane;
+              //newBlip.Match_dT[pl]      = map_clust_dt[hc.ID];
+              //newBlip.Match_dTfrac[pl]  = map_clust_dtfrac[hc.ID];
+              //newBlip.Match_overlap[pl] = map_clust_overlap[hc.ID];
+              //newBlip.Match_score[pl]   = map_clust_score[hc.ID];
               hitclust[hc.ID].isMatched = true;
               for(auto hit : hitclust[hc.ID].HitIDs) hitinfo[hit].ismatch = true;
+            
+              // if this is a 3-plane blip with good intersection, fill diagnostic histos
+              if( picky ) {
+                int ipl = hc.Plane;
+                if( ipl == fCaloPlane ) continue;
+                float q1 = (float)newBlip.clusters[fCaloPlane].Charge;
+                float q2 = (float)newBlip.clusters[ipl].Charge;
+                h_clust_picky_overlap[ipl]->Fill(map_clust_overlap[hc.ID]);
+                h_clust_picky_dtfrac[ipl] ->Fill(map_clust_dtfrac[hc.ID]);
+                h_clust_picky_dt[ipl]     ->Fill(map_clust_dt[hc.ID]);
+                h_clust_picky_q[ipl]  ->Fill(0.001*q1,0.001*q2);
+              }
             }
 
+            if( fPickyBlips && !picky ) continue;
+
+            /*
             // ----------------------------------------
             // if we are being picky...
             if(  newBlip.NPlanes > 2 && newBlip.SigmaYZ <  1. ) {
@@ -653,12 +665,14 @@ namespace blip {
             } else if ( fPickyBlips ) {
               continue;
             }
+            */
 
             
             // ----------------------------------------
             // If this blip was also included in a recob::Track,
             // then save the length of that track to the object
             // for use in dE/dx discrimination
+            /*
             int trkid = newBlip.TrkID;
             if( trkid >= 0 ) {
               int index = map_trkid_index[trkid];
@@ -666,13 +680,14 @@ namespace blip {
               if( L <= 2.*(newBlip.dX+newBlip.dYZ) ) 
                 newBlip.Length = tracklist[index]->Length();
             } 
+            */
 
             
             // ----------------------------------------
             // apply cylinder cut 
             for(auto& trk : tracklist ){
               if( trk->Length() < fMaxHitTrkLength ) continue;
-              if( trk->ID()     == newBlip.TrkID ) continue;
+              //if( trk->ID() == newBlip.TrkID ) continue;
               auto& a = trk->Vertex();
               auto& b = trk->End();
               TVector3 p1(a.X(), a.Y(), a.Z() );
@@ -752,7 +767,6 @@ namespace blip {
       if( SCE->EnableCalSpatialSCE() ) {
         // TODO: Deal with cases where X falls outside AV (diffuse out-of-time signal)
         //       For example, maybe re-assign to center of drift volume?
-        //if( !BlipUtils::IsPointInAV(blip.Position) ) point.SetX( geom->DetHalfWidth() );
         geo::Vector_t loc_offset = SCE->GetCalPosOffsets(point);
         point.SetXYZ(point.X()-loc_offset.X(),point.Y()+loc_offset.Y(),point.Z()+loc_offset.Z());
       }
