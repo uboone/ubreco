@@ -1,0 +1,6 @@
+#include "run_blipana_trkmask.fcl"
+
+services.ElectronLifetimeService.ElectronLifetimeProvider.UseDB: false
+
+physics.analyzers.blipanaTrkMask:     @local::microboone_blipana_fullmc
+physics.analyzers.blipanaTrkMask.BlipAlg.HitProducer: "trackmasker"
