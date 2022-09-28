@@ -1,0 +1,8 @@
+#include "wirecell_detsim_uboone.fcl"
+
+# Update longitudinal diffusion to use Adam's value (arxiv: 2104.06551)
+physics.producers.driftWC.wcls_main.structs.DiffusionLongitudinal:  3.7
+physics.producers.driftWC.wcls_main.structs.DiffusionTransverse:    5.9
+
+# Use a lifetime that is more on-par with Run 3 data
+physics.producers.driftWC.wcls_main.structs.ElectronLifetime:       26
