@@ -221,7 +221,7 @@ namespace blip {
     // for every G4 particle, instead of relying on the TDC-tick
     // matching that's done by BackTracker's other functions
     //======================================================
-    std::map<int,double> map_g4id_charge;
+    std::map<int,double> map_g4trkid_charge;
     for(auto const &chan : simchanlist ) {
       if( geom->View(chan->Channel()) != geo::kW ) continue;
       for(auto const& tdcide : chan->TDCIDEMap() ) {
@@ -229,7 +229,7 @@ namespace blip {
           if( ide.trackID < 0 ) continue;
           double ne = ide.numElectrons;
           if( fSimChanProducer == "driftWC:simpleSC" ) ne *= 1/0.826;
-          map_g4id_charge[ide.trackID] += ne;
+          map_g4trkid_charge[ide.trackID] += ne;
         }
       }
     }
@@ -241,17 +241,17 @@ namespace blip {
     bool isMC = (plist.size() > 0 );
     
     // Map G4IDs to their respective index in the particle list
-    std::map< int, int > map_g4id_index;
+    std::map< int, int > map_g4trkid_index;
 
     // Loop through the MCParticles
     if( isMC ) {
       pinfo.resize(plist.size());
       for(size_t i = 0; i<plist.size(); i++){
         BlipUtils::FillParticleInfo( *plist[i], pinfo[i], sedlist, fCaloPlane);
-        int g4id = pinfo[i].trackId;
-        if( map_g4id_charge[g4id] ) pinfo[i].numElectrons = (int)map_g4id_charge[g4id];
-        pinfo[i].index        = i;
-        map_g4id_index[g4id]  = i;
+        int trkid = pinfo[i].trackId;
+        if( map_g4trkid_charge[trkid] ) pinfo[i].numElectrons = (int)map_g4trkid_charge[trkid];
+        pinfo[i].index            = i;
+        map_g4trkid_index[trkid]  = i;
       }
       // Calculate the true blips
       BlipUtils::MakeTrueBlips(pinfo, trueblips);
@@ -310,7 +310,7 @@ namespace blip {
             hitinfo[i].g4charge += btvec.at(j)->numElectrons;
             if( btvec.at(j)->energy > max ) {
               max = btvec.at(j)->energy;
-              hitinfo[i].g4id   = pvec.at(j)->TrackId();
+              hitinfo[i].g4trkid= pvec.at(j)->TrackId();
               hitinfo[i].g4pdg  = pvec.at(j)->PdgCode();
               hitinfo[i].g4frac = btvec.at(j)->ideFraction;
             }
@@ -545,8 +545,8 @@ namespace blip {
               // Check that the two central wires intersect
               // *******************************************
               double y, z;
-              int chanA = hcA.CentHitChan;
-              int chanB = hcB.CentHitChan;
+              int chanA = hcA.CenterChan;
+              int chanB = hcB.CenterChan;
               if( !art::ServiceHandle<geo::Geometry>()
                 ->ChannelsIntersect(chanA,chanB,y,z)) continue;
               // Save intersect location, so we don't have to
