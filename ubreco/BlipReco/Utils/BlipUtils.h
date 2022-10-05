@@ -67,6 +67,7 @@ namespace BlipUtils {
   blip::HitClust  MakeHitClust(blip::HitInfo const&);
   blip::HitClust  MergeHitClusts(blip::HitClust&, blip::HitClust&);
   blip::Blip      MakeBlip(std::vector<blip::HitClust> const&);
+  
 
   //###################################################
   // General functions 

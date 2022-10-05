@@ -80,7 +80,7 @@ namespace blip {
     int   charge        = -999;     // [e-]
     float peakTime      = -999999;
     float driftTime     = -999999;  // [tick]
-    int   g4id          = -9;
+    int   g4trkid       = -9;
     int   g4pdg         = -999;
     int   g4charge      = -999;     // [e-]
     float g4frac        = -99;      
@@ -90,9 +90,8 @@ namespace blip {
   struct HitClust {
     int     ID              = -9;
     bool    isValid         = false;
-    float   CentHitTime     = -999;
-    int     CentHitChan     = -999;
-    int     CentHitWire     = -999;
+    int     CenterChan      = -999;
+    int     CenterWire      = -999;
     bool    isMerged        = false;
     bool    isMatched       = false;
     int     TPC             = -9;
@@ -113,14 +112,10 @@ namespace blip {
     int     EndWire         = -999;
     int     BlipID          = -9;
     int     EdepID          = -9;
-    int     TrkID           = -9;
     si_t    HitIDs;
     si_t    Wires;
-    mii_t   TrkIDs;
+    si_t    Chans;
     si_t    G4IDs;
-    vfloat_t  HitTimes;
-    vint_t    HitChans;
-    vint_t    HitWires;
     
     std::map<int,TVector3> IntersectLocations;
   };
@@ -143,8 +138,6 @@ namespace blip {
     float     SigmaYZ         = -9.;        // Uncertainty in YZ intersect [cm]
     float     dX              = -9;         // Equivalent length along drift direction [cm] 
     float     dYZ             = -9;         // Approximate length scale in YZ space [cm]
-    
-    int       TrkID           = -9;         // Track ID (if hits were 3D-tracked)
 
     // Plane/cluster-specific information
     blip::HitClust clusters[kNplanes];
@@ -152,22 +145,6 @@ namespace blip {
     // Truth-matched energy deposition
     blip::TrueBlip truth;
     
-    //float   Match_dT[kNplanes];
-    //float   Match_dTfrac[kNplanes];
-    //float   Match_overlap[kNplanes];
-    //float   Match_score[kNplanes];
-    
-    
-    // Initialize the blip
-    //Blip() {
-    //  for(size_t i=0; i<kNplanes; i++){
-    //    Match_dT[i]     = -999;
-    //    Match_dTfrac[i] = -999;
-    //    Match_overlap[i]= -9;
-    //    Match_score[i]  = -9;
-    //  }
-    //}
-
     // Prototype getter functions
     double X() { return Position.X(); }
     double Y() { return Position.Y(); }

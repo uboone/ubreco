@@ -218,8 +218,13 @@ namespace BlipUtils {
     hc.Plane        = hitinfo.plane;
     hc.HitIDs       .insert(hitinfo.hitid);
     hc.Wires        .insert(hitinfo.wire);
-    hc.NHits        = hc.HitIDs.size();
+    hc.Chans        .insert(hitinfo.chan);
+    hc.NHits        = 1;
+    hc.NWires       = 1;
     
+    hc.CenterWire   = hitinfo.wire;
+    hc.CenterChan   = hitinfo.chan;
+
     hc.Amplitude    = hitinfo.amp;
     hc.ADCs         = hitinfo.ADCs;
     hc.Charge       = (hitinfo.charge > 0)? hitinfo.charge : 0;
@@ -230,21 +235,10 @@ namespace BlipUtils {
     hc.Timespan     = hc.EndTime - hc.StartTime;
     hc.StartWire    = hitinfo.wire;
     hc.EndWire      = hitinfo.wire; 
-    hc.NWires       = 1;
     hc.isMerged     = false;
     hc.isMatched    = false;
-    hc.TrkID        = hitinfo.trkid;
-
-    hc.TrkIDs[hitinfo.trkid]++;
-
-    hc.HitTimes     .push_back(hitinfo.driftTime);
-    hc.HitChans     .push_back(hitinfo.chan);
-    hc.HitWires     .push_back(hitinfo.wire);
-    hc.CentHitTime  = hitinfo.driftTime;
-    hc.CentHitChan  = hitinfo.chan;
-    hc.CentHitWire  = hitinfo.wire;
     
-    if( hitinfo.g4id > 0 ) hc.G4IDs.insert(hitinfo.g4id);
+    if( hitinfo.g4trkid > 0 ) hc.G4IDs.insert(hitinfo.g4trkid);
 
     hc.isValid = true;
     return hc;
@@ -256,15 +250,18 @@ namespace BlipUtils {
     if( hitinfo.plane != hc.Plane ) return;
     if( hc.HitIDs.find(hitinfo.hitid) != hc.HitIDs.end() ) return;
     hc.HitIDs     .insert(hitinfo.hitid);
-    hc.NHits      = hc.HitIDs.size();
     hc.Wires      .insert(hitinfo.wire);
+    hc.Chans      .insert(hitinfo.chan);
+    hc.NHits      = hc.HitIDs.size();
+    hc.NWires     = hc.Wires.size();
     hc.StartWire  = *hc.Wires.begin();
     hc.EndWire    = *hc.Wires.rbegin();
-    hc.NWires     = 1 + (hc.EndWire-hc.StartWire);
+    hc.CenterWire =(*hc.Wires.begin()+*hc.Wires.rbegin())/2.;
+    hc.CenterChan =(*hc.Chans.begin()+*hc.Chans.rbegin())/2.;
     hc.ADCs       += hitinfo.ADCs;
     hc.Charge     += hitinfo.charge;
    
-    if( hitinfo.g4id > 0 ) hc.G4IDs.insert(hitinfo.g4id);
+    if( hitinfo.g4trkid > 0 ) hc.G4IDs.insert(hitinfo.g4trkid);
 
     hc.StartTime  = std::min(hc.StartTime,hitinfo.driftTime - hitinfo.rms);
     hc.EndTime    = std::max(hc.EndTime,  hitinfo.driftTime + hitinfo.rms);
@@ -283,29 +280,6 @@ namespace BlipUtils {
     float err_sumSq = w1*pow(tw-t1,2) + w2*pow(tw-t2,2);
     hc.Time     = tw;
     hc.TimeErr  = sqrt( sig_sumSq + err_sumSq );
-    
-    hc.TrkIDs[hitinfo.trkid]++;
-    for(auto& idc : hc.TrkIDs ) {
-      // if it's a tie, assign it to highest trkID
-      int n = idc.second;
-      int n0 = hc.TrkIDs[hc.TrkID];
-      if(       n == n0 ) hc.TrkID = std::max(idc.first,hc.TrkID);
-      else if ( n > n0  ) hc.TrkID = idc.first;
-    }
-    
-    hc.HitTimes   .push_back(hitinfo.driftTime);
-    hc.HitChans   .push_back(hitinfo.chan);
-    hc.HitWires   .push_back(hitinfo.wire);
-    for(size_t i=0; i<hc.HitTimes.size(); i++){
-      float dt = fabs(hc.HitTimes.at(i)-hc.Time);
-      if( dt < fabs(hc.CentHitTime-hc.Time) ) {
-        hc.CentHitTime = hc.HitTimes.at(i);
-        hc.CentHitChan = hc.HitChans.at(i);
-        hc.CentHitWire = hc.HitWires.at(i);
-      }
-     
-    }
-    
   
   }
 
@@ -319,10 +293,13 @@ namespace BlipUtils {
     hc2.isMerged = true;
     hc.HitIDs     .insert(hc2.HitIDs.begin(),     hc2.HitIDs.end());
     hc.Wires      .insert(hc2.Wires.begin(),      hc2.Wires.end());
+    hc.Chans      .insert(hc2.Chans.begin(),      hc2.Chans.end());
     hc.NHits      = hc.HitIDs.size();
+    hc.NWires     = hc.Wires.size();
     hc.StartWire  = *hc.Wires.begin();
     hc.EndWire    = *hc.Wires.rbegin();
-    hc.NWires     = 1 + (hc.EndWire-hc.StartWire);
+    hc.CenterWire =(*hc.Wires.begin()+*hc.Wires.rbegin())/2.;
+    hc.CenterChan =(*hc.Chans.begin()+*hc.Chans.rbegin())/2.;
     hc.ADCs       += hc2.ADCs;
     hc.Charge     += hc2.Charge;
     hc.G4IDs      .insert(hc2.G4IDs.begin(),      hc2.G4IDs.end());
@@ -341,27 +318,6 @@ namespace BlipUtils {
     float err_sumSq = w1*pow(tw-t1,2) + w2*pow(tw-t2,2);
     hc.Time     = tw;
     hc.TimeErr  = sqrt( sig_sumSq + err_sumSq );
-    
-    for(auto idCount : hc2.TrkIDs ) hc.TrkIDs[idCount.first] += idCount.second;
-    for(auto& idc : hc.TrkIDs ) {
-      // if it's a tie, assign it to highest trkID
-      int n = idc.second;
-      int n0 = hc.TrkIDs[hc.TrkID];
-      if(       n == n0 ) hc.TrkID = std::max(idc.first,hc.TrkID);
-      else if ( n > n0  ) hc.TrkID = idc.first;
-    }
-    
-    hc.HitTimes   .insert(hc.HitTimes.end(),hc2.HitTimes.begin(),hc2.HitTimes.end());
-    hc.HitChans   .insert(hc.HitChans.end(),hc2.HitChans.begin(),hc2.HitChans.end());
-    for(size_t i=0; i<hc.HitTimes.size(); i++){
-      float dt = fabs(hc.HitTimes.at(i)-hc.Time);
-      if( dt < fabs(hc.CentHitTime-hc.Time) ) {
-        hc.CentHitTime = hc.HitTimes.at(i);
-        hc.CentHitChan = hc.HitChans.at(i);
-        hc.CentHitWire = hc.HitWires.at(i);
-      }
-      
-    }
     
     return hc;
   }
@@ -424,7 +380,7 @@ namespace BlipUtils {
           z = hcs[i].IntersectLocations.find(hcs[j].ID)->second.Z();
         } else {
           match3d = art::ServiceHandle<geo::Geometry>()
-            ->ChannelsIntersect(hcs[i].CentHitChan,hcs[j].CentHitChan,y,z);
+            ->ChannelsIntersect(hcs[i].CenterChan,hcs[j].CenterChan,y,z);
         }
 
         if( match3d ) {
@@ -471,6 +427,7 @@ namespace BlipUtils {
     newblip.dX = (t_max-t_min) * tick_to_cm;
     
     // Is this blip associated with a specific track ID?
+    /*
     std::map<int,int> trk_id_count;
     for(auto& hc : hcs ) {
       if( hc.TrkID >= 0 ) {
@@ -479,6 +436,7 @@ namespace BlipUtils {
           newblip.TrkID = hc.TrkID;
       }
     }
+    */
 
     // OK, we made it! Flag as "valid" and ship it out.
     newblip.isValid = true;
