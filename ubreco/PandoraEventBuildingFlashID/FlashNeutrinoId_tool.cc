@@ -6,6 +6,8 @@
 
 #include "FlashNeutrinoId_tool.h"
 
+#include <algorithm>
+
 namespace lar_pandora
 {
 
@@ -1689,7 +1691,11 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
     float bnd = 20.;
 
     // Declare fiducial volume - need this for later (copied from RejectStopMuByDirMCS above)
-    auto InFV = [&geo, bnd](double p[3]) -> bool { return (p[0] > bnd && p[0] < (2. * geo->DetHalfWidth() - bnd) && p[1] > (-geo->DetHalfHeight() + bnd) && p[1] < (geo->DetHalfHeight() - bnd) && p[2] > bnd && p[2] < (geo->DetLength() - bnd)); };
+    auto InFV = [&geo, bnd](geo::Point_t const& p) -> bool {
+                  return p.X() > bnd && p.X() < (2. * geo->DetHalfWidth() - bnd) and
+                         p.Y() > (-geo->DetHalfHeight() + bnd) && p.Y() < (geo->DetHalfHeight() - bnd) and
+                         p.Z() > bnd && p.Z() < (geo->DetLength() - bnd);
+                };
 
     // Configure cosmic tag manager
     ::cosmictag::CosmicTagManager _ct_manager;
@@ -1833,36 +1839,25 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
         return;
     }
 
-    const double *highest_point_c = sp_v.at(0)->XYZ();
-    double highest_point[3] = {highest_point_c[0], highest_point_c[1], highest_point_c[2]};
+    auto highest_point = sp_v.at(0)->position();
 
     // Find highest point in the detector (also called "containing" the point)
-    double x = highest_point[0];
-    double y = highest_point[1];
-    double z = highest_point[2];
-    double e = std::numeric_limits<double>::epsilon();
+    double x = highest_point.X();
+    double y = highest_point.Y();
+    double z = highest_point.Z();
+    constexpr double e = std::numeric_limits<double>::epsilon();
 
-    if (x < 0. + e)
-        highest_point[0] = 0. + e;
-    if (x > 2. * geo->DetHalfWidth() - e)
-        highest_point[0] = 2. * geo->DetHalfWidth() - e;
-
-    if (y < -geo->DetHalfWidth() + e)
-        highest_point[1] = -geo->DetHalfWidth() + e;
-    if (y > geo->DetHalfWidth() - e)
-        highest_point[1] = geo->DetHalfWidth() - e;
-
-    if (z < 0. + e)
-        highest_point[2] = 0. + e;
-    if (z > geo->DetLength() - e)
-        highest_point[2] = geo->DetLength() - e;
+    highest_point.SetX(std::clamp(x, e, 2. * geo->DetHalfWidth() - e));
+    highest_point.SetY(std::clamp(y, -geo->DetHalfWidth() + e, geo->DetHalfWidth() - e));
+    highest_point.SetZ(std::clamp(z, e, geo->DetLength() - e));
 
     // Create an approximate start hit on plane 0
-    int highest_w = geo->NearestWire(highest_point, 0);
-    double highest_t = fDetectorProperties.ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 0)) / 4.;
+    geo::PlaneID const plane_0{0, 0, 0};
+    int highest_w = geo->NearestWireID(highest_point, plane_0).Wire;
+    double highest_t = fDetectorProperties.ConvertXToTicks(highest_point.X(), plane_0) / 4.;
     if (mm_verbose)
-        std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWire(highest_point, 0)
-                  << ", time: " << fDetectorProperties.ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 0))
+        std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWireID(highest_point, plane_0).Wire
+                  << ", time: " << fDetectorProperties.ConvertXToTicks(highest_point.X(), plane_0)
                   << std::endl;
 
     cosmictag::SimpleHit start_highest_plane0;
@@ -1871,11 +1866,12 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
     start_highest_plane0.plane = 0;
 
     // Create an approximate start hit on plane 1
-    highest_w = geo->NearestWire(highest_point, 1);
-    highest_t = fDetectorProperties.ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 1)) / 4.;
+    geo::PlaneID const plane_1{0, 0, 1};
+    highest_w = geo->NearestWireID(highest_point, plane_1).Wire;
+    highest_t = fDetectorProperties.ConvertXToTicks(highest_point.X(), plane_1) / 4.;
     if (mm_verbose)
-        std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWire(highest_point, 1)
-                  << ", time: " << fDetectorProperties.ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 1))
+        std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWireID(highest_point, plane_1).Wire
+                  << ", time: " << fDetectorProperties.ConvertXToTicks(highest_point.X(), plane_1)
                   << std::endl;
 
     cosmictag::SimpleHit start_highest_plane1;
@@ -1884,11 +1880,12 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
     start_highest_plane1.plane = 1;
 
     // Create an approximate start hit on plane 2
-    highest_w = geo->NearestWire(highest_point, 2);
-    highest_t = fDetectorProperties.ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 2)) / 4.;
+    geo::PlaneID const plane_2{0, 0, 2};
+    highest_w = geo->NearestWireID(highest_point, plane_2).Wire;
+    highest_t = fDetectorProperties.ConvertXToTicks(highest_point.X(), plane_2) / 4.;
     if (mm_verbose)
-        std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWire(highest_point, 2)
-                  << ", time: " << fDetectorProperties.ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 2))
+        std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWireID(highest_point, plane_2).Wire
+                  << ", time: " << fDetectorProperties.ConvertXToTicks(highest_point.X(), plane_2)
                   << std::endl;
 
     cosmictag::SimpleHit start_highest_plane2;

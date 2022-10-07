@@ -74,7 +74,7 @@ void FilterShowers::do_reconstruction(util::GeometryUtilities const&,
   }
   
   // take the vtx -> start point direction as the 3D direction
-  auto const& vtx = proto_shower.vertex();
+  auto const vtx = geo::vect::toPoint(proto_shower.vertex());
   
   //auto const& geomH = ::util::GeometryUtilities::GetME();
   
@@ -102,8 +102,8 @@ void FilterShowers::do_reconstruction(util::GeometryUtilities const&,
 
     // project vertex onto this plane
     auto const* geom = ::lar::providerFrom<geo::Geometry>();
-    auto wire = geom->WireCoordinate(vtx[1],vtx[2],geo::PlaneID(0,0,clus._plane)) * _wire2cm;
-    auto time = vtx[0];
+    auto wire = geom->WireCoordinate(vtx,geo::PlaneID(0,0,clus._plane)) * _wire2cm;
+    auto time = vtx.X();
     auto const& vtx2D = util::PxPoint(2,wire,time);// geomH->Get2DPointProjection(vtx,2);
     
     // get hits and start-point, calculate average angle of hits w.r.t. projected

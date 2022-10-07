@@ -114,10 +114,7 @@ namespace cluster {
     
     if (vtx_h->size() != 1) return false;
 
-    auto const& vtx = vtx_h->at(0);
-    
-    Double_t xyz[3] = {};
-    vtx.XYZ(xyz);
+    auto const& vtx = (*vtx_h)[0].position();
 
 
     //std::cout << "Vtx coordinates : [" << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << "]" << std::endl;
@@ -125,8 +122,8 @@ namespace cluster {
     auto const triggerOffset = trigger_offset(clockData);
     for (size_t pl = 0; pl < 3; pl++) {
 
-      _vtx_w_cm[pl] = geom->WireCoordinate(xyz[1],xyz[2],geo::PlaneID(0,0,pl)) * _wire2cm + 0.15;
-      _vtx_t_cm[pl] = xyz[0] + (triggerOffset * _time2cm) + pl*0.3;
+      _vtx_w_cm[pl] = geom->WireCoordinate(vtx,geo::PlaneID(0,0,pl)) * _wire2cm + 0.15;
+      _vtx_t_cm[pl] = vtx.X() + (triggerOffset * _time2cm) + pl*0.3;
 
       std::cout << "trigger offset [cm] : " << (triggerOffset * _time2cm) << std::endl;
       std::cout << "Vtx @ pl " << pl << " [" << _vtx_w_cm[pl] << ", " << _vtx_t_cm[pl] << " ]" << std::endl;

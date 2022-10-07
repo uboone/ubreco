@@ -805,7 +805,7 @@ int StopMu::findEndPointHits(const double& endx, const double& endy, const doubl
 
   // get end point coordinates in wire/time
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
-  auto stopwirecm = geom->WireCoordinate(endy,endz,geo::PlaneID(0,0,pl)) * _wire2cm;
+  auto stopwirecm = geom->WireCoordinate(geo::Point_t{endx,endy,endz},geo::PlaneID(0,0,pl)) * _wire2cm;
   auto stoptickcm = endx;
 
   /*
