@@ -69,12 +69,11 @@ microboone_blipana:
 
 microboone_blipana_data:                    @local::microboone_blipana
 microboone_blipana_data.BlipAlg.CaloAlg:    @local::microboone_calo_mcc9_data
-microboone_blipana_data.SaveHitInfo:        false
 microboone_blipana_data.SaveTruthInfo:      false
 
 microboone_blipana_fullmc:                  @local::microboone_blipana
 microboone_blipana_fullmc.BlipAlg.CaloAlg:  @local::microboone_calo_mcc9_mc
-microboone_blipana_fullmc.SaveHitInfo:      true
+#microboone_blipana_fullmc.SaveHitInfo:      true
 
 # ===============================================
 # TrackMasker settings
