@@ -68,11 +68,11 @@ namespace{
 
 
 // Set global constants and max array sizes
-const int kMaxHits  = 30000;
-const int kMaxTrks  = 500;
-const int kMaxBlips = 500;
-const int kMaxG4    = 1000;
-const int kMaxEDeps = 1000;
+const int kMaxHits  =  30000;
+const int kMaxTrks  =    500;
+const int kMaxBlips =   5000;
+const int kMaxG4    =  20000;
+const int kMaxEDeps = 100000;
    
 class BlipAna;
   
