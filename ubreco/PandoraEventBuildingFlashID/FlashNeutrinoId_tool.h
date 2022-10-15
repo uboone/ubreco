@@ -23,6 +23,9 @@
 #include "lardataobj/AnalysisBase/T0.h"
 #include "lardataobj/RecoBase/PFParticleMetadata.h"
 
+#include "ubevt/Database/UbooneElectronLifetimeProvider.h"
+#include "ubevt/Database/UbooneElectronLifetimeService.h"
+
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 
 #include "ubreco/LLSelectionTool/OpT0Finder/Base/OpT0FinderTypes.h"

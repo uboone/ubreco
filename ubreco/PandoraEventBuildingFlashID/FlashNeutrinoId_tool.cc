@@ -14,6 +14,7 @@ namespace lar_pandora
 void FlashNeutrinoId::ClassifySlices(SliceVector &slices, const art::Event &evt)
 {
     std::cout << "[FlashNeutrinoId::ClassifySlices] Start SliceID" << std::endl;
+    std::cout << "FLASHSCORE : Start" << std::endl;
     // Reset the output addresses in case we are writing monitoring details to an output file
     m_outputEvent.Reset(evt);
 
@@ -200,6 +201,10 @@ unsigned int FlashNeutrinoId::GetBestSliceIndex(const FlashCandidate &beamFlash,
     for (unsigned int sliceIndex = 0; sliceIndex < sliceCandidates.size(); ++sliceIndex)
     {
         auto &sliceCandidate(sliceCandidates.at(sliceIndex));
+	
+	// D Caratelli
+	//std::cout << "LIFETIMECORRECTION [FlashNeutrinoId][GetBestSliceIndex] : " << " Slice # " << sliceIndex << std::endl;
+	// D Caratelli
 
         // Apply the pre-selection cuts to ensure that the slice is compatible with the beam flash
         if (!sliceCandidate.IsCompatibleWithBeamFlash(beamFlash, m_maxDeltaY, m_maxDeltaZ, m_maxDeltaYSigma, m_maxDeltaZSigma,
@@ -802,6 +807,23 @@ FlashNeutrinoId::SliceCandidate::DepositionVector FlashNeutrinoId::SliceCandidat
     PFParticleVector allParticlesInSlice;
     this->CollectDownstreamPFParticles(pfParticleMap, slice.GetTargetHypothesis(), allParticlesInSlice);
 
+    //--------------------------------------------------------------------
+    // implementing electron lifetime correction [D. Caratelli 08/12/2022]
+    const detinfo::DetectorProperties* detprop;
+    detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->provider();
+
+    //handle to electron lifetime calibration provider
+    const lariov::UBElectronLifetimeProvider& elifetimeCalibProvider
+      = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
+
+    float elifetime  = elifetimeCalibProvider.Lifetime(); // [ms]
+    float driftvelocity = detprop->DriftVelocity(); // [cm/us] 
+
+    //std::cout << "LIFETIMECORRECTION [FlashNeutrinoId][GetDepositionVector] lifetime is : " 
+    //      << elifetime << " [ms] and drift velocity is " << driftvelocity << " [cm/us]" << std::endl;
+    // implementing electron lifetime correction [D. Caratelli 08/12/2022]
+    //--------------------------------------------------------------------
+
     DepositionVector depositionVector;
     for (const auto &particle : allParticlesInSlice)
     {
@@ -809,6 +831,7 @@ FlashNeutrinoId::SliceCandidate::DepositionVector FlashNeutrinoId::SliceCandidat
         const auto &partToSpacePointIter(pfParticleToSpacePointMap.find(particle));
         if (partToSpacePointIter == pfParticleToSpacePointMap.end())
             continue;
+
 
         for (const auto &spacePoint : partToSpacePointIter->second)
         {
@@ -825,8 +848,14 @@ FlashNeutrinoId::SliceCandidate::DepositionVector FlashNeutrinoId::SliceCandidat
             // Add the charged point to the vector
             const auto &position(spacePoint->XYZ());
             const auto charge(hit->Integral());
-
-            depositionVector.emplace_back(position[0], position[1], position[2], charge, this->GetNPhotons(charge, particle));
+	    //------------------------------------------------------
+	    // implement lifetime correction [D. Caratelli 08/12/22]
+	    float lifetimecorrection = exp( (position[0]) / (elifetime * driftvelocity * 1000.0));
+	    //std::cout << "LIFETIMECORRECTION [FlashNeutrinoId][GetDepositionVector]: lifetime correction @ lifetime of " << elifetime << " [ms] "
+	    //      << "@ position of " << position[0] << " [cm] is " << lifetimecorrection << std::endl;
+	    // implement lifetime correction [D. Caratelli 08/12/22]
+	    //------------------------------------------------------	    
+            depositionVector.emplace_back(position[0], position[1], position[2], charge * lifetimecorrection, this->GetNPhotons(charge * lifetimecorrection, particle));
         }
     }
 
@@ -1397,6 +1426,9 @@ bool FlashNeutrinoId::SliceCandidate::IsCompatibleWithBeamFlash(const FlashCandi
     m_deltaYSigma = m_deltaY / beamFlash.m_widthY;
     m_deltaZSigma = m_deltaZ / beamFlash.m_widthZ;
     m_chargeToLightRatio = m_totalCharge / beamFlash.m_totalPE;
+    // D Caratelli
+    //std::cout << "LIFETIMECORRECTION [FlashNeutrinoId][IsCompatibleWithBeamFlash] : " << " Charge-to-Light Ratio : " << m_chargeToLightRatio << std::endl;
+    // D Caratelli
     m_xChargeLightVariable = m_xclCoef * log10(m_chargeToLightRatio) - m_centerX;
 
     // Stopping muon tagging:
@@ -1514,6 +1546,24 @@ void FlashNeutrinoId::GetBestObviousCosmicMatch(const art::Event &event, const F
     LArPandoraHelper::BuildPFParticleMap(pfParticles, pfParticleMap);
     LArPandoraHelper::CollectPFParticleMetadata(event, m_pandoraLabel, pfParticles, particlesToMetadata);
 
+    //--------------------------------------------------------------------
+    // implementing electron lifetime correction [D. Caratelli 08/12/2022]
+    const detinfo::DetectorProperties* detprop;
+    detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->provider();
+
+    //handle to electron lifetime calibration provider
+    const lariov::UBElectronLifetimeProvider& elifetimeCalibProvider
+      = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
+
+    float elifetime  = elifetimeCalibProvider.Lifetime(); // [ms]
+    float driftvelocity = detprop->DriftVelocity(); // [cm/us] 
+
+    //std::cout << "LIFETIMECORRECTION [FlashNeutrinoId][GetBestObviousCosmicMatch] lifetime is : " 
+    //      << elifetime << " [ms] and drift velocity is " << driftvelocity << " [cm/us]" << std::endl;
+    // implementing electron lifetime correction [D. Caratelli 08/12/2022]
+    //--------------------------------------------------------------------
+
+
     m_flashMatchManager.Reset();
     // Convert the flash and the charge cluster into the required format for flash matching
     auto flash(beamFlash.ConvertFlashFormat());
@@ -1564,7 +1614,14 @@ void FlashNeutrinoId::GetBestObviousCosmicMatch(const art::Event &event, const F
                         // Add the charged point to the vector
                         const auto &position(spacePoint->XYZ());
                         const auto charge(hit->Integral());
-                        lightCluster.emplace_back(position[0], position[1], position[2], charge * (LArPandoraHelper::IsTrack(particle) ? m_chargeToNPhotonsTrack : m_chargeToNPhotonsShower));
+			//------------------------------------------------------
+			// implement lifetime correction [D. Caratelli 08/12/22]
+			float lifetimecorrection = exp( (position[0]) / (elifetime * driftvelocity * 1000.0));
+			//std::cout << "LIFETIMECORRECTION [FlashNeutrinoId][GetBestObviousCosmicMatch]: lifetime correction @ lifetime of " << elifetime << " [ms] "
+			//	  << "@ position of " << position[0] << " [cm] is " << lifetimecorrection << std::endl;
+			// implement lifetime correction [D. Caratelli 08/12/22]
+			//------------------------------------------------------	    
+                        lightCluster.emplace_back(position[0], position[1], position[2], charge * lifetimecorrection * (LArPandoraHelper::IsTrack(particle) ? m_chargeToNPhotonsTrack : m_chargeToNPhotonsShower));
                     }
                 }
                 m_flashMatchManager.Emplace(std::move(lightCluster));
@@ -1697,6 +1754,24 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
 
     // Detector properties
     auto const fDetectorProperties = art::ServiceHandle<detinfo::DetectorPropertiesService const>()->DataFor(event);
+
+    //--------------------------------------------------------------------
+    // implementing electron lifetime correction [D. Caratelli 08/12/2022]
+    const detinfo::DetectorProperties* detprop;
+    detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->provider();
+
+    //handle to electron lifetime calibration provider
+    const lariov::UBElectronLifetimeProvider& elifetimeCalibProvider
+      = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
+
+    float elifetime  = elifetimeCalibProvider.Lifetime(); // [ms]
+    float driftvelocity = detprop->DriftVelocity(); // [cm/us] 
+
+    //std::cout << "LIFETIMECORRECTION [FlashNeutrinoId][RejectStopMuByCalo] lifetime is : " 
+    //      << elifetime << " [ms] and drift velocity is " << driftvelocity << " [cm/us]" << std::endl;
+    // implementing electron lifetime correction [D. Caratelli 08/12/2022]
+    //--------------------------------------------------------------------
+
 
     // These three are needed for later
     art::Ptr<recob::PFParticle> primary_pfp;
@@ -1914,7 +1989,16 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
         sh.w = h->WireID().Wire * geo->WirePitch(geo::PlaneID(0, 0, h->View()));
 
         sh.plane = h->View();
-        sh.integral = h->Integral();
+
+	//------------------------------------------------------
+	// implement lifetime correction [D. Caratelli 08/12/22]
+	float lifetimecorrection = exp( (sh.t) / (elifetime * driftvelocity * 1000.0));
+	//std::cout << "LIFETIMECORRECTION [FlashNeutrinoId][RejectStopMuByCalo]: lifetime correction @ position " << sh.t << " is " << lifetimecorrection << std::endl;
+	// implement lifetime correction [D. Caratelli 08/12/22]
+	//------------------------------------------------------	    
+
+        sh.integral = h->Integral() * lifetimecorrection;
+
 
         sh.time = h->PeakTime() / 4;
         sh.wire = h->WireID().Wire;
