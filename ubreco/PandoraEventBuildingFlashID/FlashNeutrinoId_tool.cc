@@ -809,15 +809,15 @@ FlashNeutrinoId::SliceCandidate::DepositionVector FlashNeutrinoId::SliceCandidat
 
     //--------------------------------------------------------------------
     // implementing electron lifetime correction [D. Caratelli 08/12/2022]
-    const detinfo::DetectorProperties* detprop;
-    detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->provider();
+    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+    auto const detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
 
     //handle to electron lifetime calibration provider
     const lariov::UBElectronLifetimeProvider& elifetimeCalibProvider
       = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
 
     float elifetime  = elifetimeCalibProvider.Lifetime(); // [ms]
-    float driftvelocity = detprop->DriftVelocity(); // [cm/us] 
+    float driftvelocity = detprop.DriftVelocity(); // [cm/us] 
 
     //std::cout << "LIFETIMECORRECTION [FlashNeutrinoId][GetDepositionVector] lifetime is : " 
     //      << elifetime << " [ms] and drift velocity is " << driftvelocity << " [cm/us]" << std::endl;
@@ -1548,15 +1548,15 @@ void FlashNeutrinoId::GetBestObviousCosmicMatch(const art::Event &event, const F
 
     //--------------------------------------------------------------------
     // implementing electron lifetime correction [D. Caratelli 08/12/2022]
-    const detinfo::DetectorProperties* detprop;
-    detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->provider();
+    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+    auto const detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
 
     //handle to electron lifetime calibration provider
     const lariov::UBElectronLifetimeProvider& elifetimeCalibProvider
       = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
 
     float elifetime  = elifetimeCalibProvider.Lifetime(); // [ms]
-    float driftvelocity = detprop->DriftVelocity(); // [cm/us] 
+    float driftvelocity = detprop.DriftVelocity(); // [cm/us] 
 
     //std::cout << "LIFETIMECORRECTION [FlashNeutrinoId][GetBestObviousCosmicMatch] lifetime is : " 
     //      << elifetime << " [ms] and drift velocity is " << driftvelocity << " [cm/us]" << std::endl;
@@ -1757,15 +1757,15 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
 
     //--------------------------------------------------------------------
     // implementing electron lifetime correction [D. Caratelli 08/12/2022]
-    const detinfo::DetectorProperties* detprop;
-    detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->provider();
+    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+    auto const detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
 
     //handle to electron lifetime calibration provider
     const lariov::UBElectronLifetimeProvider& elifetimeCalibProvider
       = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
 
     float elifetime  = elifetimeCalibProvider.Lifetime(); // [ms]
-    float driftvelocity = detprop->DriftVelocity(); // [cm/us] 
+    float driftvelocity = detprop.DriftVelocity(); // [cm/us] 
 
     //std::cout << "LIFETIMECORRECTION [FlashNeutrinoId][RejectStopMuByCalo] lifetime is : " 
     //      << elifetime << " [ms] and drift velocity is " << driftvelocity << " [cm/us]" << std::endl;

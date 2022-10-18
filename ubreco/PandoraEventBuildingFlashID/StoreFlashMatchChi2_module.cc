@@ -179,15 +179,15 @@ void StoreFlashMatchChi2::produce(art::Event& e)
 
   //--------------------------------------------------------------------
   // implementing electron lifetime correction [D. Caratelli 08/12/2022]
-  const detinfo::DetectorProperties* detprop;
-  detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->provider();
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+  auto const detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
   
   //handle to electron lifetime calibration provider
   const lariov::UBElectronLifetimeProvider& elifetimeCalibProvider
     = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
   
   float elifetime  = elifetimeCalibProvider.Lifetime(); // [ms]
-  float driftvelocity = detprop->DriftVelocity(); // [cm/us] 
+  float driftvelocity = detprop.DriftVelocity(); // [cm/us] 
   
   std::cout << "LIFETIMECORRECTION [StoreFlashMatchChi2] lifetime is : " << elifetime << " [ms] and drift velocity is " << driftvelocity << " [cm/us]" << std::endl;
   // implementing electron lifetime correction [D. Caratelli 08/12/2022]
