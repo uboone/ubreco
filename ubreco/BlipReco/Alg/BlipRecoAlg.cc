@@ -25,7 +25,6 @@ namespace blip {
     
     h_efield        = hdir.make<TH1D>("efield","Local E-field values used for reco;E-field [V/cm]",200,230,330);
     h_recomb        = hdir.make<TH1D>("recomb","Applied recombination factor",150,0.40,0.70);
-    
     h_clust_nwires    = hdir.make<TH1D>("clust_nwires","Clusters (pre-cut);Wires in cluster",100,0,100);
     h_clust_timespan  = hdir.make<TH1D>("clust_timespan","Clusters (pre-cut);Time span [ticks]",300,0,300);
     
@@ -201,10 +200,9 @@ namespace blip {
   
     // -- gaushit <-> particle associations
     art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> fmhh(hitHandleGH,evt,"gaushitTruthMatch");
+    
    
-    //std::cout<<"Data products retrieved\n";
-
-    //===============================================================
+   //===============================================================
     // Map of each hit to its gaushit index (needed if the provided
     // hit collection is some filtered subset of gaushit, in order to
     // use gaushitTruthMatch later on)
@@ -491,8 +489,8 @@ namespace blip {
 
       }
     }
+   
 
-    
     // =============================================================================
     // Plane matching and 3D blip formation
     // =============================================================================
@@ -726,7 +724,6 @@ namespace blip {
       //              calculate recombination.
       //    Method 2: ESTAR lookup table method ala ArgoNeuT
       // ================================================================================
-      
       float depEl   = std::max(0.0,(double)blip.clusters[fCaloPlane].Charge);
       float Efield  = detProp->Efield();
       float EfieldMod = Efield;

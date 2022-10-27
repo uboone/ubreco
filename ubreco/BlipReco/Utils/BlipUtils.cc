@@ -212,130 +212,6 @@ namespace BlipUtils {
     vtb = vtb_merged;
   }
 
-/*
-  //=================================================================
-  blip::HitClust MakeHitClust(blip::HitInfo const& hitinfo){
-    blip::HitClust hc;
-    hc.TPC          = hitinfo.tpc;
-    hc.Plane        = hitinfo.plane;
-    hc.HitIDs       .insert(hitinfo.hitid);
-    hc.Wires        .insert(hitinfo.wire);
-    hc.Chans        .insert(hitinfo.chan);
-    hc.NHits        = 1;
-    hc.NWires       = 1;
-    
-    hc.CenterWire   = hitinfo.wire;
-    hc.CenterChan   = hitinfo.chan;
-
-    hc.Amplitude    = hitinfo.amp;
-    hc.ADCs         = hitinfo.ADCs;
-    hc.Charge       = (hitinfo.charge > 0)? hitinfo.charge : 0;
-    hc.Time         = hitinfo.driftTime;
-    hc.TimeErr      = hitinfo.rms;
-    hc.StartTime    = hitinfo.driftTime - hitinfo.rms;
-    hc.EndTime      = hitinfo.driftTime + hitinfo.rms;
-    hc.Timespan     = hc.EndTime - hc.StartTime;
-    hc.StartWire    = hitinfo.wire;
-    hc.EndWire      = hitinfo.wire; 
-    hc.isMerged     = false;
-    hc.isMatched    = false;
- 
-    if( hitinfo.gof < 0 ) {
-      hc.NPulseTrainHits++;
-    }
-    else    hc.GoodnessOfFit = hitinfo.gof;
-    
-    if( hitinfo.g4trkid > 0 ) hc.G4IDs.insert(hitinfo.g4trkid);
-
-    hc.isValid = true;
-    return hc;
-  }
-  
-
-
-  //=================================================================
-  void GrowHitClust(blip::HitInfo const& hitinfo, blip::HitClust& hc){
-    if( hitinfo.tpc   != hc.TPC ) return;
-    if( hitinfo.plane != hc.Plane ) return;
-    if( hc.HitIDs.find(hitinfo.hitid) != hc.HitIDs.end() ) return;
-    hc.HitIDs     .insert(hitinfo.hitid);
-    hc.Wires      .insert(hitinfo.wire);
-    hc.Chans      .insert(hitinfo.chan);
-    hc.NHits      = hc.HitIDs.size();
-    hc.NWires     = hc.Wires.size();
-    hc.StartWire  = *hc.Wires.begin();
-    hc.EndWire    = *hc.Wires.rbegin();
-    hc.CenterWire =(*hc.Wires.begin()+*hc.Wires.rbegin())/2.;
-    hc.CenterChan =(*hc.Chans.begin()+*hc.Chans.rbegin())/2.;
-    hc.ADCs       += hitinfo.ADCs;
-    hc.Charge     += hitinfo.charge;
-   
-    if( hitinfo.g4trkid > 0 ) hc.G4IDs.insert(hitinfo.g4trkid);
-
-    hc.StartTime  = std::min(hc.StartTime,hitinfo.driftTime - hitinfo.rms);
-    hc.EndTime    = std::max(hc.EndTime,  hitinfo.driftTime + hitinfo.rms);
-    hc.Timespan   = hc.EndTime - hc.StartTime;
-    hc.Amplitude  = std::max(hc.Amplitude, hitinfo.amp );
-
-    // Central "Time" for cluster is charge-weighted
-    float q1 = hc.Charge;
-    float q2 = (hitinfo.charge > 0) ? hitinfo.charge : 0;
-    float w1 = q1/(q1+q2);
-    float w2 = q2/(q1+q2);
-    float t1 = hc.Time;
-    float t2 = hitinfo.driftTime;
-    float tw = w1*t1 + w2*t2;
-    float sig_sumSq = pow(w1*hc.TimeErr,2) + pow(w2*hitinfo.rms,2);
-    float err_sumSq = w1*pow(tw-t1,2) + w2*pow(tw-t2,2);
-    hc.Time     = tw;
-    hc.TimeErr  = sqrt( sig_sumSq + err_sumSq );
-
-    if( hitinfo.gof >= 0 )
-      hc.GoodnessOfFit = w1*hc.GoodnessOfFit+w2*hitinfo.gof;
-
-  }
-
-  //=================================================================
-  blip::HitClust MergeHitClusts(blip::HitClust& hc1, blip::HitClust& hc2){
-    float q1  = hc1.Charge;
-    float q2  = hc2.Charge;
-    blip::HitClust hc = hc1;
-    if( (hc1.TPC != hc2.TPC)||(hc1.Plane != hc2.Plane) ) return hc;
-    hc1.isMerged = true;
-    hc2.isMerged = true;
-    hc.HitIDs     .insert(hc2.HitIDs.begin(),     hc2.HitIDs.end());
-    hc.Wires      .insert(hc2.Wires.begin(),      hc2.Wires.end());
-    hc.Chans      .insert(hc2.Chans.begin(),      hc2.Chans.end());
-    hc.NHits      = hc.HitIDs.size();
-    hc.NWires     = hc.Wires.size();
-    hc.StartWire  = *hc.Wires.begin();
-    hc.EndWire    = *hc.Wires.rbegin();
-    hc.CenterWire =(*hc.Wires.begin()+*hc.Wires.rbegin())/2.;
-    hc.CenterChan =(*hc.Chans.begin()+*hc.Chans.rbegin())/2.;
-    hc.ADCs       += hc2.ADCs;
-    hc.Charge     += hc2.Charge;
-    hc.G4IDs      .insert(hc2.G4IDs.begin(),      hc2.G4IDs.end());
-    hc.StartTime  = std::min(hc1.StartTime,hc2.StartTime);
-    hc.EndTime    = std::max(hc1.EndTime,hc2.EndTime);
-    hc.Timespan   = hc.EndTime - hc.StartTime;
-    hc.Amplitude  = std::max(hc1.Amplitude, hc2.Amplitude);
-    
-    // Central "Time" for cluster is charge-weighted
-    float w1 = q1/(q1+q2);
-    float w2 = q2/(q1+q2);
-    float t1 = hc1.Time;
-    float t2 = hc2.Time;
-    float tw = w1*t1 + w2*t2;
-    float sig_sumSq = pow(w1*hc1.TimeErr,2) + pow(w2*hc2.TimeErr,2);
-    float err_sumSq = w1*pow(tw-t1,2) + w2*pow(tw-t2,2);
-    hc.Time     = tw;
-    hc.TimeErr  = sqrt( sig_sumSq + err_sumSq );
-
-    hc.GoodnessOfFit = w1*hc1.GoodnessOfFit + w2*hc2.GoodnessOfFit;
-
-    return hc;
-  }
-  */
   
   //=================================================================
   blip::HitClust MakeHitClust(std::vector<blip::HitInfo> const& hitinfoVec){
@@ -421,6 +297,10 @@ namespace BlipUtils {
     // mark the cluster as valid and ship it out
     hc.isValid = true;
     return hc; 
+=======
+    
+    return hc;
+>>>>>>> 4ff3ceabf23b1d56f344abdcdfc56eadb4f12cc0
   }
 
 
@@ -620,7 +500,6 @@ namespace BlipUtils {
     if( fabs(hc1.Time-hc2.Time) < minDiffTicks ) return true;
     else return false;
   }
-
 
   //====================================================================
   // This function calculates the leading MCParticle ID contributing to a hit and the

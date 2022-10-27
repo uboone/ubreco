@@ -162,6 +162,8 @@ class BlipAnaTreeDataStruct
                                   //  3 = e+e- pair production ("conv")
                                   //  4 = other
 
+=======
+>>>>>>> 4ff3ceabf23b1d56f344abdcdfc56eadb4f12cc0
 
   // --- Hit information ---
   int	  nhits;                    // number of hits
@@ -548,7 +550,6 @@ class BlipAnaTreeDataStruct
     
   }//end MakeTree
 
-  
 };//BlipAnaTreeDataStruct class
 
 
@@ -605,7 +606,6 @@ class BlipAna : public art::EDAnalyzer
 
   // --- Histograms ---
   TH1D*   h_part_process;
-
   TH1D*   h_nhits[kNplanes];
   //TH1D*   h_nhits_ut[kNplanes];
   //TH1D*   h_nhits_m[kNplanes];
@@ -687,7 +687,6 @@ class BlipAna : public art::EDAnalyzer
     h_blip_zy         ->SetOption("COLZ");
     h_blip_zy_picky         = tfs->make<TH2D>("blip_zy_picky","3D blip location (3-plane match, intersect #Delta < 1 cm);Z [cm];Y [cm]",600,-100,1100,150,-150,150);
     h_blip_zy_picky         ->SetOption("COLZ");
-    
       
     art::TFileDirectory dir_diag = tfs->mkdir("Diagnostics");
     
@@ -700,8 +699,6 @@ class BlipAna : public art::EDAnalyzer
     */
     h_dQdx_diff = dir_diag.make<TH1D>("dQdx_diff","pandoraCaliSCE;(dQdx_{reco} - dQdx_{pred}) / dQdx_{pred}",400,-1.,1.);
     h_dEdx_calo        = dir_diag.make<TH1D>("dEdx_calo","pandoracaliSCE;dE/dx [MeV/cm]",200,0,20.);
-    
-
     h_blip_nplanes    = dir_diag.make<TH1D>("blip_nplanes","Matched planes per blip",3,1,4);
     //h_blip_sumadc     = dir_diag.make<TH1D>("blip_sumadc","3D blips;Integral on coll plane [ADC]",            200,0,500);
     h_blip_charge     = dir_diag.make<TH1D>("blip_charge","3D blips;Charge [e-]",                             200,0,100e3);
@@ -738,8 +735,7 @@ class BlipAna : public art::EDAnalyzer
       xa->SetBinLabel(3,"phot");
       xa->SetBinLabel(4,"conv");
       xa->SetBinLabel(5,"other");
-
-
+    
     h_nblips_tm       = dir_truth.make<TH1D>("nblips_tm","Truth-matched 3D blips per event",blipBins,0,blipMax);
     h_blip_qcomp      = dir_truth.make<TH1D>("blip_qcomp","Fraction of true charge (at anode) reconstructed into 3D blips",202,0,1.01);
     h_blip_qcomp_2MeV = dir_truth.make<TH1D>("blip_qcomp_2MeV","Fraction of true charge (at anode) reconstructed into 3D blips, dE < 2 MeV",202,0,1.01);
@@ -788,7 +784,6 @@ class BlipAna : public art::EDAnalyzer
     }//endloop over planes
     
  }
-
 
 };//class BlipAna
 
@@ -1088,7 +1083,6 @@ void BlipAna::analyze(const art::Event& evt)
       else if(proc == "conv"   ) { h_part_process->Fill("conv",   1); proc_code = 3; }
       else                       { h_part_process->Fill("other",  1); proc_code = 4; }
       fData->edep_proc[i] = proc_code;
-      
       float ne_dep  = trueblip.DepElectrons;
       float ne      = trueblip.NumElectrons;
       total_numElectrons += ne;
@@ -1120,7 +1114,6 @@ void BlipAna::analyze(const art::Event& evt)
         h_sim_lifetime->Fill(tau);
       }
     }
-    
   }//endif trueblips were made
   
 
@@ -1367,7 +1360,6 @@ void BlipAna::analyze(const art::Event& evt)
     fData->clust_amp[i]       = Truncate(clust.Amplitude,0.1);
     fData->clust_nnfhits[i]   = clust.NPulseTrainHits;
     fData->clust_gof[i]       = clust.GoodnessOfFit;
-
     fData->clust_timespan[i]  = clust.Timespan;
     fData->clust_starttime[i] = clust.StartTime;
     fData->clust_endtime[i]   = clust.EndTime;
@@ -1483,11 +1475,9 @@ void BlipAna::analyze(const art::Event& evt)
     // (use the association between clust <--> edep)
     // -----------------------------------------------
     if( blp.truth.ID >= 0 && blp.truth.Energy > 0 ) {
-     
       fData->blip_edepid[i]           = blp.truth.ID;
       fData->blip_energyTrue[i]       = blp.truth.Energy;
       fData->edep_blipid[blp.truth.ID]  = blp.ID;
-      
       fNum3DBlipsTrue++;
       nblips_matched++;
       true_blip_charge+= blp.truth.NumElectrons;
@@ -1520,17 +1510,6 @@ void BlipAna::analyze(const art::Event& evt)
     std::cout<<"\nLooping over "<<fBlipAlg->blips.size()<<" reco'd blips...\n";
     for(auto const& b : fBlipAlg->blips ) PrintBlipInfo(b);
   }
-  /*    std::cout
-      <<"   -- "<<b.ID<<", TPC: "<<b.TPC
-      <<"; charge: "<<b.clusters[2].Charge
-      <<"; recoEnergy: "<<b.Energy<<" MeV"
-      <<"; Position: "<<b.Position.X()<<", "<<b.Position.Y()<<", "<<b.Position.Z()
-      //<<"; MaxIntersectDiff: "<<b.MaxIntersectDiff
-      <<"; EdepID: "<<fData->blip_edepid[b.ID]
-      <<"\n";
-    }
-  }
-  */
  
   
   //====================================
