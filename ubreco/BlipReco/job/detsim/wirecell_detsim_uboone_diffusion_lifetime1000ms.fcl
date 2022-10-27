@@ -3,4 +3,4 @@
 # Update longitudinal diffusion to use Adam's value (arxiv: 2104.06551)
 physics.producers.driftWC.wcls_main.structs.DiffusionLongitudinal:  3.7
 physics.producers.driftWC.wcls_main.structs.DiffusionTransverse:    5.9
-
+physics.producers.driftWC.wcls_main.structs.ElectronLifetime:       1000 # ms

@@ -13,10 +13,7 @@ services:
   TFileService:            { fileName: "hist_%p_%tc.root" }
   ParticleInventoryService: @local::standard_particleinventoryservice
                             @table::microboone_services_reco
-  #UBElectronLifetimeService:@local::microboone_lifetime
-  ElectronLifetimeService:  @local::microboone_electronlifetime_service
   BackTrackerService:       @local::microboone_backtrackerservice
-  DetectorProperties:       @local::microboone_detproperties
   DetectorClocksService:    @local::microboone_detectorclocks
   Geometry:                 @local::microboone_geo
   LArProperties:            @local::microboone_properties
@@ -25,14 +22,16 @@ services:
 
 # Enable BackTracker to work on overlay MC.
 services.BackTrackerService.BackTracker.OverrideRealData:       true
-#services.BackTrackerService.BackTracker.G4ModuleLabel:          "largeant"
-#services.BackTrackerService.BackTracker.SimChannelModuleLabel:  "driftWC"
 
-# Turn off SCE corrections to energy; analyzers confident in the T0 (i.e., X position) 
-# of their selected blips can switch this on as they see fit
-services.SpaceCharge.EnableCorrSCE:       false
-services.SpaceCharge.EnableCalEfieldSCE:  false
-services.SpaceCharge.EnableCalSpatialSCE: false
+# Don't retrieve lifetime from DB; this should only be enabled for Runs 4 and 5
+services.UBElectronLifetimeService.ElectronLifetimeProvider.UseDB: false
+services.UBElectronLifetimeService.ElectronLifetimeProvider.DefaultLifetime: 1000 # ms
+
+# Enable SCE service; corrections to blip calorimetry enabled by 
+# switch in BlipRecoAlg ("SCECorrection", turned off by default)
+services.SpaceCharge.EnableCorrSCE:       true
+services.SpaceCharge.EnableCalEfieldSCE:  true
+services.SpaceCharge.EnableCalSpatialSCE: true
 
 # Suppress common warning messages
 services.message.destinations.STDCOUT: {
@@ -71,17 +70,4 @@ physics:
   end_paths:      [ ana ] 
 
 } # physics
-
-# Cosmic filter settings: this module removes hits that are
-# directly a part of cosmic-tagged tracks. This is different
-# from the TrackMasker module, which also vetoes a cylindrical region
-# in 2D wire-time space around *all* tracks of a certain length.
-#physics.producers.cosmicfilter.VtxProducer:   "" #"pandora"
-#physics.producers.cosmicfilter.HitProducer:   "gaushit"
-#physics.producers.cosmicfilter.TrkProducer:   "pandora"
-#physics.producers.cosmicfilter.CluProducer:   "pandora"
-#physics.producers.cosmicfilter.PFPProducer:   "pandora"
-#physics.producers.cosmicfilter.MinTrkLength:  15
-#physics.producers.cosmicfilter.VetoRadius:    150 # only applies to vertex
-#physics.producers.cosmicfilter.IPmin:         10
 

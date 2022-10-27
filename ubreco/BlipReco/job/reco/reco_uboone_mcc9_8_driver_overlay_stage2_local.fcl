@@ -1,9 +1,13 @@
 #include "reco_uboone_mcc9_8_driver_overlay_stage2.fcl"
+#include "select_reco2_modules.fcl"
 
+# Don't write huge metadata files
 microboone_tfile_metadata.GenerateTFileMetadata: [ true, false ]
 source.maxEvents: -1
 
-#include "select_reco2_modules.fcl"
+# Don't retrieve lifetime from DB; this should only be enabled for Runs 4 and 5
+services.UBElectronLifetimeService.ElectronLifetimeProvider.UseDB: false
+services.UBElectronLifetimeService.ElectronLifetimeProvider.DefaultLifetime: 1000 # ms
 
 # Don't drop SimChannels!!! They're useful!
 outputs.out1.outputCommands: [
