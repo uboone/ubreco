@@ -297,10 +297,6 @@ namespace BlipUtils {
     // mark the cluster as valid and ship it out
     hc.isValid = true;
     return hc; 
-=======
-    
-    return hc;
->>>>>>> 4ff3ceabf23b1d56f344abdcdfc56eadb4f12cc0
   }
 
 

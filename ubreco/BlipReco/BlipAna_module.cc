@@ -162,8 +162,6 @@ class BlipAnaTreeDataStruct
                                   //  3 = e+e- pair production ("conv")
                                   //  4 = other
 
-=======
->>>>>>> 4ff3ceabf23b1d56f344abdcdfc56eadb4f12cc0
 
   // --- Hit information ---
   int	  nhits;                    // number of hits
