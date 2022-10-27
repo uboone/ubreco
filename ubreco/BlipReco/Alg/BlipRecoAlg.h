@@ -83,7 +83,12 @@ namespace blip {
     std::vector<blip::TrueBlip>     trueblips;
     std::vector<blip::ParticleInfo> pinfo;
     
+    calo::CalorimetryAlg*   fCaloAlg;
+    float   ModBoxRecomb(float,float);
+
    private:
+   
+    const detinfo::DetectorProperties* detProp;
 
     // --- FCL configs ---
     std::string         fHitProducer;
@@ -121,10 +126,12 @@ namespace blip {
     float               fCylinderRadius; 
  
     // --- Calorimetry configs ---
-    calo::CalorimetryAlg*   fCaloAlg;
     int                 fCaloPlane;
     float               fCalodEdx;
-    bool                fCaloLifetimeCorr;
+    bool                fLifetimeCorr;
+    bool                fSCECorr;
+    float               fModBoxA;
+    float               fModBoxB;
   
     // --- Histograms ---
     TH1D*   h_clust_nwires;
@@ -139,6 +146,9 @@ namespace blip {
     TH1D*   h_clust_picky_dtfrac[kNplanes];
     TH2D*   h_clust_picky_q[kNplanes]; 
     TH1D*   h_nmatches[kNplanes];
+
+    TH1D*   h_recomb;
+    TH1D*   h_efield;
 
   };
 

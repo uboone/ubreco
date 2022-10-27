@@ -37,14 +37,6 @@ typedef std::vector<art::Ptr<sim::SimEnergyDeposit>> SEDVec_t;
 namespace BlipUtils {
   
   //###################################################
-  // Detector properties
-  //###################################################
-  //double    _samplePeriod   = -999;
-  //double    _driftVelocity  = -999;
-  //double    _tick_to_cm     = -999;
-  //double    _wirePitch[kNplanes];
-
-  //###################################################
   // Functions related to blip reconstruction
   //###################################################
   //void      InitializeDetProps();
@@ -62,10 +54,7 @@ namespace BlipUtils {
   float     CalcOverlap(float const&, float const&, float const&, float const&);
   bool      DoChannelsIntersect(int,int);
   bool      DoHitClustsMatch(blip::HitClust const&, blip::HitClust const&,float);
-  float     ModBoxRecomb(float,float);
-  //float     ConvertTicksToX(float, int, int, int);
-  blip::HitClust  MakeHitClust(blip::HitInfo const&);
-  blip::HitClust  MergeHitClusts(blip::HitClust&, blip::HitClust&);
+  blip::HitClust  MakeHitClust(std::vector<blip::HitInfo> const&);
   blip::Blip      MakeBlip(std::vector<blip::HitClust> const&);
   
 

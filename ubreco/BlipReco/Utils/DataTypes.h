@@ -25,6 +25,7 @@ namespace blip {
     int   trackId           = -9;
     int   index             = -9;
     int   isPrimary         = -9;
+    int   numTrajPts          = -9;
     double depEnergy         = -9;
     int   depElectrons      = -9;
     double numElectrons      = -9;
@@ -80,6 +81,7 @@ namespace blip {
     int   charge        = -999;     // [e-]
     float peakTime      = -999999;
     float driftTime     = -999999;  // [tick]
+    float gof           = -9;
     int   g4trkid       = -9;
     int   g4pdg         = -999;
     int   g4charge      = -999;     // [e-]
@@ -110,6 +112,8 @@ namespace blip {
     float   Timespan        = -999;
     int     StartWire       = -999;
     int     EndWire         = -999;
+    int     NPulseTrainHits = -9;
+    float   GoodnessOfFit   = -9;
     int     BlipID          = -9;
     int     EdepID          = -9;
     si_t    HitIDs;

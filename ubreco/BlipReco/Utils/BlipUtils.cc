@@ -46,6 +46,7 @@ namespace BlipUtils {
     pinfo.Pz          = /*GeV->MeV*/1e3 * part.Pz();
     pinfo.time        = /*ns ->mus*/1e-3 * part.T();
     pinfo.endtime     = /*ns ->mus*/1e-3 * part.EndT();
+    pinfo.numTrajPts  = part.NumberTrajectoryPoints();
 
     // Pathlength (in AV) and start/end point
     pinfo.pathLength  = PathLength( part, pinfo.startPoint, pinfo.endPoint);
@@ -210,7 +211,8 @@ namespace BlipUtils {
     vtb.clear();
     vtb = vtb_merged;
   }
- 
+
+/*
   //=================================================================
   blip::HitClust MakeHitClust(blip::HitInfo const& hitinfo){
     blip::HitClust hc;
@@ -237,12 +239,19 @@ namespace BlipUtils {
     hc.EndWire      = hitinfo.wire; 
     hc.isMerged     = false;
     hc.isMatched    = false;
+ 
+    if( hitinfo.gof < 0 ) {
+      hc.NPulseTrainHits++;
+    }
+    else    hc.GoodnessOfFit = hitinfo.gof;
     
     if( hitinfo.g4trkid > 0 ) hc.G4IDs.insert(hitinfo.g4trkid);
 
     hc.isValid = true;
     return hc;
   }
+  
+
 
   //=================================================================
   void GrowHitClust(blip::HitInfo const& hitinfo, blip::HitClust& hc){
@@ -280,7 +289,10 @@ namespace BlipUtils {
     float err_sumSq = w1*pow(tw-t1,2) + w2*pow(tw-t2,2);
     hc.Time     = tw;
     hc.TimeErr  = sqrt( sig_sumSq + err_sumSq );
-  
+
+    if( hitinfo.gof >= 0 )
+      hc.GoodnessOfFit = w1*hc.GoodnessOfFit+w2*hitinfo.gof;
+
   }
 
   //=================================================================
@@ -318,8 +330,97 @@ namespace BlipUtils {
     float err_sumSq = w1*pow(tw-t1,2) + w2*pow(tw-t2,2);
     hc.Time     = tw;
     hc.TimeErr  = sqrt( sig_sumSq + err_sumSq );
-    
+
+    hc.GoodnessOfFit = w1*hc1.GoodnessOfFit + w2*hc2.GoodnessOfFit;
+
     return hc;
+  }
+  */
+  
+  //=================================================================
+  blip::HitClust MakeHitClust(std::vector<blip::HitInfo> const& hitinfoVec){
+    
+    blip::HitClust hc;
+    if( hitinfoVec.size() ) {
+      int tpc   = hitinfoVec[0].tpc;
+      int plane = hitinfoVec[0].plane;
+
+      // check that all hits are on same plane;
+      // abort if this is not the case
+      for(auto& h : hitinfoVec ) {
+        if( h.plane != plane ) return hc;
+        if( h.tpc   != tpc   ) return hc;
+      }
+
+      // initialize values 
+      hc.Plane            = plane;
+      hc.TPC              = tpc;
+      hc.ADCs             = 0;
+      hc.Charge           = 0;
+      hc.Amplitude        = 0;
+      hc.NPulseTrainHits  = 0;
+      float startTime     = 9e9;
+      float endTime       = -9e9;
+      float weightedTime  = 0;
+      float weightedGOF   = 0;
+      float qGOF          = 0;
+
+      // store hit times, charges, and RMS
+      std::vector<float> tvec;
+      std::vector<float> qvec;
+      std::vector<float> rmsvec;
+
+      // grow our hit cluster!
+      for(auto& hitinfo : hitinfoVec ) {
+        if( hc.HitIDs.find(hitinfo.hitid) != hc.HitIDs.end() ) continue;
+        hc.HitIDs     .insert(hitinfo.hitid);
+        hc.Wires      .insert(hitinfo.wire);
+        hc.Chans      .insert(hitinfo.chan);
+        float q       = (hitinfo.charge > 0)? hitinfo.charge : 0;
+        hc.Charge     += q;
+        hc.ADCs       += hitinfo.ADCs;
+        hc.Amplitude  = std::max(hc.Amplitude, hitinfo.amp );
+        weightedTime  += q*hitinfo.driftTime;
+        startTime     = std::min(startTime, hitinfo.driftTime-hitinfo.rms);
+        endTime       = std::max(endTime,   hitinfo.driftTime+hitinfo.rms);
+        tvec          .push_back(hitinfo.driftTime);
+        qvec          .push_back(q);
+        rmsvec        .push_back(hitinfo.rms);
+        if( hitinfo.g4trkid > 0 ) hc.G4IDs.insert(hitinfo.g4trkid);
+        if( hitinfo.gof < 0 ) hc.NPulseTrainHits++;
+        else { weightedGOF += q*hitinfo.gof; qGOF += q;}
+      }//endloop over hits
+      
+      // mean goodness of fit
+      if( qGOF ) hc.GoodnessOfFit = weightedGOF/qGOF;
+
+      // calculate other quantities
+      hc.NHits      = hc.HitIDs.size();
+      hc.NWires     = hc.Wires.size();
+      hc.CenterWire =(*hc.Wires.begin()+*hc.Wires.rbegin())/2.;
+      hc.CenterChan =(*hc.Chans.begin()+*hc.Chans.rbegin())/2.;
+      hc.StartWire  = *hc.Wires.begin();
+      hc.EndWire    = *hc.Wires.rbegin();
+      hc.StartTime  = startTime;
+      hc.EndTime    = endTime;
+      hc.Timespan   = hc.EndTime - hc.StartTime;
+      hc.Time       = weightedTime / hc.Charge;
+
+      // overall cluster RMS
+      float sig_sumSq = 0;
+      float dt_sumSq  = 0;
+      for(size_t i=0; i<qvec.size(); i++) {
+        float w = qvec[i] / hc.Charge;
+        dt_sumSq  += w*pow(tvec[i]-hc.Time,2);
+        sig_sumSq += pow(w*rmsvec[i],2);
+      }
+      hc.TimeErr = sqrt( sig_sumSq + dt_sumSq );
+
+    }//endif > 0 hits
+  
+    // mark the cluster as valid and ship it out
+    hc.isValid = true;
+    return hc; 
   }
 
 
@@ -520,13 +621,6 @@ namespace BlipUtils {
     else return false;
   }
 
-  //===================================================================
-  float ModBoxRecomb(float dEdx, float Efield){
-    float B = 0.153142;
-    float A = 0.93;
-    float Xi = B * dEdx / Efield;
-    return log(A+Xi)/Xi;
-  }
 
   //====================================================================
   // This function calculates the leading MCParticle ID contributing to a hit and the

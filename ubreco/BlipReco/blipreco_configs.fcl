@@ -47,9 +47,9 @@ microboone_blipalg:
   ApplyTrkCylinderCut:  false           #// reject blips in track cone-cylinder regions
   CylinderRadius:       15.0            #// 3D cylinder cut radius [cm]
   CaloPlane:            2               #// plane used for calorimetry (2=collection)
-  CaloLifetimeCorr:     false           #// correct blips for lifetime assuming T0 = 0
   CalodEdx:             2.8             #// assumed dE/dx for MeV-scale recombination corrections
-                                        #// (for electrons < 5 MeV, ave dE/dx ~ 2.8 MeV/cm)
+  LifetimeCorrection:   false           #// correct blips for lifetime (assumes T0 = 0)
+  SCECorrection:        false           #// correct blips for space charge (requires known XYZ)
   CaloAlg:              @local::microboone_calo_mcc9_data
 }
 
@@ -64,7 +64,7 @@ microboone_blipana:
   SaveHitInfo:        false
   SaveClustInfo:      true
   SaveEventTree:      true
-  DebugMode:          false
+  #DebugMode:          true
 }
 
 microboone_blipana_data:                    @local::microboone_blipana
