@@ -2,7 +2,7 @@
 # blip-making and/or don't work on the radon R&D datasets
 physics.reco: [
       "rns",
-      "crttzero",
+      #"crttzero",
       #"wcopflash",
       #"pandoraWriter",
       "pandoraPatRec",

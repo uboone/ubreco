@@ -13,8 +13,6 @@ services:
   TFileService:            { fileName: "hist_%p_%tc.root" }
   ParticleInventoryService: @local::standard_particleinventoryservice
                             @table::microboone_services_reco
-  #UBElectronLifetimeService:@local::microboone_lifetime
-  ElectronLifetimeService:  @local::microboone_electronlifetime_service
   BackTrackerService:       @local::microboone_backtrackerservice
   DetectorProperties:       @local::microboone_detproperties
   DetectorClocksService:    @local::microboone_detectorclocks
