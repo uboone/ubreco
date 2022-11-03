@@ -14,7 +14,7 @@
 
 cmake_minimum_required(VERSION 3.19 FATAL_ERROR)
 
-project(ubreco VERSION 09.60.00 LANGUAGES CXX)
+project(ubreco VERSION 09.60.01 LANGUAGES CXX)
 
 # cetbuildtools contains our cmake modules
 find_package(cetbuildtools REQUIRED)
@@ -40,6 +40,10 @@ find_ups_product( lardataalg )
 find_ups_boost( )
 find_ups_root( )
 find_ups_product( canvas )
+find_ups_product( ubsim )
+find_ups_product( ubcore )
+find_ups_product( pandora )
+find_ups_product( larpandora )
 find_ups_product( larreco )
 find_ups_product( swtrigger )
 find_ups_product( art )

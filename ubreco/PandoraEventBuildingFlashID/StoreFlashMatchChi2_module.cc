@@ -36,6 +36,9 @@
 #include "lardataobj/RecoBase/OpFlash.h"
 #include "lardataobj/AnalysisBase/T0.h"
 
+#include "ubevt/Database/UbooneElectronLifetimeProvider.h"
+#include "ubevt/Database/UbooneElectronLifetimeService.h"
+
 //#include "ubreco/LLSelectionTool/OpT0Finder/Base/OpT0FinderFMWKInterface.h"
 #include "ubreco/LLSelectionTool/OpT0Finder/Base/OpT0FinderTypes.h"
 #include "ubreco/LLSelectionTool/OpT0Finder/Base/FlashMatchManager.h"
@@ -174,6 +177,23 @@ void StoreFlashMatchChi2::produce(art::Event& e)
   std::unique_ptr< std::vector<anab::T0> > T0_v(new std::vector<anab::T0>);
   std::unique_ptr< art::Assns <recob::PFParticle, anab::T0> > pfp_t0_assn_v( new art::Assns<recob::PFParticle, anab::T0>  );
 
+  //--------------------------------------------------------------------
+  // implementing electron lifetime correction [D. Caratelli 08/12/2022]
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+  auto const detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
+  
+  //handle to electron lifetime calibration provider
+  const lariov::UBElectronLifetimeProvider& elifetimeCalibProvider
+    = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
+  
+  float elifetime  = elifetimeCalibProvider.Lifetime(); // [ms]
+  float driftvelocity = detprop.DriftVelocity(); // [cm/us] 
+  
+  std::cout << "LIFETIMECORRECTION [StoreFlashMatchChi2] lifetime is : " << elifetime << " [ms] and drift velocity is " << driftvelocity << " [cm/us]" << std::endl;
+  // implementing electron lifetime correction [D. Caratelli 08/12/2022]
+  //--------------------------------------------------------------------
+  
+
   // reset TTree variables
   _evt = e.event();
   _sub = e.subRun();
@@ -299,7 +319,15 @@ void StoreFlashMatchChi2::produce(art::Event& e)
 	  // Add the charged point to the vector
 	  const auto &position(SP->XYZ());
 	  const auto charge(hit->Integral());
-	  lightCluster.emplace_back(position[0], position[1], position[2], charge * (lar_pandora::LArPandoraHelper::IsTrack(pfp_ptr) ? fChargeToNPhotonsTrack : fChargeToNPhotonsShower));
+
+	  //------------------------------------------------------
+	  // implement lifetime correction [D. Caratelli 08/12/22]
+	  float lifetimecorrection = exp( (position[0]) / (elifetime * driftvelocity * 1000.0));
+	  std::cout << "LIFETIMECORRECTION [StoreFlashMatchChi2] : " << lifetimecorrection << std::endl;
+	  // implement lifetime correction [D. Caratelli 08/12/22]
+	  //------------------------------------------------------	    
+
+	  lightCluster.emplace_back(position[0], position[1], position[2], charge * lifetimecorrection * (lar_pandora::LArPandoraHelper::IsTrack(pfp_ptr) ? fChargeToNPhotonsTrack : fChargeToNPhotonsShower));
 
 	}// for all hits associated to this spacepoint
       }// fpr all spacepoints
