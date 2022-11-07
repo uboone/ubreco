@@ -57,8 +57,9 @@ namespace blip {
     int       LeadG4ID      = -9;
     int       LeadG4Index   = -9;
     int       LeadG4PDG     = -9;
-    float     LeadEnergy    = -9;
-    mif_t     G4EnergyMap;
+    //float     LeadEnergy    = -9;
+    float     LeadCharge    = -9;
+    mif_t     G4ChargeMap;
     mif_t     G4PDGMap;
     TVector3  Position;
   };
@@ -77,7 +78,8 @@ namespace blip {
     int   clustid       = -9;
     int   blipid        = -9;
     bool  ismatch       = false;
-    float ADCs          = -999;     // [ADCs]
+    float integralADC    = -999;     // [ADCs] from integral
+    float sumADC        = -999;     // [ADCs] from sum 
     int   charge        = -999;     // [e-]
     float peakTime      = -999999;
     float driftTime     = -999999;  // [tick]
@@ -113,7 +115,8 @@ namespace blip {
     int     StartWire       = -999;
     int     EndWire         = -999;
     int     NPulseTrainHits = -9;
-    float   GoodnessOfFit   = -9;
+    float   GoodnessOfFit   = -999;
+    float   Ratio           = -9;
     int     BlipID          = -9;
     int     EdepID          = -9;
     si_t    HitIDs;
@@ -131,6 +134,7 @@ namespace blip {
     int       TPC             = -9;         // TPC
     int       NPlanes         = -9;         // Num. matched planes
     int       MaxWireSpan     = -9;         // Maximum span of wires on any plane cluster
+    float     Charge          = -9;         // Charge on calorimetry plane
     float     Energy          = -999;       // Energy (const dE/dx, fcl-configurable)
     float     EnergyESTAR     = -999;       // Energy (ESTAR method from ArgoNeuT)
     float     Time            = -999;       // Drift time [ticks]

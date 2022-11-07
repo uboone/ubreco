@@ -31,6 +31,8 @@
 #include <map>
 
 #include "ubreco/BlipReco/Utils/DataTypes.h"
+#include "TH1D.h"
+
 
 typedef std::vector<art::Ptr<sim::SimEnergyDeposit>> SEDVec_t;
 
@@ -75,6 +77,7 @@ namespace BlipUtils {
   bool    IsPointInAV(TVector3&);
   bool    IsPointAtBnd(float,float,float);
   bool    IsPointAtBnd(TVector3&);
+  void    NormalizeHist(TH1D*);
   
 }
 

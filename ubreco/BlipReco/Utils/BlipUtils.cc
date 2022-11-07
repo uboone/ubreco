@@ -125,7 +125,7 @@ namespace BlipUtils {
     if( !pinfo.pathLength ) return;
 
     // If this is a new blip, initialize
-    if( !tblip.G4EnergyMap.size() ) {
+    if( !tblip.G4ChargeMap.size() ) {
       tblip.Position    = pinfo.position;
       tblip.Time        = pinfo.time;
     
@@ -138,7 +138,7 @@ namespace BlipUtils {
       float w2 = pinfo.depEnergy/totE;
       tblip.Position    = w1*tblip.Position + w2*pinfo.position;
       tblip.Time        = w1*tblip.Time     + w2*pinfo.time;
-      tblip.LeadEnergy  = pinfo.depEnergy;
+      tblip.LeadCharge  = pinfo.depElectrons;
     // ... if the particle isn't a match, show's over
     } else {
       return;
@@ -152,12 +152,12 @@ namespace BlipUtils {
     float driftVel = detProp->DriftVelocity(detProp->Efield(0),detProp->Temperature());
     tblip.DriftTime = tblip.Position.X() / driftVel;
 
-    tblip.G4EnergyMap[part.TrackId()] += pinfo.depEnergy;
+    tblip.G4ChargeMap[part.TrackId()] += pinfo.depElectrons;
     tblip.G4PDGMap[part.TrackId()]    = part.PdgCode();
-    if(pinfo.depEnergy > tblip.LeadEnergy ) {
-      tblip.LeadEnergy  = pinfo.depEnergy;
-      tblip.LeadG4ID    = part.TrackId();
+    if(pinfo.depElectrons > tblip.LeadCharge ) {
+      tblip.LeadCharge  = pinfo.depElectrons;
       tblip.LeadG4Index = pinfo.index;
+      tblip.LeadG4ID    = part.TrackId();
       tblip.LeadG4PDG   = part.PdgCode();
     }
   }
@@ -184,9 +184,10 @@ namespace BlipUtils {
         float d = (blip_i.Position-blip_j.Position).Mag();
         if( d < dmin ) {
           isGrouped.at(j) = true;
-          float totE = blip_i.Energy + blip_j.Energy;
-          float w1 = blip_i.Energy/totE;
-          float w2 = blip_j.Energy/totE;
+          //float totE = blip_i.Energy + blip_j.Energy;
+          float totQ = blip_i.DepElectrons + blip_j.DepElectrons;
+          float w1 = blip_i.DepElectrons/totQ;
+          float w2 = blip_j.DepElectrons/totQ;
           blip_i.Energy       += blip_j.Energy;
           blip_i.Position     = w1*blip_i.Position + w2*blip_j.Position;
           blip_i.Time         = w1*blip_i.Time     + w2*blip_j.Time; 
@@ -194,14 +195,14 @@ namespace BlipUtils {
           blip_i.DepElectrons += blip_j.DepElectrons;
           if( blip_j.NumElectrons ) blip_i.NumElectrons += blip_j.NumElectrons;
           
-          blip_i.G4EnergyMap.insert(blip_j.G4EnergyMap.begin(), blip_j.G4EnergyMap.end());
+          blip_i.G4ChargeMap.insert(blip_j.G4ChargeMap.begin(), blip_j.G4ChargeMap.end());
           blip_i.G4PDGMap.insert(blip_j.G4PDGMap.begin(), blip_j.G4PDGMap.end());
           
-          if( blip_j.LeadEnergy > blip_i.LeadEnergy ) {
-            blip_i.LeadEnergy = blip_j.LeadEnergy;
-            blip_i.LeadG4ID = blip_j.LeadG4ID;
-            blip_i.LeadG4Index = blip_j.LeadG4Index;
-            blip_i.LeadG4PDG = blip_j.LeadG4PDG;
+          if( blip_j.LeadCharge > blip_i.LeadCharge ) {
+            blip_i.LeadCharge   = blip_j.LeadCharge;
+            blip_i.LeadG4ID     = blip_j.LeadG4ID;
+            blip_i.LeadG4Index  = blip_j.LeadG4Index;
+            blip_i.LeadG4PDG    = blip_j.LeadG4PDG;
           }
         }//d < dmin
       }//loop over blip_j
@@ -231,7 +232,7 @@ namespace BlipUtils {
       // initialize values 
       hc.Plane            = plane;
       hc.TPC              = tpc;
-      hc.ADCs             = 0;
+      hc.ADCs     = 0;
       hc.Charge           = 0;
       hc.Amplitude        = 0;
       hc.NPulseTrainHits  = 0;
@@ -239,6 +240,7 @@ namespace BlipUtils {
       float endTime       = -9e9;
       float weightedTime  = 0;
       float weightedGOF   = 0;
+      float weightedRatio = 0;
       float qGOF          = 0;
 
       // store hit times, charges, and RMS
@@ -254,7 +256,7 @@ namespace BlipUtils {
         hc.Chans      .insert(hitinfo.chan);
         float q       = (hitinfo.charge > 0)? hitinfo.charge : 0;
         hc.Charge     += q;
-        hc.ADCs       += hitinfo.ADCs;
+        hc.ADCs       += hitinfo.integralADC;
         hc.Amplitude  = std::max(hc.Amplitude, hitinfo.amp );
         weightedTime  += q*hitinfo.driftTime;
         startTime     = std::min(startTime, hitinfo.driftTime-hitinfo.rms);
@@ -263,12 +265,20 @@ namespace BlipUtils {
         qvec          .push_back(q);
         rmsvec        .push_back(hitinfo.rms);
         if( hitinfo.g4trkid > 0 ) hc.G4IDs.insert(hitinfo.g4trkid);
-        if( hitinfo.gof < 0 ) hc.NPulseTrainHits++;
-        else { weightedGOF += q*hitinfo.gof; qGOF += q;}
+        if( hitinfo.gof < 0 ) {
+          hc.NPulseTrainHits++;
+        } else { 
+          weightedGOF   += q*hitinfo.gof; 
+          weightedRatio += q*(hitinfo.rms/hitinfo.amp);
+          qGOF          += q;
+        }
       }//endloop over hits
       
       // mean goodness of fit
-      if( qGOF ) hc.GoodnessOfFit = weightedGOF/qGOF;
+      if( qGOF ) {
+        hc.GoodnessOfFit = weightedGOF/qGOF;
+        hc.Ratio         = weightedRatio/qGOF;
+      }
 
       // calculate other quantities
       hc.NHits      = hc.HitIDs.size();
@@ -699,6 +709,12 @@ namespace BlipUtils {
   
   bool IsPointAtBnd(TVector3& v){
     return IsPointAtBnd(v.X(), v.Y(), v.Z());
+  }
+
+  //==========================================================================
+  void NormalizeHist(TH1D* h){
+    h->Scale(1./h->GetEntries());
+    h->SetOption("HIST");
   }
 
 

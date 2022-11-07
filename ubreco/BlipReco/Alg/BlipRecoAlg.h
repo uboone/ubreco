@@ -38,9 +38,10 @@
 #include "larreco/Calorimetry/CalorimetryAlg.h"
 
 // Microboone includes
+#include "ubevt/Database/TPCEnergyCalib/TPCEnergyCalibService.h"
+#include "ubevt/Database/TPCEnergyCalib/TPCEnergyCalibProvider.h"
 #include "ubevt/Database/UbooneElectronLifetimeProvider.h"
 #include "ubevt/Database/UbooneElectronLifetimeService.h"
-//#include "larevt/SpaceChargeServices/SpaceChargeService.h"
 #include "ubevt/SpaceChargeServices/SpaceChargeServiceMicroBooNE.h"
 #include "ubevt/SpaceCharge/SpaceChargeMicroBooNE.h"
 
@@ -130,6 +131,7 @@ namespace blip {
     float               fCalodEdx;
     bool                fLifetimeCorr;
     bool                fSCECorr;
+    bool                fYZUniformityCorr;
     float               fModBoxA;
     float               fModBoxB;
   

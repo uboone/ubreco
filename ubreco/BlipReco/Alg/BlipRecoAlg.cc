@@ -109,13 +109,14 @@ namespace blip {
     fMinMatchedPlanes   = pset.get<int>           ("MinMatchedPlanes",    2);
     fPickyBlips         = pset.get<bool>          ("PickyBlips",          false);
     fApplyTrkCylinderCut= pset.get<bool>          ("ApplyTrkCylinderCut", false);
-    fCylinderRadius     = pset.get<float>         ("CylinderRadius",    15);
+    fCylinderRadius     = pset.get<float>         ("CylinderRadius",      15);
     
     fCaloAlg            = new calo::CalorimetryAlg( pset.get<fhicl::ParameterSet>("CaloAlg") );
     fCaloPlane          = pset.get<int>           ("CaloPlane",           2);
     fCalodEdx           = pset.get<float>         ("CalodEdx",            2.8);
     fLifetimeCorr       = pset.get<bool>          ("LifetimeCorrection",  false);
     fSCECorr            = pset.get<bool>          ("SCECorrection",       false);
+    fYZUniformityCorr   = pset.get<bool>          ("YZUniformityCorrection",true);
     fModBoxA            = pset.get<float>         ("ModBoxA",             0.93);
     fModBoxB            = pset.get<float>         ("ModBoxB",             0.212);
   }
@@ -150,7 +151,13 @@ namespace blip {
     //========================================
     
     // --- detector properties
-    auto const* SCE     = reinterpret_cast<spacecharge::SpaceChargeMicroBooNE const*>(lar::providerFrom<spacecharge::SpaceChargeService>());
+   // auto const* SCE   = reinterpret_cast<spacecharge::SpaceChargeMicroBooNE const*>(lar::providerFrom<spacecharge::SpaceChargeService>());
+    const auto& SCE_provider       = reinterpret_cast<spacecharge::SpaceChargeMicroBooNE const*>(lar::providerFrom<spacecharge::SpaceChargeService>());
+    const auto& lifetime_provider  = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
+    auto const& tpcCalib_provider  = art::ServiceHandle<lariov::TPCEnergyCalibService>()->GetProvider();
+  
+    // --- handle to tpc energy calibration provider
+    //const lariov::TPCEnergyCalibProvider& energyCalibProvider
 
     // -- geometry
     art::ServiceHandle<geo::Geometry> geom;
@@ -288,19 +295,19 @@ namespace blip {
       auto const& thisHit = hitlist[i];
       int   chan    = thisHit->Channel();
       int   plane   = thisHit->WireID().Plane;
-      //hitinfo[i].Hit        = thisHit;
-      hitinfo[i].hitid      = i;
-      hitinfo[i].wire       = thisHit->WireID().Wire;
-      hitinfo[i].chan       = thisHit->Channel();
-      hitinfo[i].tpc        = thisHit->WireID().TPC;
-      hitinfo[i].plane      = thisHit->WireID().Plane;
-      hitinfo[i].amp        = thisHit->PeakAmplitude();
-      hitinfo[i].rms        = thisHit->RMS();
-      hitinfo[i].ADCs       = thisHit->Integral();
-      hitinfo[i].charge     = fCaloAlg->ElectronsFromADCArea(thisHit->Integral(),plane);
-      hitinfo[i].peakTime   = thisHit->PeakTime();
-      hitinfo[i].driftTime  = thisHit->PeakTime() - detProp->GetXTicksOffset(plane,0,0); // - fTimeOffsets[plane];
-      hitinfo[i].gof        = thisHit->GoodnessOfFit();
+      hitinfo[i].hitid        = i;
+      hitinfo[i].wire         = thisHit->WireID().Wire;
+      hitinfo[i].chan         = thisHit->Channel();
+      hitinfo[i].tpc          = thisHit->WireID().TPC;
+      hitinfo[i].plane        = thisHit->WireID().Plane;
+      hitinfo[i].amp          = thisHit->PeakAmplitude();
+      hitinfo[i].rms          = thisHit->RMS();
+      hitinfo[i].integralADC  = thisHit->Integral();
+      hitinfo[i].sumADC       = thisHit->SummedADC();
+      hitinfo[i].charge       = fCaloAlg->ElectronsFromADCArea(thisHit->Integral(),plane);
+      hitinfo[i].peakTime     = thisHit->PeakTime();
+      hitinfo[i].driftTime    = thisHit->PeakTime() - detProp->GetXTicksOffset(plane,0,0); // - fTimeOffsets[plane];
+      hitinfo[i].gof          = thisHit->GoodnessOfFit() / thisHit->DegreesOfFreedom();
 
       if( isMC ) {
         hitinfo[i].g4energy = 0;
@@ -310,18 +317,25 @@ namespace blip {
           std::vector<simb::MCParticle const*> pvec;
           std::vector<anab::BackTrackerHitMatchingData const*> btvec;
           fmhh.get(igh,pvec,btvec);
-          float max = -9;
+          float maxQ = -9;
           for(size_t j=0; j<pvec.size(); j++){
             hitinfo[i].g4energy += btvec.at(j)->energy;
             hitinfo[i].g4charge += btvec.at(j)->numElectrons;
-            if( btvec.at(j)->energy > max ) {
-              max = btvec.at(j)->energy;
+            if( btvec.at(j)->numElectrons > maxQ ) {
+              maxQ = btvec.at(j)->numElectrons;
               hitinfo[i].g4trkid= pvec.at(j)->TrackId();
               hitinfo[i].g4pdg  = pvec.at(j)->PdgCode();
-              hitinfo[i].g4frac = btvec.at(j)->ideFraction;
+              //hitinfo[i].g4frac = btvec.at(j)->ideFraction;
             }
           }
+          // fraction of hit charge attributed to 'g4trkid' particle
+          // if < 1, means multiple particles contributed to this blip
+          if( maxQ > 0 && hitinfo[i].g4charge > 0 ) 
+            hitinfo[i].g4frac = maxQ / hitinfo[i].g4charge;
+        
+        
         }
+        
       }
       
 
@@ -382,16 +396,16 @@ namespace blip {
         hitIsGood[i] = false;
         auto& hit = hitlist[i];
         int plane = hit->WireID().Plane;
-        if( hit->RMS()            < fMinHitRMS[plane] ) continue;
-        if( hit->RMS()            > fMaxHitRMS[plane] ) continue;
-        if( hit->Multiplicity()   > fMaxHitMult )       continue;
-        if( hit->PeakAmplitude()  > fMaxHitAmp )        continue;
-        if( hit->GoodnessOfFit()  < fMinHitGOF[plane] ) continue;
-        if( hit->GoodnessOfFit()  > fMaxHitGOF[plane] ) continue;
-        if( hit->PeakAmplitude()  < fMinHitAmp[plane] ) continue;
-        float hit_ratio = hit->RMS() / hit->PeakAmplitude();
-        if( hit_ratio < fMinHitRatio[plane] ) continue;
-        if( hit_ratio > fMaxHitRatio[plane] ) continue;
+        if( hit->RMS()            <= fMinHitRMS[plane] ) continue;
+        if( hit->RMS()            >= fMaxHitRMS[plane] ) continue;
+        if( hit->Multiplicity()   >= fMaxHitMult )       continue;
+        if( hitinfo[i].gof        <= fMinHitGOF[plane] ) continue;
+        if( hitinfo[i].gof        >= fMaxHitGOF[plane] ) continue;
+        //if( hit->PeakAmplitude()  <= fMinHitAmp[plane] ) continue;
+        //if( hit->PeakAmplitude()  >= fMaxHitAmp )        continue;
+        //float hit_ratio = hit->RMS() / hit->PeakAmplitude();
+        //if( hit_ratio < fMinHitRatio[plane] ) continue;
+        //if( hit_ratio > fMaxHitRatio[plane] ) continue;
         
         // we survived the gauntlet of cuts -- hit is good!
         hitIsGood[i] = true;
@@ -716,7 +730,22 @@ namespace blip {
     // Loop over the vector of blips and do more stuff for each
     for(size_t i=0; i<blips.size(); i++){
       auto& blip = blips[i];
+
+      // ================================================================================
+      // Correct for charge-collection non-uniformity based on Y/Z position
+      // (taken from CalibrationdEdx_module)
+      if( fYZUniformityCorr ) {
+        float Y = blip.Position.Y();
+        float Z = blip.Position.Z();
+        for(size_t j=0; j<kNplanes; j++){
+          if( blip.clusters[j].Charge <= 0 ) continue;
+          blip.clusters[j].Charge *= tpcCalib_provider.YZdqdxCorrection(fCaloPlane,Y,Z);
+        }
+      }
       
+      // Set the charge for use in calorimetry
+      blip.Charge = blip.clusters[fCaloPlane].Charge;
+
       // ================================================================================
       // Calculate blip energy assuming T = T_beam (eventually can do more complex stuff
       // like associating blip with some nearby track/shower and using its tagged T0)
@@ -724,7 +753,7 @@ namespace blip {
       //              calculate recombination.
       //    Method 2: ESTAR lookup table method ala ArgoNeuT
       // ================================================================================
-      float depEl   = std::max(0.0,(double)blip.clusters[fCaloPlane].Charge);
+      float depEl   = std::max(0.0,(double)blip.Charge);
       float Efield  = detProp->Efield();
       float EfieldMod = Efield;
 
@@ -732,8 +761,7 @@ namespace blip {
       // Ddisabled by default. Without knowing real T0 of a blip, attempting to 
       // apply this correction can do more harm than good!
       if( fLifetimeCorr ) {
-        const auto& elp = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
-        float lifetime = elp.Lifetime() * 1e3; // convert ms --> mus
+        float lifetime = lifetime_provider.Lifetime() * 1e3; // convert ms --> mus
         float td  = (blip.Time > 0) ? blip.Time : 0;
         depEl     *= exp( td/lifetime ); 
       }
@@ -743,10 +771,10 @@ namespace blip {
       if( fSCECorr ) {
 
         // 1) Spatial correction
-        if( SCE->EnableCalSpatialSCE() ) {
+        if( SCE_provider->EnableCalSpatialSCE() ) {
           // TODO: Deal with cases where X falls outside AV (diffuse out-of-time signal)
           //       For example, maybe re-assign to center of drift volume?
-          geo::Vector_t loc_offset = SCE->GetCalPosOffsets(point);
+          geo::Vector_t loc_offset = SCE_provider->GetCalPosOffsets(point);
           point.SetXYZ(point.X()-loc_offset.X(),point.Y()+loc_offset.Y(),point.Z()+loc_offset.Z());
         }
       
@@ -760,8 +788,8 @@ namespace blip {
         //     enabled in order to use GetCalEfieldOffsets
         //   - Blips can have negative 'X' if the T0 correction isn't applied. Obviously 
         //     the SCE map will return (0,0,0) for these points.
-        if( SCE->EnableCalEfieldSCE() ) {
-          auto const field_offset = SCE->GetCalEfieldOffsets(point);
+        if( SCE_provider->EnableCalEfieldSCE() ) {
+          auto const field_offset = SCE_provider->GetCalEfieldOffsets(point);
           EfieldMod = Efield*std::hypot(1+field_offset.X(),field_offset.Y(),field_offset.Z());
         }
 

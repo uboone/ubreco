@@ -1,6 +1,3 @@
 #include "run_blipana.fcl"
-
-services.ElectronLifetimeService.ElectronLifetimeProvider.UseDB: false
-
 physics.analyzers.blipana: @local::microboone_blipana_fullmc
 
