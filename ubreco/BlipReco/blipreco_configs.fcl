@@ -3,7 +3,7 @@
 BEGIN_PROLOG
 
 # ===================================
-# CalAreaConstants Used in MCC9 MC
+# CalAreaConstants used in MCC9 MC
 microboone_calo_mcc9_mc:
 {
   CalAreaConstants: [ 4.08e-3,3.97e-3,4.21e-3 ]
@@ -13,7 +13,7 @@ microboone_calo_mcc9_mc:
   CaloUseModBox: true
 }
 
-# CalAreaConstants used in MCC9 data
+# CalAreaConstants used in MCC9 data and MC overlay
 microboone_calo_mcc9_data:
 {
   CalAreaConstants: [ 4.31e-3, 4.02e-3, 4.10e-3  ]
@@ -33,6 +33,7 @@ microboone_blipalg:
   GeantProducer:        "largeant"      #// input sim::MCParticles (getting true particle info)
   SimEDepProducer:      "ionization"    #// input sim::SimEnergyDeposits (getting energy/electrons deposited)
   SimChanProducer:      "driftWC:simpleSC" #// label for sim::SimChannels (getting drifted charge; optional)
+  SimGainFactor:        0.826           #// gain fudge factor applied in WireCell detsim
   MaxHitTrkLength:      5.0             #// hits in trks > this length will be vetoed [cm]
   DoHitFiltering:       true            #// filter hits based on amp, width, RMS
   MaxWiresInCluster:    10              #// max allowable wires in a cluster
@@ -71,8 +72,8 @@ microboone_blipana_data:                    @local::microboone_blipana
 microboone_blipana_data.BlipAlg.CaloAlg:    @local::microboone_calo_mcc9_data
 microboone_blipana_data.SaveTruthInfo:      false
 
-microboone_blipana_fullmc:                  @local::microboone_blipana
-microboone_blipana_fullmc.BlipAlg.CaloAlg:  @local::microboone_calo_mcc9_mc
+microboone_blipana_fullmc:                          @local::microboone_blipana
+microboone_blipana_fullmc.BlipAlg.CaloAlg:          @local::microboone_calo_mcc9_mc
 #microboone_blipana_fullmc.SaveHitInfo:      true
 
 # ===============================================

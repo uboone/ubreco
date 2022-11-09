@@ -97,6 +97,7 @@ namespace blip {
     std::string         fGeantProducer;
     std::string         fSimDepProducer;
     std::string         fSimChanProducer;
+    float               fSimGainFactor;
     bool                fDebugMode;
     float               fTrueBlipMergeDist;
     bool                fDoHitFiltering;

@@ -78,6 +78,7 @@ namespace blip {
     fGeantProducer      = pset.get<std::string>   ("GeantProducer",     "largeant");
     fSimDepProducer     = pset.get<std::string>   ("SimEDepProducer",   "ionization");
     fSimChanProducer    = pset.get<std::string>   ("SimChanProducer",   "driftWC:simpleSC");
+    fSimGainFactor      = pset.get<float>         ("SimGainFactor",     0.826);
     
     fTrueBlipMergeDist  = pset.get<float>         ("TrueBlipMergeDist", 0.3);
     
@@ -240,12 +241,17 @@ namespace blip {
         for(auto const& ide : tdcide.second) {
           if( ide.trackID < 0 ) continue;
           double ne = ide.numElectrons;
-          if( fSimChanProducer == "driftWC:simpleSC" ) ne *= 1/0.826;
+          // ### behavior as of Nov 2022 ###
+          // if there was a gain fudge factor applied in the WireCell detsim stage, 
+          // the "numElectrons" we got will have been scaled down artificially, so 
+          // we need to correct for this.
+          if( fSimGainFactor > 0 ) ne /= fSimGainFactor;
           map_g4trkid_charge[ide.trackID] += ne;
         }
       }
     }
-    
+   
+
     //==================================================
     // Use G4 information to determine the "true"
     // blips in this event.
@@ -253,7 +259,7 @@ namespace blip {
     bool isMC = (plist.size() > 0 );
     
     // Map G4IDs to their respective index in the particle list
-    std::map< int, int > map_g4trkid_index;
+    //std::map< int, int > map_g4trkid_index;
 
     // Loop through the MCParticles
     if( isMC ) {
@@ -263,7 +269,7 @@ namespace blip {
         int trkid = pinfo[i].trackId;
         if( map_g4trkid_charge[trkid] ) pinfo[i].numElectrons = (int)map_g4trkid_charge[trkid];
         pinfo[i].index            = i;
-        map_g4trkid_index[trkid]  = i;
+        //map_g4trkid_index[trkid]  = i;
       }
       // Calculate the true blips
       BlipUtils::MakeTrueBlips(pinfo, trueblips);
@@ -312,31 +318,38 @@ namespace blip {
       if( isMC ) {
         hitinfo[i].g4energy = 0;
         hitinfo[i].g4charge = 0;
-        int igh = map_gh[i]; 
+        int igh = map_gh[i];
         if( fmhh.at(igh).size() ) {
           std::vector<simb::MCParticle const*> pvec;
           std::vector<anab::BackTrackerHitMatchingData const*> btvec;
           fmhh.get(igh,pvec,btvec);
-          float maxQ = -9;
+          //float maxQ = -9;
           for(size_t j=0; j<pvec.size(); j++){
             hitinfo[i].g4energy += btvec.at(j)->energy;
             hitinfo[i].g4charge += btvec.at(j)->numElectrons;
-            if( btvec.at(j)->numElectrons > maxQ ) {
-              maxQ = btvec.at(j)->numElectrons;
+            if( btvec.at(j)->isMaxIDEN ) {
+            //if( q_anode > maxQ ) {
+              //maxQ = q_anode;
               hitinfo[i].g4trkid= pvec.at(j)->TrackId();
               hitinfo[i].g4pdg  = pvec.at(j)->PdgCode();
+              hitinfo[i].g4frac = btvec.at(j)->ideNFraction;
               //hitinfo[i].g4frac = btvec.at(j)->ideFraction;
             }
           }
           // fraction of hit charge attributed to 'g4trkid' particle
           // if < 1, means multiple particles contributed to this blip
-          if( maxQ > 0 && hitinfo[i].g4charge > 0 ) 
-            hitinfo[i].g4frac = maxQ / hitinfo[i].g4charge;
-        
-        
+          //if( maxQ > 0 && hitinfo[i].g4charge > 0 ) 
+          //  hitinfo[i].g4frac = maxQ / hitinfo[i].g4charge;
         }
         
-      }
+        // ### behavior as of Nov 2022 ###
+        // if there was a gain fudge factor applied in the WireCell detsim stage, 
+        // the "numElectrons" we got will have been scaled down artificially, so 
+        // we need to correct for this.
+        if( fSimGainFactor > 0 ) hitinfo[i].g4charge /= fSimGainFactor;
+        
+
+      }//endif MC
       
 
       // find associated track
@@ -739,7 +752,8 @@ namespace blip {
         float Z = blip.Position.Z();
         for(size_t j=0; j<kNplanes; j++){
           if( blip.clusters[j].Charge <= 0 ) continue;
-          blip.clusters[j].Charge *= tpcCalib_provider.YZdqdxCorrection(fCaloPlane,Y,Z);
+          float corrFactor = tpcCalib_provider.YZdqdxCorrection(j,Y,Z);
+          blip.clusters[j].Charge *= corrFactor;
         }
       }
       

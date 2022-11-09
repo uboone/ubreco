@@ -715,6 +715,7 @@ namespace BlipUtils {
   void NormalizeHist(TH1D* h){
     h->Scale(1./h->GetEntries());
     h->SetOption("HIST");
+    h->SetBit(TH1::kIsAverage);
   }
 
 
