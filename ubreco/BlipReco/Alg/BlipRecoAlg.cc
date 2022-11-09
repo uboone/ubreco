@@ -152,13 +152,9 @@ namespace blip {
     //========================================
     
     // --- detector properties
-   // auto const* SCE   = reinterpret_cast<spacecharge::SpaceChargeMicroBooNE const*>(lar::providerFrom<spacecharge::SpaceChargeService>());
     const auto& SCE_provider       = reinterpret_cast<spacecharge::SpaceChargeMicroBooNE const*>(lar::providerFrom<spacecharge::SpaceChargeService>());
     const auto& lifetime_provider  = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
     auto const& tpcCalib_provider  = art::ServiceHandle<lariov::TPCEnergyCalibService>()->GetProvider();
-  
-    // --- handle to tpc energy calibration provider
-    //const lariov::TPCEnergyCalibProvider& energyCalibProvider
 
     // -- geometry
     art::ServiceHandle<geo::Geometry> geom;
@@ -208,26 +204,54 @@ namespace blip {
   
     // -- gaushit <-> particle associations
     art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> fmhh(hitHandleGH,evt,"gaushitTruthMatch");
-    
+   
    
    //===============================================================
     // Map of each hit to its gaushit index (needed if the provided
     // hit collection is some filtered subset of gaushit, in order to
     // use gaushitTruthMatch later on)
     //===============================================================
+    
     std::map< int, int > map_gh;
+    
+    // if input collection is already gaushit, this is trivial
+    if( fHitProducer == "gaushit" ) {
+      for(auto& h : hitlist ) map_gh[h.key()] = h.key(); 
+    
+    // ... but if not, find the matching gaushit. There's no convenient
+    // hit ID, so we must loop through and compare channel/time (ugh)
+    } else {
+      // first find GH hits on each channel
+      std::map<int,std::vector<int>> chanhitsMap;
+      for(auto& gh : hitlistGH) chanhitsMap[gh->Channel()].push_back(gh.key());
+      // compare to input hits to gaushits on same channel
+      for(auto& h : hitlist ) {
+        for(auto& chanHit : chanhitsMap[h->Channel()]){
+          if( hitlistGH[chanHit]->PeakTime() == h->PeakTime() ) {
+            map_gh[h.key()] = chanHit; 
+            break;
+          }
+        }
+      }
+    }
+
+    /*
     for(auto& h : hitlist ) {
-      if( fHitProducer == "gaushit" ) { // if input collection is gaushit, this is trivial 
-        map_gh[h.key()] = h.key(); 
+      if( fHitProducer == "gaushit" ) {
         continue; 
       }
-      for (auto& gh : hitlistGH ){     // otherwise, find the matching gaushit
-        if( gh->PeakTime() == h->PeakTime() && gh->Channel() == h->Channel() ) {
+      int plane = h->WireID().Plane;
+      int chan  = h->Channel();
+      for (auto& gh : hitlistGH ){
+        if( gh->WireID().Plane != plane ) continue;
+        if( gh->Channel() != chan       ) continue;
+        if( gh->PeakTime() == h->PeakTime() ) { 
           map_gh[h.key()] = gh.key(); 
           break; 
         }
       }
     }
+    */
     
     //======================================================
     // Use SimChannels to make a map of the collected charge
@@ -241,10 +265,13 @@ namespace blip {
         for(auto const& ide : tdcide.second) {
           if( ide.trackID < 0 ) continue;
           double ne = ide.numElectrons;
-          // ### behavior as of Nov 2022 ###
-          // if there was a gain fudge factor applied in the WireCell detsim stage, 
-          // the "numElectrons" we got will have been scaled down artificially, so 
-          // we need to correct for this.
+          // ####################################################
+          // ###         behavior as of Nov 2022              ###
+          // WireCell's detsim implements its gain "fudge factor" 
+          // by scaling the SimChannel electrons for some reason.
+          // So we need to correct for this effect to get accurate
+          // count of 'true' electrons collected on channel.
+          // ####################################################
           if( fSimGainFactor > 0 ) ne /= fSimGainFactor;
           map_g4trkid_charge[ide.trackID] += ne;
         }
@@ -291,15 +318,15 @@ namespace blip {
     //========================================
     hitinfo.resize(hitlist.size());
     
-    std::map<int,std::vector<int>> chanhitsMap;
-    std::map<int,std::vector<int>> chanhitsMap_untracked;
+    //std::map<int,std::vector<int>> chanhitsMap;
+    //std::map<int,std::vector<int>> chanhitsMap_untracked;
     std::map<int,std::vector<int>> planehitsMap;
     int nhits_untracked = 0;
 
     //std::cout<<"Looping over the hits...\n";
     for(size_t i=0; i<hitlist.size(); i++){
       auto const& thisHit = hitlist[i];
-      int   chan    = thisHit->Channel();
+      //int   chan    = thisHit->Channel();
       int   plane   = thisHit->WireID().Plane;
       hitinfo[i].hitid        = i;
       hitinfo[i].wire         = thisHit->WireID().Wire;
@@ -342,10 +369,13 @@ namespace blip {
           //  hitinfo[i].g4frac = maxQ / hitinfo[i].g4charge;
         }
         
-        // ### behavior as of Nov 2022 ###
-        // if there was a gain fudge factor applied in the WireCell detsim stage, 
-        // the "numElectrons" we got will have been scaled down artificially, so 
-        // we need to correct for this.
+        // ####################################################
+        // ###         behavior as of Nov 2022              ###
+        // WireCell's detsim implements its gain "fudge factor" 
+        // by scaling the SimChannel electrons for some reason.
+        // So we need to correct for this effect to get accurate
+        // count of 'true' electrons collected on channel.
+        // ####################################################
         if( fSimGainFactor > 0 ) hitinfo[i].g4charge /= fSimGainFactor;
         
 
@@ -364,10 +394,10 @@ namespace blip {
       }
 
       // add to the channel hit map
-      chanhitsMap[chan].push_back(i);
+      //chanhitsMap[chan].push_back(i);
       planehitsMap[plane].push_back(i);
       if( hitinfo[i].trkid < 0 ) {
-        chanhitsMap_untracked[chan].push_back(i);
+        //chanhitsMap_untracked[chan].push_back(i);
         nhits_untracked++;
       }
       //printf("  %lu   plane: %i,  wire: %i, time: %i\n",i,hitinfo[i].plane,hitinfo[i].wire,int(hitinfo[i].driftTime));

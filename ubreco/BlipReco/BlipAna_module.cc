@@ -465,11 +465,11 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("clust_nhits",    clust_nhits,    "clust_nhits[nclusts]/I");
       evtTree->Branch("clust_nnfhits",  clust_nnfhits,  "clust_nnfhits[nclusts]/I");
       evtTree->Branch("clust_time",     clust_time,     "clust_time[nclusts]/F");
+      evtTree->Branch("clust_charge",   clust_charge,   "clust_charge[nclusts]/I");
       //evtTree->Branch("clust_rms",      clust_rms,      "clust_rms[nclusts]/F");
       //evtTree->Branch("clust_amp",      clust_amp,      "clust_amp[nclusts]/F");
-      evtTree->Branch("clust_gof",      clust_gof,      "clust_gof[nclusts]/F");
-      evtTree->Branch("clust_ratio",      clust_ratio,  "clust_ratio[nclusts]/F");
-      evtTree->Branch("clust_charge",   clust_charge,   "clust_charge[nclusts]/I");
+      //evtTree->Branch("clust_gof",      clust_gof,      "clust_gof[nclusts]/F");
+      //evtTree->Branch("clust_ratio",      clust_ratio,  "clust_ratio[nclusts]/F");
       evtTree->Branch("clust_ismatch",  clust_ismatch,  "clust_ismatch[nclusts]/O");
       evtTree->Branch("clust_blipid",   clust_blipid,   "clust_blipid[nclusts]/I");
       if( saveTruthInfo ) 
@@ -627,6 +627,14 @@ class BlipAna : public art::EDAnalyzer
   TH1D*   h_hitgof_iso[kNplanes];         // hits not in tracks
   TH1D*   h_hitgof_isomatch[kNplanes];   // hit not in tracks, but plane-matched
   TH2D*   h_hit_charge_vs_rms[kNplanes];
+  TH2D*   h_hit_charge_vs_ratio[kNplanes];
+  TH2D*   h_hit_charge_vs_gof[kNplanes];
+ 
+  TH1D*   h_hitamp_alpha[kNplanes];
+  TH1D*   h_hitrms_alpha[kNplanes];
+  TH1D*   h_hitratio_alpha[kNplanes];
+  TH1D*   h_hitgof_alpha[kNplanes];
+  TH1D*   h_hitmult_alpha[kNplanes];   // hit not in tracks, but plane-matched
 
   TH2D*   h_nelec_TrueVsReco[kNplanes];
   TH1D*   h_nelec_Resolution[kNplanes];
@@ -673,11 +681,11 @@ class BlipAna : public art::EDAnalyzer
   // Some truth metrics for debugging
   TH1D*   h_qres_anode;
   TH1D*   h_qres_dep;
-  TH2D*   h_qratio_vtime_sim;
-  TH2D*   h_qratio_vtime_reco;
-  TH1D*   h_sim_lifetime;
-  TH1D*   h_sim_timeconst;
+  TH2D*   h_qratio_vs_time_sim;
+  TH2D*   h_qratio_vs_time_reco;
   TH1D*   h_adc_factor;
+  //TH1D*   h_sim_lifetime;
+  //TH1D*   h_sim_timeconst;
    
 
     TH1D*   h_efield_change;
@@ -748,34 +756,35 @@ class BlipAna : public art::EDAnalyzer
     art::TFileDirectory dir_truth = dir_diag.mkdir("Truth");
     
     h_part_process    = dir_truth.make<TH1D>("part_process","MCParticle->Process()",5,0,5);
-      auto xa = h_part_process->GetXaxis();
-      xa->SetBinLabel(1,"primary");
-      xa->SetBinLabel(2,"compt");
-      xa->SetBinLabel(3,"phot");
-      xa->SetBinLabel(4,"conv");
-      xa->SetBinLabel(5,"other");
+    auto xa = h_part_process->GetXaxis();
+    xa->SetBinLabel(1,"primary");
+    xa->SetBinLabel(2,"compt");
+    xa->SetBinLabel(3,"phot");
+    xa->SetBinLabel(4,"conv");
+    xa->SetBinLabel(5,"other");
     
     h_nblips_tm       = dir_truth.make<TH1D>("nblips_tm","Truth-matched 3D blips per event",blipBins,0,blipMax);
     h_blip_qcomp      = dir_truth.make<TH1D>("blip_qcomp","Fraction of true charge (at anode) reconstructed into 3D blips",202,0,1.01);
     h_blip_qcomp_2MeV = dir_truth.make<TH1D>("blip_qcomp_2MeV","Fraction of true charge (at anode) reconstructed into 3D blips, dE < 2 MeV",202,0,1.01);
     h_blip_pur        = dir_truth.make<TH1D>("blip_pur","Fraction of truth-matched blips",202,0,1.01);
     h_blip_reszy      = dir_truth.make<TH2D>("blip_res_zy","Blip position resolution;Z_{reco} - Z_{true} [cm];Y_{reco} - Y_{true} [cm]",150,-15,15,150,-15,15);
-                      h_blip_reszy->SetOption("colz");
+                    h_blip_reszy->SetOption("colz");
 
     h_blip_resx       = dir_truth.make<TH1D>("blip_res_x","Blip position resolution;X_{reco} - X_{true} [cm]",150,-15,15);
     h_blip_resE       = dir_truth.make<TH2D>("blip_res_energy","Energy resolution of 3D blips;Energy [MeV];#deltaE/E_{true}",100,0,5,300,-1.5,1.5);
-                        h_blip_resE ->SetOption("colz");
+                      h_blip_resE ->SetOption("colz");
     
     h_qres_anode      = dir_truth.make<TH1D>("qres_anode","Reco charge vs true charge collected;( reco-true ) / true;Area-normalized entries",200,-1.,1.);
     h_qres_dep        = dir_truth.make<TH1D>("qres_dep","Reco charge vs true charge deposited;( reco-true ) / true;Area-normalized entries",200,-1.,1.);
-    h_qratio_vtime_sim  = dir_truth.make<TH2D>("qratio_vs_time_sim",";Drift time [#mus]; Q_{anode} / Q_{dep}",44,100,2300, 1000,0.50,1.50);
-    h_qratio_vtime_sim  ->SetOption("colz");
-    h_qratio_vtime_reco = dir_truth.make<TH2D>("qratio_vs_time_reco",";Drift time [#mus]; Q_{reco} / Q_{dep}",44,100,2300, 1000,0.50,1.50);
-    h_qratio_vtime_reco ->SetOption("colz");
+    h_qratio_vs_time_sim  = dir_truth.make<TH2D>("qratio_vs_time_sim",";Drift time [#mus]; Q_{anode} / Q_{dep}",44,100,2300, 1000,0.50,1.50);
+    h_qratio_vs_time_sim  ->SetOption("colz");
+    h_qratio_vs_time_reco = dir_truth.make<TH2D>("qratio_vs_time_reco",";Drift time [#mus]; Q_{reco} / Q_{dep}",44,100,2300, 1000,0.50,1.50);
+    h_qratio_vs_time_reco ->SetOption("colz");
     h_adc_factor      = dir_truth.make<TH1D>("adc_per_e","Collection plane;ADC per electron;Area-normalized entries",200,0,0.01);
-    h_sim_lifetime    = dir_truth.make<TH1D>("sim_lifetime","Calculated attenuation: #tau = - t_{drift} / ln(Q'/Q_{0}));#tau_{e} [ms];Area-normalized entries",1200,0,1200);
-    h_sim_timeconst   = dir_truth.make<TH1D>("sim_timeconst","Calculated attenuation: 1/#tau_{e} = - ln(Q'/Q_{0}) / t_{drift};1/#tau_{e} [ms^{-1}];Area-normalized entries",100,0,0.2);
-
+    //h_sim_lifetime    = dir_truth.make<TH1D>("sim_lifetime","Calculated attenuation: #tau = - t_{drift} / ln(Q'/Q_{0}));#tau_{e} [ms];Area-normalized entries",1200,0,1200);
+    //h_sim_timeconst   = dir_truth.make<TH1D>("sim_timeconst","Calculated attenuation: 1/#tau_{e} = - ln(Q'/Q_{0}) / t_{drift};1/#tau_{e} [ms^{-1}];Area-normalized entries",100,0,0.2);
+    
+    
     h_ntrks           = dir_diag.make<TH1D>("ntrks",      "Number of tracks per event",150,0,150);
     h_ntrks_10cm      = dir_diag.make<TH1D>("ntrks_10cm", "Number of tracks per event (L > 10cm)",150,0,150);
     h_trk_length      = dir_diag.make<TH1D>("trk_length",";Track length [cm]",1000,0,500);
@@ -792,30 +801,39 @@ class BlipAna : public art::EDAnalyzer
     float ampMax  = 50;     int ampBins   = 250;
     float rmsMax  = 20;     int rmsBins   = 200;
     float ratioMax = 5;     int ratioBins = 250;
-    float gofMax  = 1;      int ngofbins = 200;
  
     for(int i=0; i<kNplanes; i++) {
       h_nhits[i]      = dir_diag.make<TH1D>(Form("pl%i_nhits",i),  Form("Plane %i;total number of hits",i),hitBins,0,hitMax);
       //h_nhits_ut[i]   = dir_diag.make<TH1D>(Form("pl%i_nhits_untracked",i),  Form("Plane %i;total number of untracked hits",i),hitBins,0,hitMax);
       //h_nhits_m[i]    = dir_diag.make<TH1D>(Form("pl%i_nhits_planematched",i), Form("Plane %i;total number of untracked plane-matched hits",i),hitBins,0,hitMax);
       h_hitamp[i]     = dir_diag.make<TH1D>(Form("pl%i_hit_amp",i), Form("Plane %i untracked hits;hit amplitude [ADC]",i),ampBins,0,ampMax);
+      h_hitamp_alpha[i]   = dir_diag.make<TH1D>(Form("pl%i_hit_amp_alpha",i),         Form("Plane %i alpha hits;hit amplitude [ADC]",i),ampBins,0,ampMax);
       h_hitrms[i]             = dir_diag.make<TH1D>(Form("pl%i_hit_rms",i), Form("Plane %i untracked hits;hit RMS [ADC]",i),rmsBins,0,rmsMax);
-      h_hit_charge_vs_rms[i]  = dir_diag.make<TH2D>(Form("pl%i_hit_charge_vs_rms",i), Form("Plane %i untracked hits;hit charge [e-];hit RMS [ADC]",i),100,0,50e3,100,0,10);
-      h_hit_charge_vs_rms[i] ->SetOption("colz");
+      h_hitrms_alpha[i]   = dir_diag.make<TH1D>(Form("pl%i_hit_rms_alpha",i),         Form("Plane %i alpha hits;hit RMS [ADC]",i),rmsBins,0,rmsMax);
       h_hitratio[i]   = dir_diag.make<TH1D>(Form("pl%i_hit_ratio",i), Form("Plane %i untracked hits;hit RMS/Amplitude ratio",i),ratioBins,0,ratioMax);
-      //h_hitint[i]     = dir_diag.make<TH1D>(Form("pl%i_hit_integral",i), Form("Plane %i hits;hit integral [ADC]",i),areaBins,0,areaMax);
-      h_hitmult_mip[i]     = dir_diag.make<TH1D>(Form("pl%i_hit_multiplicity_mip",i), Form("Plane %i hits in MIP-muon-like tracks;Fit multiplicity [ADC]",i),30,0,30);
-      h_hitmult_iso[i]     = dir_diag.make<TH1D>(Form("pl%i_hit_multiplicity_iso",i), Form("Plane %i untracked, unmatched hits;Fit multiplicity [ADC]",i),30,0,30);
-      h_hitmult_isomatch[i]     = dir_diag.make<TH1D>(Form("pl%i_hit_multiplicity_isomatch",i), Form("Plane %i untracked plane-matched hits;Fit multiplicity [ADC]",i),30,0,30);
-      h_hitgof_mip[i]       = dir_diag.make<TH1D>(Form("pl%i_hit_gof_mip",i),     Form("Plane %i hits in MIP-muon-like tracks;Goodness Of Fit",i),ngofbins,0,gofMax);
-      h_hitgof_iso[i]       = dir_diag.make<TH1D>(Form("pl%i_hit_gof_iso",i),     Form("Plane %i untracked, unmatched hits;Goodness Of Fit",i),              ngofbins,0,gofMax);
-      h_hitgof_isomatch[i]  = dir_diag.make<TH1D>(Form("pl%i_hit_gof_isomatch",i),Form("Plane %i untracked plane-matched hits;Goodness Of Fit",i),ngofbins,0,gofMax);
+      h_hitratio_alpha[i] = dir_diag.make<TH1D>(Form("pl%i_hit_ratio_alpha",i),       Form("Plane %i alpha hits;hit RMS/Amplitude ratio",i),ratioBins,0,ratioMax);
+      h_hitmult_mip[i]     = dir_diag.make<TH1D>(Form("pl%i_hit_multiplicity_mip",i), Form("Plane %i hits in cosmic #mu tracks;Fit multiplicity [ADC]",i),15,0,15);
+      h_hitmult_iso[i]     = dir_diag.make<TH1D>(Form("pl%i_hit_multiplicity_iso",i), Form("Plane %i hits (untracked, unmatched);Fit multiplicity [ADC]",i),15,0,15);
+      h_hitmult_isomatch[i]     = dir_diag.make<TH1D>(Form("pl%i_hit_multiplicity_isomatch",i), Form("Plane %i hits (untracked, plane-matched);Fit multiplicity [ADC]",i),15,0,15);
+      h_hitmult_alpha[i]  = dir_diag.make<TH1D>(Form("pl%i_hit_multiplicity_alpha",i),Form("Plane %i alpha hits;Fit multiplicity [ADC]",i),15,0,15);
+      h_hitgof_mip[i]       = dir_diag.make<TH1D>(Form("pl%i_hit_gof_mip",i),     Form("Plane %i hits in cosmic #mu tracks (mult=1);log10(GOF)",i),200,-10,10);
+      h_hitgof_iso[i]       = dir_diag.make<TH1D>(Form("pl%i_hit_gof_iso",i),     Form("Plane %i hits (mult=1, untracked, unmatched);log_{10}(GOF)",i),200,-10,10);       
+      h_hitgof_isomatch[i]  = dir_diag.make<TH1D>(Form("pl%i_hit_gof_isomatch",i),Form("Plane %i hits (mult=1, untracked, plane-matched);log_{10}(GOF)",i),200,-10,10);
+      h_hitgof_alpha[i]   = dir_diag.make<TH1D>(Form("pl%i_hit_gof_alpha",i),         Form("Plane %i alpha hits;log_{10}(GOF)",i),200,-10,10);
+      h_hit_charge_vs_rms[i]  = dir_diag.make<TH2D>(Form("pl%i_hit_charge_vs_rms",i), Form("Plane %i untracked hits;hit charge [#times 10^{3} e-];hit RMS [ADC]",i),200,0,50, 200,0,10);
+      h_hit_charge_vs_rms[i] ->SetOption("colz");
+      h_hit_charge_vs_ratio[i]  = dir_diag.make<TH2D>(Form("pl%i_hit_charge_vs_ratio",i), Form("Plane %i untracked hits;hit charge [#times 10^{3} e-];hit RMS/amplitude [ADC]",i),200,0,50,200,0,5);
+      h_hit_charge_vs_ratio[i] ->SetOption("colz");
+      h_hit_charge_vs_gof[i]  = dir_diag.make<TH2D>(Form("pl%i_hit_charge_vs_gof",i), Form("Plane %i untracked hits;hit charge [#times 10^{3} e-];log_{10}(GOF)",i),200,0,50,200,-8,2);
+      h_hit_charge_vs_gof[i] ->SetOption("colz");
       //h_hitsigt[i]    = dir_diag.make<TH1D>(Form("pl%i_hit_sigt",i), Form("Plane %i untracked hits;hit time uncertainty [ADC]",i),200,0,5);
       //h_nhits_tm[i]   = dir_truth.make<TH1D>(Form("pl%i_nhits_truthmatched",i), Form("Plane %i;number of untracked truth-matched hits",i),hitBins,0,hitMax);
+      
+      
       h_chargecomp[i] = dir_truth.make<TH1D>(Form("pl%i_hit_charge_completeness",i),Form("charge completness, plane %i",i),101,0,1.01);
       h_hitpur[i]     = dir_truth.make<TH1D>(Form("pl%i_hit_purity",i),Form("hit purity, plane %i",i),101,0,1.01);
       h_nelec_TrueVsReco[i] = dir_truth.make<TH2D>( Form("pl%i_nelec_TrueVsReco",i),
-        Form("Plane %i;true hit charge [ #times 10^{3} electrons ];Reconstructed hit charge [ #times 10^{3} electrons ]",i),100,0,50, 100,0,50);
+        Form("Plane %i;true hit charge [ #times 10^{3} electrons ];Reconstructed hit charge [ #times 10^{3} electrons ]",i),160,0,80, 160,0,80);
         h_nelec_TrueVsReco[i] ->SetOption("colz");
       h_nelec_Resolution[i] = dir_truth.make<TH1D>( Form("pl%i_nelec_res",i),Form("Plane %i;hit charge resolution: (reco-true)/true",i),300,-3,3);
     }//endloop over planes
@@ -991,10 +1009,10 @@ void BlipAna::analyze(const art::Event& evt)
     art::fill_ptr_vector(hitlist, hitHandle);
   
   // -- hits (from gaushit)
-  art::Handle< std::vector<recob::Hit> > hitHandleGH;
-  std::vector<art::Ptr<recob::Hit> > hitlistGH;
-  if (evt.getByLabel("gaushit",hitHandleGH))
-    art::fill_ptr_vector(hitlistGH, hitHandleGH);
+  //art::Handle< std::vector<recob::Hit> > hitHandleGH;
+  //std::vector<art::Ptr<recob::Hit> > hitlistGH;
+  //if (evt.getByLabel("gaushit",hitHandleGH))
+  //  art::fill_ptr_vector(hitlistGH, hitHandleGH);
 
   // -- tracks
   art::Handle< std::vector<recob::Track> > tracklistHandle;
@@ -1207,10 +1225,13 @@ void BlipAna::analyze(const art::Event& evt)
   
   for(size_t i=0; i<hitlist.size(); i++){
    
-    int plane = hitlist[i]->WireID().Plane;
-    float gof = hitlist[i]->GoodnessOfFit() / hitlist[i]->DegreesOfFreedom();
-    int mult  = hitlist[i]->Multiplicity();
     auto const& hinfo = fBlipAlg->hitinfo[i];
+    int   plane   = hitlist[i]->WireID().Plane;
+    int   ndf     = hitlist[i]->DegreesOfFreedom();
+    double gof    = (ndf>0) ? hitlist[i]->GoodnessOfFit()/ndf : -9;
+    float logGOF  = (gof>0) ? log10(gof) : -99;
+    bool  isTrked   = (hinfo.trkid>=0);
+    bool  isAlpha   = (hinfo.g4pdg == 1000020040);
     
     fNumHits[plane]++;
     num_hits[plane]++;
@@ -1218,16 +1239,20 @@ void BlipAna::analyze(const art::Event& evt)
       fNumHitsMatched[plane]++;
       num_hits_pmatch[hinfo.plane]++;
     }
+
     
     // Noisy wires on coll plane: 690-695
-    if( hinfo.trkid < 0 ) {
+    if( !isTrked ) {
       fNumHitsUntracked[plane]++;
       num_hits_untracked[hinfo.plane]++;
-      h_hitamp[plane]    ->Fill(hitlist[i]->PeakAmplitude());
-      h_hitrms[plane]    ->Fill(hitlist[i]->RMS());
-      h_hitratio[plane]  ->Fill(hitlist[i]->RMS()/hitlist[i]->PeakAmplitude());
-      h_hit_charge_vs_rms[plane]->Fill(hinfo.charge,hitlist[i]->RMS());
-    } 
+      h_hitamp[plane]   ->Fill(hitlist[i]->PeakAmplitude());
+      h_hitrms[plane]   ->Fill(hitlist[i]->RMS());
+      h_hitratio[plane] ->Fill(hitlist[i]->RMS()/hitlist[i]->PeakAmplitude());
+      h_hit_charge_vs_rms[plane]  ->Fill(hinfo.charge/1e3,hitlist[i]->RMS());
+      h_hit_charge_vs_ratio[plane]->Fill(hinfo.charge/1e3,hitlist[i]->RMS()/hitlist[i]->PeakAmplitude());
+      if( gof > 0 ) h_hit_charge_vs_gof[plane]->Fill(hinfo.charge/1e3,logGOF);
+    }
+
     
     // calculate reco-true resolution
     if( hinfo.g4trkid >= 0 ) {
@@ -1242,8 +1267,39 @@ void BlipAna::analyze(const art::Event& evt)
       }
     }
     
+    // GOF / multiplicity histograms 
+      int   mult      = hitlist[i]->Multiplicity();
+      bool  isMIP     = map_trkid_isMIP[hinfo.trkid];
+      bool  isMatched = hinfo.ismatch; 
+      
+      // tracked MIP-like cosmics
+      if( isTrked && isMIP )  h_hitmult_mip[plane]->Fill(mult);
+     
+      // untracked hits (matched and non-matched)
+      if( !isTrked ) {
+        if( isMatched ) {
+          h_hitmult_isomatch[plane]->Fill(mult);
+          h_hitgof_isomatch[plane]->Fill(logGOF);
+        } else {            
+          h_hitmult_iso[plane]->Fill(mult);
+          h_hitgof_iso[plane]->Fill(logGOF);
+        }
+      }
+
+      // alphas
+      if( isAlpha ) {
+        h_hitamp_alpha[plane]   ->Fill(hitlist[i]->PeakAmplitude());
+        h_hitrms_alpha[plane]   ->Fill(hitlist[i]->RMS());
+        h_hitratio_alpha[plane] ->Fill(hitlist[i]->RMS()/hitlist[i]->PeakAmplitude());
+        h_hitmult_alpha[plane]  ->Fill(mult);
+        h_hitgof_alpha[plane]   ->Fill(logGOF);
+      }
+    
     // fill data to be saved to event tree
     if( i < kMaxHits ){
+      fData->hit_plane[i]     = hitlist[i]->WireID().Plane;
+      fData->hit_wire[i]      = hitlist[i]->WireID().Wire;
+      fData->hit_tpc[i]       = hitlist[i]->WireID().TPC;
       fData->hit_channel[i]   = hitlist[i]->Channel();
       fData->hit_peakT[i]     = hitlist[i]->PeakTime();
       fData->hit_rms[i]       = hitlist[i]->RMS();
@@ -1252,9 +1308,6 @@ void BlipAna::analyze(const art::Event& evt)
       fData->hit_sumadc[i]    = hitlist[i]->SummedADC();
       fData->hit_mult[i]      = hitlist[i]->Multiplicity();
       fData->hit_gof[i]       = gof;
-      fData->hit_plane[i]     = hitlist[i]->WireID().Plane;
-      fData->hit_wire[i]      = hitlist[i]->WireID().Wire;
-      fData->hit_tpc[i]       = hitlist[i]->WireID().TPC;
       fData->hit_trkid[i]     = hinfo.trkid;
       fData->hit_time[i]      = hinfo.driftTime;
       fData->hit_charge[i]    = hinfo.charge;
@@ -1267,25 +1320,6 @@ void BlipAna::analyze(const art::Event& evt)
       fData->hit_clustid[i]   = hinfo.clustid;
     }
  
-    // untracked/isolated hits
-    if( gof >= 0 ) {
-      if( hinfo.trkid < 0 ) {
-
-        // plane-matched
-        if( hinfo.ismatch ) {
-          h_hitmult_isomatch[plane]->Fill(mult);
-          if(mult==1) h_hitgof_isomatch[plane]->Fill(gof);
-        // non-plane-matched
-        } else {
-          h_hitmult_iso[plane]->Fill(mult);
-          if(mult==1) h_hitgof_iso[plane]->Fill(gof);
-        }
-  
-      } else if ( map_trkid_isMIP[hinfo.trkid] ) {
-        h_hitmult_mip[plane]->Fill(mult);
-        if(mult==1) h_hitgof_mip[plane]->Fill(gof);
-      }
-    }
     
   }//endloop over hits
 
@@ -1419,12 +1453,12 @@ void BlipAna::analyze(const art::Event& evt)
     fData->clust_tpc[i]       = clust.TPC;
     fData->clust_plane[i]     = clust.Plane;
     
-    
     fData->clust_wire[i]      = clust.CenterWire;
     fData->clust_startwire[i] = clust.StartWire;
     fData->clust_endwire[i]   = clust.EndWire;
     fData->clust_nwires[i]    = clust.NWires;
     fData->clust_nhits[i]     = clust.NHits;
+    fData->clust_nnfhits[i]   = clust.NPulseTrainHits;
     
     //fData->clust_time[i]      = clust.Time;
     //fData->clust_rms[i]       = clust.TimeErr;
@@ -1432,17 +1466,17 @@ void BlipAna::analyze(const art::Event& evt)
     // Truncate precision to reduce file size after ROOT compression
     // (we don't need to know these to the Nth decimal place)
     fData->clust_time[i]      = Truncate(clust.Time,1);
-    fData->clust_rms[i]       = Truncate(clust.TimeErr,0.01);
     fData->clust_charge[i]    = Truncate(clust.Charge,10);
-    fData->clust_amp[i]       = Truncate(clust.Amplitude,0.1);
-    fData->clust_nnfhits[i]   = clust.NPulseTrainHits;
-    fData->clust_gof[i]       = clust.GoodnessOfFit;
-    fData->clust_ratio[i]     = clust.Ratio;
     fData->clust_timespan[i]  = clust.Timespan;
     fData->clust_starttime[i] = clust.StartTime;
     fData->clust_endtime[i]   = clust.EndTime;
     fData->clust_ismatch[i]   = clust.isMatched;
     fData->clust_blipid[i]    = clust.BlipID;
+    
+    //fData->clust_amp[i]       = Truncate(clust.Amplitude,0.1);
+    //fData->clust_rms[i]       = Truncate(clust.TimeErr,0.01);
+    //fData->clust_ratio[i]     = clust.Ratio;
+    //fData->clust_gof[i]    = clust.GoodnessOfFit;
 
     //std::cout<<"hit clust on plane "<<clust.Plane<<"   NWires "<<clust.NWires<<"    NHits "<<clust.NHits<<"   lHitRMS "<<clust.LeadHit->RMS()<<"   Span "<<clust.Timespan<<"   TimeErr "<<clust.TimeErr<<"  "<<clust.TimeErr/clust.Timespan<<"\n";
       
@@ -1468,15 +1502,15 @@ void BlipAna::analyze(const art::Event& evt)
       if( clust.Plane==fCaloPlane && abs(pdg) == 11 && q_dep > 2000 ) { //&& tdrift > 100 ) {
         h_qres_anode          ->Fill( (q_reco-q_anode)/q_anode );
         h_qres_dep            ->Fill( (q_reco-q_dep)/q_dep );
-        h_qratio_vtime_sim     ->Fill( tdrift, q_anode/q_dep );
-        h_qratio_vtime_reco ->Fill( tdrift, q_reco/q_dep );
+        h_qratio_vs_time_sim  ->Fill( tdrift, q_anode/q_dep );
+        h_qratio_vs_time_reco ->Fill( tdrift, q_reco/q_dep );
         h_adc_factor          ->Fill( clust.ADCs / q_anode );
         // calculate simulated lifetime from reco quantity
-        if( q_anode > 5000 ) {
-          float tau_ms = 1e-3 * tdrift / log(q_dep/q_anode);
-          h_sim_lifetime->Fill(tau_ms);
-          h_sim_timeconst->Fill(1/tau_ms);
-        }
+        //if( q_anode > 5000 ) {
+        //  float tau_ms = 1e-3 * tdrift / log(q_dep/q_anode);
+        //  h_sim_lifetime->Fill(tau_ms);
+        //  h_sim_timeconst->Fill(1/tau_ms);
+        //}
       }
     
     }
@@ -1520,7 +1554,7 @@ void BlipAna::analyze(const art::Event& evt)
     fData->blip_energy[i]     = blp.Energy;
     fData->blip_yzcorr[i]     = tpcCalib_provider.YZdqdxCorrection(fCaloPlane,blp.Position.Y(),blp.Position.Z());
 
-h_blip_charge             ->Fill(blp.Charge);
+    h_blip_charge             ->Fill(blp.Charge);
    
     for(size_t ipl = 0; ipl<kNplanes; ipl++){
       if( blp.clusters[ipl].NHits <= 0 ) continue;
@@ -1616,7 +1650,7 @@ void BlipAna::endJob(){
 
   float nEvents = float(fNumEvents);
  
-  BlipUtils::NormalizeHist(h_sim_lifetime);
+  //BlipUtils::NormalizeHist(h_sim_lifetime);
   BlipUtils::NormalizeHist(h_qres_anode);
   BlipUtils::NormalizeHist(h_qres_dep);
   BlipUtils::NormalizeHist(h_adc_factor);
@@ -1624,12 +1658,17 @@ void BlipAna::endJob(){
     BlipUtils::NormalizeHist(h_hitgof_mip[i]);
     BlipUtils::NormalizeHist(h_hitgof_iso[i]);
     BlipUtils::NormalizeHist(h_hitgof_isomatch[i]);
+    BlipUtils::NormalizeHist(h_hitgof_alpha[i]);
     BlipUtils::NormalizeHist(h_hitmult_mip[i]);
     BlipUtils::NormalizeHist(h_hitmult_iso[i]);
     BlipUtils::NormalizeHist(h_hitmult_isomatch[i]);
+    BlipUtils::NormalizeHist(h_hitmult_alpha[i]);
     BlipUtils::NormalizeHist(h_hitamp[i]);
     BlipUtils::NormalizeHist(h_hitrms[i]);
     BlipUtils::NormalizeHist(h_hitratio[i]);
+    BlipUtils::NormalizeHist(h_hitamp_alpha[i]);
+    BlipUtils::NormalizeHist(h_hitrms_alpha[i]);
+    BlipUtils::NormalizeHist(h_hitratio_alpha[i]);
   }
 
   printf("\n***********************************************\n");
