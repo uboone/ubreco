@@ -227,10 +227,12 @@ void TrackMasker::produce(art::Event & e)
   // check all un-tracked hits to determine if any
   // are within the veto radius.
   //**************************************************
+  
+  float vetoRadSq = pow(fVetoRadius,2);
 
   for( auto const& h : _flaggedhits ) {
     for(auto const& hh : planehitmap[hitlist[h]->WireID().Plane] ) {
-      // skip hits that are already vetoed or on wrong plane
+      // skip hits that are already vetoed
       if( hitIsVetoed[hh] ) continue;
       float dw = fabs(wtpoint.at(hh).X()-wtpoint.at(h).X());
       float dt = fabs(wtpoint.at(hh).Y()-wtpoint.at(h).Y());
@@ -239,7 +241,7 @@ void TrackMasker::produce(art::Event & e)
       // skip hits that are sufficiently separated in time
       if( dt > fVetoRadius ) continue;
       // finally, check 2D proximity
-      if( sqrt( pow(dw,2)+pow(dt,2) ) > fVetoRadius ) continue;
+      if( (pow(dw,2)+pow(dt,2)) > vetoRadSq ) continue;
       _vetohits.push_back(hh);
       hitIsVetoed[hh] = true;
     }
