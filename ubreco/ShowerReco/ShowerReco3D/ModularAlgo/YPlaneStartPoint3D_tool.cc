@@ -65,6 +65,7 @@ namespace showerreco {
     
     // get the proto-shower 3D vertex
     auto const& vtx3D = proto_shower.vertex();
+    auto const vtx3D_pt = geo::vect::toPoint(vtx3D);
     auto const& dir3D = resultShower.fDCosStart;
     double d2D;
 
@@ -90,8 +91,8 @@ namespace showerreco {
       // project vertex onto this plane
       //auto const& vtx2D = util::PxPoint(pl,0,0);//geomH->Get2DPointProjection(vtx,pl);
       auto const* geom = ::lar::providerFrom<geo::Geometry>();
-      auto wire = geom->WireCoordinate(vtx3D[1],vtx3D[2],geo::PlaneID(0,0,pl)) * _wire2cm;
-      auto time = vtx3D[0];
+      auto wire = geom->WireCoordinate(vtx3D_pt,geo::PlaneID(0,0,pl)) * _wire2cm;
+      auto time = vtx3D.X();
       auto const& start = clus._start;
 
       util::PxPoint vtx2D(pl,wire,time);

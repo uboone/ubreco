@@ -85,7 +85,7 @@ namespace showerreco {
     }
     
     // get the proto-shower 3D vertex
-    auto const& vtx = proto_shower.vertex();
+    auto const vtx = geo::vect::toPoint(proto_shower.vertex());
 
     std::vector<double> dir3D = {0,0,0};
 
@@ -108,12 +108,12 @@ namespace showerreco {
       //auto const& vtx2D = geomH.Get2DPointProjectionCM(vtx,pl);
       // get wire for yz pointx
       auto const* geom = ::lar::providerFrom<geo::Geometry>();
-      auto wire = geom->WireCoordinate(vtx[1],vtx[2],geo::PlaneID(0,0,pl)) * _wire2cm;
-      auto time = vtx[0];
+      auto wire = geom->WireCoordinate(vtx,geo::PlaneID(0,0,pl)) * _wire2cm;
+      auto time = vtx.X();
       util::PxPoint vtx2D(pl,wire,time);
 
       if (_verbose){
-	std::cout << "3D vertex : [ " << vtx[0] << ", " << vtx[1] << ", " << vtx[2] << " ]" << std::endl;
+        std::cout << "3D vertex : [ " << vtx.X() << ", " << vtx.Y() << ", " << vtx.Z() << " ]" << std::endl;
 	std::cout << "2D projection of vtx on plane " << pl << " @ [w,t] -> [ " << vtx2D.w << ", " << vtx2D.t << "]" <<  std::endl;
       }
 

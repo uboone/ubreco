@@ -36,10 +36,9 @@
 
 #include "TTree.h"
 #include "art_root_io/TFileService.h"
+
 #include <memory>
-
-class Gamma3D;
-
+#include <tuple>
 
 class Gamma3D : public art::EDProducer {
 public:
@@ -460,17 +459,16 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
       for(size_t m=0;m<(track.NumberTrajectoryPoints());m++){//START RECO POINT LOOP
 
 
-        X_reco=track.LocationAtPoint(m).X();
-        Y_reco=track.LocationAtPoint(m).Y();
-        Z_reco=track.LocationAtPoint(m).Z();
+        auto const& track_loc = track.LocationAtPoint(m);
+        std::tie(X_reco, Y_reco, Z_reco) = std::make_tuple(track_loc.X(), track_loc.Y(), track_loc.Z());
 
 
         auto const* geom = ::lar::providerFrom<geo::Geometry>();
-        auto V_wire_cm = geom->WireCoordinate(Y_reco,Z_reco,geo::PlaneID(0,0,1)) * wire2cm;
+        auto V_wire_cm = geom->WireCoordinate(track_loc,geo::PlaneID(0,0,1)) * wire2cm;
 
         auto V_time_cm = X_reco;
 
-        auto U_wire_cm = geom->WireCoordinate(Y_reco,Z_reco,geo::PlaneID(0,0,0)) * wire2cm;
+        auto U_wire_cm = geom->WireCoordinate(track_loc,geo::PlaneID(0,0,0)) * wire2cm;
 
         auto U_time_cm = X_reco;
 

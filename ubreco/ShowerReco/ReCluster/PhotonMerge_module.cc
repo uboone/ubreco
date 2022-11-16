@@ -188,12 +188,10 @@ void PhotonMerge::produce(art::Event & e)
   _clusterMaker.loadVertex(clockData, vtx_h);
 
   // load vertex and project on collection-plane
-  auto const vtx = vtx_h->at(0);
-  Double_t xyz[3] = {};
-  vtx.XYZ(xyz);
+  auto const& vtx = vtx_h->at(0).position();
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
-  _vtxW = geom->WireCoordinate(xyz[1],xyz[2],geo::PlaneID(0,0,2)) * _wire2cm;
-  _vtxT = xyz[0];
+  _vtxW = geom->WireCoordinate(vtx,geo::PlaneID(0,0,2)) * _wire2cm;
+  _vtxT = vtx.X();
   if (fDebug) std::cout << "\n\t Vertex @ Pl 2 : [w,t] -> [" << _vtxW << ", " << _vtxT << "]" << std::endl;
 
   // create polygon objects for each photon cluster.
