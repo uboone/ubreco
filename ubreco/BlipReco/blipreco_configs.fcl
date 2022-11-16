@@ -36,6 +36,8 @@ microboone_blipalg:
   SimGainFactor:        0.826           #// gain fudge factor applied in WireCell detsim
   MaxHitTrkLength:      5.0             #// hits in trks > this length will be vetoed [cm]
   DoHitFiltering:       true            #// filter hits based on amp, width, RMS
+  MinHitGOF:            [0, 0, 0]       #// -- exclude pulse-train hits
+  MinHitRMS:            [0, 0, 2.5]     #// -- exclude narrow noise-like hits on collection plane
   MaxWiresInCluster:    10              #// max allowable wires in a cluster
   MaxClusterSpan:       50              #// max allowable time-ticks of a cluster
   ClustMatchMinOverlap: 0.5             #// minimum fractional overlap to be eligible for matching

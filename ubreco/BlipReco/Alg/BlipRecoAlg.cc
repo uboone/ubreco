@@ -350,17 +350,16 @@ namespace blip {
           std::vector<simb::MCParticle const*> pvec;
           std::vector<anab::BackTrackerHitMatchingData const*> btvec;
           fmhh.get(igh,pvec,btvec);
-          //float maxQ = -9;
+          float maxQ = -9;
           for(size_t j=0; j<pvec.size(); j++){
             hitinfo[i].g4energy += btvec.at(j)->energy;
             hitinfo[i].g4charge += btvec.at(j)->numElectrons;
-            if( btvec.at(j)->isMaxIDEN ) {
-            //if( q_anode > maxQ ) {
-              //maxQ = q_anode;
+            //if( btvec.at(j)->isMaxIDEN ) {
+            if( btvec.at(j)->numElectrons > maxQ ) {
+              maxQ = btvec.at(j)->numElectrons;
               hitinfo[i].g4trkid= pvec.at(j)->TrackId();
               hitinfo[i].g4pdg  = pvec.at(j)->PdgCode();
               hitinfo[i].g4frac = btvec.at(j)->ideNFraction;
-              //hitinfo[i].g4frac = btvec.at(j)->ideFraction;
             }
           }
           // fraction of hit charge attributed to 'g4trkid' particle
@@ -444,11 +443,11 @@ namespace blip {
         if( hit->Multiplicity()   >= fMaxHitMult )       continue;
         if( hitinfo[i].gof        <= fMinHitGOF[plane] ) continue;
         if( hitinfo[i].gof        >= fMaxHitGOF[plane] ) continue;
+        float hit_ratio = hit->RMS() / hit->PeakAmplitude();
+        if( hit_ratio             < fMinHitRatio[plane] ) continue;
+        if( hit_ratio             > fMaxHitRatio[plane] ) continue;
         //if( hit->PeakAmplitude()  <= fMinHitAmp[plane] ) continue;
         //if( hit->PeakAmplitude()  >= fMaxHitAmp )        continue;
-        //float hit_ratio = hit->RMS() / hit->PeakAmplitude();
-        //if( hit_ratio < fMinHitRatio[plane] ) continue;
-        //if( hit_ratio > fMaxHitRatio[plane] ) continue;
         
         // we survived the gauntlet of cuts -- hit is good!
         hitIsGood[i] = true;
@@ -773,22 +772,13 @@ namespace blip {
     // Loop over the vector of blips and do more stuff for each
     for(size_t i=0; i<blips.size(); i++){
       auto& blip = blips[i];
-
-      // ================================================================================
+      
+      blip.Charge = blip.clusters[fCaloPlane].Charge;
+      
+      // --- YZ uniformity correction ---
       // Correct for charge-collection non-uniformity based on Y/Z position
       // (taken from CalibrationdEdx_module)
-      if( fYZUniformityCorr ) {
-        float Y = blip.Position.Y();
-        float Z = blip.Position.Z();
-        for(size_t j=0; j<kNplanes; j++){
-          if( blip.clusters[j].Charge <= 0 ) continue;
-          float corrFactor = tpcCalib_provider.YZdqdxCorrection(j,Y,Z);
-          blip.clusters[j].Charge *= corrFactor;
-        }
-      }
-      
-      // Set the charge for use in calorimetry
-      blip.Charge = blip.clusters[fCaloPlane].Charge;
+      if( fYZUniformityCorr ) blip.Charge *= tpcCalib_provider.YZdqdxCorrection(fCaloPlane,blip.Position.Y(),blip.Position.Z());
 
       // ================================================================================
       // Calculate blip energy assuming T = T_beam (eventually can do more complex stuff
@@ -800,6 +790,7 @@ namespace blip {
       float depEl   = std::max(0.0,(double)blip.Charge);
       float Efield  = detProp->Efield();
       float EfieldMod = Efield;
+      
 
       // --- Lifetime correction ---
       // Ddisabled by default. Without knowing real T0 of a blip, attempting to 
@@ -838,7 +829,8 @@ namespace blip {
         }
 
       }
-
+      
+       
       // METHOD 1
       //float recomb = BlipUtils::ModBoxRecomb(fCalodEdx,EfieldMod);
       float recomb = ModBoxRecomb(fCalodEdx,EfieldMod);
