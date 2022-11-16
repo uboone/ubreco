@@ -1,0 +1,23 @@
+BEGIN_PROLOG
+
+gaushit_wc:
+{ 
+  module_type:   "FilteredHitsProducer"
+  HitLabel:      "gaushit"
+  MatchHitLabel: "portedThresholdhit"
+  HitTruthLabel: ""
+  RMScut:        3.
+  isMC:          false
+}
+
+gaushitTruth_wc:
+{ 
+  module_type:   "FilteredHitsTruthProducer"
+  HitLabel:      "gaushit::OverlayStage1a"
+  FiltHitLabel:  "gaushit"
+  HitTruthLabel: "gaushitTruthMatch"
+  RMScut:        0.0001 #this is to indentify the same hit in two different collections
+  isMC:          true
+}
+
+END_PROLOG
