@@ -485,13 +485,12 @@ void FlashNeutrinoId::FlashCandidate::GetFlashLocation()
     art::ServiceHandle<geo::Geometry> geometry;
     for (unsigned int opdet = 0; opdet < m_peSpectrum.size(); opdet++)
     {
-        double PMTxyz[3];
-        geometry->OpDetGeoFromOpDet(opdet).GetCenter(PMTxyz);
+        auto const PMTxyz = geometry->OpDetGeoFromOpDet(opdet).GetCenter();
         // Add up the position, weighting with PEs
-        sumy += m_peSpectrum[opdet] * PMTxyz[1];
-        sumy2 += m_peSpectrum[opdet] * PMTxyz[1] * PMTxyz[1];
-        sumz += m_peSpectrum[opdet] * PMTxyz[2];
-        sumz2 += m_peSpectrum[opdet] * PMTxyz[2] * PMTxyz[2];
+        sumy += m_peSpectrum[opdet] * PMTxyz.Y();
+        sumy2 += m_peSpectrum[opdet] * PMTxyz.Y() * PMTxyz.Y();
+        sumz += m_peSpectrum[opdet] * PMTxyz.Z();
+        sumz2 += m_peSpectrum[opdet] * PMTxyz.Z() * PMTxyz.Z();
         m_totalPE += m_peSpectrum[opdet];
     }
     m_centerY = sumy / m_totalPE;
@@ -1317,9 +1316,8 @@ float FlashNeutrinoId::SliceCandidate::RunOpHitFinder(double the_time, double tr
 
         //size_t opdet = geo->OpDetFromOpChannel(oh->OpChannel());
 
-        double pmt_xyz[3] = {-9999, -9999, -9999};
-        geo->OpDetGeoFromOpChannel(oh->OpChannel()).GetCenter(pmt_xyz);
-        double pmt_z = pmt_xyz[2];
+        auto const pmt_xyz = geo->OpDetGeoFromOpChannel(oh->OpChannel()).GetCenter();
+        double pmt_z = pmt_xyz.Z();
 
         double dz = 1e9;
         if (pmt_z > trk_z_start && pmt_z < trk_z_end)

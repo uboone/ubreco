@@ -34,7 +34,10 @@ namespace pmtana {
 
   void OpDetCenterFromOpChannel(size_t opch, double *xyz) {
     ::art::ServiceHandle<geo::Geometry> geo;
-    geo->OpDetGeoFromOpChannel(opch).GetCenter(xyz); 
+    auto const tmp = geo->OpDetGeoFromOpChannel(opch).GetCenter();
+    xyz[0] = tmp.X();
+    xyz[1] = tmp.Y();
+    xyz[2] = tmp.Z();
   }
 
 }

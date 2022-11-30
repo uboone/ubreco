@@ -126,11 +126,10 @@ namespace flashana {
     std::vector<double> pmt_z_pos(geo->NOpDets());
     for (uint i=0; i< geo->NOpDets(); ++i)
     {
-      Double_t xyz[3] ={};
-      geo->OpDetGeoFromOpChannel(i).GetCenter(xyz);
-      pmt_x_pos[i]=xyz[0];
-      pmt_y_pos[i]=xyz[1];
-      pmt_z_pos[i]=xyz[2];
+      auto const xyz = geo->OpDetGeoFromOpChannel(i).GetCenter();
+      pmt_x_pos[i]=xyz.X();
+      pmt_y_pos[i]=xyz.Y();
+      pmt_z_pos[i]=xyz.Z();
     }
 
     auto const flash_filter_name = mgr_cfg.get<std::string>("FlashFilterAlgo","");

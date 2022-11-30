@@ -424,13 +424,12 @@ void StoreFlashMatchChi2::produce(art::Event& e)
   
   for (unsigned int opdet = 0; opdet < PEspectrum.size(); opdet++)
     {
-      double PMTxyz[3];
-      geometry->OpDetGeoFromOpDet(opdet).GetCenter(PMTxyz);
+      auto const PMTxyz = geometry->OpDetGeoFromOpDet(opdet).GetCenter();
       // Add up the position, weighting with PEs
-      sumy += PEspectrum[opdet] * PMTxyz[1];
-      sumy2 += PEspectrum[opdet] * PMTxyz[1] * PMTxyz[1];
-      sumz += PEspectrum[opdet] * PMTxyz[2];
-      sumz2 += PEspectrum[opdet] * PMTxyz[2] * PMTxyz[2];
+      sumy += PEspectrum[opdet] * PMTxyz.Y();
+      sumy2 += PEspectrum[opdet] * PMTxyz.Y() * PMTxyz.Y();
+      sumz += PEspectrum[opdet] * PMTxyz.Z();
+      sumz2 += PEspectrum[opdet] * PMTxyz.Z() * PMTxyz.Z();
       totalPE += PEspectrum[opdet];
     }
   flash.y = sumy / totalPE;

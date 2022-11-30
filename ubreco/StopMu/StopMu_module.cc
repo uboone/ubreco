@@ -405,7 +405,7 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
   double efield = detProp.Efield();
   double temp   = detProp.Temperature();
-  _wire2cm = geom->WirePitch(0,0,0);
+  _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
   _time2cm = sampling_rate(clockData) / 1000.0 * detProp.DriftVelocity(efield, temp);
 
   _tmean.setRadius(10);

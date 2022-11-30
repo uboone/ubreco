@@ -87,7 +87,7 @@ namespace showerreco {
 
         if ((int) c._plane != worstPlane) {
             wireStarts.emplace_back(
-                int(c._start.w / geom -> WirePitch(0) ) ) ;
+               int(c._start.w / geom -> WirePitch(geo::PlaneID{0, 0, 0}) ) ) ;
             planes.emplace_back( c._plane ) ;
             sX += c._start.t;
         }
@@ -104,13 +104,19 @@ namespace showerreco {
     }
 
     // check start/end point range
-    if ( (wireStarts.at(0) > geom->Nwires(planes.at(0))) or (wireStarts.at(1) > geom->Nwires(planes.at(1))) ) {
+    constexpr geo::TPCID tpcid{0, 0};
+    geo::PlaneID const plane_0(tpcid, planes.at(0));
+    geo::PlaneID const plane_1(tpcid, planes.at(1));
+
+    if ( wireStarts.at(0) > geom->Nwires(plane_0) or
+         wireStarts.at(1) > geom->Nwires(plane_1) ) {
       std::stringstream ss;
       ss << "Fail @ algo " << this->name() << " due to wires out of range";
       throw ShowerRecoException(ss.str());
     } 
 
-    geom->IntersectionPoint(wireStarts.at(0) , wireStarts.at(1) , planes.at(0), planes.at(1), 0, 0, sY, sZ );
+    geom->IntersectionPoint(geo::WireID(plane_0, wireStarts.at(0)),
+                            geo::WireID(plane_1, wireStarts.at(1)), sY, sZ );
 
     // check if reconstructed start point is outside of TPC volume    
     /*

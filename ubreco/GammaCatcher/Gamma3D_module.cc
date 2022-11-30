@@ -1445,7 +1445,7 @@ void Gamma3D::beginJob()
   auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
   double efield = detProp.Efield();
   double temp   = detProp.Temperature();
-  wire2cm = geom->WirePitch(0,0,0);
+  wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
   time2cm = sampling_rate(clockData) / 1000.0 * detProp.DriftVelocity(efield, temp);
 
 
