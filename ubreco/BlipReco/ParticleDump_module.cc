@@ -310,7 +310,7 @@ class ParticleDump;
           //std::string timeString = stream.str();
 
           //printf("  %5i PDG: %11i, dL: %5.1fcm, XYZ: (%7.1f,%7.1f,%7.1f),  KE0: %7.3f, KEf: %7.3f, T0: %8.8s, moth: %5i, %20.20s -->%20.20s, nD: %i\n",
-          printf("  %5i PDG: %11i, dL: %6.1fcm, XYZ: (%7.1f,%7.1f,%7.1f),  dir: (%5.3f, %5.3f, %5.3f), KE0: %7.3f, T0: %7.2f us, moth: %5i, %18.18s -->%18.18s, nD: %i\n",
+          printf("  %5i PDG: %11i, dL: %6.1fcm, XYZ: (%7.1f,%7.1f,%7.1f),  dir: (%5.2f, %5.2f, %5.2f), KE0: %7.3f, T0: %7.2f us, moth: %5i, %18.18s -->%18.18s, nD: %i\n",
             trackId,
             pdg,
             dL,

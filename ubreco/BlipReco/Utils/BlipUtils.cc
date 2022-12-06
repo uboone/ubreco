@@ -240,7 +240,7 @@ namespace BlipUtils {
       float endTime       = -9e9;
       float weightedTime  = 0;
       float weightedGOF   = 0;
-      float weightedRatio = 0;
+      //float weightedRatio = 0;
       float qGOF          = 0;
 
       // store hit times, charges, and RMS
@@ -269,7 +269,7 @@ namespace BlipUtils {
           hc.NPulseTrainHits++;
         } else { 
           weightedGOF   += q*hitinfo.gof; 
-          weightedRatio += q*(hitinfo.rms/hitinfo.amp);
+          //weightedRatio += q*(hitinfo.rms/hitinfo.amp);
           qGOF          += q;
         }
       }//endloop over hits
@@ -277,7 +277,7 @@ namespace BlipUtils {
       // mean goodness of fit
       if( qGOF ) {
         hc.GoodnessOfFit = weightedGOF/qGOF;
-        hc.Ratio         = weightedRatio/qGOF;
+        //hc.Ratio         = weightedRatio/qGOF;
       }
 
       // calculate other quantities
@@ -300,7 +300,7 @@ namespace BlipUtils {
         dt_sumSq  += w*pow(tvec[i]-hc.Time,2);
         sig_sumSq += pow(w*rmsvec[i],2);
       }
-      hc.TimeErr = sqrt( sig_sumSq + dt_sumSq );
+      hc.RMS = sqrt( sig_sumSq + dt_sumSq );
 
     }//endif > 0 hits
   
@@ -714,9 +714,24 @@ namespace BlipUtils {
   //==========================================================================
   void NormalizeHist(TH1D* h){
     if( h->GetEntries() > 0 ) {
-      h->Scale(1./h->GetEntries());
+      //h->Scale(1./h->GetEntries());
+      h->Scale(1./h->Integral());
       h->SetBit(TH1::kIsAverage);
       h->SetOption("HIST");
+    }
+  }
+
+
+  float FindMedian(std::vector<float>& vec){
+    if( !vec.size() ) return -9;
+    size_t n = vec.size() / 2;
+    std::nth_element(vec.begin(),vec.begin()+n,vec.end());
+    if( n % 2 != 0 ) { // odd number of elements
+      return vec[n];
+    }else{
+      float a = vec[n]; 
+      std::nth_element(vec.begin(),vec.begin()+n-1,vec.end());
+      return (a + vec[n-1]) / 2.0; 
     }
   }
 

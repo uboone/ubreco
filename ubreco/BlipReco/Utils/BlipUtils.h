@@ -78,6 +78,7 @@ namespace BlipUtils {
   bool    IsPointAtBnd(float,float,float);
   bool    IsPointAtBnd(TVector3&);
   void    NormalizeHist(TH1D*);
+  float   FindMedian(std::vector<float>&);
   
 }
 

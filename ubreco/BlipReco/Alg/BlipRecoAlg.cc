@@ -14,7 +14,8 @@ namespace blip {
 
     printf("******************************************\n");
     printf("Initializing BlipRecoAlg...\n");
-    printf("  - Efield: %f kV/cm\n",detProp->Efield(0));
+    printf("  - Efield: %f kV/cm\n",detProp->Efield());
+    printf("  - Drift velocity: %f\n",detProp->DriftVelocity(detProp->Efield(),detProp->Temperature()));
     printf("  - using dE/dx: %f MeV/cm\n",fCalodEdx);
     printf("  - equiv. recomb: %f\n",ModBoxRecomb(fCalodEdx,detProp->Efield(0)));
     printf("*******************************************\n");
@@ -82,9 +83,10 @@ namespace blip {
     
     fTrueBlipMergeDist  = pset.get<float>         ("TrueBlipMergeDist", 0.3);
     
-    fDoHitFiltering     = pset.get<bool>                ("DoHitFiltering",  true);
     fMaxHitTrkLength    = pset.get<float>               ("MaxHitTrkLength", 5);
-    fMaxHitMult         = pset.get<int>                 ("MaxHitMult",      9999);
+    
+    fDoHitFiltering     = pset.get<bool>                ("DoHitFiltering",  false);
+    fMaxHitMult         = pset.get<int>                 ("MaxHitMult",      10);
     fMaxHitAmp          = pset.get<float>               ("MaxHitAmp",       200);  
     fMinHitAmp          = pset.get<std::vector<float>>  ("MinHitAmp",       {-99e9,-99e9,-99e9});
     fMaxHitRMS          = pset.get<std::vector<float>>  ("MaxHitRMS",       { 99e9, 99e9, 99e9});
@@ -120,6 +122,7 @@ namespace blip {
     fYZUniformityCorr   = pset.get<bool>          ("YZUniformityCorrection",true);
     fModBoxA            = pset.get<float>         ("ModBoxA",             0.93);
     fModBoxB            = pset.get<float>         ("ModBoxB",             0.212);
+    fWion               = pset.get<float>         ("Wion",                23.6e-6);
   }
 
 
@@ -152,9 +155,10 @@ namespace blip {
     //========================================
     
     // --- detector properties
-    const auto& SCE_provider       = reinterpret_cast<spacecharge::SpaceChargeMicroBooNE const*>(lar::providerFrom<spacecharge::SpaceChargeService>());
-    const auto& lifetime_provider  = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
-    auto const& tpcCalib_provider  = art::ServiceHandle<lariov::TPCEnergyCalibService>()->GetProvider();
+    //const auto& SCE_provider       = reinterpret_cast<spacecharge::SpaceChargeMicroBooNE const*>(lar::providerFrom<spacecharge::SpaceChargeService>());
+    auto const& SCE_provider        = lar::providerFrom<spacecharge::SpaceChargeService>();
+    auto const& lifetime_provider   = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
+    auto const& tpcCalib_provider   = art::ServiceHandle<lariov::TPCEnergyCalibService>()->GetProvider();
 
     // -- geometry
     art::ServiceHandle<geo::Geometry> geom;
@@ -350,11 +354,12 @@ namespace blip {
           std::vector<simb::MCParticle const*> pvec;
           std::vector<anab::BackTrackerHitMatchingData const*> btvec;
           fmhh.get(igh,pvec,btvec);
+          //std::cout<<"Hit "<<i<<", "<<plane<<"/"<<thisHit->WireID().Wire<<", matches to "<<pvec.size()<<" particles\n";
           float maxQ = -9;
           for(size_t j=0; j<pvec.size(); j++){
+            //std::cout<<"  "<<pvec.at(j)->TrackId()<<"    "<<btvec.at(j)->numElectrons<<" electrons\n";
             hitinfo[i].g4energy += btvec.at(j)->energy;
             hitinfo[i].g4charge += btvec.at(j)->numElectrons;
-            //if( btvec.at(j)->isMaxIDEN ) {
             if( btvec.at(j)->numElectrons > maxQ ) {
               maxQ = btvec.at(j)->numElectrons;
               hitinfo[i].g4trkid= pvec.at(j)->TrackId();
@@ -431,23 +436,24 @@ namespace blip {
       }
     }
 
-    // Filter based on hit properties
+    // Filter based on hit properties. For hits that are a part of
+    // multi-gaussian fits (multiplicity > 1), need to re-think this.
     if( fDoHitFiltering ) {
       for(size_t i=0; i<hitlist.size(); i++){
         if( !hitIsGood[i] ) continue;
         hitIsGood[i] = false;
         auto& hit = hitlist[i];
         int plane = hit->WireID().Plane;
-        if( hit->RMS()            <= fMinHitRMS[plane] ) continue;
-        if( hit->RMS()            >= fMaxHitRMS[plane] ) continue;
-        if( hit->Multiplicity()   >= fMaxHitMult )       continue;
         if( hitinfo[i].gof        <= fMinHitGOF[plane] ) continue;
         if( hitinfo[i].gof        >= fMaxHitGOF[plane] ) continue;
-        float hit_ratio = hit->RMS() / hit->PeakAmplitude();
-        if( hit_ratio             < fMinHitRatio[plane] ) continue;
-        if( hit_ratio             > fMaxHitRatio[plane] ) continue;
+        if( hit->RMS()            <= fMinHitRMS[plane] ) continue;
+        if( hit->RMS()            >= fMaxHitRMS[plane] ) continue;
         //if( hit->PeakAmplitude()  <= fMinHitAmp[plane] ) continue;
         //if( hit->PeakAmplitude()  >= fMaxHitAmp )        continue;
+        //if( hit->Multiplicity()   >= fMaxHitMult )       continue;
+        //float hit_ratio = hit->RMS() / hit->PeakAmplitude();
+        //if( hit_ratio             < fMinHitRatio[plane] ) continue;
+        //if( hit_ratio             > fMaxHitRatio[plane] ) continue;
         
         // we survived the gauntlet of cuts -- hit is good!
         hitIsGood[i] = true;
@@ -631,7 +637,7 @@ namespace blip {
               if( fabs(dt) > fMatchMaxTicks ) continue;
               
               // Charge-weighted mean:
-              float sigmaT = std::sqrt(pow(hcA.TimeErr,2)+pow(hcB.TimeErr,2));
+              float sigmaT = std::sqrt(pow(hcA.RMS,2)+pow(hcB.RMS,2));
               float dtfrac = (hcB.Time - hcA.Time) / sigmaT;
               h_clust_dtfrac[planeB]->Fill(dtfrac);
               if( fabs(dtfrac) > fMatchSigmaFact ) continue;
@@ -834,7 +840,7 @@ namespace blip {
       // METHOD 1
       //float recomb = BlipUtils::ModBoxRecomb(fCalodEdx,EfieldMod);
       float recomb = ModBoxRecomb(fCalodEdx,EfieldMod);
-      blip.Energy = depEl * (1./recomb) * 23.6e-6;
+      blip.Energy = depEl * (1./recomb) * fWion;
       
       h_efield                ->Fill(EfieldMod*1e3);
       h_recomb                ->Fill(recomb);
@@ -868,6 +874,14 @@ namespace blip {
     float rho = detProp->Density();
     float Xi = fModBoxB * dEdx / ( Efield * rho );
     return log(fModBoxA+Xi)/Xi;
+  }
+
+  float BlipRecoAlg::dQdx_to_dEdx(float dQdx_e, float Efield){
+    float rho = detProp->Density();
+    float beta  = fModBoxB / (rho * Efield);
+    float alpha = fModBoxA;
+    float Wion = 1000./util::kGeVToElectrons;
+    return ( exp( beta * Wion * dQdx_e ) - alpha ) / beta;
   }
   
   

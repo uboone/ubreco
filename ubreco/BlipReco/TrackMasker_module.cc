@@ -163,17 +163,17 @@ void TrackMasker::produce(art::Event & e)
   
   // Map of track ID to track length
   std::map<size_t,double> trklmap;
+  std::map<size_t,bool>   flagged_trks;
   for( size_t t=0; t < trklist.size(); t++ ) {
     auto const& trk = trklist[t];
     // must be some minimum length
     if (trk->Length() < fMinTrkLength) continue;
     // and track length must be < twice start-end distance
-    //if (trk->Length() > 2 * (trk->Vertex()-trk->End()).R() ) continue;
+    if (trk->Length() > 2 * (trk->Vertex()-trk->End()).R() ) continue;
     trklmap[trk->ID()] = (double)trk->Length();
+    if (trk->Length() < fMinTrkLengthVeto) continue;
+    flagged_trks[trk->ID()] = true;
   }
-  std::cout<<" --> "<<trklmap.size()<<" of those tracks pass trk length cut (> "<<fMinTrkLength<<" cm)\n";
-
-
 
   //***************************************************
   // Now categorize hits as 'tracked' or 'untracked'
@@ -198,13 +198,11 @@ void TrackMasker::produce(art::Event & e)
     auto const& trk_v = hit_trk_assn_v.at(h);
     if( trk_v.size() ) {
       size_t trkID = trk_v.at(0)->ID();
-      double len = trklmap[trkID];
-      if( len > 0 ) {
+      if( trklmap[trkID] > 0 ) { 
         hitIsVetoed[h] = true;
         _vetohits.push_back(h);
-        if( len >= fMinTrkLengthVeto ){
+        if( flagged_trks[trkID] ) 
           _flaggedhits.push_back(h);
-        }
       }
     }//endif track association exists
     
@@ -234,11 +232,11 @@ void TrackMasker::produce(art::Event & e)
     for(auto const& hh : planehitmap[hitlist[h]->WireID().Plane] ) {
       // skip hits that are already vetoed
       if( hitIsVetoed[hh] ) continue;
-      float dw = fabs(wtpoint.at(hh).X()-wtpoint.at(h).X());
-      float dt = fabs(wtpoint.at(hh).Y()-wtpoint.at(h).Y());
       // skip hits on far-away wires
+      float dw = fabs(wtpoint.at(hh).X()-wtpoint.at(h).X());
       if( dw > fVetoRadius ) continue;
       // skip hits that are sufficiently separated in time
+      float dt = fabs(wtpoint.at(hh).Y()-wtpoint.at(h).Y());
       if( dt > fVetoRadius ) continue;
       // finally, check 2D proximity
       if( (pow(dw,2)+pow(dt,2)) > vetoRadSq ) continue;

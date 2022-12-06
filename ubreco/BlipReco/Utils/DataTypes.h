@@ -106,7 +106,7 @@ namespace blip {
     float   Amplitude       = -999;
     float   Charge          = -999;
     float   Time            = -999;
-    float   TimeErr         = -999;
+    float   RMS             = -999;
     float   StartHitTime    = -999;
     float   EndHitTime      = -999;
     float   StartTime       = -999;
@@ -116,7 +116,7 @@ namespace blip {
     int     EndWire         = -999;
     int     NPulseTrainHits = -9;
     float   GoodnessOfFit   = -999;
-    float   Ratio           = -9;
+    //float   Ratio           = -9;
     int     BlipID          = -9;
     int     EdepID          = -9;
     si_t    HitIDs;

@@ -29,6 +29,7 @@ art_make(    LIBRARY_NAME ubreco_BlipUtils
                            ${ROOT_GDML}
                            ${ROOT_BASIC_LIB_LIST}
                            ${Boost_SYSTEM_LIBRARY}
+                           ubevt_Database
         )
 
 install_headers()

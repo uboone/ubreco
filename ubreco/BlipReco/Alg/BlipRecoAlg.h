@@ -42,8 +42,10 @@
 #include "ubevt/Database/TPCEnergyCalib/TPCEnergyCalibProvider.h"
 #include "ubevt/Database/UbooneElectronLifetimeProvider.h"
 #include "ubevt/Database/UbooneElectronLifetimeService.h"
-#include "ubevt/SpaceChargeServices/SpaceChargeServiceMicroBooNE.h"
-#include "ubevt/SpaceCharge/SpaceChargeMicroBooNE.h"
+//#include "ubevt/SpaceChargeServices/SpaceChargeServiceMicroBooNE.h"
+//#include "ubevt/SpaceCharge/SpaceChargeMicroBooNE.h"
+#include "larevt/SpaceCharge/SpaceCharge.h"
+#include "larevt/SpaceChargeServices/SpaceChargeService.h"
 
 // Blip-specific utils
 #include "ubreco/BlipReco/Utils/BlipUtils.h"
@@ -86,6 +88,7 @@ namespace blip {
     
     calo::CalorimetryAlg*   fCaloAlg;
     float   ModBoxRecomb(float,float);
+    float   dQdx_to_dEdx(float,float);
 
    private:
    
@@ -135,6 +138,7 @@ namespace blip {
     bool                fYZUniformityCorr;
     float               fModBoxA;
     float               fModBoxB;
+    float               fWion;
   
     // --- Histograms ---
     TH1D*   h_clust_nwires;
