@@ -1,23 +1,23 @@
-#include "calorimetry_microboone.fcl"
-
 BEGIN_PROLOG
 
 # ===================================
-# CalAreaConstants used in MCC9 MC
+# CalAreaConstants used in MCC9
+# DocDB-18982: 
+#   235 +/- 9 e/ADC in ext data --> 4.26e-3 ADC/e
+#   245 +/- 10 e/ADC in fullMC --> 4.08e-3 ADC/e
+#
 microboone_calo_mcc9_mc:
 {
-  CalAreaConstants: [ 4.08e-3,3.97e-3,4.21e-3 ]
-  CalAmpConstants:  [ 9.2e-4, 1.062e-3, 1.084e-3 ]
+  CalAreaConstants: [ 4.08e-3, 3.97e-3, 4.08e-3 ]
+  CalAmpConstants:  [ 9.2e-4,  1.06e-3, 1.08e-3 ]
   CaloDoLifeTimeCorrection: false
   CaloLifeTimeForm: 0
   CaloUseModBox: true
 }
-
-# CalAreaConstants used in MCC9 data and MC overlay
 microboone_calo_mcc9_data:
 {
-  CalAreaConstants: [ 4.31e-3, 4.02e-3, 4.10e-3  ]
-  CalAmpConstants:  [ 9.2e-4, 1.062e-3, 1.084e-3 ]
+  CalAreaConstants: [ 4.31e-3, 4.02e-3, 4.26e-3 ]
+  CalAmpConstants:  [ 9.2e-4, 1.062e-3, 1.08e-3 ]
   CaloDoLifeTimeCorrection: false
   CaloLifeTimeForm: 0
   CaloUseModBox: true
@@ -37,7 +37,7 @@ microboone_blipalg:
   MaxHitTrkLength:      5.0             #// hits in trks > this length will be vetoed [cm]
   DoHitFiltering:       true            #// filter hits based on amp, width, RMS
   MinHitGOF:            [0, 0, 0]       #// -- exclude pulse-train hits
-  MinHitRMS:            [0, 0, 2.5]     #// -- exclude narrow noise-like hits on collection plane
+  #MinHitRMS:            [0, 0, 2.5]     #// -- exclude narrow noise-like hits on collection plane
   MaxWiresInCluster:    10              #// max allowable wires in a cluster
   MaxClusterSpan:       50              #// max allowable time-ticks of a cluster
   ClustMatchMinOverlap: 0.5             #// minimum fractional overlap to be eligible for matching
@@ -76,6 +76,7 @@ microboone_blipana_data.SaveTruthInfo:      false
 
 microboone_blipana_fullmc:                          @local::microboone_blipana
 microboone_blipana_fullmc.BlipAlg.CaloAlg:          @local::microboone_calo_mcc9_mc
+#microboone_blipana_fullmc.BlipAlg.SimGainFactor:    1.0
 #microboone_blipana_fullmc.SaveHitInfo:      true
 
 # ===============================================
