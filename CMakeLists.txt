@@ -62,6 +62,7 @@ find_ups_product( larcore )
 find_ups_product( nutools )
 find_ups_product( eigen )
 find_ups_product( ubobj )
+find_ups_product( ubevt )
 find_library( SWTRIG_LIBBASE NAMES SWTriggerBase PATHS $ENV{SWTRIGGER_LIBDIR} )
 find_library( SWTRIG_LIBFEMU NAMES FEMBeamTrigger PATHS $ENV{SWTRIGGER_LIBDIR} )
 
