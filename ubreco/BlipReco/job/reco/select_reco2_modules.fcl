@@ -14,18 +14,18 @@ physics.reco: [
       #"pandoraMCSMu",
       "pandoracalo",
       #"pandorapid",
-      "pandoracali",
+      "pandoracali"
       #"pandoracalipid",
-      "pandoracaloSCE",
+      #"pandoracaloSCE"
       #"pandorapidSCE",
-      "pandoracaliSCE",
+      #"pandoracaliSCE",
       #"pandoracalipidSCE",
-      "pandoraKalmanTrack",
+      #"pandoraKalmanTrack",
       #"pandoraKalmanShower",
       #"pandoraKalmanTracktag",
-      "pandoraKalmanTrackcalo",
+      #"pandoraKalmanTrackcalo",
       #"pandoraKalmanTrackpid",
-      "pandoraKalmanTrackcali"
+      #"pandoraKalmanTrackcali"
       #"pandoraKalmanTrackcalipid",
       #"pandoraKalmanShowertag",
       #"pandoraKalmanShowercalo",
