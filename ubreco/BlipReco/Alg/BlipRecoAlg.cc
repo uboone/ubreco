@@ -11,13 +11,16 @@ namespace blip {
     this->reconfigure(pset);
     
     detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->provider();
+    
+    fNominalRecombFactor  = ModBoxRecomb(fCalodEdx,detProp->Efield());
+    fWion                 = 1000./util::kGeVToElectrons;
 
     printf("******************************************\n");
     printf("Initializing BlipRecoAlg...\n");
     printf("  - Efield: %f kV/cm\n",detProp->Efield());
     printf("  - Drift velocity: %f\n",detProp->DriftVelocity(detProp->Efield(),detProp->Temperature()));
     printf("  - using dE/dx: %f MeV/cm\n",fCalodEdx);
-    printf("  - equiv. recomb: %f\n",ModBoxRecomb(fCalodEdx,detProp->Efield(0)));
+    printf("  - equiv. recomb: %f\n",fNominalRecombFactor);
     printf("*******************************************\n");
 
     // create diagnostic histograms
@@ -122,7 +125,6 @@ namespace blip {
     fYZUniformityCorr   = pset.get<bool>          ("YZUniformityCorrection",true);
     fModBoxA            = pset.get<float>         ("ModBoxA",             0.93);
     fModBoxB            = pset.get<float>         ("ModBoxB",             0.212);
-    fWion               = pset.get<float>         ("Wion",                23.6e-6);
   }
 
 
@@ -272,7 +274,7 @@ namespace blip {
           // ####################################################
           // ###         behavior as of Nov 2022              ###
           // WireCell's detsim implements its gain "fudge factor" 
-          // by scaling the SimChannel electrons for some reason.
+          // by scaling the SimChannel electrons (DocDB 31089)
           // So we need to correct for this effect to get accurate
           // count of 'true' electrons collected on channel.
           // ####################################################
@@ -795,8 +797,6 @@ namespace blip {
       // ================================================================================
       float depEl   = std::max(0.0,(double)blip.Charge);
       float Efield  = detProp->Efield();
-      float EfieldMod = Efield;
-      
 
       // --- Lifetime correction ---
       // Ddisabled by default. Without knowing real T0 of a blip, attempting to 
@@ -831,18 +831,18 @@ namespace blip {
         //     the SCE map will return (0,0,0) for these points.
         if( SCE_provider->EnableCalEfieldSCE() ) {
           auto const field_offset = SCE_provider->GetCalEfieldOffsets(point);
-          EfieldMod = Efield*std::hypot(1+field_offset.X(),field_offset.Y(),field_offset.Z());
+          TVector3 E_field_vector = {Efield*(1 + field_offset.X()),Efield*field_offset.Y(),Efield*field_offset.Z()};
+          Efield = E_field_vector.Mag(); 
         }
 
       }
       
        
       // METHOD 1
-      //float recomb = BlipUtils::ModBoxRecomb(fCalodEdx,EfieldMod);
-      float recomb = ModBoxRecomb(fCalodEdx,EfieldMod);
+      float recomb = ModBoxRecomb(fCalodEdx,Efield);
       blip.Energy = depEl * (1./recomb) * fWion;
       
-      h_efield                ->Fill(EfieldMod*1e3);
+      h_efield                ->Fill(Efield*1e3);
       h_recomb                ->Fill(recomb);
       
       // METHOD 2 (TODO)
@@ -880,10 +880,17 @@ namespace blip {
     float rho = detProp->Density();
     float beta  = fModBoxB / (rho * Efield);
     float alpha = fModBoxA;
-    float Wion = 1000./util::kGeVToElectrons;
-    return ( exp( beta * Wion * dQdx_e ) - alpha ) / beta;
+    return ( exp( beta * fWion * dQdx_e ) - alpha ) / beta;
   }
   
+  float BlipRecoAlg::Q_to_E(float Q, float Efield){
+    if( Efield != detProp->Efield() ) {
+      return fWion * (Q/ModBoxRecomb(fCalodEdx,Efield));
+    } else {
+      return fWion * (Q/fNominalRecombFactor);
+    }
+  }
+
   
   //###########################################################
   void BlipRecoAlg::PrintConfig() {

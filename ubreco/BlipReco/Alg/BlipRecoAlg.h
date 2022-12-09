@@ -89,8 +89,13 @@ namespace blip {
     calo::CalorimetryAlg*   fCaloAlg;
     float   ModBoxRecomb(float,float);
     float   dQdx_to_dEdx(float,float);
+    float   Q_to_E(float,float);
+
+    float   fNominalRecombFactor;
 
    private:
+    
+    float   fWion;
    
     const detinfo::DetectorProperties* detProp;
 
@@ -138,7 +143,6 @@ namespace blip {
     bool                fYZUniformityCorr;
     float               fModBoxA;
     float               fModBoxB;
-    float               fWion;
   
     // --- Histograms ---
     TH1D*   h_clust_nwires;

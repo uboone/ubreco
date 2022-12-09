@@ -734,6 +734,12 @@ namespace BlipUtils {
       return (a + vec[n-1]) / 2.0; 
     }
   }
+  
+  float FindMean(std::vector<float>& vec){
+    float sum = 0;
+    for(auto& v : vec ) sum += v;
+    return (vec.size()>0) ? sum/vec.size() : -999;
+  }
 
 
   /*
