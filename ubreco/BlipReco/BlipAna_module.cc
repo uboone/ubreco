@@ -544,11 +544,11 @@ class BlipAnaTreeDataStruct
     calibTree->Branch("run",&run,"run/I");
     calibTree->Branch("subrun",&subrun,"subrun/I");
     calibTree->Branch("timestamp",&timestamp,"timestamp/i");
-    calibTree->Branch("acptrk_npts",&acptrk_npts,"acptrk_npts/I");
     calibTree->Branch("acptrk_theta_xz",&acptrk_theta_xz,"acptrk_theta_xz/F");
     calibTree->Branch("acptrk_theta_yz",&acptrk_theta_yz,"acptrk_theta_yz/F");
     calibTree->Branch("acptrk_qratio_median",&acptrk_qratio_median,"acptrk_qratio_median/F");
     calibTree->Branch("acptrk_qratio_mean",&acptrk_qratio_mean,"acptrk_qratio_mean/F");
+    calibTree->Branch("acptrk_npts",&acptrk_npts,"acptrk_npts/I");
     calibTree->Branch("acptrk_dEdx",&acptrk_dEdx,"acptrk_dEdx[acptrk_npts]/F");
     calibTree->Branch("acptrk_tdrift",&acptrk_tdrift,"acptrk_tdrift[acptrk_npts]/F");
   
@@ -670,7 +670,6 @@ class BlipAna : public art::EDAnalyzer
 
   TH1D*   h_trk_length;
   TH1D*   h_trk_xspan;
-  TH1D*   h_trk_yspan;
   
   TH1D*   h_nblips;
   TH1D*   h_nblips_picky;
@@ -726,14 +725,12 @@ class BlipAna : public art::EDAnalyzer
   TH1D*   h_calib_lifetime;
   */
 
-  TH1D* h_ACPtrk_wigglyness;
   TH1D* h_ACPtrk_theta_xz;
   TH1D* h_ACPtrk_theta_yz;
   TH1D* h_ACPtrk_dEdx;
   TH1D* h_ACPtrk_dEdx_near;
   TH1D* h_ACPtrk_dEdx_far;
   TH1D* h_ACPtrk_qratio;
-  TH1D* h_ACPtrk_qratio_median;
   TH2D* h_ACPtrk_yz;
 
   // Diagnostic histograms
@@ -757,8 +754,6 @@ class BlipAna : public art::EDAnalyzer
     
     h_trk_length      = dir_diag.make<TH1D>("trk_length",";Track length [cm]",1000,0,500);
     h_trk_xspan       = dir_diag.make<TH1D>("trk_xspan",";Track dX [cm]",300,0,300);
-    h_trk_yspan       = dir_diag.make<TH1D>("trk_yspan",";Track dY [cm]",300,0,300);
-    h_ACPtrk_wigglyness = dir_diag.make<TH1D>("trk_wigglyness","dS/length",220,0,1.1);
     h_ACPtrk_theta_xz   = dir_diag.make<TH1D>("trk_theta_xz","theta_xz",90,0,90);
     h_ACPtrk_theta_yz   = dir_diag.make<TH1D>("trk_theta_yz","theta_yz",90,0,90);
     h_ACPtrk_dEdx       = dir_diag.make<TH1D>("trk_acp_dEdx","Anode-cathode piercing tracks;Trajectory point dE/dx [MeV/cm]",80,0,8);
@@ -766,8 +761,7 @@ class BlipAna : public art::EDAnalyzer
     h_ACPtrk_dEdx_far       = dir_diag.make<TH1D>("trk_acp_dEdx_far","Anode-cathode piercing tracks;dE/dx at x=220-240cm [MeV/cm]",80,0,8);
     //h_ACPtrk_dEdx_med1  = dir_diag.make<TH1D>("trk_acp_dEdx_median1","Anode-cathode piercing tracks;Median dE/dx at x = 20-40cm [MeV/cm]",100,0,5);
     //h_ACPtrk_dEdx_med2  = dir_diag.make<TH1D>("trk_acp_dEdx_median2","Anode-cathode piercing tracks;Median dE/dx at x = 220-240cm [MeV/cm]",100,0,5);
-    h_ACPtrk_qratio       = dir_diag.make<TH1D>("trk_acp_qratio","Attenuation over 2m (using mean dE/dx)",200,0,2.0);
-    h_ACPtrk_qratio_median       = dir_diag.make<TH1D>("trk_acp_qratio_median","Attenuation over 2m (using median dE/dx)",200,0,2.0);
+    h_ACPtrk_qratio       = dir_diag.make<TH1D>("trk_acp_qratio","Attenuation over 2m (using median dE/dx)",200,0,2.0);
     h_ACPtrk_yz         = dir_diag.make<TH2D>("trk_acp_yz",";Z [cm];Y [cm]",1037,0,1037,234,-117,117);
     h_ACPtrk_yz         ->SetOption("colz");
    
@@ -1290,7 +1284,6 @@ void BlipAna::analyze(const art::Event& evt)
     float dZ = fabs(startPt.Z() - endPt.Z());
     h_trk_length        ->Fill(trk->Length());
     h_trk_xspan         ->Fill( dX );
-    h_trk_yspan         ->Fill( dY );
 
     map_trkid_length[trk->ID()] = trk->Length();
     if( dY > 220 ) map_trkid_isMIP[trk->ID()] = true; 
@@ -1301,133 +1294,127 @@ void BlipAna::analyze(const art::Event& evt)
     if( dX > 250 && dX < 270 && fmcal.isValid() ) {
 
       // Make sure this isn't just a really long wiggly track
-      // 1 = perfectly straight
-      // 0 = impossibly wiggly
+      //   1 = impossibly wiggly
+      //   0 = perfectly straight
       float diff = sqrt( pow(dX,2) + pow(dY,2) + pow(dZ,2) );
-      float wigglyness = diff / trk->Length();
+      float wigglyness = 1.-diff/trk->Length();
 
-      //std::cout<<"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! FOUND ACPT\n";
-      //std::cout<<"ds = "<<diff<<"   length "<<trk->Length()<<"\n";
       // select only good angles (exclude 90 degree +/- 5 deg)
       float theta_xz = 180*atan(dX/dZ)/3.14159;
       float theta_yz = 180*atan(dY/dZ)/3.14159;
       h_ACPtrk_theta_xz->Fill(theta_xz);
       h_ACPtrk_theta_yz->Fill(theta_yz);
-      h_ACPtrk_wigglyness->Fill(wigglyness);
-      if( theta_xz < 80 && wigglyness > 0.98 ) {
+      
+      if( theta_xz < 80 && wigglyness < 0.01 ) {
         
         // loop the calo objects and find the one for collection plane
         std::vector<art::Ptr<anab::Calorimetry> > caloObjs = fmcal.at(i);
         for(auto& caloObj : caloObjs ) {
-          if( caloObj->PlaneID().Plane != 2 ) continue;
+          if( caloObj->PlaneID().Plane != 2 )       continue;
+          if( caloObj->dEdx().size() < 100 )        continue;
+          if( caloObj->dEdx().size() > kMaxTrkPts ) continue;
           size_t Npts = caloObj->dEdx().size();
 
-          std::vector< TVector3 > vec_XYZ;
-          std::vector< float >    vec_dEdx;
-          std::vector< float >    vec_tdrift;
-          
-          // find X-offset
+          // X-offset
           float X0 = std::min( startPt.X(), endPt.X() );
+         
+          // ***********************************************
+          // First, apply SCE spatial corrections so we can
+          // scale dQdx appropriately based on the track distortion
+          std::vector<geo::Point_t> vec_XYZ_orig;
+          std::vector<geo::Point_t> vec_XYZ_corr;
+          for(size_t j=0; j<Npts; j++){
+            geo::Point_t point{ caloObj->XYZ().at(j).X() - X0,
+                                caloObj->XYZ().at(j).Y(),
+                                caloObj->XYZ().at(j).Z() };
+            vec_XYZ_orig.push_back( point );
+            geo::Vector_t loc_offset = SCE->GetCalPosOffsets( point );
+            point.SetXYZ(point.X()-loc_offset.X(),point.Y()+loc_offset.Y(),point.Z()+loc_offset.Z());
+            vec_XYZ_corr.push_back( point );
+          }
           
+          std::vector<float> dx_corr_factor( Npts, 1. );
+          for(size_t j=1; j<Npts-1; j++){
+            float ds_prev = sqrt( ( vec_XYZ_orig[j-1] - vec_XYZ_orig[j+1] ).Mag2() );
+            float ds_new  = sqrt( ( vec_XYZ_corr[j-1] - vec_XYZ_corr[j+1] ).Mag2() );
+            float corr_factor = ds_new/ds_prev;
+            dx_corr_factor[j] = corr_factor;
+          }
+          
+          // ******************************
           // loop over track points
+          size_t nSavedPts = 0;
+          FillWith(fData->acptrk_dEdx,   0);
+          FillWith(fData->acptrk_tdrift, 0);
+          std::vector<float> vec_dEdx_near;
+          std::vector<float> vec_dEdx_far;
+
           for(size_t j=1; j<Npts-1; j++){
             
-            // skip low dE/dx values
-            float dEdx     = caloObj->dEdx().at(j);
-            if( dEdx < 1.0 ) continue;
-            
-            // shift the X coordinate
-            float locX = caloObj->XYZ().at(j).X() - X0;
-            float locY = caloObj->XYZ().at(j).Y();
-            float locZ  = caloObj->XYZ().at(j).Z();
-            geo::Point_t point{locX,locY,locZ};
-            
             // make sure there are neighboring wires
-            float prevZ = caloObj->XYZ().at(j-1).Z();
-            float nextZ = caloObj->XYZ().at(j+1).Z();
+            float locZ  = vec_XYZ_corr.at(j).Z();
+            float prevZ = vec_XYZ_corr.at(j-1).Z();
+            float nextZ = vec_XYZ_corr.at(j+1).Z();
             if( fabs(locZ-prevZ) > 0.5 || fabs(locZ-nextZ) > 0.5 ) continue;
-            
-            // correct for SCE spatial/field offsets
+
+            // correct for SCE field offset
+            auto& point = vec_XYZ_corr.at(j);
             float Efield = detProp->Efield();
-            if( SCE->EnableCalSpatialSCE() ) {
-              geo::Vector_t loc_offset = SCE->GetCalPosOffsets( point );
-              point.SetXYZ(point.X()-loc_offset.X(),point.Y()+loc_offset.Y(),point.Z()+loc_offset.Z());
-            }
             if( SCE->EnableCalEfieldSCE() ) {
-              //auto const field_offset = SCE->GetCalEfieldOffsets(point);
-              //Efield *= std::hypot(1+field_offset.X(),field_offset.Y(),field_offset.Z());
-              
-              geo::Vector_t E_field_offsets = {0.,0.,0.};
-              E_field_offsets = SCE->GetCalEfieldOffsets(point);
-              TVector3 E_field_vector = {Efield*(1 + E_field_offsets.X()),Efield*E_field_offsets.Y(),Efield*E_field_offsets.Z()};
-              Efield = E_field_vector.Mag();
-              //std::cout<<"X = "<<point.X()<<", field is "<<Efield<<" (compared to "<<detProp->Efield()<<")\n";
+              auto const field_offset = SCE->GetCalEfieldOffsets(point); 
+              Efield = detProp->Efield()*std::hypot(1+field_offset.X(),field_offset.Y(),field_offset.Z());;
             }
             if( Efield <= 0 ) continue;
             
             // Calculate new dE/dx
-            float dQdx_ADC = caloObj->dQdx().at(j);
-            float dQdx_e  = fBlipAlg->fCaloAlg->ElectronsFromADCArea(dQdx_ADC,2);
-            dEdx          = fBlipAlg->dQdx_to_dEdx( dQdx_e, Efield );
-            
-            // Fill vectors
-            vec_dEdx   .push_back( dEdx );
-            vec_XYZ    .push_back( TVector3{ point.X(), point.Y(), point.Z() } );
-            vec_tdrift .push_back( point.X() / driftVelocity );
-            
-            h_ACPtrk_yz->Fill( point.Z(), point.Y() );
-            h_ACPtrk_dEdx->Fill(dEdx);
-      
-          }//endloop over track points
-          
+            float dQdx_ADC  = caloObj->dQdx().at(j) / dx_corr_factor.at(j);
+            float dQdx_e    = fBlipAlg->fCaloAlg->ElectronsFromADCArea(dQdx_ADC,2);
+            float dEdx      = fBlipAlg->dQdx_to_dEdx( dQdx_e, Efield );
+            float tdrift    = point.X() / driftVelocity;
 
-          // Update Npts after above cuts
-          Npts = vec_dEdx.size();
+            // Quality control
+            if( dEdx < 1.0 || dEdx > 500. || tdrift > 2400 ) continue;
+            
+            // Save this point!
+            nSavedPts++;
+            
+            fData         ->acptrk_dEdx[nSavedPts-1]   = dEdx;
+            fData         ->acptrk_tdrift[nSavedPts-1] = tdrift;
+            h_ACPtrk_yz   ->Fill( point.Z(), point.Y() );
+            h_ACPtrk_dEdx ->Fill(dEdx);
           
-          FillWith(fData->acptrk_dEdx,   0);
-          FillWith(fData->acptrk_tdrift, 0);
-
-          // Divide dEdx into those near anode or cathode
-          std::vector<float> vec_dEdx_p1;
-          std::vector<float> vec_dEdx_p2;
-          float x1 = 30;
-          float x2 = 230;
-          for(size_t j=0; j<Npts; j++){
-            fData->acptrk_dEdx[j] = vec_dEdx.at(j);
-            fData->acptrk_tdrift[j] = vec_tdrift.at(j);
-            float x = vec_XYZ.at(j).X();
-            if( fabs(x-x1) < 10. ) {
-              vec_dEdx_p1.push_back( vec_dEdx.at(j) );
-              h_ACPtrk_dEdx_near->Fill( vec_dEdx.at(j) );
-            } else if( fabs(x-x2) < 10. ) {
-              vec_dEdx_p2.push_back( vec_dEdx.at(j) );
-              h_ACPtrk_dEdx_far->Fill( vec_dEdx.at(j) );
+            // Divide dEdx into those near anode or cathode
+            if( fabs(point.X()-30.) < 10. ) {
+              vec_dEdx_near       .push_back( dEdx );
+              h_ACPtrk_dEdx_near  ->Fill( dEdx );
+            } else if( fabs(point.X()-230) < 10. ) {
+              vec_dEdx_far        .push_back( dEdx );
+              h_ACPtrk_dEdx_far   ->Fill( dEdx );
             }
-          }
           
-          // Median of near and far zones
+          }//endloop over track points
+
+          // Median of near and far zones (only calculate if there are
+          // at least 15 data points in each of them)
           float qratio_median = -9; 
           float qratio_mean   = -9;
-          if( vec_dEdx_p1.size() >= 15 && vec_dEdx_p2.size() >= 15 ) {
-            float median_near = BlipUtils::FindMedian(vec_dEdx_p1);
-            float median_far  = BlipUtils::FindMedian(vec_dEdx_p2);
-            float mean_near   = BlipUtils::FindMean(vec_dEdx_p1);
-            float mean_far    = BlipUtils::FindMean(vec_dEdx_p2);
+          if( vec_dEdx_near.size() >= 15 && vec_dEdx_far.size() >= 15 ) {
+            float median_near = BlipUtils::FindMedian(vec_dEdx_near);
+            float median_far  = BlipUtils::FindMedian(vec_dEdx_far);
+            float mean_near   = BlipUtils::FindMean(vec_dEdx_near);
+            float mean_far    = BlipUtils::FindMean(vec_dEdx_far);
             qratio_median     = median_far / median_near;
             qratio_mean       = mean_far / mean_near;
-            //h_ACPtrk_dEdx_med1->Fill(mean_near);
-            //h_ACPtrk_dEdx_med2->Fill(mean_far);
-            h_ACPtrk_qratio   ->Fill(qratio_mean);
-            h_ACPtrk_qratio_median   ->Fill(qratio_median);
+            h_ACPtrk_qratio   ->Fill(qratio_median);
+          
+            // Fill calib tree
+            fData->acptrk_npts            = nSavedPts;
+            fData->acptrk_qratio_median   = qratio_median;
+            fData->acptrk_qratio_mean     = qratio_mean;
+            fData->acptrk_theta_xz        = theta_xz;
+            fData->acptrk_theta_yz        = theta_yz;
+            fData->calibTree              ->Fill();
           }
-
-          // Fill calib tree
-          fData->acptrk_npts            = Npts;
-          fData->acptrk_qratio_median   = qratio_median;
-          fData->acptrk_qratio_mean     = qratio_mean;
-          fData->acptrk_theta_xz        = theta_xz;
-          fData->acptrk_theta_yz        = theta_yz;
-          fData->calibTree              ->Fill();
         
         }//endloop on calo objs
 
@@ -1669,39 +1656,6 @@ void BlipAna::analyze(const art::Event& evt)
   }
   */
 
-/*
-      // ------------------------------------------------------------ 
-      // Look at the dEdx of this track
-      // Association between Calorimetry objects and Tracks
-      art::FindManyP<anab::Calorimetry> fmcal(TrackHandle, e, fTrackCalModule);
-
-      if( fmcal.isValid() ){
-
-        std::vector<art::Ptr<anab::Calorimetry> > calos_mu = fmcal.at(fMuTrackIndex);
-
-        size_t N;
-        size_t plane = 0;
-
-        for(size_t i=0; i<calos_mu.size(); i++){
-          plane = calos_mu[i]->PlaneID().Plane;
-          N     = calos_mu[i]->dEdx().size();
-          if( plane == 1 ) fMuTrackEnergy = calos_mu[i]->KineticEnergy();
-          if( plane >= 0 && plane < 2 && N > 0 ) {
-            fvMuTrkResRange[plane]  = calos_mu[i]->ResidualRange();
-            fvMuTrkdEdx[plane]      = calos_mu[i]->dEdx();
-            fvMuTrkXYZ[plane]       = calos_mu[i]->XYZ();
-            fvMuTrkPitch[plane]     = calos_mu[i]->TrkPitchVec();
-            for(size_t j=0; j<N; j++){
-              float T = calos_mu[i]->XYZ().at(j).X() / fDriftVelocity[0];
-              float eLifetimeCorr = exp( T / fElectronLifetime );
-              float dADCdx = eLifetimeCorr*calos_mu[i]->dQdx().at(j);
-              float dQdx_e = fCaloAlg.ElectronsFromADCArea(dADCdx,plane);
-              fvMuTrkdADCdx[plane] .push_back( dADCdx );
-              fvMuTrkdQdx[plane]   .push_back( dQdx_e);
-            }
-          }
-        }
-*/
 
       
    
@@ -1916,7 +1870,6 @@ void BlipAna::endJob(){
 
   h_trk_length->Scale(1./nEvents);
   h_trk_xspan->Scale(1./nEvents);
-  h_trk_yspan->Scale(1./nEvents);
 
   //BlipUtils::NormalizeHist(h_sim_lifetime);
   BlipUtils::NormalizeHist(h_clust_qres_anode);

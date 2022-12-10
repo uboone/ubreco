@@ -830,9 +830,8 @@ namespace blip {
         //   - Blips can have negative 'X' if the T0 correction isn't applied. Obviously 
         //     the SCE map will return (0,0,0) for these points.
         if( SCE_provider->EnableCalEfieldSCE() ) {
-          auto const field_offset = SCE_provider->GetCalEfieldOffsets(point);
-          TVector3 E_field_vector = {Efield*(1 + field_offset.X()),Efield*field_offset.Y(),Efield*field_offset.Z()};
-          Efield = E_field_vector.Mag(); 
+          auto const field_offset = SCE_provider->GetCalEfieldOffsets(point); 
+          Efield = detProp->Efield()*std::hypot(1+field_offset.X(),field_offset.Y(),field_offset.Z());;
         }
 
       }
