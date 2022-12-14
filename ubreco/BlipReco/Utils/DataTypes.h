@@ -98,6 +98,7 @@ namespace blip {
     int     CenterWire      = -999;
     bool    isMerged        = false;
     bool    isMatched       = false;
+    int     DeadWireSep     = -9;
     int     TPC             = -9;
     int     Plane           = -9;
     int     NHits           = -9;

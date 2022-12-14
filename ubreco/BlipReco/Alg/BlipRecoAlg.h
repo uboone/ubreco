@@ -42,10 +42,10 @@
 #include "ubevt/Database/TPCEnergyCalib/TPCEnergyCalibProvider.h"
 #include "ubevt/Database/UbooneElectronLifetimeProvider.h"
 #include "ubevt/Database/UbooneElectronLifetimeService.h"
-//#include "ubevt/SpaceChargeServices/SpaceChargeServiceMicroBooNE.h"
-//#include "ubevt/SpaceCharge/SpaceChargeMicroBooNE.h"
 #include "larevt/SpaceCharge/SpaceCharge.h"
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
+#include "larevt/CalibrationDBI/Interface/ChannelStatusService.h"
+#include "larevt/CalibrationDBI/Interface/ChannelStatusProvider.h"
 
 // Blip-specific utils
 #include "ubreco/BlipReco/Utils/BlipUtils.h"
@@ -92,12 +92,15 @@ namespace blip {
     float   Q_to_E(float,float);
 
     float   fNominalRecombFactor;
+    
+    std::vector<bool>   fBadChanMask;
+    std::vector<bool>   fBadChanMaskPerEvt;
 
    private:
     
-    float   fWion;
-   
     const detinfo::DetectorProperties* detProp;
+    
+    float               mWion;
 
     // --- FCL configs ---
     std::string         fHitProducer;
@@ -129,12 +132,19 @@ namespace blip {
     float               fMatchMaxTicks;
     int                 fMaxWiresInCluster;
     float               fMinClusterCharge;
+    float               fMaxClusterCharge;
     float               fMaxClusterSpan;
     int                 fMinMatchedPlanes;
     bool                fPickyBlips;
     bool                fApplyTrkCylinderCut;
     float               fCylinderRadius; 
- 
+    
+    bool                fVetoBadChannels;
+    std::string         fBadChanProducer;
+    std::string         fBadChanFile;
+
+    bool                fKeepAllClusts[kNplanes];
+
     // --- Calorimetry configs ---
     int                 fCaloPlane;
     float               fCalodEdx;
@@ -143,8 +153,14 @@ namespace blip {
     bool                fYZUniformityCorr;
     float               fModBoxA;
     float               fModBoxB;
-  
+ 
+
     // --- Histograms ---
+    //TH1D*   h_chanstatus;
+    //TH1D*   h_hit_chanstatus;
+    TH1D*   h_chan_nhits;
+    TH1D*   h_chan_nclusts;
+    TH1D*   h_chan_bad;
     TH1D*   h_clust_nwires;
     TH1D*   h_clust_timespan;
     TH1D*   h_clust_overlap[kNplanes];

@@ -54,6 +54,12 @@ microboone_blipalg:
   LifetimeCorrection:   false           #// correct blips for lifetime (assumes T0 = 0)
   SCECorrection:        false           #// correct blips for space charge (requires known XYZ)
   CaloAlg:              @local::microboone_calo_mcc9_data
+  
+  BadChanProducer:      "nfspl1:badchannels" #// label for vector of bad channel IDs from signal processing
+  VetoBadChannels:      true            #// don't cluster hits from "bad" channels
+
+  KeepAllClustersCol:   true
+  KeepAllClustersInd:   false
 }
 
 # ===============================================
@@ -76,6 +82,7 @@ microboone_blipana_data.SaveTruthInfo:      false
 
 microboone_blipana_fullmc:                          @local::microboone_blipana
 microboone_blipana_fullmc.BlipAlg.CaloAlg:          @local::microboone_calo_mcc9_mc
+microboone_blipana_fullmc.VetoBadChannels:          false
 #microboone_blipana_fullmc.BlipAlg.SimGainFactor:    1.0
 #microboone_blipana_fullmc.SaveHitInfo:      true
 

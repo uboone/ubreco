@@ -48,3 +48,9 @@ install_fhicl()
 install_source()
 install_headers()
 
+
+# install txt files
+#file(GLOB txt_file *.txt )
+#install( FILES ${txt_file} DESTINATION ${product}/${version}/fcl" )
+file(GLOB txt_file *.txt)
+install_fw(LIST ${txt_file})

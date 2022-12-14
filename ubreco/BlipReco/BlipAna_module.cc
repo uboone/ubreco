@@ -204,13 +204,14 @@ class BlipAnaTreeDataStruct
   int   clust_startwire[kMaxHits];    // starting wire
   int   clust_endwire[kMaxHits];      // ending wire
   int   clust_nwires[kMaxHits];       // number of wires in this cluster
+  int   clust_deadwiresep[kMaxHits];  // separation from nearest dead region (0=adjacent)
   int   clust_nhits[kMaxHits];        // number of hits
   int   clust_charge[kMaxHits];       // cluster charge at anode [e-]
   float clust_time[kMaxHits];         // charge-weighted time
   //float clust_timespan[kMaxHits];     // cluster timespan
   //float clust_rms[kMaxHits];          // charge-weighted RMS
-  //float clust_amp[kMaxHits];          // maximum hit amplitude [ADC]
-  //float clust_starttime[kMaxHits];    // cluster start tick
+  float clust_amp[kMaxHits];          // maximum hit amplitude [ADC]
+ //float clust_starttime[kMaxHits];    // cluster start tick
   //float clust_endtime[kMaxHits];      // cluster end tick
   //int   clust_nnfhits[kMaxHits];      // number of non-fitted hits (ie, pulse trains)
   //float clust_gof[kMaxHits];          // mean goodness of fit for hits
@@ -343,6 +344,7 @@ class BlipAnaTreeDataStruct
     FillWith(clust_tpc,       -9);
     FillWith(clust_plane,     -9);
     FillWith(clust_nwires,    -9);
+    FillWith(clust_deadwiresep, -9);
     FillWith(clust_nhits,     -9);
     FillWith(clust_wire,      -9);
     FillWith(clust_startwire, -9);
@@ -353,7 +355,7 @@ class BlipAnaTreeDataStruct
     //FillWith(clust_starttime, -999);
     //FillWith(clust_endtime,   -999);
     //FillWith(clust_rms,       -9);
-    //FillWith(clust_amp,       -9);
+    FillWith(clust_amp,       -9);
     //FillWith(clust_nnfhits,   -9);
     //FillWith(clust_gof,       -99);
     FillWith(clust_g4charge,  -9999);
@@ -449,13 +451,14 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("clust_startwire",clust_startwire,"clust_startwire[nclusts]/I");
       evtTree->Branch("clust_endwire",  clust_endwire,  "clust_endwire[nclusts]/I");
       evtTree->Branch("clust_nwires",   clust_nwires,   "clust_nwires[nclusts]/I");
+      evtTree->Branch("clust_deadwiresep",   clust_deadwiresep,   "clust_deadwiresep[nclusts]/I");
       evtTree->Branch("clust_nhits",    clust_nhits,    "clust_nhits[nclusts]/I");
       //evtTree->Branch("clust_nnfhits",  clust_nnfhits,  "clust_nnfhits[nclusts]/I");
       evtTree->Branch("clust_time",     clust_time,     "clust_time[nclusts]/F");
       //evtTree->Branch("clust_timespan", clust_timespan, "clust_timespan[nclusts]/F");
       evtTree->Branch("clust_charge",   clust_charge,   "clust_charge[nclusts]/I");
       //evtTree->Branch("clust_rms",      clust_rms,      "clust_rms[nclusts]/F");
-      //evtTree->Branch("clust_amp",      clust_amp,      "clust_amp[nclusts]/F");
+      evtTree->Branch("clust_amp",      clust_amp,      "clust_amp[nclusts]/F");
       //evtTree->Branch("clust_gof",      clust_gof,      "clust_gof[nclusts]/F");
       //evtTree->Branch("clust_ratio",      clust_ratio,  "clust_ratio[nclusts]/F");
       evtTree->Branch("clust_ismatch",  clust_ismatch,  "clust_ismatch[nclusts]/O");
@@ -610,7 +613,9 @@ class BlipAna : public art::EDAnalyzer
   // --- Histograms ---
   TH1D*   h_part_process;
   
+  
   TH1D*   h_nhits[kNplanes];
+
 
   TH1D*   h_hitamp[kNplanes];
   TH1D*   h_hitamp_mip[kNplanes]; 
@@ -757,14 +762,16 @@ class BlipAna : public art::EDAnalyzer
     h_ACPtrk_theta_xz   = dir_diag.make<TH1D>("trk_theta_xz","theta_xz",90,0,90);
     h_ACPtrk_theta_yz   = dir_diag.make<TH1D>("trk_theta_yz","theta_yz",90,0,90);
     h_ACPtrk_dEdx       = dir_diag.make<TH1D>("trk_acp_dEdx","Anode-cathode piercing tracks;Trajectory point dE/dx [MeV/cm]",80,0,8);
-    h_ACPtrk_dEdx_near       = dir_diag.make<TH1D>("trk_acp_dEdx_near","Anode-cathode piercing tracks;dE/dx at x=20-40cm [MeV/cm]",80,0,8);
-    h_ACPtrk_dEdx_far       = dir_diag.make<TH1D>("trk_acp_dEdx_far","Anode-cathode piercing tracks;dE/dx at x=220-240cm [MeV/cm]",80,0,8);
+    h_ACPtrk_dEdx_near       = dir_diag.make<TH1D>("trk_acp_dEdx_near","20-40 cm from anode;dE/dx at x=20-40cm [MeV/cm]",80,0,8);
+    h_ACPtrk_dEdx_far       = dir_diag.make<TH1D>("trk_acp_dEdx_far","220-240 cm from anode;dE/dx at x=220-240cm [MeV/cm]",80,0,8);
     //h_ACPtrk_dEdx_med1  = dir_diag.make<TH1D>("trk_acp_dEdx_median1","Anode-cathode piercing tracks;Median dE/dx at x = 20-40cm [MeV/cm]",100,0,5);
     //h_ACPtrk_dEdx_med2  = dir_diag.make<TH1D>("trk_acp_dEdx_median2","Anode-cathode piercing tracks;Median dE/dx at x = 220-240cm [MeV/cm]",100,0,5);
     h_ACPtrk_qratio       = dir_diag.make<TH1D>("trk_acp_qratio","Attenuation over 2m (using median dE/dx)",200,0,2.0);
     h_ACPtrk_yz         = dir_diag.make<TH2D>("trk_acp_yz",";Z [cm];Y [cm]",1037,0,1037,234,-117,117);
     h_ACPtrk_yz         ->SetOption("colz");
-   
+  
+    
+
     /*
     h_efield = tfs->make<TH1D>("efield","Efield accounting for SCE",90,230,320);
     h_efield_distortion_yz = tfs->make<TH2D>("efield_distortion_yz","Mean fractional E-field distortion;Z [cm];Y [cm]",104,0,1040,24,-120,120);
@@ -1067,8 +1074,6 @@ void BlipAna::analyze(const art::Event& evt)
   <<"Event "<<evt.id().event()<<" / run "<<evt.id().run()<<"; total: "<<fNumEvents<<"\n";
   std::cout<<"Lifetime is "<<electronLifetime<<" microseconds\n";
   
-  
-
   //=======================================
   // Get data products for this event
   //========================================
@@ -1100,7 +1105,7 @@ void BlipAna::analyze(const art::Event& evt)
   // pandoracalo = no corrections
   // pandoracali = YZ corrections
   art::FindManyP<anab::Calorimetry> fmcal(tracklistHandle, evt, "pandoracali");
-  
+ 
   // Resize data struct objects
   fData->nhits      = (int)hitlist.size();
   fData->nparticles = (int)plist.size();
@@ -1373,7 +1378,7 @@ void BlipAna::analyze(const art::Event& evt)
             float tdrift    = point.X() / driftVelocity;
 
             // Quality control
-            if( dEdx < 1.0 || dEdx > 500. || tdrift > 2400 ) continue;
+            if( dEdx < 1.0 || dEdx > 20. || tdrift > 2400 ) continue;
             
             // Save this point!
             nSavedPts++;
@@ -1454,6 +1459,7 @@ void BlipAna::analyze(const art::Event& evt)
     bool    isTrked = (hinfo.trkid >= 0 && map_trkid_length[hinfo.trkid] > 5 ); 
     bool    isMIP     = map_trkid_isMIP[hinfo.trkid];
     bool    isMatched = hinfo.ismatch; 
+   
 
     fNumHits[plane]++;
     num_hits[plane]++;
@@ -1672,11 +1678,13 @@ void BlipAna::analyze(const art::Event& evt)
     fData->clust_tpc[i]       = clust.TPC;
     fData->clust_plane[i]     = clust.Plane;
     
-    fData->clust_wire[i]      = clust.CenterWire;
-    fData->clust_startwire[i] = clust.StartWire;
-    fData->clust_endwire[i]   = clust.EndWire;
-    fData->clust_nwires[i]    = clust.NWires;
-    fData->clust_nhits[i]     = clust.NHits;
+    
+    fData->clust_wire[i]        = clust.CenterWire;
+    fData->clust_startwire[i]   = clust.StartWire;
+    fData->clust_endwire[i]     = clust.EndWire;
+    fData->clust_nwires[i]      = clust.NWires;
+    fData->clust_deadwiresep[i] = clust.DeadWireSep;
+    fData->clust_nhits[i]       = clust.NHits;
     //fData->clust_nnfhits[i]   = clust.NPulseTrainHits;
     
     //fData->clust_time[i]      = clust.Time;
@@ -1687,7 +1695,7 @@ void BlipAna::analyze(const art::Event& evt)
     fData->clust_time[i]      = Truncate(clust.Time,      1);
     fData->clust_charge[i]    = Truncate(clust.Charge,    10);
     //fData->clust_timespan[i]  = Truncate(clust.Timespan,  0.1);
-    //fData->clust_amp[i]       = Truncate(clust.Amplitude, 0.1);
+    fData->clust_amp[i]       = Truncate(clust.Amplitude, 0.1);
     //fData->clust_rms[i]       = Truncate(clust.RMS,       0.1);
     //fData->clust_starttime[i] = clust.StartTime;
     //fData->clust_endtime[i]   = clust.EndTime;
