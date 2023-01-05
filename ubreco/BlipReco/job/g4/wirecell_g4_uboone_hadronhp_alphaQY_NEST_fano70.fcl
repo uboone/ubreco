@@ -1,0 +1,11 @@
+#include "wirecell_g4_uboone_hadronhp.fcl"
+
+# Use NEST-like recombination calculation (~330 e/MeV)
+physics.producers.ionization.AlphaUseNESTAlg: true
+
+# Ionization "fano factor": NEST uses this to worsen
+# the resolution compared to binomial fluctuationon 
+# via sigma = sqrt(F*Ne).
+# ** At 273 V/cm, F = 67 for LXe
+# ** Value not known for LAr
+physics.producers.ionization.AlphaIonFanoFactor:  70

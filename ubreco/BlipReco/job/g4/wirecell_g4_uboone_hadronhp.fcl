@@ -3,6 +3,8 @@
 
 #include "be_quiet.fcl"
 
+source.maxEvents: -1
+
 # Enable HadronHP
 services.LArG4Parameters.EnabledPhysics:        [ "Em", "FastOptical", "SynchrotronAndGN", "Ion", "HadronHP", "Decay", "HadronElastic", "Stopping" ]
 
@@ -10,5 +12,6 @@ services.LArG4Parameters.EnabledPhysics:        [ "Em", "FastOptical", "Synchrot
 physics.analyzers.pdump: { module_type: "ParticleDump" }
 physics.analyzers.pdump.MaxParticles: 200
 physics.ana: [ "pdump" ]
-physics.end_paths: [stream1, ana]
+#physics.end_paths: [stream1, ana]
+physics.end_paths: [stream1]
 

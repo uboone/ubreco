@@ -1,0 +1,4 @@
+#include "wirecell_g4_uboone_hadronhp.fcl"
+
+# Use NEST-like recombination calculation (~330 e/MeV)
+physics.producers.ionization.AlphaUseNESTAlg: true
