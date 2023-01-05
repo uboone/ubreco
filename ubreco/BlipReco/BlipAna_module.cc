@@ -70,12 +70,13 @@ namespace{
 
 
 // Set global constants and max array sizes
-const int kMaxHits  =  30000;
-const int kMaxTrks  =    500;
-const int kMaxBlips =   5000;
-const int kMaxG4    =  20000;
-const int kMaxEDeps = 100000;
-const int kMaxTrkPts = 2000;  
+const int kMaxHits    =  30000;
+const int kMaxClusts  =  10000; 
+const int kMaxTrks    =    500;
+const int kMaxBlips   =   5000;
+const int kMaxG4      =  20000;
+const int kMaxEDeps   = 100000;
+const int kMaxTrkPts  = 2000;  
 
 class BlipAna;
   
@@ -197,29 +198,29 @@ class BlipAnaTreeDataStruct
 
   // --- Hit cluster information ---
   int   nclusts;                      // total clusters made
-  int   clust_id[kMaxHits];           // cluster ID (index)
-  int   clust_tpc[kMaxHits];          // cluster TPC ID
-  int   clust_plane[kMaxHits];        // cluster plane
-  int   clust_wire[kMaxHits];         // central-most wire of cluster
-  int   clust_startwire[kMaxHits];    // starting wire
-  int   clust_endwire[kMaxHits];      // ending wire
-  int   clust_nwires[kMaxHits];       // number of wires in this cluster
-  int   clust_deadwiresep[kMaxHits];  // separation from nearest dead region (0=adjacent)
-  int   clust_nhits[kMaxHits];        // number of hits
-  int   clust_charge[kMaxHits];       // cluster charge at anode [e-]
-  float clust_time[kMaxHits];         // charge-weighted time
-  //float clust_timespan[kMaxHits];     // cluster timespan
-  //float clust_rms[kMaxHits];          // charge-weighted RMS
-  float clust_amp[kMaxHits];          // maximum hit amplitude [ADC]
- //float clust_starttime[kMaxHits];    // cluster start tick
-  //float clust_endtime[kMaxHits];      // cluster end tick
-  //int   clust_nnfhits[kMaxHits];      // number of non-fitted hits (ie, pulse trains)
-  //float clust_gof[kMaxHits];          // mean goodness of fit for hits
-  int   clust_g4charge[kMaxHits];     // true cluster charge collected on wire
-  float clust_g4energy[kMaxHits];     // true cluster energy from G4
-  int   clust_blipid[kMaxHits];       // blip ID for this nlusteer (if it was made into one)
-  int   clust_edepid[kMaxHits];       // true energy dep ID
-  bool  clust_ismatch[kMaxHits];      // was this cluster plane-matched?
+  int   clust_id[kMaxClusts];           // cluster ID (index)
+  int   clust_tpc[kMaxClusts];          // cluster TPC ID
+  int   clust_plane[kMaxClusts];        // cluster plane
+  int   clust_wire[kMaxClusts];         // central-most wire of cluster
+  int   clust_startwire[kMaxClusts];    // starting wire
+  int   clust_endwire[kMaxClusts];      // ending wire
+  int   clust_nwires[kMaxClusts];       // number of wires in this cluster
+  int   clust_deadwiresep[kMaxClusts];  // separation from nearest dead region (0=adjacent)
+  int   clust_nhits[kMaxClusts];        // number of hits
+  int   clust_charge[kMaxClusts];       // cluster charge at anode [e-]
+  float clust_time[kMaxClusts];         // charge-weighted time
+  //float clust_timespan[kMaxClusts];     // cluster timespan
+  //float clust_rms[kMaxClusts];          // charge-weighted RMS
+  float clust_amp[kMaxClusts];          // maximum hit amplitude [ADC]
+ //float clust_starttime[kMaxClusts];    // cluster start tick
+  //float clust_endtime[kMaxClusts];      // cluster end tick
+  //int   clust_nnfhits[kMaxClusts];      // number of non-fitted hits (ie, pulse trains)
+  //float clust_gof[kMaxClusts];          // mean goodness of fit for hits
+  int   clust_g4charge[kMaxClusts];     // true cluster charge collected on wire
+  float clust_g4energy[kMaxClusts];     // true cluster energy from G4
+  int   clust_blipid[kMaxClusts];       // blip ID for this nlusteer (if it was made into one)
+  int   clust_edepid[kMaxClusts];       // true energy dep ID
+  bool  clust_ismatch[kMaxClusts];      // was this cluster plane-matched?
 
   // --- 3D Blip information ---
   int   nblips;                       // number of blips in event
@@ -344,7 +345,7 @@ class BlipAnaTreeDataStruct
     FillWith(clust_tpc,       -9);
     FillWith(clust_plane,     -9);
     FillWith(clust_nwires,    -9);
-    FillWith(clust_deadwiresep, -9);
+    FillWith(clust_deadwiresep, 999);
     FillWith(clust_nhits,     -9);
     FillWith(clust_wire,      -9);
     FillWith(clust_startwire, -9);
@@ -1692,7 +1693,7 @@ void BlipAna::analyze(const art::Event& evt)
     //fData->clust_charge[i]    = clust.Charge;
     // Truncate precision to reduce file size after ROOT compression
     // (we don't need to know these to the Nth decimal place)
-    fData->clust_time[i]      = Truncate(clust.Time,      1);
+    fData->clust_time[i]      = Truncate(clust.Time,      0.1);
     fData->clust_charge[i]    = Truncate(clust.Charge,    10);
     //fData->clust_timespan[i]  = Truncate(clust.Timespan,  0.1);
     fData->clust_amp[i]       = Truncate(clust.Amplitude, 0.1);

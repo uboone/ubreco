@@ -57,6 +57,7 @@ microboone_blipalg:
   
   BadChanProducer:      "nfspl1:badchannels" #// label for vector of bad channel IDs from signal processing
   VetoBadChannels:      true            #// don't cluster hits from "bad" channels
+  MinDeadWireGap:       0               #// min wire gap size separating cluster from a dead region
 
   KeepAllClustersCol:   true
   KeepAllClustersInd:   false

@@ -92,7 +92,7 @@ namespace blip {
     float   Q_to_E(float,float);
 
     float   fNominalRecombFactor;
-    
+   
     std::vector<bool>   fBadChanMask;
     std::vector<bool>   fBadChanMaskPerEvt;
 
@@ -142,7 +142,9 @@ namespace blip {
     bool                fVetoBadChannels;
     std::string         fBadChanProducer;
     std::string         fBadChanFile;
-
+    int                 fMinDeadWireGap;
+    
+    bool                keepAllClusts;
     bool                fKeepAllClusts[kNplanes];
 
     // --- Calorimetry configs ---
