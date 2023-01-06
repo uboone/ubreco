@@ -1696,7 +1696,7 @@ void BlipAna::analyze(const art::Event& evt)
     fData->clust_time[i]      = Truncate(clust.Time,      0.1);
     fData->clust_charge[i]    = Truncate(clust.Charge,    10);
     //fData->clust_timespan[i]  = Truncate(clust.Timespan,  0.1);
-    fData->clust_amp[i]       = Truncate(clust.Amplitude, 0.1);
+    fData->clust_amp[i]       = Truncate(clust.Amplitude, 0.01);
     //fData->clust_rms[i]       = Truncate(clust.RMS,       0.1);
     //fData->clust_starttime[i] = clust.StartTime;
     //fData->clust_endtime[i]   = clust.EndTime;
