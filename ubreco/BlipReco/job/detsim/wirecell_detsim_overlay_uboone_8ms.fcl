@@ -3,6 +3,5 @@
 
 # Don't retrieve lifetime from DB; this should only be enabled for Runs 4 and 5
 services.UBElectronLifetimeService.ElectronLifetimeProvider.UseDB:            false
-services.UBElectronLifetimeService.ElectronLifetimeProvider.DefaultLifetime:  1000 # ms
-physics.producers.driftWC.wcls_main.structs.ElectronLifetime:                 1000
-
+services.UBElectronLifetimeService.ElectronLifetimeProvider.DefaultLifetime:  8 # ms
+physics.producers.driftWC.wcls_main.structs.ElectronLifetime:                 8

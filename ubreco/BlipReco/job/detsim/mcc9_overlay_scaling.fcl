@@ -1,0 +1,2 @@
+physics.producers.driftWC.wcls_main.structs.scaleDATA_perplane:  '[ 0.00431, 0.00402, 0.00410 ]'
+physics.producers.driftWC.wcls_main.structs.scaleMC_perplane:    '[ 0.00408, 0.00397, 0.00408 ]'

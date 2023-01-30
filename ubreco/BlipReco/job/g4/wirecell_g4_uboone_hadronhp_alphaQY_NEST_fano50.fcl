@@ -7,4 +7,4 @@ physics.producers.ionization.AlphaUseNESTAlg: true
 # via sigma = sqrt(F*Ne).
 # ** At 273 V/cm, F = 67 for LXe
 # ** Value not known for LAr
-physics.producers.ionization.AlphaIonFanoFactor:  70
+physics.producers.ionization.AlphaIonFanoFactor:  50

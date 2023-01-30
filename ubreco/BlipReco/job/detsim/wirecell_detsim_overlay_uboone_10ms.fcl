@@ -1,4 +1,5 @@
 #include "wirecell_detsim_overlay_uboone.fcl"
+#include "mcc9_overlay_scaling.fcl"
 
 # Don't retrieve lifetime from DB; this should only be enabled for Runs 4 and 5
 services.UBElectronLifetimeService.ElectronLifetimeProvider.UseDB:            false

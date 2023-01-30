@@ -1,0 +1,4 @@
+#include "wirecell_g4_uboone_hadronhp.fcl"
+process_name: EDep
+physics.simulate: [ ionization, mcreco ] 
+outputs.out1.fileName: "%ifb_edep.root"
