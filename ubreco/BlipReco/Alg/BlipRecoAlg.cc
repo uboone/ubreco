@@ -1,4 +1,3 @@
-
 #include "ubreco/BlipReco/Alg/BlipRecoAlg.h"
 
 namespace blip {
@@ -17,31 +16,35 @@ namespace blip {
     // initialize channel list
     fBadChanMask       .resize(8256,false);
     fBadChanMaskPerEvt = fBadChanMask;
-    cet::search_path sp("FW_SEARCH_PATH");
-    std::string fullname;
-    sp.find_file(fBadChanFile,fullname);
-    if (fullname.empty()) {
-      throw cet::exception("Bad channel list not found");
-    } else {
-      std::ifstream inFile(fullname, std::ios::in);
-      std::string line;
-      while (std::getline(inFile,line)) {
-        if( line.find("#") != std::string::npos ) continue;
-        std::istringstream ss(line);
-        int ch1, ch2;
-        ss >> ch1;
-        if( !(ss >> ch2) ) ch2 = ch1;
-        for(int i=ch1; i<=ch2; i++) fBadChanMask[i] = true;
+    if( fBadChanFile != "" ) {
+      cet::search_path sp("FW_SEARCH_PATH");
+      std::string fullname;
+      sp.find_file(fBadChanFile,fullname);
+      if (fullname.empty()) {
+        throw cet::exception("Bad channel list not found");
+      } else {
+        std::ifstream inFile(fullname, std::ios::in);
+        std::string line;
+        while (std::getline(inFile,line)) {
+          if( line.find("#") != std::string::npos ) continue;
+          std::istringstream ss(line);
+          int ch1, ch2;
+          ss >> ch1;
+          if( !(ss >> ch2) ) ch2 = ch1;
+          for(int i=ch1; i<=ch2; i++) fBadChanMask[i] = true;
+        }
       }
     }
     int NBadChansFromFile     = std::count(fBadChanMask.begin(),fBadChanMask.end(),true);
+    
+    EvtBadChanCount = 0;
 
     printf("******************************************\n");
     printf("Initializing BlipRecoAlg...\n");
-    printf("  - Efield: %f kV/cm\n",detProp->Efield());
-    printf("  - Drift velocity: %f\n",detProp->DriftVelocity(detProp->Efield(),detProp->Temperature()));
-    printf("  - using dE/dx: %f MeV/cm\n",fCalodEdx);
-    printf("  - equiv. recomb: %f\n",fNominalRecombFactor);
+    printf("  - Efield: %.4f kV/cm\n",detProp->Efield());
+    printf("  - Drift velocity: %.4f\n",detProp->DriftVelocity(detProp->Efield(),detProp->Temperature()));
+    printf("  - using dE/dx: %.2f MeV/cm\n",fCalodEdx);
+    printf("  - equiv. recomb: %.4f\n",fNominalRecombFactor);
     printf("  - custom bad chans: %i\n",NBadChansFromFile);
     printf("*******************************************\n");
 
@@ -67,17 +70,17 @@ namespace blip {
 
     h_chan_nhits      = hdir.make<TH1D>("chan_nhits","Untracked hits;TPC readout channel;Total hits",8256,0,8256);
     h_chan_nclusts    = hdir.make<TH1D>("chan_nclusts","Untracked isolated hits;TPC readout channel;Total clusts",8256,0,8256);
-    h_chan_bad    = hdir.make<TH1D>("chan_bad","Channels marked as bad;TPC readout channel",8256,0,8256);
-    //h_efield        = hdir.make<TH1D>("efield","Local E-field values used for reco;E-field [V/cm]",200,230,330);
+    h_chan_bad        = hdir.make<TH1D>("chan_bad","Channels marked as bad;TPC readout channel",8256,0,8256);
     h_recomb          = hdir.make<TH1D>("recomb","Applied recombination factor",150,0.40,0.70);
     h_clust_nwires    = hdir.make<TH1D>("clust_nwires","Clusters (pre-cut);Wires in cluster",100,0,100);
     h_clust_timespan  = hdir.make<TH1D>("clust_timespan","Clusters (pre-cut);Time span [ticks]",300,0,300);
-    
 
     int qbins = 200;
     float qmax = 100;
     //int wiresPerPlane[3]={2400,2400,3456};
     for(int i=0; i<kNplanes; i++) {
+      //h_hit_maskfrac[i]       = dir_diag.make<TH1D>(Form("pl%i_hit_maskfrac",i),"",100,0,1.);
+      //h_hit_maskfrac_true[i]  = dir_diag.make<TH1D>(Form("pl%i_hit_maskfrac_true",i),"",100,0,1.);
       //h_hit_mult[i]         = hdir.make<TH1D>(Form("pl%i_hit_mult",i),      Form("Plane %i;Num same-wire hits within +/- 50 ticks",i),20,0,20);
       if( i == fCaloPlane ) continue;
       //h_wire_nhits[i]       = hdir.make<TH1D>(Form("pl%i_wire_nhits",i),      Form("Plane %i untracked hits not plane-matched;TPC readout channel;Total hits",i),wiresPerPlane[i],0,wiresPerPlane[i]);
@@ -170,7 +173,7 @@ namespace blip {
     
     fVetoBadChannels    = pset.get<bool>          ("VetoBadChannels",     true);
     fBadChanProducer    = pset.get<std::string>   ("BadChanProducer",     "nfspl1:badchannels");
-    fBadChanFile        = pset.get<std::string>   ("BadChanFile",         "blipreco_badchannels.txt");
+    fBadChanFile        = pset.get<std::string>   ("BadChanFile",         "");
     fMinDeadWireGap     = pset.get<int>           ("MinDeadWireGap",      1);
     
     fKeepAllClusts[0] = pset.get<bool>          ("KeepAllClustersInd", false);
@@ -209,6 +212,9 @@ namespace blip {
     hitinfo.clear();
     pinfo.clear();
     trueblips.clear();
+    EvtBadChanCount = 0;
+    //map_plane_hitg4ids.clear();
+   
 
   
     //=======================================
@@ -216,13 +222,11 @@ namespace blip {
     //========================================
     
     // --- detector properties
-    //const auto& SCE_provider       = reinterpret_cast<spacecharge::SpaceChargeMicroBooNE const*>(lar::providerFrom<spacecharge::SpaceChargeService>());
     auto const& SCE_provider        = lar::providerFrom<spacecharge::SpaceChargeService>();
     auto const& lifetime_provider   = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
     auto const& tpcCalib_provider   = art::ServiceHandle<lariov::TPCEnergyCalibService>()->GetProvider();
     auto const& chanFilt            = art::ServiceHandle<lariov::ChannelStatusService>()->GetProvider();
-    
-
+  
     // -- geometry
     art::ServiceHandle<geo::Geometry> geom;
 
@@ -244,15 +248,13 @@ namespace blip {
     if (evt.getByLabel(fSimChanProducer,simchanHandle)) 
       art::fill_ptr_vector(simchanlist, simchanHandle);
 
-
-    // -- hits (from input module)
+    // -- hits (from input module, usually track-masked subset of gaushit)
     art::Handle< std::vector<recob::Hit> > hitHandle;
     std::vector<art::Ptr<recob::Hit> > hitlist;
     if (evt.getByLabel(fHitProducer,hitHandle))
       art::fill_ptr_vector(hitlist, hitHandle);
 
-    // -- hits (from gaushit)
-    // -- these are used in truth-matching of hits
+    // -- hits (from gaushit), these are used in truth-matching of hits
     art::Handle< std::vector<recob::Hit> > hitHandleGH;
     std::vector<art::Ptr<recob::Hit> > hitlistGH;
     if (evt.getByLabel("gaushit",hitHandleGH))
@@ -264,16 +266,14 @@ namespace blip {
     if (evt.getByLabel(fTrkProducer,tracklistHandle))
       art::fill_ptr_vector(tracklist, tracklistHandle);
   
-    // -- hit <-> track associations
+    // -- associations
     art::FindManyP<recob::Track> fmtrk(hitHandle,evt,fTrkProducer);
-
-    // -- gaushit <-> track associations 
     art::FindManyP<recob::Track> fmtrkGH(hitHandleGH,evt,fTrkProducer);
-  
-    // -- gaushit <-> particle associations
     art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> fmhh(hitHandleGH,evt,"gaushitTruthMatch");
     
-    // -- update map of bad channels for this event
+    //====================================================
+    // Update map of bad channels for this event
+    //====================================================
     if( fVetoBadChannels ) {
       fBadChanMaskPerEvt = fBadChanMask;
       if( fBadChanProducer != "" ) { 
@@ -282,60 +282,45 @@ namespace blip {
         if( evt.getByLabel(fBadChanProducer, badChanHandle))
           badChans = *(badChanHandle);
         for(auto& ch : badChans ) {
+          EvtBadChanCount++;
           fBadChanMaskPerEvt[ch] = true;
           h_chan_bad->Fill(ch);
         }
       }
     }
     
-    
+    //====================================================
+    // Prep the particle inventory service for MC+overlay
+    //====================================================
+    if( evt.isRealData() && plist.size() ) {
+      art::ServiceHandle<cheat::ParticleInventoryService> pi_serv;
+      pi_serv->Rebuild(evt);
+      pi_serv->provider()->PrepParticleList(evt);
+    }
    
-   //===============================================================
+    //===============================================================
     // Map of each hit to its gaushit index (needed if the provided
     // hit collection is some filtered subset of gaushit, in order to
     // use gaushitTruthMatch later on)
     //===============================================================
-    
     std::map< int, int > map_gh;
-    
     // if input collection is already gaushit, this is trivial
     if( fHitProducer == "gaushit" ) {
       for(auto& h : hitlist ) map_gh[h.key()] = h.key(); 
-    
     // ... but if not, find the matching gaushit. There's no convenient
     // hit ID, so we must loop through and compare channel/time (ugh)
     } else {
-      // first find GH hits on each channel
-      std::map<int,std::vector<int>> chanhitsMap;
-      for(auto& gh : hitlistGH) chanhitsMap[gh->Channel()].push_back(gh.key());
-      // compare to input hits to gaushits on same channel
+      std::map<int,std::vector<int>> map_chan_ghid;
+      for(auto& gh : hitlistGH ) map_chan_ghid[gh->Channel()].push_back(gh.key());
       for(auto& h : hitlist ) {
-        for(auto& chanHit : chanhitsMap[h->Channel()]){
-          if( hitlistGH[chanHit]->PeakTime() == h->PeakTime() ) {
-            map_gh[h.key()] = chanHit; 
-            break;
-          }
+        for(auto& igh : map_chan_ghid[h->Channel()]){
+          if( hitlistGH[igh]->PeakTime() != h->PeakTime() ) continue;
+          map_gh[h.key()] = igh;
+          break;
         }
       }
     }
 
-    /*
-    for(auto& h : hitlist ) {
-      if( fHitProducer == "gaushit" ) {
-        continue; 
-      }
-      int plane = h->WireID().Plane;
-      int chan  = h->Channel();
-      for (auto& gh : hitlistGH ){
-        if( gh->WireID().Plane != plane ) continue;
-        if( gh->Channel() != chan       ) continue;
-        if( gh->PeakTime() == h->PeakTime() ) { 
-          map_gh[h.key()] = gh.key(); 
-          break; 
-        }
-      }
-    }
-    */
     
     //======================================================
     // Use SimChannels to make a map of the collected charge
@@ -353,8 +338,9 @@ namespace blip {
           // ###         behavior as of Nov 2022              ###
           // WireCell's detsim implements its gain "fudge factor" 
           // by scaling the SimChannel electrons (DocDB 31089)
-          // So we need to correct for this effect to get accurate
-          // count of 'true' electrons collected on channel.
+          // instead of the electronics gain. So we need to correct 
+          // for this effect to get accurate count of 'true' 
+          // electrons collected on this channel.
           // ####################################################
           if( fSimGainFactor > 0 ) ne /= fSimGainFactor;
           map_g4trkid_charge[ide.trackID] += ne;
@@ -364,29 +350,18 @@ namespace blip {
    
 
     //==================================================
-    // Use G4 information to determine the "true"
-    // blips in this event.
+    // Use G4 information to determine the "true" blips in this event.
     //==================================================
-    bool isMC = (plist.size() > 0 );
-    
-    // Map G4IDs to their respective index in the particle list
-    //std::map< int, int > map_g4trkid_index;
-
-    // Loop through the MCParticles
-    if( isMC ) {
+    if( plist.size() ) {
       pinfo.resize(plist.size());
       for(size_t i = 0; i<plist.size(); i++){
         BlipUtils::FillParticleInfo( *plist[i], pinfo[i], sedlist, fCaloPlane);
-        int trkid = pinfo[i].trackId;
-        if( map_g4trkid_charge[trkid] ) pinfo[i].numElectrons = (int)map_g4trkid_charge[trkid];
-        pinfo[i].index            = i;
-        //map_g4trkid_index[trkid]  = i;
+        if( map_g4trkid_charge[pinfo[i].trackId] ) pinfo[i].numElectrons = (int)map_g4trkid_charge[pinfo[i].trackId];
+        pinfo[i].index = i;
       }
-      // Calculate the true blips
       BlipUtils::MakeTrueBlips(pinfo, trueblips);
       BlipUtils::MergeTrueBlips(trueblips, fTrueBlipMergeDist);
     }
-  
 
 
     //=======================================
@@ -402,8 +377,6 @@ namespace blip {
     //========================================
     hitinfo.resize(hitlist.size());
     
-    //std::map<int,std::vector<int>> chanhitsMap;
-    //std::map<int,std::vector<int>> chanhitsMap_untracked;
     std::map<int,std::vector<int>> planehitsMap;
     int nhits_untracked = 0;
 
@@ -422,6 +395,7 @@ namespace blip {
       hitinfo[i].amp          = thisHit->PeakAmplitude();
       hitinfo[i].rms          = thisHit->RMS();
       hitinfo[i].integralADC  = thisHit->Integral();
+      hitinfo[i].sigmaintegral = thisHit->SigmaIntegral();
       hitinfo[i].sumADC       = thisHit->SummedADC();
       hitinfo[i].charge       = fCaloAlg->ElectronsFromADCArea(thisHit->Integral(),plane);
       hitinfo[i].peakTime     = thisHit->PeakTime();
@@ -430,42 +404,43 @@ namespace blip {
      
       //h_hit_chanstatus->Fill( chanFilt.Status(chan) );
 
-      if( isMC ) {
-        hitinfo[i].g4energy = 0;
-        hitinfo[i].g4charge = 0;
+      if( plist.size() ) {
+        
+        //int truthid;
+        //float truthidfrac, numElectrons, energy;
+        //BlipUtils::HitTruth( thisHit, truthid, truthidfrac, energy, numElectrons);
+
+        //--------------------------------------------------
+        // MicroBooNE-specific truth-matching: since SimChannels aren't
+        // saved by default, the normal backtracker won't work, so instead
+        // the truth-matching metadata is stored in the event
+        //--------------------------------------------------
         int igh = map_gh[i];
         if( fmhh.at(igh).size() ) {
           std::vector<simb::MCParticle const*> pvec;
           std::vector<anab::BackTrackerHitMatchingData const*> btvec;
           fmhh.get(igh,pvec,btvec);
-          //std::cout<<"Hit "<<i<<", "<<plane<<"/"<<thisHit->WireID().Wire<<", matches to "<<pvec.size()<<" particles\n";
+          hitinfo[i].g4energy = 0;
+          hitinfo[i].g4charge = 0;
           float maxQ = -9;
           for(size_t j=0; j<pvec.size(); j++){
-            //std::cout<<"  "<<pvec.at(j)->TrackId()<<"    "<<btvec.at(j)->numElectrons<<" electrons\n";
             hitinfo[i].g4energy += btvec.at(j)->energy;
             hitinfo[i].g4charge += btvec.at(j)->numElectrons;
-            if( btvec.at(j)->numElectrons > maxQ ) {
-              maxQ = btvec.at(j)->numElectrons;
-              hitinfo[i].g4trkid= pvec.at(j)->TrackId();
-              hitinfo[i].g4pdg  = pvec.at(j)->PdgCode();
-              hitinfo[i].g4frac = btvec.at(j)->ideNFraction;
-            }
+            if( btvec.at(j)->numElectrons <= maxQ ) continue;
+            maxQ = btvec.at(j)->numElectrons;
+            hitinfo[i].g4trkid  = pvec.at(j)->TrackId();
+            hitinfo[i].g4pdg    = pvec.at(j)->PdgCode();
+            hitinfo[i].g4frac   = btvec.at(j)->ideNFraction;
           }
-          // fraction of hit charge attributed to 'g4trkid' particle
-          // if < 1, means multiple particles contributed to this blip
-          //if( maxQ > 0 && hitinfo[i].g4charge > 0 ) 
-          //  hitinfo[i].g4frac = maxQ / hitinfo[i].g4charge;
+          
+          // ###      uB behavior as of Nov 2022              ###
+          // WireCell's detsim implements its gain "fudge factor" 
+          // by scaling the SimChannel electrons for some reason.
+          // So we need to correct for this effect to get accurate
+          // count of 'true' electrons collected on channel.
+          if( fSimGainFactor > 0 ) hitinfo[i].g4charge /= fSimGainFactor;
+          
         }
-        
-        // ####################################################
-        // ###         behavior as of Nov 2022              ###
-        // WireCell's detsim implements its gain "fudge factor" 
-        // by scaling the SimChannel electrons for some reason.
-        // So we need to correct for this effect to get accurate
-        // count of 'true' electrons collected on channel.
-        // ####################################################
-        if( fSimGainFactor > 0 ) hitinfo[i].g4charge /= fSimGainFactor;
-        
 
       }//endif MC
       
@@ -481,13 +456,9 @@ namespace blip {
         if (fmtrkGH.at(gi).size()) hitinfo[i].trkid= fmtrkGH.at(gi)[0]->ID(); 
       }
 
-      // add to the channel hit map
-      //chanhitsMap[chan].push_back(i);
+      // add to the map
       planehitsMap[plane].push_back(i);
-      if( hitinfo[i].trkid < 0 ) {
-        //chanhitsMap_untracked[chan].push_back(i);
-        nhits_untracked++;
-      }
+      if( hitinfo[i].trkid < 0 ) nhits_untracked++;
       //printf("  %lu   plane: %i,  wire: %i, time: %i\n",i,hitinfo[i].plane,hitinfo[i].wire,int(hitinfo[i].driftTime));
 
     }//endloop over hits
@@ -536,9 +507,9 @@ namespace blip {
         if( hitinfo[i].gof        >= fMaxHitGOF[plane] ) continue;
         if( hit->RMS()            <= fMinHitRMS[plane] ) continue;
         if( hit->RMS()            >= fMaxHitRMS[plane] ) continue;
-        //if( hit->PeakAmplitude()  <= fMinHitAmp[plane] ) continue;
-        //if( hit->PeakAmplitude()  >= fMaxHitAmp )        continue;
-        //if( hit->Multiplicity()   >= fMaxHitMult )       continue;
+        if( hit->PeakAmplitude()  <= fMinHitAmp[plane] ) continue;
+        if( hit->PeakAmplitude()  >= fMaxHitAmp )        continue;
+        if( hit->Multiplicity()   >= fMaxHitMult )       continue;
         //float hit_ratio = hit->RMS() / hit->PeakAmplitude();
         //if( hit_ratio             < fMinHitRatio[plane] ) continue;
         //if( hit_ratio             > fMaxHitRatio[plane] ) continue;
@@ -553,7 +524,6 @@ namespace blip {
     // Hit clustering
     // ---------------------------------------------------
     std::map<int,std::map<int,std::vector<int>>> tpc_planeclustsMap;
-    //std::cout<<"Doing cluster reco\n";
     for(auto const& planehits : planehitsMap){
       for(auto const& hi : planehits.second ){
         
@@ -630,11 +600,10 @@ namespace blip {
           }
           if( nbadchanhits == hc.NHits ) continue;
         }
-      
         
         // measure wire separation to nearest dead region
         // (0 = directly adjacent)
-        for(size_t dw=1; dw<=10; dw++){
+        for(size_t dw=1; dw<=5; dw++){
           int  w1   = hc.StartWire-dw;
           int  w2   = hc.EndWire+dw;
           bool flag = false;
@@ -653,8 +622,7 @@ namespace blip {
        
         // veto this cluster if the gap between it and the
         // nearest dead wire (calculated above) isn't big enough
-        if( fMinDeadWireGap > 0 && hc.DeadWireSep >= 0 
-            && hc.DeadWireSep < fMinDeadWireGap ) continue;
+        if( fMinDeadWireGap > 0 && hc.DeadWireSep < fMinDeadWireGap ) continue;
         
         // **************************************
         // assign the ID, then go back and encode this 
@@ -848,25 +816,20 @@ namespace blip {
             // apply cylinder cut 
             for(auto& trk : tracklist ){
               if( trk->Length() < fMaxHitTrkLength ) continue;
-              //if( trk->ID() == newBlip.TrkID ) continue;
               auto& a = trk->Vertex();
               auto& b = trk->End();
               TVector3 p1(a.X(), a.Y(), a.Z() );
               TVector3 p2(b.X(), b.Y(), b.Z() );
               // TO-DO: if this track starts or ends at a TPC boundary, 
               // we should extend p1 or p2 to outside the AV to avoid blind spots
-              
               TVector3 bp = newBlip.Position;
               float d = BlipUtils::DistToLine(p1,p2,bp);
-              
-              
               if( d > 0 ) {
                 // update closest trkdist
                 if( newBlip.ProxTrkDist < 0 || d < newBlip.ProxTrkDist ) {
                   newBlip.ProxTrkDist = d;
                   newBlip.ProxTrkID = trk->ID();
                 }
-
                 // need to do some math to figure out if this is in
                 // the 45 degreee "cone" relative to the start/end 
                 if( !newBlip.inCylinder && d < fCylinderRadius ) {
@@ -881,10 +844,9 @@ namespace blip {
             
             // ----------------------------------------
             // if we made it this far, the blip is good!
+            // associate this blip with the hits and clusters within it
             newBlip.ID = blips.size();
             blips.push_back(newBlip);
-            
-            // associate this blip with the hits and clusters within it
             for(auto& hc : hcGroup ) {
               hitclust[hc.ID].BlipID = newBlip.ID;
               for( auto& h : hc.HitIDs ) hitinfo[h].blipid = newBlip.ID;
@@ -987,7 +949,6 @@ namespace blip {
 
       }
       
-       
       // METHOD 1
       float recomb  = ModBoxRecomb(fCalodEdx,Efield);
       blip.Energy   = depEl * (1./recomb) * mWion;
@@ -1032,11 +993,8 @@ namespace blip {
   }
   
   float BlipRecoAlg::Q_to_E(float Q, float Efield){
-    if( Efield != detProp->Efield() ) {
-      return mWion * (Q/ModBoxRecomb(fCalodEdx,Efield));
-    } else {
-      return mWion * (Q/fNominalRecombFactor);
-    }
+    if( Efield != detProp->Efield() ) return mWion * (Q/ModBoxRecomb(fCalodEdx,Efield));
+    else                              return mWion * (Q/fNominalRecombFactor);
   }
 
   

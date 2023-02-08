@@ -51,7 +51,6 @@
 
 class TrackMasker;
 
-
 //###################################################
 // Class Definition
 //###################################################
@@ -92,7 +91,7 @@ private:
   
   // TODO: remove these hard-coded conversion values
   float pitch        = 0.3;    // cm
-
+  
 };
 
 
@@ -114,6 +113,10 @@ TrackMasker::TrackMasker(fhicl::ParameterSet const & p)
 
   _flaggedhits  .reserve(50000);
   _vetohits     .reserve(50000);
+  
+  // dignostic histograms
+  art::ServiceHandle<art::TFileService> tfs;
+  
 }
 
 
@@ -123,9 +126,9 @@ TrackMasker::TrackMasker(fhicl::ParameterSet const & p)
 //###################################################
 void TrackMasker::produce(art::Event & e)
 {
-  std::cout<<"\n"
-  <<"=========== TrackMasker =========================\n"
-  <<"Event "<<e.id().event()<<" / run "<<e.id().run()<<"\n";
+  //std::cout<<"\n"
+  //<<"=========== TrackMasker =========================\n"
+  //<<"Event "<<e.id().event()<<" / run "<<e.id().run()<<"\n";
   
   // *****************************
   // Grab data products from file
@@ -151,8 +154,8 @@ void TrackMasker::produce(art::Event & e)
   _vetohits.clear();
   _flaggedhits.clear();
 
-  std::cout<<"Found "<<hit_h->size()<<" hits from "<<fHitProducer<<"\n";
-  std::cout<<"Found "<<trk_h->size()<<" tracks from "<<fTrkProducer<<"\n";
+  //std::cout<<"Found "<<hit_h->size()<<" hits from "<<fHitProducer<<"\n";
+  //std::cout<<"Found "<<trk_h->size()<<" tracks from "<<fTrkProducer<<"\n";
   
   
   //***************************************************
@@ -216,9 +219,9 @@ void TrackMasker::produce(art::Event & e)
   
   }//endloop over hits
   
-  std::cout<<" --> removed "<<_vetohits.size()<<" tracked hits\n";
-  std::cout<<" --> flagged "<<_flaggedhits.size()<<" hits in tracks long enough to apply veto radius\n";
-  size_t veto_hits_trk = _vetohits.size();
+  //std::cout<<" --> removed "<<_vetohits.size()<<" tracked hits\n";
+  //std::cout<<" --> flagged "<<_flaggedhits.size()<<" hits in tracks long enough to apply veto radius\n";
+  //size_t veto_hits_trk = _vetohits.size();
   
   //***************************************************
   // Loop through all tracked hits and for each one, 
@@ -226,8 +229,8 @@ void TrackMasker::produce(art::Event & e)
   // are within the veto radius.
   //**************************************************
   
-  float vetoRadSq = pow(fVetoRadius,2);
-
+  float vetoRadSq = pow(fVetoRadius,2); 
+  size_t additional_vetoed_hits=0;
   for( auto const& h : _flaggedhits ) {
     for(auto const& hh : planehitmap[hitlist[h]->WireID().Plane] ) {
       // skip hits that are already vetoed
@@ -242,10 +245,11 @@ void TrackMasker::produce(art::Event & e)
       if( (pow(dw,2)+pow(dt,2)) > vetoRadSq ) continue;
       _vetohits.push_back(hh);
       hitIsVetoed[hh] = true;
+      additional_vetoed_hits++;
     }
   }
   
-  std::cout<<" --> vetoed additional "<<_vetohits.size()-veto_hits_trk<<" hits within radius\n";
+  //std::cout<<" --> vetoed additional "<<additional_vetoed_hits<<" hits within radius\n";
 
 
   // ********************************************
@@ -256,8 +260,8 @@ void TrackMasker::produce(art::Event & e)
   }
 
   
-  printf("input hits  : %lu\n",hit_h->size());
-  printf("output hits : %lu\n",Hit_v->size());
+  //printf("input hits  : %lu\n",hit_h->size());
+  //printf("output hits : %lu\n",Hit_v->size());
 
   e.put(std::move(Hit_v));
         

@@ -11,17 +11,24 @@ services:
 {
   scheduler:               { defaultExceptions: false }
   TFileService:            { fileName: "hist_%p_%tc.root" }
-  ParticleInventoryService: @local::standard_particleinventoryservice
-                            @table::microboone_services_reco
-  BackTrackerService:       @local::microboone_backtrackerservice
   DetectorClocksService:    @local::microboone_detectorclocks
   Geometry:                 @local::microboone_geo
   LArProperties:            @local::microboone_properties
   TimeTracker:              @local::microboone_time_tracker
+                            @table::microboone_services_reco
 }
 
-# Enable BackTracker to work on overlay MC.
-services.BackTrackerService.BackTracker.OverrideRealData:       true
+# Enable BackTracker to work on overlay MC
+services.BackTrackerService: @local::microboone_backtrackerservice
+services.BackTrackerService.BackTracker.OverrideRealData:             true
+services.ParticleInventoryService: @local::standard_particleinventoryservice
+services.ParticleInventoryService.ParticleInventory.OverrideRealData: true
+# (note: in uboonecode v08_00_00_64 and earlier, 'OverrideRealData' does not
+# work for ParticleInventoryService; instead the service must be initialized
+# per event:
+#     art::ServiceHandle<cheat::ParticleInventoryService> pi_serv;
+#     pi_serv->Rebuild(evt);
+#     pi_serv->provider()->PrepParticleList(evt);
 
 # Don't retrieve lifetime from DB; this should only be enabled for Runs 4 and 5
 services.UBElectronLifetimeService.ElectronLifetimeProvider.UseDB: false
@@ -52,7 +59,7 @@ services.DetectorPropertiesService.InheritNumberTimeSamples: false
 services.DetectorClocksService.InheritClockConfig:           false
 services.DetectorClocksService.TriggerOffsetTPC:             -400
 
-# Source is an art-ROOT file
+# Source is an art-ROOT file containing hits and tracks
 source: {
   module_type: RootInput
 }

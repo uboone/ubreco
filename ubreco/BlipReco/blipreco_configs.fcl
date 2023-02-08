@@ -16,7 +16,10 @@ microboone_calo_mcc9_mc:
 }
 microboone_calo_mcc9_data:
 {
-  CalAreaConstants: [ 4.31e-3, 4.02e-3, 4.26e-3 ]
+  #   Update (1/24/23): in v08_00_00_63, the collection
+  #   plane scale factor in data is 4.10e-3 (??)
+  #CalAreaConstants: [ 4.31e-3, 4.02e-3, 4.26e-3 ]
+  CalAreaConstants: [ 4.31e-3, 4.02e-3, 4.10e-3 ]
   CalAmpConstants:  [ 9.2e-4, 1.062e-3, 1.08e-3 ]
   CaloDoLifeTimeCorrection: false
   CaloLifeTimeForm: 0
@@ -37,7 +40,7 @@ microboone_blipalg:
   MaxHitTrkLength:      5.0             #// hits in trks > this length will be vetoed [cm]
   DoHitFiltering:       true            #// filter hits based on amp, width, RMS
   MinHitGOF:            [0, 0, 0]       #// -- exclude pulse-train hits
-  MinHitRMS:            [0, 0, 2.5]     #// -- exclude narrow noise-like hits on collection plane
+  MinHitRMS:            [0, 0, 2.3]     #// -- exclude narrow noise-like hits on collection plane
   MaxWiresInCluster:    10              #// max allowable wires in a cluster
   MaxClusterSpan:       50              #// max allowable time-ticks of a cluster
   ClustMatchMinOverlap: 0.5             #// minimum fractional overlap to be eligible for matching
@@ -55,8 +58,9 @@ microboone_blipalg:
   SCECorrection:        false           #// correct blips for space charge (requires known XYZ)
   CaloAlg:              @local::microboone_calo_mcc9_data
   
-  BadChanProducer:      "nfspl1:badchannels" #// label for vector of bad channel IDs from signal processing
   VetoBadChannels:      true            #// don't cluster hits from "bad" channels
+  BadChanProducer:      "nfspl1:badchannels" #// label for vector of bad channel IDs from signal processing
+  #BadChanFile:          "blipreco_badchannels.txt"
   MinDeadWireGap:       0               #// min wire gap size separating cluster from a dead region
 
   KeepAllClustersCol:   true

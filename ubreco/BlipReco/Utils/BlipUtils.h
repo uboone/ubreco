@@ -37,14 +37,14 @@
 typedef std::vector<art::Ptr<sim::SimEnergyDeposit>> SEDVec_t;
 
 namespace BlipUtils {
-  
+ 
   //###################################################
   // Functions related to blip reconstruction
   //###################################################
   //void      InitializeDetProps();
   void      FillParticleInfo(simb::MCParticle const&, blip::ParticleInfo&, SEDVec_t&, int plane=2);
   //void      CalcPartDrift(blip::ParticleInfo&, int);
-  void      CalcTotalDep(float&,int&,float&, SEDVec_t&);
+  //void      CalcTotalDep(float&,int&,float&, SEDVec_t&);
   void      MakeTrueBlips(std::vector<blip::ParticleInfo>&, std::vector<blip::TrueBlip>&);
   void      GrowTrueBlip(blip::ParticleInfo&, blip::TrueBlip&);
   void      MergeTrueBlips(std::vector<blip::TrueBlip>&, float);
@@ -63,9 +63,9 @@ namespace BlipUtils {
   //###################################################
   // General functions 
   //###################################################
-  void    HitTruth(art::Ptr<recob::Hit> const&, int&, float&, float&, float&);
-  si_t    HitTruthIds( art::Ptr<recob::Hit> const&);
-  bool    G4IdToMCTruth( int const, art::Ptr<simb::MCTruth>&);
+  //void    HitTruth(art::Ptr<recob::Hit> const&, int&, float&, float&, float&);
+  //si_t    HitTruthIds( art::Ptr<recob::Hit> const&);
+  //bool    G4IdToMCTruth( int const, art::Ptr<simb::MCTruth>&);
   double  PathLength(const simb::MCParticle&, TVector3&, TVector3&);
   double  PathLength(const simb::MCParticle&);
   bool    IsAncestorOf(int, int, bool);

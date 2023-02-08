@@ -8,9 +8,7 @@ typedef std::vector<int>        vint_t;
 typedef std::vector<bool>       vbool_t;
 typedef std::vector<float>      vfloat_t;
 typedef std::set<int>           si_t;
-typedef std::map<int,int>       mii_t;
 typedef std::map<int,float>     mif_t;
-typedef std::map<float,float>   mff_t;
 
 const int kNplanes  = 3;  
 
@@ -27,7 +25,7 @@ namespace blip {
     int   isPrimary         = -9;
     int   numTrajPts          = -9;
     double depEnergy         = -9;
-    int   depElectrons      = -9;
+    int   depElectrons        = -9;
     double numElectrons      = -9;
     double mass              = -9;
     double E                 = -9;
@@ -57,7 +55,6 @@ namespace blip {
     int       LeadG4ID      = -9;
     int       LeadG4Index   = -9;
     int       LeadG4PDG     = -9;
-    //float     LeadEnergy    = -9;
     float     LeadCharge    = -9;
     mif_t     G4ChargeMap;
     mif_t     G4PDGMap;
@@ -65,7 +62,6 @@ namespace blip {
   };
 
   struct HitInfo {
-    //art::Ptr<recob::Hit> Hit;
     int   hitid         = -9;
     int   plane         = -9;
     int   tpc           = -9;
@@ -79,8 +75,9 @@ namespace blip {
     int   blipid        = -9;
     bool  ismatch       = false;
     float integralADC    = -999;     // [ADCs] from integral
+    float sigmaintegral = -999;
     float sumADC        = -999;     // [ADCs] from sum 
-    int   charge        = -999;     // [e-]
+    float charge        = -999;     // [e-]
     float peakTime      = -999999;
     float driftTime     = -999999;  // [tick]
     float gof           = -9;
@@ -98,7 +95,7 @@ namespace blip {
     int     CenterWire      = -999;
     bool    isMerged        = false;
     bool    isMatched       = false;
-    int     DeadWireSep     = -9;
+    int     DeadWireSep     = 99;
     int     TPC             = -9;
     int     Plane           = -9;
     int     NHits           = -9;
@@ -106,6 +103,7 @@ namespace blip {
     float   ADCs            = -999;
     float   Amplitude       = -999;
     float   Charge          = -999;
+    float   SigmaCharge     = -999;
     float   Time            = -999;
     float   RMS             = -999;
     float   StartHitTime    = -999;
@@ -117,7 +115,6 @@ namespace blip {
     int     EndWire         = -999;
     int     NPulseTrainHits = -9;
     float   GoodnessOfFit   = -999;
-    //float   Ratio           = -9;
     int     BlipID          = -9;
     int     EdepID          = -9;
     si_t    HitIDs;

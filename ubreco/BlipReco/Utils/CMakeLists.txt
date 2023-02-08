@@ -4,6 +4,7 @@ art_make(    LIBRARY_NAME ubreco_BlipUtils
                            larsim_Simulation lardataobj_Simulation
                            larsim_MCCheater_BackTrackerService_service
                            larsim_MCCheater_ParticleInventoryService_service
+                           larsim_Simulation nutools_ParticleNavigation
                            lardata_Utilities
                            larevt_Filters
                            lardataobj_RawData

@@ -95,6 +95,8 @@ namespace blip {
    
     std::vector<bool>   fBadChanMask;
     std::vector<bool>   fBadChanMaskPerEvt;
+    int                 EvtBadChanCount;
+
 
    private:
     
@@ -165,6 +167,8 @@ namespace blip {
     TH1D*   h_chan_bad;
     TH1D*   h_clust_nwires;
     TH1D*   h_clust_timespan;
+    TH1D*   h_hit_maskfrac[kNplanes];
+    TH1D*   h_hit_maskfrac_true[kNplanes];
     TH1D*   h_clust_overlap[kNplanes];
     TH1D*   h_clust_dt[kNplanes];
     TH1D*   h_clust_dtfrac[kNplanes];
@@ -177,7 +181,6 @@ namespace blip {
     TH1D*   h_nmatches[kNplanes];
 
     TH1D*   h_recomb;
-    TH1D*   h_efield;
 
   };
 

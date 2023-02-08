@@ -5,6 +5,7 @@ namespace BlipUtils {
   //============================================================================
   // Find total visible energy deposited in the LAr, and number of electrons deposited
   // and drifted to the anode.
+  /*
   void CalcTotalDep(float& energy, int& ne_dep, float& ne_anode, SEDVec_t& sedvec){
    
     // energy and electrons deposited
@@ -25,12 +26,15 @@ namespace BlipUtils {
       }
     }
   }
+  */
+ 
 
   //===========================================================================
   // Provided a MCParticle, calculate everything we'll need for later calculations
   // and save into ParticleInfo object
   void FillParticleInfo( const simb::MCParticle& part, blip::ParticleInfo& pinfo, SEDVec_t& sedvec, int caloPlane){
     
+
     // Get important info and do conversions
     pinfo.particle    = part;
     pinfo.trackId     = part.TrackId();
@@ -72,7 +76,7 @@ namespace BlipUtils {
   // Provided a vector of all particle information for event, fill a
   // vector of true blips
   void MakeTrueBlips( std::vector<blip::ParticleInfo>& pinfo, std::vector<blip::TrueBlip>& trueblips ) {
-    
+   
     for(size_t i=0; i<pinfo.size(); i++){
       auto& part = pinfo[i].particle;
       
@@ -232,8 +236,9 @@ namespace BlipUtils {
       // initialize values 
       hc.Plane            = plane;
       hc.TPC              = tpc;
-      hc.ADCs     = 0;
+      hc.ADCs             = 0;
       hc.Charge           = 0;
+      hc.SigmaCharge      = 0;
       hc.Amplitude        = 0;
       hc.NPulseTrainHits  = 0;
       float startTime     = 9e9;
@@ -246,6 +251,7 @@ namespace BlipUtils {
       // store hit times, charges, and RMS
       std::vector<float> tvec;
       std::vector<float> qvec;
+      std::vector<float> dqvec;
       std::vector<float> rmsvec;
 
       // grow our hit cluster!
@@ -255,6 +261,9 @@ namespace BlipUtils {
         hc.Wires      .insert(hitinfo.wire);
         hc.Chans      .insert(hitinfo.chan);
         float q       = (hitinfo.charge > 0)? hitinfo.charge : 0;
+        float integral = hitinfo.integralADC;
+        float sigma   = hitinfo.sigmaintegral;
+        float dq      = (integral != 0 && sigma>0)? (sigma/integral)*q : 0;
         hc.Charge     += q;
         hc.ADCs       += hitinfo.integralADC;
         hc.Amplitude  = std::max(hc.Amplitude, hitinfo.amp );
@@ -263,6 +272,7 @@ namespace BlipUtils {
         endTime       = std::max(endTime,   hitinfo.driftTime+hitinfo.rms);
         tvec          .push_back(hitinfo.driftTime);
         qvec          .push_back(q);
+        dqvec         .push_back(dq);
         rmsvec        .push_back(hitinfo.rms);
         if( hitinfo.g4trkid > 0 ) hc.G4IDs.insert(hitinfo.g4trkid);
         if( hitinfo.gof < 0 ) {
@@ -292,15 +302,19 @@ namespace BlipUtils {
       hc.Timespan   = hc.EndTime - hc.StartTime;
       hc.Time       = weightedTime / hc.Charge;
 
-      // overall cluster RMS
+      // overall cluster RMS and uncertainty in charge
       float sig_sumSq = 0;
       float dt_sumSq  = 0;
+      float dq        = 0;
       for(size_t i=0; i<qvec.size(); i++) {
         float w = qvec[i] / hc.Charge;
         dt_sumSq  += w*pow(tvec[i]-hc.Time,2);
         sig_sumSq += pow(w*rmsvec[i],2);
+        dq        += w*dqvec[i];
       }
       hc.RMS = sqrt( sig_sumSq + dt_sumSq );
+      hc.SigmaCharge = dq;
+
 
     }//endif > 0 hits
   
@@ -413,18 +427,6 @@ namespace BlipUtils {
     newblip.Position.SetX(newblip.Time*tick_to_cm);
     newblip.dX = (t_max-t_min) * tick_to_cm;
     
-    // Is this blip associated with a specific track ID?
-    /*
-    std::map<int,int> trk_id_count;
-    for(auto& hc : hcs ) {
-      if( hc.TrkID >= 0 ) {
-        trk_id_count[hc.TrkID]++;
-        if( trk_id_count[hc.TrkID] >= trk_id_count[newblip.TrkID] )
-          newblip.TrkID = hc.TrkID;
-      }
-    }
-    */
-
     // OK, we made it! Flag as "valid" and ship it out.
     newblip.isValid = true;
     return newblip;
@@ -438,11 +440,14 @@ namespace BlipUtils {
   bool IsAncestorOf(int particleID, int ancestorID, bool breakAtPhots = false){
     art::ServiceHandle<cheat::ParticleInventoryService> pi_serv;
     const sim::ParticleList& plist = pi_serv->ParticleList();
-    if( particleID == ancestorID ) return true;
-    if( !plist.HasParticle(ancestorID) ) return false;
+    if( particleID == ancestorID  )       return true;
+    if( particleID < ancestorID   )       return false;
+    if( !plist.HasParticle(ancestorID) )  return false;
     while( particleID > ancestorID ) {
+      
       simb::MCParticle p = pi_serv->TrackIdToParticle(particleID);
-      if( !plist.HasParticle(p.Mother() ) )                       { return false; }   
+      if( !plist.HasParticle(p.Mother() ) ) { return false; }
+    
       simb::MCParticle pM = pi_serv->TrackIdToParticle(p.Mother());
       if      ( pM.TrackId() == ancestorID )                      { return true;  }
       else if ( breakAtPhots == true && pM.PdgCode() == 22 )      { return false; }
@@ -450,6 +455,7 @@ namespace BlipUtils {
       else if ( pM.Mother() == 0 )                                { return false; }
       else    { particleID = pM.TrackId(); }              
     }
+
     return false;
   }
 
@@ -510,6 +516,7 @@ namespace BlipUtils {
   //====================================================================
   // This function calculates the leading MCParticle ID contributing to a hit and the
   // fraction of that hit's energy coming from that particle.
+  /*
   void  HitTruth(art::Ptr<recob::Hit> const& hit, int& truthid, float& truthidEnergyFrac, float& energy,float& numElectrons){
     // Get associated sim::TrackIDEs for this hit
     std::vector<sim::TrackIDE> trackIDEs 
@@ -543,11 +550,13 @@ namespace BlipUtils {
     for(size_t i = 0; i < trackIDEs.size(); ++i) ids.insert(trackIDEs[i].trackID);
     return ids;
   }
+  */
   
   
   //=====================================================================
   // Get MCTruth associated with TrackID using a try bracket to avoid
   // fatal exceptions (return false if no match or exception thrown)
+  /*
   bool G4IdToMCTruth( int const trkID, art::Ptr<simb::MCTruth>& mctruth )
   { 
     art::ServiceHandle<cheat::ParticleInventoryService> pi_serv;
@@ -561,6 +570,7 @@ namespace BlipUtils {
     }
     return matchFound;
   }
+  */
   
 
   
