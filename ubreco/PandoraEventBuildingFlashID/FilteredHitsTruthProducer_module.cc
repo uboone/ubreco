@@ -85,7 +85,7 @@ void FilteredHitsTruthProducer::produce(art::Event& e)
 
   art::Handle< std::vector< recob::Hit > > filtHitListHandle;
   e.getByLabel(fFiltHitLabel, filtHitListHandle);
-  std::vector<std::pair<float,size_t> > map[3][3456] = {std::vector<std::pair<float, size_t> >()};
+  std::vector<std::pair<float,size_t> > map[3][3456] = {{std::vector<std::pair<float, size_t> >()}};
   for (size_t ifilthit=0; ifilthit<filtHitListHandle->size();ifilthit++) {
     art::Ptr<recob::Hit> filthit(filtHitListHandle,ifilthit);
     map[filthit->WireID().Plane][filthit->WireID().Wire].push_back({filthit->PeakTime(),ifilthit});

@@ -90,7 +90,7 @@ void FilteredHitsProducer::produce(art::Event& e)
 
   art::Handle< std::vector< recob::Hit > > mtchHitListHandle;
   e.getByLabel(fMatchHitLabel, mtchHitListHandle);
-  std::vector<float> map[3][3456] = {std::vector<float>()};
+  std::vector<float> map[3][3456] = {{std::vector<float>()}};
   for (size_t imtchhit=0; imtchhit<mtchHitListHandle->size();imtchhit++) {
     art::Ptr<recob::Hit> mtchhit(mtchHitListHandle,imtchhit);
     map[mtchhit->WireID().Plane][mtchhit->WireID().Wire].push_back(mtchhit->PeakTime());
