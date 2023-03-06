@@ -166,14 +166,14 @@ CosmicTaggingAnodeCathodePiercing::CosmicTaggingAnodeCathodePiercing(fhicl::Para
   _debug             = p.get<bool>       ("debug");
   
   // get boundaries based on detector bounds
-  auto const* geom = lar::providerFrom<geo::Geometry>();
+  auto const& tpc = lar::providerFrom<geo::Geometry>()->TPC();
 
-  _TOP    =   geom->DetHalfHeight() - fTPCResolution;
-  _BOTTOM = - geom->DetHalfHeight() + fTPCResolution;
+  _TOP    =   tpc.HalfHeight() - fTPCResolution;
+  _BOTTOM = - tpc.HalfHeight() + fTPCResolution;
   _FRONT  =   fTPCResolution;
-  _BACK   =   geom->DetLength() - fTPCResolution;
+  _BACK   =   tpc.Length() - fTPCResolution;
   
-  _det_width = geom->DetHalfWidth() * 2;
+  _det_width = tpc.HalfWidth() * 2;
 
   auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob();
   double efield = detProp.Efield();

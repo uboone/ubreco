@@ -28,9 +28,8 @@
 #include "lardataobj/RecoBase/Vertex.h"
 #include "lardataobj/RecoBase/PFParticle.h"
 
-#include "larcore/Geometry/Geometry.h"
+#include "larcore/Geometry/WireReadout.h"
 #include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
-#include "lardata/Utilities/GeometryUtilities.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 
 
@@ -360,6 +359,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
   // std::cout<<"size_cluster: "<<cluster_handle->size()<<std::endl;
   // std::cout<<"size_track: "<<recotrack_handle->size()<<std::endl;
 
+  auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
   for (size_t i_c = 0, size_cluster = cluster_handle->size(); i_c != size_cluster; ++i_c) { //start cluster FOR loop for calculating 2-D distance
 
     // std::cout<<"Cluster # "<<i_c<<std::endl;
@@ -443,6 +443,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
 
 
+
     for (size_t i_t = 0, size_track = recotrack_handle->size(); i_t != size_track; ++i_t) {//START RECO TRACK FOR LOOP
 
       auto hits = clus_hit_assn_v.at(i_c);
@@ -463,12 +464,11 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
         std::tie(X_reco, Y_reco, Z_reco) = std::make_tuple(track_loc.X(), track_loc.Y(), track_loc.Z());
 
 
-        auto const* geom = ::lar::providerFrom<geo::Geometry>();
-        auto V_wire_cm = geom->WireCoordinate(track_loc,geo::PlaneID(0,0,1)) * wire2cm;
+        auto V_wire_cm = channelMap.Plane(geo::PlaneID(0,0,1)).WireCoordinate(track_loc) * wire2cm;
 
         auto V_time_cm = X_reco;
 
-        auto U_wire_cm = geom->WireCoordinate(track_loc,geo::PlaneID(0,0,0)) * wire2cm;
+        auto U_wire_cm = channelMap.Plane(geo::PlaneID(0,0,0)).WireCoordinate(track_loc) * wire2cm;
 
         auto U_time_cm = X_reco;
 
@@ -573,8 +573,6 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
   U_t_min_common = -9999.; //  start point of the overlap
   U_t_max_common = -9999.; // end point of the overlap
 
-  auto const* geom = ::lar::providerFrom<geo::Geometry>();
-
   for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR LOOP (Y-COLLECTION PLANE LOOP). A Match is to be found for this cluster always if it exists
 
     //Match variables (vectors) cleared or set to crazy values at the beginning of each Y Cluster Loop
@@ -670,10 +668,9 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
 
 
-      geo::WireIDIntersection clusterintersectionV;
-      auto Vintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitj[0]->WireID(),clusterintersectionV);
+      auto clusterintersectionV = channelMap.WireIDsIntersect(hiti[0]->WireID(),hitj[0]->WireID());
 
-      if (Vintersect==0)
+      if (!clusterintersectionV)
       continue;
 
 
@@ -690,7 +687,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
         Y_V_index.push_back(j);
         IoU_V.push_back(V_iou);
-        y_V.push_back(clusterintersectionV.y);
+        y_V.push_back(clusterintersectionV->y);
         // std::cout<<"Y Cluster hit wire: "<<hiti[0]->WireID()<<std::endl;
         // std::cout<<"V Cluster hit wire: "<<hitj[0]->WireID()<<std::endl;
         // std::cout<<"V Intersect: "<<Vintersect<<std::endl;
@@ -752,11 +749,9 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
 
 
-      geo::WireIDIntersection clusterintersectionU;
+      auto clusterintersectionU = channelMap.WireIDsIntersect(hiti[0]->WireID(),hitk[0]->WireID());
 
-      auto Uintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitk[0]->WireID(),clusterintersectionU);//
-
-      if (Uintersect==0)
+      if (!clusterintersectionU)
       continue;
 
 
@@ -773,7 +768,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
       if (U_iou>0){
         Y_U_index.push_back(k);
         IoU_U.push_back(U_iou);
-        y_U.push_back(clusterintersectionU.y);
+        y_U.push_back(clusterintersectionU->y);
         // std::cout<<"Y Cluster hit wire: "<<hiti[0]->WireID()<<std::endl;
         // std::cout<<"U Cluster hit wire: "<<hitk[0]->WireID()<<std::endl;
         // std::cout<<"U Intersect: "<<Uintersect<<std::endl;
@@ -1440,12 +1435,12 @@ void Gamma3D::beginJob()
 {
   // Implementation of optional member function here.
 
-  auto const* geom = ::lar::providerFrom<geo::Geometry>();
+  auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
   auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
   auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
   double efield = detProp.Efield();
   double temp   = detProp.Temperature();
-  wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
+  wire2cm = channelMap.Plane(geo::PlaneID{0,0,0}).WirePitch();
   time2cm = sampling_rate(clockData) / 1000.0 * detProp.DriftVelocity(efield, temp);
 
 

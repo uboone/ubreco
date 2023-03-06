@@ -20,7 +20,6 @@
 #include <numeric>
 #include <iterator>
 
-#include "larcore/Geometry/Geometry.h"
 #include "larcorealg/Geometry/geo.h"
 
 #include "lardataobj/RecoBase/Track.h"
@@ -32,7 +31,7 @@
 #include "lardata/DetectorInfoServices/LArPropertiesService.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
 
-#include "larcore/Geometry/Geometry.h"
+#include "larcore/Geometry/WireReadout.h"
 #include "larevt/CalibrationDBI/Interface/PmtGainService.h"
 #include "larevt/CalibrationDBI/Interface/PmtGainProvider.h"
 
@@ -197,7 +196,7 @@ void MuCSTrackTagger::produce(art::Event & e) {
 
   
   // grab PMT calibrations if needed
-  art::ServiceHandle<geo::Geometry> geo;
+  auto const& channelMapAlg = art::ServiceHandle<geo::WireReadout const>()->Get();
   const lariov::PmtGainProvider& gain_provider = art::ServiceHandle<lariov::PmtGainService>()->GetProvider();
   /*
   for (unsigned int i=0; i!= geo->NOpDets(); ++i) {
@@ -245,7 +244,7 @@ void MuCSTrackTagger::produce(art::Event & e) {
       if (fUsePMTCalib) {
 	for (size_t ch=0; ch < _flash_pe_v.size(); ch++) {
 	  if (ch%100 < 32) {
-	    if (geo->IsValidOpChannel(ch%100) == true) { 
+            if (channelMapAlg.IsValidOpChannel(ch%100) == true) {
 	      auto chgain = gain_provider.ExtraInfo(ch%100).GetFloatData("amplitude_gain");
 	      std::cout << "Gain for channel " << ch%100 << " is " << chgain << std::endl;
 	      _gain_v.at(ch) = chgain;

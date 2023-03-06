@@ -6,6 +6,8 @@
 
 #include "FlashNeutrinoId_tool.h"
 
+#include "larcore/Geometry/WireReadout.h"
+
 #include <algorithm>
 
 namespace lar_pandora
@@ -463,9 +465,10 @@ FlashNeutrinoId::FlashCandidate::FlashCandidate(const art::Event &event, const r
     uint nOpDets(geometry->NOpDets());
     m_peSpectrum.resize(nOpDets);
 
+    auto const& channelMapAlg = art::ServiceHandle<geo::WireReadout const>()->Get();
     for (uint OpChannel = 0; OpChannel < nOpDets; ++OpChannel)
     {
-        uint opdet = geometry->OpDetFromOpChannel(OpChannel);
+        uint opdet = channelMapAlg.OpDetFromOpChannel(OpChannel);
 	m_peSpectrum[opdet] = flash.PEs().at(OpChannel);
     }
     
@@ -1259,7 +1262,7 @@ bool FlashNeutrinoId::SliceCandidate::IsInUpperDet(double y_up)
 {
 
     const art::ServiceHandle<geo::Geometry> geometry;
-    if (y_up > geometry->DetHalfHeight() - mm_UP)
+    if (y_up > geometry->TPC().HalfHeight() - mm_UP)
     {
         return true;
     }
@@ -1273,7 +1276,7 @@ bool FlashNeutrinoId::SliceCandidate::IsInLowerDet(double y_down)
 {
 
     const art::ServiceHandle<geo::Geometry> geometry;
-    if (y_down < -geometry->DetHalfHeight() + mm_DOWN)
+    if (y_down < -geometry->TPC().HalfHeight() + mm_DOWN)
     {
         return true;
     }
@@ -1307,19 +1310,20 @@ float FlashNeutrinoId::SliceCandidate::RunOpHitFinder(double the_time, double tr
     ophit_sel_time.clear();
     ophit_sel_pe.clear();
 
+    auto const& channelMapAlg = art::ServiceHandle<geo::WireReadout const>()->Get();
     for (auto oh : mm_ophit_v)
     {
 
         double time_diff = std::abs(oh->PeakTime() - the_time);
 
-        if (!geo->IsValidOpChannel(oh->OpChannel()))
+        if (!channelMapAlg.IsValidOpChannel(oh->OpChannel()))
             continue;
         if (oh->OpChannel() < 200 || oh->OpChannel() > 231)
             continue;
 
         //size_t opdet = geo->OpDetFromOpChannel(oh->OpChannel());
 
-        auto const pmt_xyz = geo->OpDetGeoFromOpChannel(oh->OpChannel()).GetCenter();
+        auto const pmt_xyz = channelMapAlg.OpDetGeoFromOpChannel(oh->OpChannel()).GetCenter();
         double pmt_z = pmt_xyz.Z();
 
         double dz = 1e9;
@@ -1680,7 +1684,7 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByDirMCS(const PFParticleVecto
     if (mm_verbose)
         std::cout << "[RejectStopMuByDirMCS] Slice with N pfps = " << parentPFParticles.size() << std::endl;
 
-    ::art::ServiceHandle<geo::Geometry> geo;
+    geo::TPCGeo const& tpc = ::art::ServiceHandle<geo::Geometry>()->TPC();
     float bnd = 20.;
     for (const art::Ptr<recob::PFParticle> pfp : parentPFParticles)
     {
@@ -1690,9 +1694,9 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByDirMCS(const PFParticleVecto
             {
                 const art::Ptr<recob::Track> this_track = particlesToTracks.at(pfp).front();
 
-                auto InFV = [&geo, bnd](recob::tracking::Point_t p) -> bool { return (p.X() > bnd && p.X() < (2. * geo->DetHalfWidth() - bnd) &&
-                                                                                      p.Y() > (-geo->DetHalfHeight() + bnd) && p.Y() < (geo->DetHalfHeight() - bnd) &&
-                                                                                      p.Z() > bnd && p.Z() < (geo->DetLength() - bnd)); };
+                auto InFV = [&tpc, bnd](recob::tracking::Point_t p) -> bool { return (p.X() > bnd && p.X() < (2. * tpc.HalfWidth() - bnd) &&
+                                                                                      p.Y() > (-tpc.HalfHeight() + bnd) && p.Y() < (tpc.HalfHeight() - bnd) &&
+                                                                                      p.Z() > bnd && p.Z() < (tpc.Length() - bnd)); };
 
                 bool vtx_contained = InFV(this_track->Vertex());
                 bool end_contained = InFV(this_track->End());
@@ -1746,13 +1750,14 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
         std::cout << "[RejectStopMuByCalo] Slice with N pfps = " << pfp_v.size() << std::endl;
 
     ::art::ServiceHandle<geo::Geometry> geo;
+    geo::TPCGeo const& tpc = geo->TPC();
     float bnd = 20.;
 
     // Declare fiducial volume - need this for later (copied from RejectStopMuByDirMCS above)
-    auto InFV = [&geo, bnd](geo::Point_t const& p) -> bool {
-                  return p.X() > bnd && p.X() < (2. * geo->DetHalfWidth() - bnd) and
-                         p.Y() > (-geo->DetHalfHeight() + bnd) && p.Y() < (geo->DetHalfHeight() - bnd) and
-                         p.Z() > bnd && p.Z() < (geo->DetLength() - bnd);
+    auto InFV = [&tpc, bnd](geo::Point_t const& p) -> bool {
+                  return p.X() > bnd && p.X() < (2. * tpc.HalfWidth() - bnd) and
+                         p.Y() > (-tpc.HalfHeight() + bnd) && p.Y() < (tpc.HalfHeight() - bnd) and
+                         p.Z() > bnd && p.Z() < (tpc.Length() - bnd);
                 };
 
     // Configure cosmic tag manager
@@ -1883,9 +1888,9 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
     // First exclude spacepoints outside the tpc
     //
     std::vector<art::Ptr<recob::SpacePoint>> temp;
-    ::geoalgo::AABox tpcvol(0., (-1.) * geo->DetHalfHeight(),
-                            0., geo->DetHalfWidth() * 2,
-                            geo->DetHalfHeight(), geo->DetLength());
+    ::geoalgo::AABox tpcvol(0., (-1.) * tpc.HalfHeight(),
+                            0., tpc.HalfWidth() * 2,
+                            tpc.HalfHeight(), tpc.Length());
 
     for (auto s : sp_v)
     {
@@ -1923,16 +1928,17 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
     double z = highest_point.Z();
     constexpr double e = std::numeric_limits<double>::epsilon();
 
-    highest_point.SetX(std::clamp(x, e, 2. * geo->DetHalfWidth() - e));
-    highest_point.SetY(std::clamp(y, -geo->DetHalfWidth() + e, geo->DetHalfWidth() - e));
-    highest_point.SetZ(std::clamp(z, e, geo->DetLength() - e));
+    highest_point.SetX(std::clamp(x, e, 2. * tpc.HalfWidth() - e));
+    highest_point.SetY(std::clamp(y, -tpc.HalfWidth() + e, tpc.HalfWidth() - e));
+    highest_point.SetZ(std::clamp(z, e, tpc.Length() - e));
 
     // Create an approximate start hit on plane 0
+    auto const& channelMapAlg = art::ServiceHandle<geo::WireReadout const>()->Get();
     geo::PlaneID const plane_0{0, 0, 0};
-    int highest_w = geo->NearestWireID(highest_point, plane_0).Wire;
+    int highest_w = channelMapAlg.NearestWireID(highest_point, plane_0).Wire;
     double highest_t = fDetectorProperties.ConvertXToTicks(highest_point.X(), plane_0) / 4.;
     if (mm_verbose)
-        std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWireID(highest_point, plane_0).Wire
+        std::cout << "[StoppingMuonTagger] Highest point: wire: " << channelMapAlg.NearestWireID(highest_point, plane_0).Wire
                   << ", time: " << fDetectorProperties.ConvertXToTicks(highest_point.X(), plane_0)
                   << std::endl;
 
@@ -1943,10 +1949,10 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
 
     // Create an approximate start hit on plane 1
     geo::PlaneID const plane_1{0, 0, 1};
-    highest_w = geo->NearestWireID(highest_point, plane_1).Wire;
+    highest_w = channelMapAlg.NearestWireID(highest_point, plane_1).Wire;
     highest_t = fDetectorProperties.ConvertXToTicks(highest_point.X(), plane_1) / 4.;
     if (mm_verbose)
-        std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWireID(highest_point, plane_1).Wire
+        std::cout << "[StoppingMuonTagger] Highest point: wire: " << channelMapAlg.NearestWireID(highest_point, plane_1).Wire
                   << ", time: " << fDetectorProperties.ConvertXToTicks(highest_point.X(), plane_1)
                   << std::endl;
 
@@ -1957,10 +1963,10 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
 
     // Create an approximate start hit on plane 2
     geo::PlaneID const plane_2{0, 0, 2};
-    highest_w = geo->NearestWireID(highest_point, plane_2).Wire;
+    highest_w = channelMapAlg.NearestWireID(highest_point, plane_2).Wire;
     highest_t = fDetectorProperties.ConvertXToTicks(highest_point.X(), plane_2) / 4.;
     if (mm_verbose)
-        std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWireID(highest_point, plane_2).Wire
+        std::cout << "[StoppingMuonTagger] Highest point: wire: " << channelMapAlg.NearestWireID(highest_point, plane_2).Wire
                   << ", time: " << fDetectorProperties.ConvertXToTicks(highest_point.X(), plane_2)
                   << std::endl;
 
@@ -1984,7 +1990,7 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
         cosmictag::SimpleHit sh;
 
         sh.t = fDetectorProperties.ConvertTicksToX(h->PeakTime(), geo::PlaneID(0, 0, h->View()));
-        sh.w = h->WireID().Wire * geo->WirePitch(geo::PlaneID(0, 0, h->View()));
+        sh.w = h->WireID().Wire * channelMapAlg.Plane(geo::PlaneID(0, 0, h->View())).WirePitch();
 
         sh.plane = h->View();
 

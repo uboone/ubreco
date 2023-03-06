@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
+#include "larcore/Geometry/WireReadout.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "ubreco/ShowerReco/ShowerReco3D/Base/ShowerRecoModuleBase.h"
 /**
@@ -36,10 +37,10 @@ namespace showerreco {
   YPlaneStartPoint3D::YPlaneStartPoint3D(const fhicl::ParameterSet& pset)
   {
     _name = "YPlaneStartPoint3D"; 
-    auto const* geom = ::lar::providerFrom<geo::Geometry>();
+    auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
     auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
     auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
-    _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
+    _wire2cm = channelMap.Plane(geo::PlaneID{0,0,0}).WirePitch();
     _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature());
   }
 
@@ -79,6 +80,7 @@ namespace showerreco {
     ::util::PxHit strtpt0;
     int    pl0 = 0;
     
+    auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
     for (size_t i=0; i < clusters.size(); i++) {
 
       auto const& clus = clusters.at(i);
@@ -90,8 +92,7 @@ namespace showerreco {
       
       // project vertex onto this plane
       //auto const& vtx2D = util::PxPoint(pl,0,0);//geomH->Get2DPointProjection(vtx,pl);
-      auto const* geom = ::lar::providerFrom<geo::Geometry>();
-      auto wire = geom->WireCoordinate(vtx3D_pt,geo::PlaneID(0,0,pl)) * _wire2cm;
+      auto wire = channelMap.Plane(geo::PlaneID(0,0,pl)).WireCoordinate(vtx3D_pt) * _wire2cm;
       auto time = vtx3D.X();
       auto const& start = clus._start;
 

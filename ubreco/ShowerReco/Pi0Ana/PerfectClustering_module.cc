@@ -31,9 +31,8 @@
 
 #include "art/Persistency/Common/PtrMaker.h"
 
-#include "larcore/Geometry/Geometry.h"
+#include "larcore/Geometry/WireReadout.h"
 #include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
-#include "larcorealg/Geometry/GeometryCore.h"
 
 // ROOT
 #include <TTree.h>
@@ -232,7 +231,7 @@ void PerfectClustering::produce(art::Event & e)
   }
 
   // now lets create some actual clusters
-  auto const* geom = ::lar::providerFrom<geo::Geometry>();
+  auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
   // cluster pointer maker for later to create associations
   art::PtrMaker<recob::Cluster> ClusPtrMaker(e);
   // pfp pointer maker
@@ -257,7 +256,7 @@ void PerfectClustering::produce(art::Event & e)
 			  0., 0., 0., 0., 0., 0., 0., 
 			  0., 0., 0., 0., 
 			  hit_idx_v.size(), 0., 0., ctr*3+pl,
-			  geom->View(planeid),
+                          channelMap.Plane(planeid).View(),
 			  planeid);
       Cluster_v->emplace_back( clus );
 

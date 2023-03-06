@@ -21,6 +21,7 @@
 
 #include "art/Utilities/make_tool.h"
 
+#include "larcore/Geometry/WireReadout.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
 #include "ubreco/ShowerReco/ClusterMerging/CMToolApp/CMergeHelper.h"
 #include "ubreco/ShowerReco/ClusterMerging/CMToolBase/ClusterMaker.h"
@@ -99,10 +100,10 @@ ClusterMerger::ClusterMerger(fhicl::ParameterSet const & pset)
   _CMaker = new ::cluster::ClusterMaker();
   
   // get detector specific properties
-  auto const* geom = ::lar::providerFrom<geo::Geometry>();
+  auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
   auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
   auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
-  _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
+  _wire2cm = channelMap.Plane(geo::PlaneID{0,0,0}).WirePitch();
   _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
 
   fClusterProducer = pset.get<std::string>("ClusterProducer");
@@ -213,8 +214,7 @@ void ClusterMerger::endJob()
 
 const recob::Cluster ClusterMerger::FillClusterProperties(const ::cluster::Cluster& CMCluster,
 							  const size_t& n) {
-  
-  auto const* geom = ::lar::providerFrom<geo::Geometry>();
+  auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
 
   float startW = CMCluster._start_pt._w / _wire2cm;
   float startT = CMCluster._start_pt._t / _time2cm;
@@ -229,7 +229,7 @@ const recob::Cluster ClusterMerger::FillClusterProperties(const ::cluster::Clust
 		      endW,   0., endT,   0., 0., 0., 0., 
 		      CMCluster._sum_charge, 0., CMCluster._sum_charge, 0., 
 		      CMCluster.GetHits().size(), 0., 0., n,
-		      geom->View(planeid),
+                      channelMap.Plane(planeid).View(),
 		      planeid);
 
   return clus;

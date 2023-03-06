@@ -17,6 +17,7 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
+#include "larcore/Geometry/WireReadout.h"
 #include "lardataobj/RecoBase/Cluster.h"
 #include "lardataobj/RecoBase/PFParticle.h"
 #include "lardataobj/RecoBase/Hit.h"
@@ -65,7 +66,7 @@ private:
   const recob::Cluster FillClusterProperties(const ::cluster::Cluster& CMCluster,
 					     const size_t& n);
 
-  float _wire2cm, _time2cm;
+  float _time2cm;
 
   // cluster maker
   ::cluster::ClusterMaker* _CMaker;
@@ -84,14 +85,10 @@ ClusterMatcher::ClusterMatcher(fhicl::ParameterSet const & pset)
 {
 
   // get detector specific properties
-  auto const* geom = ::lar::providerFrom<geo::Geometry>();
-  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
-  auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
-  _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
-  _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
+  auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
 
   // Call appropriate produces<>() functions here.
-  _mgr = new ::clusmtool::CMatchManager(geom->Nplanes());
+  _mgr = new ::clusmtool::CMatchManager(channelMap.Nplanes({0, 0}));
   _mgr->Reset();
   _mgr->DebugMode(clusmtool::CMManagerBase::kPerIteration);
 
