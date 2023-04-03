@@ -153,6 +153,8 @@ class BlipAnaTreeDataStruct
   float edep_x[kMaxEDeps];        // x (cm)
   float edep_y[kMaxEDeps];        // y (cm)
   float edep_z[kMaxEDeps];        // z (cm)
+  float edep_dx[kMaxEDeps];       // dx (cm)
+  float edep_dz[kMaxEDeps];       // dz (cm)
   int   edep_proc[kMaxEDeps];     // encodes particle process
                                   //  0 = primary
                                   //  1 = compton scatter ("compt")
@@ -316,6 +318,8 @@ class BlipAnaTreeDataStruct
     FillWith(edep_x,      -99999.);
     FillWith(edep_y,      -99999.);
     FillWith(edep_z,      -99999.);
+    FillWith(edep_dx,      -99999.);
+    FillWith(edep_dz,      -99999.);
     FillWith(edep_g4trkid,  -9);
     FillWith(edep_g4id,     -9);
     FillWith(edep_g4qfrac,  -9);
@@ -578,6 +582,8 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("edep_x",edep_x,"edep_x[nedeps]/F"); 
       evtTree->Branch("edep_y",edep_y,"edep_y[nedeps]/F"); 
       evtTree->Branch("edep_z",edep_z,"edep_z[nedeps]/F"); 
+      evtTree->Branch("edep_dx",edep_dx,"edep_dx[nedeps]/F"); 
+      evtTree->Branch("edep_dz",edep_dz,"edep_dz[nedeps]/F"); 
     }
     
     calibTree = tfs->make<TTree>("calibtree","ACPT calibration tree");
@@ -1248,6 +1254,7 @@ void BlipAna::analyze(const art::Event& evt)
     for(auto& trueblip : trueblips ) {
       int i     = trueblip.ID;
       int ig4   = trueblip.LeadG4Index;
+      auto& pPart = plist[ig4];
       fData->edep_tpc[i]      = trueblip.TPC;
       fData->edep_energy[i]   = trueblip.Energy;
       fData->edep_electrons[i]= trueblip.DepElectrons;
@@ -1257,11 +1264,13 @@ void BlipAna::analyze(const art::Event& evt)
       fData->edep_z[i]        = trueblip.Position.Z();
       fData->edep_tdrift[i]   = trueblip.DriftTime;
       fData->edep_pdg[i]      = trueblip.LeadG4PDG;
-      fData->edep_isPrimary[i]= fData->part_isPrimary[ig4];
       fData->edep_g4trkid[i]  = trueblip.LeadG4ID;
       fData->edep_g4id[i]     = trueblip.LeadG4Index;
       fData->edep_g4qfrac[i]  = trueblip.G4ChargeMap[trueblip.LeadG4ID] / trueblip.DepElectrons;
-      
+      fData->edep_isPrimary[i]= (pPart->Process() == "primary");
+      fData->edep_dz[i]       = fabs(pPart->EndPosition()[2]-pPart->Vz());
+      fData->edep_dx[i]       = fabs(pPart->EndPosition()[0]-pPart->Vx());
+
       int proc_code = -9;
       std::string proc = fData->part_process[ig4];
       if(     proc == "primary") { h_part_process->Fill("primary",1); proc_code = 0; }

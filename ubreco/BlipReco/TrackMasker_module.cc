@@ -84,6 +84,8 @@ private:
   double fMinTrkLength;
   double fMinTrkLengthVeto;
   double fVetoRadius;
+  bool   fIgnoreDataOverlay;
+  //bool   fIgnoreDataTrks;
 
   // Vector to hold hit indices to be removed
   std::vector<size_t>   _vetohits;
@@ -102,11 +104,13 @@ TrackMasker::TrackMasker(fhicl::ParameterSet const & p)
 {
   produces< std::vector< recob::Hit > >();
   
-  fHitProducer            = p.get<std::string>("HitProducer");
-  fTrkProducer            = p.get<std::string>("TrkProducer");
-  fMinTrkLength           = p.get<double>     ("MinTrkLength");
-  fMinTrkLengthVeto       = p.get<double>     ("MinTrkLengthVeto");
-  fVetoRadius             = p.get<double>     ("VetoRadius");
+  fHitProducer            = p.get<std::string>("HitProducer",       "gaushit");
+  fTrkProducer            = p.get<std::string>("TrkProducer",       "pandora");
+  fMinTrkLength           = p.get<double>     ("MinTrkLength",      5);
+  fMinTrkLengthVeto       = p.get<double>     ("MinTrkLengthVeto",  15);
+  fVetoRadius             = p.get<double>     ("VetoRadius",        15);
+  fIgnoreDataOverlay      = p.get<bool>       ("IgnoreDataOverlay", false);
+  //fIgnoreDataTrks         = p.get<bool>       ("IgnoreDataTrks", false);
 
   // min means min!
   fMinTrkLength = std::min(fMinTrkLength, fMinTrkLengthVeto);
@@ -124,7 +128,7 @@ TrackMasker::TrackMasker(fhicl::ParameterSet const & p)
 //###################################################
 // Main producer function
 //###################################################
-void TrackMasker::produce(art::Event & e)
+void TrackMasker::produce(art::Event & evt)
 {
   //std::cout<<"\n"
   //<<"=========== TrackMasker =========================\n"
@@ -135,27 +139,58 @@ void TrackMasker::produce(art::Event & e)
   // *****************************
 
   // grab tracks
-  auto const& trk_h = e.getValidHandle<std::vector<recob::Track>>(fTrkProducer);
+  auto const& trk_h = evt.getValidHandle<std::vector<recob::Track>>(fTrkProducer);
   std::vector<art::Ptr<recob::Track> > trklist;
   art::fill_ptr_vector(trklist,trk_h);
   
   // grab hits
-  auto const& hit_h = e.getValidHandle<std::vector<recob::Hit>>(fHitProducer);
+  auto const& hit_h = evt.getValidHandle<std::vector<recob::Hit>>(fHitProducer);
   std::vector<art::Ptr<recob::Hit> > hitlist;
   art::fill_ptr_vector(hitlist, hit_h);
 
   // grab hits associated to track
-  art::FindManyP<recob::Track> hit_trk_assn_v(hit_h, e, fTrkProducer);
-  
+  art::FindManyP<recob::Track> hit_trk_assn_v(hit_h, evt, fTrkProducer);
+
   // produce hits
   std::unique_ptr< std::vector<recob::Hit> > Hit_v(new std::vector<recob::Hit>);
  
   // clear track-like hit vector
   _vetohits.clear();
   _flaggedhits.clear();
+  
 
   //std::cout<<"Found "<<hit_h->size()<<" hits from "<<fHitProducer<<"\n";
   //std::cout<<"Found "<<trk_h->size()<<" tracks from "<<fTrkProducer<<"\n";
+  
+  // boolean designating each hit as tracked
+  std::vector<bool> hitIsVetoed( hitlist.size(), false);
+  std::vector<bool> hitIsReal( hitlist.size(), false);
+
+  //******************************************************* 
+  // Assuming input collection is original 'gaushit', we can 
+  // use gaushitTruthMatch metadata to ID MC hits
+  //******************************************************* 
+  if( fIgnoreDataOverlay ) { //|| fIgnoreDataTrks ) {
+    art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> fmhh(hit_h,evt,"gaushitTruthMatch");
+    for (size_t h=0; h < hitlist.size(); h++) {
+      if( !fmhh.at(h).size() ) hitIsReal[h] = true;
+    }
+  }
+
+
+  //***********************************************************************
+  // If we are ignoring ALL overlay, simply veto every real hit in the event
+  //*********************************************************************
+  if( fIgnoreDataOverlay ) {
+    for (size_t h=0; h < hitlist.size(); h++) {
+      if( hitIsReal[h] ) {
+        hitIsVetoed[h] = true;
+        _vetohits.push_back(h);
+      }
+    }
+    std::cout <<"\n*** TRACKMASKER WARNING: ignoring all non-MC hits and tracks!\n"
+              <<"*** "<<_vetohits.size()<<" out of "<<hitlist.size()<<" hits ignored.\n";
+  }
   
   
   //***************************************************
@@ -178,13 +213,11 @@ void TrackMasker::produce(art::Event & e)
     flagged_trks[trk->ID()] = true;
   }
 
+
   //***************************************************
   // Now categorize hits as 'tracked' or 'untracked'
   //***************************************************
   
-  // boolean designating each hit as tracked
-  std::vector<bool> hitIsVetoed( hitlist.size(), false);
-
   // map of (un-vetoed) hits to planes
   std::map<size_t,std::vector<size_t>> planehitmap;
   
@@ -196,7 +229,9 @@ void TrackMasker::produce(art::Event & e)
   double driftVel     = detProp->DriftVelocity(detProp->Efield(0),detProp->Temperature()); 
 
   for (size_t h=0; h < hitlist.size(); h++) {
-    
+
+    if( hitIsVetoed[h] ) continue;
+
     // find associated track
     auto const& trk_v = hit_trk_assn_v.at(h);
     if( trk_v.size() ) {
@@ -263,7 +298,7 @@ void TrackMasker::produce(art::Event & e)
   //printf("input hits  : %lu\n",hit_h->size());
   //printf("output hits : %lu\n",Hit_v->size());
 
-  e.put(std::move(Hit_v));
+  evt.put(std::move(Hit_v));
         
 }
 
