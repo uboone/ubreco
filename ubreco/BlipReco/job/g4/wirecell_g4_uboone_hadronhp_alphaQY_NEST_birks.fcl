@@ -1,0 +1,4 @@
+#include "wirecell_g4_uboone_hadronhp_stage2.fcl"
+
+services.LArG4Parameters.UseModBoxRecomb: false
+physics.producers.ionization.AlphaUseNESTAlg: true

@@ -1,3 +1,3 @@
 #include "wirecell_g4_uboone_hadronhp_stage2.fcl"
 
-physics.producers.ionization.AlphaScaleFactor:  0.50
+physics.producers.ionization.AlphaQScaleFactor:  0.50

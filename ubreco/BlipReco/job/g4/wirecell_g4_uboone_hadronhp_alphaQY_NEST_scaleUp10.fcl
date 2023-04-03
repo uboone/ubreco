@@ -1,0 +1,6 @@
+#include "wirecell_g4_uboone_hadronhp_stage2.fcl"
+
+physics.producers.ionization.AlphaUseNESTAlg:   true
+physics.producers.ionization.AlphaQScaleFactor:  1.10
+
+
