@@ -200,11 +200,8 @@ void MuCSMerger::produce( art::Event &evt ){
   cout << " - unix timestamp : " << unix_time_stamp << endl;
   cout << "" << endl;
 
-  art::Handle< std::vector<raw::Trigger> > trigHandle;
-  evt.getByLabel( fSwizzlerProducerLabel, trigHandle );
-  std::vector< art::Ptr<raw::Trigger> > trigs;
-  art::fill_ptr_vector( trigs, trigHandle );
-  Double_t trigtime = ( trigs.at(0)->TriggerTime() )*1.0e-6;
+  auto const& trigs = evt.getProduct<std::vector<raw::Trigger>>( fSwizzlerProducerLabel );
+  Double_t trigtime = ( trigs.front().TriggerTime() )*1.0e-6;
   cout << " - trig. time : " << trigtime << ", diff : " << trigtime-previous_trigtime <<  ", " << trigs.size() << endl;
   cout << "" << endl;
 
