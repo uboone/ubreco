@@ -69,7 +69,6 @@ source.inputCommands: [
 			"drop *_*_mixer_DataOverlay",
 			"drop *_threshold_nfspl1_OverlayStage1a",
 			"drop recob::Wires_*nfspl1_*_*",
-			"drop recob::Hits_*_*_*Stage1*",
 			"drop recob::OpFlash_*_*_OverlayStage1a",
 			"drop recob::OpHit_*_*_OverlayStage1a",
 			"drop sim::MCHitCollections_*_*_*"
