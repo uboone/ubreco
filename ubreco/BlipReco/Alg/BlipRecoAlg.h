@@ -96,6 +96,9 @@ namespace blip {
     std::vector<bool>   fBadChanMask;
     std::vector<bool>   fBadChanMaskPerEvt;
     int                 EvtBadChanCount;
+    
+    TH1D*   h_recoWireEff_denom;
+    TH1D*   h_recoWireEff_num;
 
 
    private:
@@ -181,6 +184,7 @@ namespace blip {
     TH1D*   h_nmatches[kNplanes];
 
     TH1D*   h_recomb;
+
 
   };
 

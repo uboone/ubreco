@@ -105,6 +105,10 @@ namespace blip {
       h_nmatches[i]         = hdir.make<TH1D>(Form("pl%i_nmatches",i),Form("number of plane%i matches to single collection cluster",i),20,0,20);
     }
   
+    // Efficiency as a function of energy deposited on a wire
+    h_recoWireEff_denom = hdir.make<TH1D>("recoWireEff_trueCount","Collection plane;Electron energy deposited on wire [MeV];Count",40,0,2.0);
+    h_recoWireEff_num   = hdir.make<TH1D>("recoWireEff","Collection plane;Electron energy deposited on wire [MeV];Hit reco efficiency",40,0,2.0);
+  
   }
   
   //--------------------------------------------------------------
@@ -320,8 +324,15 @@ namespace blip {
         }
       }
     }
+   
+    //=====================================================
+    // Record PDG for every G4 Track ID
+    //=====================================================
+    std::map<int,int> map_g4trkid_pdg;
+    for(size_t i = 0; i<plist.size(); i++) map_g4trkid_pdg[plist[i]->TrackId()] = plist[i]->PdgCode();
+  
+    std::map<int, std::map<int,double> > map_g4trkid_chan_energy;
 
-    
     //======================================================
     // Use SimChannels to make a map of the collected charge
     // for every G4 particle, instead of relying on the TDC-tick
@@ -330,10 +341,12 @@ namespace blip {
     std::map<int,double> map_g4trkid_charge;
     for(auto const &chan : simchanlist ) {
       if( geom->View(chan->Channel()) != geo::kW ) continue;
+      //std::map<int,double> map_g4trkid_perWireEnergyDep;
       for(auto const& tdcide : chan->TDCIDEMap() ) {
         for(auto const& ide : tdcide.second) {
           if( ide.trackID < 0 ) continue;
           double ne = ide.numElectrons;
+          
           // ####################################################
           // ###         behavior as of Nov 2022              ###
           // WireCell's detsim implements its gain "fudge factor" 
@@ -344,7 +357,22 @@ namespace blip {
           // ####################################################
           if( fSimGainFactor > 0 ) ne /= fSimGainFactor;
           map_g4trkid_charge[ide.trackID] += ne;
+          
+          if( abs(map_g4trkid_pdg[ide.trackID]) == 11 ) {
+            //map_g4trkid_perWireEnergyDep[ide.trackID] += ide.energy;
+            map_g4trkid_chan_energy[ide.trackID][chan->Channel()] += ide.energy;
+          }
+        
         }
+      }
+    
+    }
+
+    for(auto& m : map_g4trkid_chan_energy ) {
+      //std::cout<<"G4Trk "<<m.first<<" deposited energy on "<<m.second.size()<<" wires: \n";
+      for(auto& mm : m.second ) {
+        //std::cout<<"  chan "<<mm.first<<" --> "<<mm.second<<" MeV\n";
+        if( mm.second > 0 ) h_recoWireEff_denom->Fill(mm.second);
       }
     }
    
@@ -440,7 +468,14 @@ namespace blip {
           // count of 'true' electrons collected on channel.
           if( fSimGainFactor > 0 ) hitinfo[i].g4charge /= fSimGainFactor;
           
+          if( map_g4trkid_chan_energy[hitinfo[i].g4trkid][chan] > 0 ) {
+            double trueEnergyDep = map_g4trkid_chan_energy[hitinfo[i].g4trkid][chan];
+            //std::cout<<"Hit on channel "<<chan<<" came from G4ID "<<hitinfo[i].g4trkid<<" ("<<trueEnergyDep<<" MeV)\n";
+            h_recoWireEff_num->Fill(trueEnergyDep);
+          }
+
         }
+
 
       }//endif MC
       

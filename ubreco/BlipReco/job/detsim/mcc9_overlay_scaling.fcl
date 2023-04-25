@@ -1,2 +1,15 @@
-physics.producers.driftWC.wcls_main.structs.scaleDATA_perplane:  '[ 0.00431, 0.00402, 0.00410 ]'
+# These settings control the scaling applied to the MC gain during the 
+# overlay process in order to fix data/MC discrepancy in the gain values
+# obtained through calibrations via stopping muons. This scaling is described
+# in more detail in DocDB-31089.
+# 
+# As of uboonecode v08_00_00_65, these settings are:
+#    scaleDATA_perplane:  '[ 0.00431, 0.00402, 0.00426 ]'
+#    scaleMC_perplane:    '[ 0.00408, 0.00397, 0.00408 ]'
+#
+# Note that for the collection plane, this does NOT match the
+# currently-used CalAreaConstant: [4.31e-3, 4.02e-3, 4.10e-3]
+
+#physics.producers.driftWC.wcls_main.structs.scaleDATA_perplane:  '[ 0.00431, 0.00402, 0.00410 ]'
+physics.producers.driftWC.wcls_main.structs.scaleDATA_perplane:  '[ 0.00431, 0.00402, 0.00426 ]'
 physics.producers.driftWC.wcls_main.structs.scaleMC_perplane:    '[ 0.00408, 0.00397, 0.00408 ]'

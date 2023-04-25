@@ -1995,6 +1995,9 @@ void BlipAna::analyze(const art::Event& evt)
 //  endJob: output useful info to screen
 //###################################################
 void BlipAna::endJob(){
+  
+  fBlipAlg->h_recoWireEff_num->Divide(fBlipAlg->h_recoWireEff_denom);
+  fBlipAlg->h_recoWireEff_num->SetOption("hist");
 
   float nEvents = float(fNumEvents);
 
