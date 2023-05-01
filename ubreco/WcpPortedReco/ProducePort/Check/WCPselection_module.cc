@@ -565,52 +565,41 @@ void WCPselection::analyze(art::Event const& e)
  	f_subRun = e.subRun();
 	f_event = e.id().event();
 
-	art::Handle<std::vector<nsm::NuSelectionContainment> > containment_handle;
-	e.getByLabel(fContainmentLabel,containment_handle);
-	std::vector<art::Ptr<nsm::NuSelectionContainment> > containment_vec;
-	art::fill_ptr_vector(containment_vec,containment_handle);
+        auto const& containment_vec = e.getProduct<std::vector<nsm::NuSelectionContainment>>(fContainmentLabel);
 	std::cout<<"--- NuSelectionContainment ---"<<std::endl;
 	if(containment_vec.size()!=1) {
 		std::cout<<"WARNING: >1 in-beam matched TPC activity?!" << std::endl;
 		return;
 	} 
-	for(size_t i=0; i<containment_vec.size(); i++){
-		art::Ptr<nsm::NuSelectionContainment> c = containment_vec.at(i);
-		f_flash_found = c->GetFlashFound();
-		f_flash_time = c->GetFlashTime();
-		f_flash_measPe = c->GetFlashMeasPe();
-		f_flash_predPe = c->GetFlashPredPe();
-		f_match_found = c->GetMatchFound();
-		f_match_type = c->GetMatchType();
-		f_match_isFC = c->GetIsFC();
-		f_match_isTgm = c->GetIsTGM();
-		f_match_notFC_FV = c->GetNotFCFV();
-		f_match_notFC_SP = c->GetNotFCSP();
-		f_match_notFC_DC = c->GetNotFCDC();
-		f_match_charge = c->GetCharge();
-		f_match_energy = c->GetEnergy();
+        for(nsm::NuSelectionContainment const& c : containment_vec) {
+                f_flash_found = c.GetFlashFound();
+                f_flash_time = c.GetFlashTime();
+                f_flash_measPe = c.GetFlashMeasPe();
+                f_flash_predPe = c.GetFlashPredPe();
+                f_match_found = c.GetMatchFound();
+                f_match_type = c.GetMatchType();
+                f_match_isFC = c.GetIsFC();
+                f_match_isTgm = c.GetIsTGM();
+                f_match_notFC_FV = c.GetNotFCFV();
+                f_match_notFC_SP = c.GetNotFCSP();
+                f_match_notFC_DC = c.GetNotFCDC();
+                f_match_charge = c.GetCharge();
+                f_match_energy = c.GetEnergy();
 	}
 
-	art::Handle<std::vector<nsm::NuSelectionCharge> > charge_handle;
-	e.getByLabel(fChargeLabel,charge_handle);
-	std::vector<art::Ptr<nsm::NuSelectionCharge> > charge_vec;
-	art::fill_ptr_vector(charge_vec,charge_handle);
+        auto const& charge_vec = e.getProduct<std::vector<nsm::NuSelectionCharge>>(fChargeLabel);
 	std::cout<<"--- NuSelectionCharge  ---"<<std::endl;
 	if(charge_vec.size()!=1) {
 		std::cout<<"WARNING: >1 in-beam matched TPC activity?!" << std::endl;
 		return;
 	} 
-	for(size_t i=0; i<charge_vec.size(); i++){
-		art::Ptr<nsm::NuSelectionCharge> c = charge_vec.at(i);
-		f_match_chargeU = c->GetChargeU();
-		f_match_chargeV = c->GetChargeV();
-		f_match_chargeY = c->GetChargeY();
+        for(nsm::NuSelectionCharge const& c : charge_vec) {
+                f_match_chargeU = c.GetChargeU();
+                f_match_chargeV = c.GetChargeV();
+                f_match_chargeY = c.GetChargeY();
 	}
 
-	art::Handle<std::vector<nsm::NuSelectionSTM> > stm_handle;
-	e.getByLabel(fSTMLabel,stm_handle);
-	std::vector<art::Ptr<nsm::NuSelectionSTM> > stm_vec;
-	art::fill_ptr_vector(stm_vec,stm_handle);
+        auto const& stm_vec = e.getProduct<std::vector<nsm::NuSelectionSTM>>(fSTMLabel);
 	std::cout<<"--- NuSelectionSTM ---"<<std::endl;
 	if(stm_vec.size()>1) {
 		std::cout<<"WARNING: >1 in-beam matched TPC activity?!" << std::endl;
@@ -625,60 +614,51 @@ void WCPselection::analyze(art::Event const& e)
 		f_stm_FullDead = -1;
 		f_stm_clusterlength = -1.0;
 	} 
-	for(size_t i=0; i<stm_vec.size(); i++){
-		art::Ptr<nsm::NuSelectionSTM> s = stm_vec.at(i);
-		f_stm_eventtype = s->GetEventType();
-		f_stm_lowenergy = s->GetLowEnergy();
-		f_stm_LM = s->GetLM();
-		f_stm_TGM = s->GetTGM();
-		f_stm_STM = s->GetSTM();
-		f_stm_FullDead = s->GetFullDead();
-		f_stm_clusterlength = s->GetClusterLength();
+        for(nsm::NuSelectionSTM const& s : stm_vec) {
+                f_stm_eventtype = s.GetEventType();
+                f_stm_lowenergy = s.GetLowEnergy();
+                f_stm_LM = s.GetLM();
+                f_stm_TGM = s.GetTGM();
+                f_stm_STM = s.GetSTM();
+                f_stm_FullDead = s.GetFullDead();
+                f_stm_clusterlength = s.GetClusterLength();
 	}
 
 	if(fMC==true){
 
-	art::Handle<std::vector<nsm::NuSelectionTruth> > truth_handle;
-	e.getByLabel(fTruthLabel,truth_handle);
-	std::vector<art::Ptr<nsm::NuSelectionTruth> > truth_vec;
-	art::fill_ptr_vector(truth_vec,truth_handle);
+        auto const& truth_vec = e.getProduct<std::vector<nsm::NuSelectionTruth>>(fTruthLabel);
 	std::cout<<"--- NuSelectionTruth  ---"<<std::endl;
 	if(truth_vec.size()!=1) {
 		std::cout<<"WARNING: >1 in-beam matched TPC activity?!" << std::endl;
 		return;
 	} 
-	for(size_t i=0; i<truth_vec.size(); i++){
-		art::Ptr<nsm::NuSelectionTruth> t = truth_vec.at(i);
-		f_truth_nuEnergy = t->GetNuEnergy();
-		f_truth_energyInside = t->GetEnergyInside();
-		f_truth_electronInside = t->GetElectronInside();
-		f_truth_nuPdg = t->GetNuPdg();
-		f_truth_isCC = t->GetIsCC();
-		f_truth_isEligible = t->GetIsEligible();
-		f_truth_isFC = t->GetIsFC();
-		f_truth_vtxInside = t->GetIsVtxInside();
-		f_truth_vtxX = t->GetVtxX();
-		f_truth_vtxY = t->GetVtxY();
-		f_truth_vtxZ = t->GetVtxZ();
-		f_truth_nuTime = t->GetTime();
+        for(nsm::NuSelectionTruth const& t : truth_vec) {
+                f_truth_nuEnergy = t.GetNuEnergy();
+                f_truth_energyInside = t.GetEnergyInside();
+                f_truth_electronInside = t.GetElectronInside();
+                f_truth_nuPdg = t.GetNuPdg();
+                f_truth_isCC = t.GetIsCC();
+                f_truth_isEligible = t.GetIsEligible();
+                f_truth_isFC = t.GetIsFC();
+                f_truth_vtxInside = t.GetIsVtxInside();
+                f_truth_vtxX = t.GetVtxX();
+                f_truth_vtxY = t.GetVtxY();
+                f_truth_vtxZ = t.GetVtxZ();
+                f_truth_nuTime = t.GetTime();
 	}
 
-	art::Handle<std::vector<nsm::NuSelectionMatch> > match_handle;
-	e.getByLabel(fMatchLabel,match_handle);
-	std::vector<art::Ptr<nsm::NuSelectionMatch> > match_vec;
-	art::fill_ptr_vector(match_vec,match_handle);
+        auto const& match_vec = e.getProduct<std::vector<nsm::NuSelectionMatch>>(fMatchLabel);
 	std::cout<<"--- NuSelectionMatch  ---"<<std::endl;
 	if(match_vec.size()!=1) {
 		std::cout<<"WARNING: >1 in-beam matched TPC activity?!" << std::endl;
 		return;
 	} 
-	for(size_t i=0; i<match_vec.size(); i++){
-		art::Ptr<nsm::NuSelectionMatch> m = match_vec.at(i);
-		f_match_completeness = m->GetCompleteness();
-		f_match_completeness_energy = m->GetCompletenessEnergy();
-		f_match_purity = m->GetPurity();
-		f_match_purity_xz = m->GetPurityXZ();
-		f_match_purity_xy = m->GetPurityXY();
+        for(nsm::NuSelectionMatch const& m : match_vec) {
+                f_match_completeness = m.GetCompleteness();
+                f_match_completeness_energy = m.GetCompletenessEnergy();
+                f_match_purity = m.GetPurity();
+                f_match_purity_xz = m.GetPurityXZ();
+                f_match_purity_xy = m.GetPurityXY();
 	}
 
 	/// save GENIE weights
@@ -699,22 +679,19 @@ void WCPselection::analyze(art::Event const& e)
 	/// PF validation starts
 	// reco start [nested loop]
       if( f_wirecellPF ){
-	art::Handle< std::vector<simb::MCParticle> > particleHandle;
-	if (! e.getByLabel(fPFInputTag, particleHandle)) return;
-    	std::vector< art::Ptr<simb::MCParticle> > particles;
-    	art::fill_ptr_vector(particles, particleHandle);
+        auto particleHandle = e.getHandle<std::vector<simb::MCParticle>>(fPFInputTag);
+        if (! particleHandle) return;
 
-	
-	for (auto const& particle: particles){
-		int trkID = particle->TrackId();
-		fParticleMap[trkID] = (*particle);
-		if(particle->Mother() == 0){
+        for (auto const& particle: *particleHandle) {
+                int trkID = particle.TrackId();
+                fParticleMap[trkID] = particle;
+                if(particle.Mother() == 0){
 			if(fPrimaryID.size()<1){ // fill once
-			const TLorentzVector& position = particle->Position(0);
+                        const TLorentzVector& position = particle.Position(0);
 			f_reco_nuvtxX = position.X(); // units: cm inherit from larsoft				
 			f_reco_nuvtxY = position.Y(); // units: cm inherit from larsoft				
 			f_reco_nuvtxZ = position.Z(); // units: cm inherit from larsoft		
-			f_neutrino_type = particle->StatusCode(); // neutrino type
+                        f_neutrino_type = particle.StatusCode(); // neutrino type
 			}
 			fPrimaryID.push_back(trkID);
 		}
@@ -771,16 +748,15 @@ void WCPselection::analyze(art::Event const& e)
 
 	if(fMC == true){ 	
 	/// truth start
-	art::Handle< std::vector<simb::MCParticle> > particleHandle2;
-	if (! e.getByLabel(fPFtruthInputTag, particleHandle2)) return;
-    	std::vector< art::Ptr<simb::MCParticle> > particles2;
-    	art::fill_ptr_vector(particles2, particleHandle2);
+        auto particleHandle2 = e.getHandle<std::vector<simb::MCParticle>>(fPFtruthInputTag);
+        if (! particleHandle2) return;
+
 	// Get space charge correction
 	auto const* SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
 	
-	for (auto const& particle: particles2){
-		if( particle->Mother() == 0 && (particle->PdgCode() == 11 || particle->PdgCode() == -11) ){
-			const TLorentzVector& position = particle->Position(0);
+        for (auto const& particle: *particleHandle2){
+                if( particle.Mother() == 0 && (particle.PdgCode() == 11 || particle.PdgCode() == -11) ){
+                        const TLorentzVector& position = particle.Position(0);
 			//f_truth_corr_showervtxX = position.X(); // units: cm inherit from larsoft				
 			//f_truth_corr_showervtxY = position.Y(); // units: cm inherit from larsoft				
 			//f_truth_corr_showervtxZ = position.Z(); // units: cm inherit from larsoft		
@@ -791,12 +767,12 @@ void WCPselection::analyze(art::Event const& e)
 			f_truth_corr_showervtxX = (f_truth_corr_showervtxX + 0.6)*1.101/1.098 + position.T()*1e-3*1.101*0.1; //T: ns; 1.101 mm/us
 			std::cout<<"Shower info: "<<position.X() <<", "<<position.Y() <<", "<<position.Z()<<", "<<position.T()<<" ns"<<std::endl;
 			std::cout<<"Shower vertex SCE offset: "<<sce_offset.X() <<", "<<sce_offset.Y() <<", "<<sce_offset.Z()<<std::endl;
-			const TLorentzVector& showerMom = particle->Momentum(0);
+                        const TLorentzVector& showerMom = particle.Momentum(0);
 			f_truth_showerKE = showerMom.E() - showerMom.M();
 				
 		}
-		if( particle->Mother()==0 && (particle->PdgCode() == 13 || particle->PdgCode() == -13) ){
-			const TLorentzVector& position = particle->Position(0);
+                if( particle.Mother()==0 && (particle.PdgCode() == 13 || particle.PdgCode() == -13) ){
+                        const TLorentzVector& position = particle.Position(0);
 			f_truth_muonvtxX = position.X();
 			f_truth_muonvtxY = position.Y();
 			f_truth_muonvtxZ = position.Z();
@@ -806,12 +782,12 @@ void WCPselection::analyze(art::Event const& e)
 			f_truth_corr_muonvtxZ = position.Z() + sce_offset.Z();
 			f_truth_corr_muonvtxX = (f_truth_corr_muonvtxX + 0.6)*1.101/1.098 + position.T()*1e-3*1.101*0.1; //T: ns; 1.101 mm/us
 			
-			const TLorentzVector& endposition = particle->EndPosition();
+                        const TLorentzVector& endposition = particle.EndPosition();
 			f_truth_muonendX = endposition.X();
 			f_truth_muonendY = endposition.Y();
 			f_truth_muonendZ = endposition.Z();
 
-			const TLorentzVector& momentum = particle->Momentum(0);
+                        const TLorentzVector& momentum = particle.Momentum(0);
 			f_truth_muonMomentum[0] = momentum.Px();
 			f_truth_muonMomentum[1] = momentum.Py();
 			f_truth_muonMomentum[2] = momentum.Pz();
@@ -828,16 +804,12 @@ void WCPselection::analyze(art::Event const& e)
 	std::cout<<"Neutrino vertex SCE offset: "<<sce_offset.X() <<", "<<sce_offset.Y() <<", "<<sce_offset.Z()<<std::endl;
 	
 	// neutrino interaction type. Integer, see MCNeutrino.h for more details.
-	art::Handle< std::vector<simb::MCTruth> > mctruthListHandle;
-	e.getByLabel("generator",mctruthListHandle);
-	std::vector<art::Ptr<simb::MCTruth> > mclist;
-	art::fill_ptr_vector(mclist, mctruthListHandle);
-	art::Ptr<simb::MCTruth> mctruth;
+        auto const& mclist = e.getProduct<std::vector<simb::MCTruth>>("generator");
 
 	if (mclist.size()>0) {
-		mctruth = mclist.at(0);
-		if (mctruth->NeutrinoSet()) {
-			simb::MCNeutrino nu = mctruth->GetNeutrino();
+                simb::MCTruth const& mctruth = mclist.front();
+                if (mctruth.NeutrinoSet()) {
+                        simb::MCNeutrino nu = mctruth.GetNeutrino();
 			f_truth_nuIntType = nu.InteractionType();
 			// one can access more neutrino GENIE info
 		}
@@ -856,10 +828,10 @@ void WCPselection::analyze(art::Event const& e)
 
       /// BDT input variables
       if(f_BDTvars){
-	art::Handle< std::vector<nsm::NuSelectionBDT> > bdthandle;
-	if (! e.getByLabel(fPFInputTag, bdthandle)) return;
-	std::vector<art::Ptr<nsm::NuSelectionBDT> > bdtvec;
-	art::fill_ptr_vector(bdtvec,bdthandle);
+        auto bdthandle = e.getHandle<std::vector<nsm::NuSelectionBDT>>(fPFInputTag);
+        if (! bdthandle) return;
+
+        auto const& bdtvec = *bdthandle;
 	std::cout<<"--- NuSelectionBDT ---"<<std::endl;
 	if(bdtvec.size()>1) {
 		std::cout<<"WARNING: >1 set of BDT input variables" << std::endl;

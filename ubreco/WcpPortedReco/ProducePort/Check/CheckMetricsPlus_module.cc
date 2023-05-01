@@ -45,7 +45,7 @@ CheckMetricsPlus::CheckMetricsPlus(fhicl::ParameterSet const& p)
 
 void CheckMetricsPlus::reconfigure(fhicl::ParameterSet const& pset)
 {
-  fSTMLabel = pset.get<std::string>("STMLabel");;
+  fSTMLabel = pset.get<std::string>("STMLabel");
 }
 
 void CheckMetricsPlus::analyze(art::Event const& e)
@@ -53,19 +53,15 @@ void CheckMetricsPlus::analyze(art::Event const& e)
 
   std::cout<<" RUN: "<<e.run()<<"\n SUBRUN: "<<e.subRun()<<"\n EVENT: "<<e.id().event()<<std::endl;
 
-  art::Handle<std::vector<nsm::NuSelectionSTM> > match_handle;
-  e.getByLabel(fSTMLabel,match_handle);
-  std::vector<art::Ptr<nsm::NuSelectionSTM> > match_vec;
-  art::fill_ptr_vector(match_vec,match_handle);
-  for(size_t i=0; i<match_vec.size(); i++){
-	  art::Ptr<nsm::NuSelectionSTM> m = match_vec.at(i);
-	  std::cout<<"Event Type: "<<m->GetEventType()
-		  <<"\n Flag Low Energy: "<<m->GetLowEnergy()
-		  <<"\n Flag Light Mismatch: "<<m->GetLM()
-		  <<"\n Flag TGM: "<<m->GetTGM()
-		  <<"\n Flag STM: "<<m->GetSTM()
-		  <<"\n Flag Full Detector Dead: "<<m->GetFullDead()
-		  <<"\n Cluster Length: "<<m->GetClusterLength()
+  auto const& match_vec = e.getProduct<std::vector<nsm::NuSelectionSTM>>(fSTMLabel);
+  for(nsm::NuSelectionSTM const& m : match_vec) {
+          std::cout<<"Event Type: "<<m.GetEventType()
+                  <<"\n Flag Low Energy: "<<m.GetLowEnergy()
+                  <<"\n Flag Light Mismatch: "<<m.GetLM()
+                  <<"\n Flag TGM: "<<m.GetTGM()
+                  <<"\n Flag STM: "<<m.GetSTM()
+                  <<"\n Flag Full Detector Dead: "<<m.GetFullDead()
+                  <<"\n Cluster Length: "<<m.GetClusterLength()
 		  <<std::endl;
   }
 

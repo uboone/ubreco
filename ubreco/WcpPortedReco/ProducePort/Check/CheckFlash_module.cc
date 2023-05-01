@@ -74,30 +74,23 @@ void CheckFlash::reconfigure(fhicl::ParameterSet const& pset)
 
 void CheckFlash::analyze(art::Event const& e)
 {
-  art::Handle<std::vector<recob::OpFlash> > ls_handle;
-  e.getByLabel(fLsFlashLabel,ls_handle);
-  std::vector<art::Ptr<recob::OpFlash> > ls_vec;
-  art::fill_ptr_vector(ls_vec,ls_handle);
-  for(size_t i=0; i<ls_vec.size(); i++){
-    art::Ptr<recob::OpFlash> flash = ls_vec.at(i);
-    double time = flash->Time();
+  auto const& ls_vec = e.getProduct<std::vector<recob::OpFlash>>(fLsFlashLabel);
+  for(recob::OpFlash const& flash : ls_vec) {
+    double time = flash.Time();
     if(time < fLsLow || time > fLsHigh ) continue;
     std::cout<<"LArSoft flash time: "<< time <<std::endl;
-    std::vector<double> pe = flash->PEs();
+    std::vector<double> pe = flash.PEs();
     for(size_t j=0; j<pe.size(); j++){
       ls->SetBinContent(j+1, pe.at(j));
     }
   }
 
-  art::Handle<std::vector<recob::OpFlash> > wcp_handle;
-  e.getByLabel(fWcpFlashLabel,wcp_handle);
-  std::vector<art::Ptr<recob::OpFlash> > wcp_vec;
-  art::fill_ptr_vector(wcp_vec,wcp_handle);
-  for(size_t i=0; i<wcp_vec.size(); i++){
-    art::Ptr<recob::OpFlash> flash = wcp_vec.at(i);
-    double time = flash->Time();
+  auto const& wcp_vec = e.getProduct<std::vector<recob::OpFlash>>(fWcpFlashLabel);
+  for(std::size_t i = 0; i < wcp_vec.size(); ++i) {
+    recob::OpFlash const& flash = wcp_vec[i];
+    double time = flash.Time();
     std::cout<<"WCP flash time: "<< time <<std::endl;
-    std::vector<double> pe = flash->PEs();
+    std::vector<double> pe = flash.PEs();
     for(size_t j=0; j<pe.size(); j++){
       if(i==0){ wcp_1->SetBinContent(j+1, pe.at(j)); }
       if(i==1){ wcp_2->SetBinContent(j+1, pe.at(j)); }

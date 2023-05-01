@@ -1,4 +1,3 @@
-
 ////////////////////////////////////////////////////////////////////////
 //
 //    trivia : Finding the time offset between the TPC 
@@ -151,7 +150,7 @@ namespace MuCSDT
     std::unique_ptr< std::vector<MuCS::MuCSDTOffset> > dtcol(new std::vector<MuCS::MuCSDTOffset>);
     MuCS::MuCSDTOffset dt( hDT->GetXaxis()->GetBinCenter( hDT->GetMaximumBin()  ));
     dtcol->push_back(dt);
-    run.put( std::move( dtcol ) );
+    run.put( std::move( dtcol ), art::runFragment() );
   }
    
   void MuCSDT::reconfigure( fhicl::ParameterSet const& p ){

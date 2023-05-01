@@ -88,7 +88,7 @@ StopMuMCGen::StopMuMCGen(fhicl::ParameterSet const& pset) :
   fParticlesPerEvent{pset.get<int>("ParticlesPerEvent",1)},
   // create a default random engine; obtain the random seed from NuRandomService,
   // unless overridden in configuration with key "Seed"
-  fEngine(art::ServiceHandle<rndm::NuRandomService>()->createEngine(*this, pset, "Seed"))
+  fEngine(art::ServiceHandle<rndm::NuRandomService>()->registerAndSeedEngine(createEngine(0), pset, "Seed"))
 {
 
   produces< std::vector<simb::MCTruth> >();
@@ -119,7 +119,7 @@ void StopMuMCGen::beginRun(art::Run& run)
 {
   // grab the geometry object to see what geometry we are using
   art::ServiceHandle<geo::Geometry> geo;
-  run.put(std::make_unique<sumdata::RunData>(geo->DetectorName()));
+  run.put(std::make_unique<sumdata::RunData>(geo->DetectorName()), art::fullRun());
 }
 
 //____________________________________________________________________________
