@@ -6,11 +6,13 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
 include_directories( $ENV{PANDORA_INC} )
 include_directories( $ENV{LARPANDORA_INC} )
 include_directories( $ENV{LARPANDORACONTENT_INC} )
+include_directories( $ENV{LARPANDORADLCONTENT_INC} )
 
 art_make( BASENAME_ONLY
           LIBRARY_NAME  MicroBooNEPandora
           LIB_LIBRARIES larpandora_LArPandoraInterface
                         ${LARPANDORACONTENT}
+                        /nashome/r/rcross/uboone/code/git/mcc9/build_slf7.x86_64/larpandoracontent/lib/libLArPandoraDLContent.so
                         ${PANDORASDK}
                         ${PANDORAMONITORING}
                         ${ART_FRAMEWORK_CORE}
