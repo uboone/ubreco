@@ -1,3 +1,0 @@
-#include "wirecell_detsim_uboone.fcl"
-
-physics.producers.driftWC.wcls_main.structs.ElectronLifetime:       10 #ms (default 1000)

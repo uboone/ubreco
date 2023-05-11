@@ -31,8 +31,8 @@ services.ParticleInventoryService.ParticleInventory.OverrideRealData: true
 #     pi_serv->provider()->PrepParticleList(evt);
 
 # Don't retrieve lifetime from DB; this should only be enabled for Runs 4 and 5
-services.UBElectronLifetimeService.ElectronLifetimeProvider.UseDB: false
-services.UBElectronLifetimeService.ElectronLifetimeProvider.DefaultLifetime: 1000 # ms
+#services.UBElectronLifetimeService.ElectronLifetimeProvider.UseDB: false
+#services.UBElectronLifetimeService.ElectronLifetimeProvider.DefaultLifetime: 1000 # ms
 
 # Enable SCE service; corrections to blip calorimetry enabled by 
 # switch in BlipRecoAlg ("SCECorrection", turned off by default)
