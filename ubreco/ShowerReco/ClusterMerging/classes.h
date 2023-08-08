@@ -16,7 +16,7 @@
 #include "canvas/Persistency/Common/Assns.h"
 #include "lardataobj/RecoBase/PFParticle.h"
 #include "lardataobj/RecoBase/Hit.h"
-#include "nusimdata/SimulationBase/MCTruth.h"
+//#include "nusimdata/SimulationBase/MCTruth.h"
 
 //
 // Only include objects that we would like to be able to put into the event.

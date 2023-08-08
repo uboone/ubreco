@@ -1,43 +1,35 @@
+cet_build_plugin(
+  DummyRawDigitCreator art::EDProducer
+  LIBRARIES
+  PRIVATE
+  lardataobj::RawData
+)
 
-art_make(	
-	  LIB_LIBRARIES
-			art::Framework_Core
-			art::Utilities
-                        canvas::canvas
-			messagefacility::MF_MessageLogger
-			cetlib::cetlib
-                        cetlib_except                        
-			ROOT::Hist
-          MODULE_LIBRARIES 
-			larcorealg_Geometry
-			larcore_Geometry_Geometry_service
-			lardataobj_RawData
-			lardataobj_RecoBase
-			lardataobj_AnalysisBase	
-			lardata_RecoObjects  
-			larreco_RecoAlg
-			lardata_Utilities
-			larevt_Filters
-			nusimdata::SimulationBase
-                        art::Framework_Core
-			art::Framework_Principal
-			art::Framework_Services_Registry
-			art::Framework_Services_Optional_RandomNumberGenerator_service
-			art::Persistency_Common
-			art::Persistency_Provenance
-			art::Utilities
-                        canvas::canvas
-			messagefacility::MF_MessageLogger
-                        ubevt_Utilities						
-	                fhiclcpp::fhiclcpp
-			cetlib::cetlib
-                        cetlib_except::cetlib_except
-			CLHEP::CLHEP
-                        ROOT::Geom
-                        ROOT::XMLIO
-                        ROOT::Gdml
-			ROOT::Hist
-        )
+cet_build_plugin(
+  HitVariationsAnalyzer art::EDAnalyzer
+  LIBRARIES
+  PRIVATE
+  larevt::SpaceChargeService
+  larcore::ServiceUtil
+  lardataobj::RawData
+  lardataobj::RecoBase
+  lardataobj::AnalysisBase
+  art_root_io::TFileService_service
+  nusimdata::SimulationBase
+  ROOT::Tree
+)
+
+cet_build_plugin(
+  WireModifier art::EDProducer
+  LIBRARIES
+  PRIVATE
+  lardata::Utilities
+  lardataobj::RawData
+  lardataobj::RecoBase
+  art_root_io::TFileService_service
+  nusimdata::SimulationBase
+  ROOT::Tree
+)
 
 install_headers()
 install_fhicl()

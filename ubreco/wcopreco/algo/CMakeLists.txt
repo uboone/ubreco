@@ -1,14 +1,18 @@
 include_directories(../data)
 include_directories(../deconv)
-include_directories($ENV{EIGEN_INC})
 
-art_make(
-          LIB_LIBRARIES
-
-                        ubreco_wcopreco_data
-                        ubreco_wcopreco_deconv
-        )
-
+cet_make_library(
+  SOURCE
+  FlashFiltering.cxx
+  Flashes_beam.cxx
+  Flashes_cosmic.cxx
+  HitFinder_beam.cxx
+  HitFinder_cosmic.cxx
+  LIBRARIES
+  PUBLIC
+  ubreco::wcopreco_deconv
+  ROOT::Hist
+)
 
 install_headers()
 #install_fhicl()

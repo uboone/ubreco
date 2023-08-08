@@ -1,7 +1,23 @@
-art_make(
-          LIB_LIBRARIES ROOT::Core
-        )
-
+cet_make_library(
+  SOURCE
+  BaseAlgBinaryMerger.cxx
+  BaseAlgFilter.cxx
+  BaseAlgMerger.cxx
+  BaseMichelAlgo.cxx
+  CMergeBookKeeper.cxx
+  ClusterVectorCalculator.cxx
+  ColorPrint.cxx
+  HitPt.cxx
+  Michel.cxx
+  MichelAnaBase.cxx
+  MichelCluster.cxx
+  MichelException.cxx
+  MichelRecoManager.cxx
+  UtilFunc.cxx
+  LIBRARIES
+  PUBLIC
+  ROOT::Core
+)
 
 install_headers()
 install_fhicl()

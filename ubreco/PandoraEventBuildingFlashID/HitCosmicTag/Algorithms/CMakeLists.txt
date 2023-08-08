@@ -1,18 +1,19 @@
-art_make( BASENAME_ONLY
-    	    LIBRARY_NAME     ubreco_PandoraEventBuildingFlashID_HitCosmicTag_Algorithms
-	        LIB_LIBRARIES
-                           ubreco_PandoraEventBuildingFlashID_HitCosmicTag_Base
-			   art::Framework_Core
-   		           art::Framework_Principal
-                           art::Framework_Services_Registry
-     		           art::Persistency_Common
-                           art::Persistency_Provenance
-                           art::Utilities
-                           ROOT::Physics
-                           fhiclcpp::fhiclcpp
-                           cetlib::cetlib
-                           cetlib_except::cetlib_except
-	      )
+cet_make_library(
+  SOURCE
+  ClassicDqDsCalculator.cxx
+  ClassicDqDsSmoother.cxx
+  ClassicHitOrderer.cxx
+  ClassicHitSmoother.cxx
+  ClassicLocalLinearityCalculator.cxx
+  ClassicStartHitFinder.cxx
+  CosmicSimpleMIP.cxx
+  StopMuBragg.cxx
+  StopMuMichel.cxx
+  LIBRARIES
+  PUBLIC
+  ubreco::PandoraEventBuildingFlashID_HitCosmicTag_Base
+  ROOT::Physics
+)
 
 install_headers()
 install_source()

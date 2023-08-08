@@ -1,61 +1,50 @@
+cet_build_plugin(
+  StopMuMCFilter art::EDFilter
+  LIBRARIES
+  PRIVATE
+  nusimdata::SimulationBase
+)
 
-art_make(	
-	  LIB_LIBRARIES
-			art::Framework_Core
-			art::Utilities
-                        canvas::canvas
-			messagefacility::MF_MessageLogger
-			cetlib::cetlib
-                        cetlib_except::cetlib_except
-                   	#larpandora_LArPandoraInterface	
-			larcorealg_Geometry
-			lardata_Utilities
-			lardataobj_RecoBase
-			lardataobj_MCBase
-			lardataobj_Simulation	
-			lardataobj_MCBase
-			larcore_Geometry_Geometry_service
-          MODULE_LIBRARIES 
-		   	#larpandora_LArPandoraInterface	
-			larevt_CalibrationDBI_IOVData
-			larsim_Simulation nug4::ParticleNavigation lardataobj_Simulation
-			larsim_MCCheater_ParticleInventoryService_service
-			larsim_MCCheater_BackTrackerService_service
-			larcorealg_Geometry
-			larcore_Geometry_Geometry_service
-			larcoreobj_SummaryData
-			lardataobj_RecoBase
-			lardataobj_MCBase
-			lardataobj_Simulation	
-			lardataobj_AnalysisBase	
-			lardata_RecoObjects
-			larreco_RecoAlg
-			lardata_Utilities
-			larevt_Filters
-			nusimdata::SimulationBase
-			nurandom::RandomUtils_NuRandomService_service
-                        art::Framework_Core
-			art::Framework_Principal
-			art::Framework_Services_Registry
-			art::Framework_Services_Optional_RandomNumberGenerator_service
-			art::Persistency_Common
-			art::Persistency_Provenance
-			art::Utilities
-                        canvas::canvas
-			messagefacility::MF_MessageLogger
-	                fhiclcpp::fhiclcpp
-			cetlib::cetlib
-                        cetlib_except::cetlib_except
-			CLHEP::CLHEP
-			ROOT::Physics
-      			ROOT::Geom
-      			ROOT::XMLIO
-      			ROOT::Gdml
-			ROOT::Core
-			ROOT::EG
-			CRY::CRY
-        )
+cet_build_plugin(
+  StopMuMCGen art::EDProducer
+  LIBRARIES
+  PRIVATE
+  larcore::Geometry_Geometry_service
+  art_root_io::TFileService_service
+  nutools::EventGeneratorBase_CRY
+  nurandom::RandomUtils_NuRandomService_service
+  nusimdata::SimulationBase
+  nugen::EventGeneratorBase_GENIE
+  CRY::CRY
+  ROOT::EG
+)
 
+cet_build_plugin(
+  StopMu art::EDProducer
+  LIBRARIES
+  PRIVATE
+  larevt::SpaceChargeService
+  lardata::Utilities
+  lardata::DetectorPropertiesService
+  lardata::DetectorClocksService
+  larcore::Geometry_Geometry_service
+  lardataobj::RecoBase
+  lardataobj::AnalysisBase
+  art_root_io::TFileService_service
+  nusimdata::SimulationBase
+  ROOT::Tree
+)
+
+cet_build_plugin(
+  ThroughMu art::EDAnalyzer
+  LIBRARIES
+  PRIVATE
+  lardata::Utilities
+  lardataobj::RecoBase
+  lardataobj::AnalysisBase
+  art_root_io::TFileService_service
+  ROOT::Tree
+)
 
 install_fhicl()
 install_headers()

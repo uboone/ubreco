@@ -1,49 +1,26 @@
-art_make(LIB_LIBRARIES
-           ubreco_ShowerReco_ClusterMerging_CMToolBase
-           ubreco_ShowerReco_TwoDimTools
-           art::Framework_Core
-           art::Framework_Services_Registry
-           larcorealg_Geometry
-           uboone_Geometry
-           larcore_Geometry_Geometry_service
-           lardata_Utilities
-           larreco_Calorimetry
-           art::Utilities
-           canvas::canvas
-           messagefacility::MF_MessageLogger
-           
-           cetlib::cetlib
-           art::Framework_Services_Registry
-         TOOL_LIBRARIES
-           ubreco_ShowerReco_ClusterMerging_CMToolBase
-           ubreco_ShowerReco_TwoDimTools
-           ubevt::SignalShapingServiceMicroBooNE_service
-           lardata_Utilities_LArFFT_service
-           larcorealg_Geometry
-           larevt_CalibrationDBI_IOVData
-           larevt_CalibrationDBI_Providers
-           lardataobj_RecoBase
-           larcore_Geometry_Geometry_service
-           lardata_Utilities
-           nurandom::RandomUtils_NuRandomService_service
-           art::Framework_Core
-           art::Framework_Principal
-           art::Framework_Services_Registry
-           art::Persistency_Common
-           art::Persistency_Provenance
-           art::Framework_Services_Optional_RandomNumberGenerator_service
-           art_root_io::TFileService_service
-           art::Utilities
-           canvas::canvas
-           messagefacility::MF_MessageLogger
-           
-           fhiclcpp::fhiclcpp
-           cetlib::cetlib
-           ROOT::Geom
-           Boost::filesystem
-           CLHEP::CLHEP
-           ROOT::Tree
-        )
+include(uboone_tool::CFloatAlgoBase)
+
+cet_build_plugin(
+  CFAlgoDevel uboone_tool::CFloatAlgoBase
+  LIBRARIES
+  PRIVATE
+  lardata::DetectorPropertiesService
+  larcore::Geometry_Geometry_service
+)
+
+cet_build_plugin(
+  CFAlgoIoU uboone_tool::CFloatAlgoBase
+  LIBRARIES
+  PRIVATE
+)
+
+cet_build_plugin(
+  CFAlgoTimeOverlap uboone_tool::CFloatAlgoBase
+  LIBRARIES
+  PRIVATE
+  lardata::DetectorPropertiesService
+  larcore::Geometry_Geometry_service
+)
 
 install_fhicl()
 install_headers()

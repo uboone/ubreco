@@ -2,18 +2,16 @@ include_directories(../data)
 include_directories(../deconv)
 include_directories(../algo)
 include_directories(../app)
-include_directories($ENV{EIGEN_INC})
 
-art_make(
-          LIB_LIBRARIES
-
-                        ubreco_wcopreco_data
-                        ubreco_wcopreco_deconv
-                        ubreco_wcopreco_algo
-                        ubreco_wcopreco_app
-                        ROOT::Tree
-        )
-
+cet_make_exec(
+  NAME wcopreco
+  SOURCE main.cxx
+  LIBRARIES
+  PUBLIC
+  ubreco::wcopreco_app
+  Eigen3::Eigen
+  ROOT::Tree
+)
 
 install_headers()
 #install_fhicl()

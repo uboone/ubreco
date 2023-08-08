@@ -1,25 +1,24 @@
-art_make( BASENAME_ONLY
-    	  LIBRARY_NAME     ubreco_SelectionTool_OpT0FinderAlgorithms
-	  LIB_LIBRARIES
-                	  larsim_PhotonPropagation
-			  larsim_PhotonPropagation_PhotonVisibilityService_service
-			  larcorealg_Geometry
-			  ubcore::ubana_BasicTool_GeoAlgo
-			  ubreco_SelectionTool_OpT0FinderBase
-			  ubobj_Trigger
-                          ubcore::UBOpReadoutMap_service
-  		          art::Framework_Core
-   		          art::Framework_Principal
-                          art::Framework_Services_Registry
-			  art::Persistency_Common
-			  art::Persistency_Provenance
-			  art::Utilities
-                          canvas::canvas
-                          fhiclcpp::fhiclcpp
-                          cetlib::cetlib
-                          cetlib_except::cetlib_except
-                          ROOT::Minuit
-	)
+cet_make_library(
+  SOURCE
+  ChargeAnalytical.cxx
+  Chi2Match.cxx
+  CommonAmps.cxx
+  LightPath.cxx
+  MaxNPEWindow.cxx
+  NPtFilter.cxx
+  PhotonLibHypothesis.cxx
+  QLLMatch.cxx
+  QWeightPoint.cxx
+  TimeCompatMatch.cxx
+  TimeRange.cxx
+  LIBRARIES
+  PUBLIC
+  ubreco::LLSelectionTool_OpT0Finder_Base
+  larsim::PhotonPropagation_PhotonVisibilityService_service
+  fhiclcpp::fhiclcpp
+  ROOT::Physics
+  ROOT::Minuit
+)
 
 install_headers()
 #install_fhicl()

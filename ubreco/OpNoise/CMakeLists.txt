@@ -1,31 +1,17 @@
-
-art_make(  
-          MODULE_LIBRARIES  larsim_Simulation 
-			    lardataobj_Simulation
-			    lardata_RecoObjects
-			    lardataobj_RecoBase
-			    larcore_Geometry_Geometry_service
-			    larcorealg_GeoAlgo
-			    larcorealg_GeoAlgo_dict
-			    larcorealg_Geometry
-			    lardataobj_AnalysisBase
-			    lardata_Utilities
-			    nusimdata::SimulationBase
-			    art::Framework_Core
-			    art::Framework_Principal
-			    art::Framework_Services_Registry
-			    art::Framework_Services_Optional_RandomNumberGenerator_service
-			    art::Persistency_Common
-			    art::Persistency_Provenance
-			    art::Utilities
-                            canvas::canvas
-			    messagefacility::MF_MessageLogger
-			    fhiclcpp::fhiclcpp
-			    CLHEP::CLHEP
-			    larreco_RecoAlg
-			    larreco_RecoAlg_ClusterRecoUtil
-			    larreco_ClusterFinder
-         )
+cet_build_plugin(
+  OpNoiseCreateMask art::EDProducer
+  LIBRARIES
+  PRIVATE
+  larreco::HitFinder
+  larevt::SpaceChargeService
+  lardata::Utilities
+  lardata::DetectorPropertiesService
+  lardata::DetectorClocksService
+  larcore::Geometry_Geometry_service
+  lardataobj::RawData
+  lardataobj::RecoBase
+  art_root_io::TFileService_service
+)
 
 install_headers()
 install_fhicl()

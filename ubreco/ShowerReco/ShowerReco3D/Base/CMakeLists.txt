@@ -1,49 +1,30 @@
-art_make(
-          LIB_LIBRARIES
-			art::Framework_Core
-			larcorealg_Geometry
-		   	larcorealg_Geometry
-			larcore_Geometry_Geometry_service
-			art::Utilities
-                        canvas::canvas
-                        messagefacility::MF_MessageLogger
-                        
-                        cetlib::cetlib
-                        cetlib_except::cetlib_except
+cet_make_library(
+  SOURCE
+  ShowerAnaBase.cxx
+  ShowerRecoAlgBase.cxx
+  ShowerRecoException.cxx
+  ShowerRecoUtils.cxx_dep
+  ShrRecoManager.cxx
+  LIBRARIES
+  PUBLIC
+  lardata::Utilities
+  larcore::Geometry_Geometry_service
+  ROOT::Physics
+)
 
-		   	art::Framework_Services_Registry
-		   	art_root_io::tfile_support ROOT::Core
-          TOOL_LIBRARIES
-	  		  ubreco_ShowerReco_ClusterMerging_CMToolBase
-			  ubreco_ShowerReco_TwoDimTools
-			  ubevt::SignalShapingServiceMicroBooNE_service
-                          lardata_Utilities_LArFFT_service
-                          larcorealg_Geometry
-			  larevt_CalibrationDBI_IOVData
-			  larevt_CalibrationDBI_Providers
-			  lardataobj_RecoBase
-			  larcore_Geometry_Geometry_service
-			  lardata_Utilities
-			  nurandom::RandomUtils_NuRandomService_service
-  			  art::Framework_Core
-			  art::Framework_Principal
-			  art::Framework_Services_Registry
-			  art::Persistency_Common
-			  art::Persistency_Provenance
-			  art_root_io::tfile_support ROOT::Core
-                          art::Framework_Services_Optional_RandomNumberGenerator_service
-			  art_root_io::TFileService_service
-			  art::Utilities
-			  canvas::canvas
-			  messagefacility::MF_MessageLogger
-			  
-			  fhiclcpp::fhiclcpp
-			  cetlib::cetlib
-                          cetlib_except::cetlib_except
-			  Boost::filesystem
-                          CLHEP::CLHEP
+cet_make_library(LIBRARY_NAME ShowerRecoModuleBase INTERFACE
+  SOURCE ShowerRecoModuleBase.h
+  LIBRARIES INTERFACE
+  lardata::Utilities
+  larcore::Geometry_Geometry_service
+)
 
-        )
+cet_write_plugin_builder(
+  uboone_tool::ShowerRecoModuleBase art::tool Modules
+  INSTALL_BUILDER
+  LIBRARIES CONDITIONAL
+  ubreco::ShowerRecoModuleBase
+)
 
 install_fhicl()
 install_headers()

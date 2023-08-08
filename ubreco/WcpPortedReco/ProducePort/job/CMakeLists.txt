@@ -1,29 +1,3 @@
-art_make( MODULE_LIBRARIES larcorealg_Geometry
-	larcore_Geometry_Geometry_service
-	lardataobj_RawData
-	lardataobj_RecoBase
-	lardataobj_MCBase
-	nusimdata::SimulationBase
-	lardata_Utilities
-	lardataalg_DetectorInfo
-	larreco_RecoAlg
-	art::Framework_Core
-	art::Framework_Principal
-	art::Framework_Services_Registry
-	art::Persistency_Common
-	art::Persistency_Provenance
-	art::Utilities
-	canvas::canvas
-	messagefacility::MF_MessageLogger
-	fhiclcpp::fhiclcpp
-	cetlib::cetlib
-        cetlib_except::cetlib_except
-	ROOT::Geom
-	ROOT::XMLIO
-	ROOT::Gdml
-	ROOT::EG
-)
-
 install_fhicl()
 install_headers()
 install_source()

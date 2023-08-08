@@ -1,55 +1,73 @@
-art_make(
-          LIB_LIBRARIES
-                        ubreco_ShowerReco_TwoDimTools
-                        art::Framework_Core
-                        art::Framework_Services_Registry
-                        art::Framework_Principal
-                        lardataobj_RecoBase
-                        art::Framework_Core
-                        larcorealg_Geometry
-                        lardata_Utilities # added now
-                        #uboone_Geometry
-                        larcore_Geometry_Geometry_service
-                        art::Utilities
-                        canvas::canvas
-                        messagefacility::MF_MessageLogger
-                        
-                        cetlib::cetlib
-                        cetlib_except::cetlib_except
-                        Boost::filesystem
+cet_make_library(
+  SOURCE
+  CMManagerBase.cxx
+  CMTException.cxx
+  CMatchBookKeeper.cxx
+  CMatchManager.cxx
+  CMergeBookKeeper.cxx
+  CMergeManager.cxx
+  Cluster.cxx
+  ClusterMaker.cxx
+  LIBRARIES
+  PUBLIC
+  ubreco::ShowerReco_TwoDimTools
+  lardata::Utilities
+  larcore::Geometry_Geometry_service
+  art::Utilities
+  art_root_io::TFileService_service
+  ROOT::Core
+)
 
-                        art::Framework_Services_Registry
-                        art_root_io::TFileService_service
-                        art_root_io::tfile_support ROOT::Core
-          TOOL_LIBRARIES
-                          ubreco_ShowerReco_TwoDimTools
-                          lardata_Utilities_LArFFT_service
-                          larcorealg_Geometry
-                          larevt_CalibrationDBI_IOVData
-                          larevt_CalibrationDBI_Providers
-                          lardataobj_RecoBase
-                          larcore_Geometry_Geometry_service
-                          lardata_Utilities
-                          nurandom::RandomUtils_NuRandomService_service
-                          art::Framework_Core
-                          art::Framework_Principal
-                          art::Framework_Services_Registry
-                          art::Persistency_Common
-                          art::Persistency_Provenance
-                          art_root_io::tfile_support ROOT::Core
-                          art::Framework_Services_Optional_RandomNumberGenerator_service
-                          art_root_io::TFileService_service
-                          art::Utilities
-                          canvas::canvas
-                          messagefacility::MF_MessageLogger
-                          
-                          fhiclcpp::fhiclcpp
-                          cetlib::cetlib
-                          cetlib_except::cetlib_except
-                          Boost::filesystem
-                          CLHEP::CLHEP
+cet_make_library(
+  LIBRARY_NAME CBoolAlgoBase INTERFACE
+  SOURCE CBoolAlgoBase.h
+  LIBRARIES
+  INTERFACE
+  art::Utilities
+  art_root_io::TFileService_service
+  ROOT::Tree
+)
 
-        )
+cet_write_plugin_builder(
+  uboone_tool::CBoolAlgoBase art::tool Modules
+  INSTALL_BUILDER
+  LIBRARIES CONDITIONAL
+  ubreco::CBoolAlgoBase
+)
+
+cet_make_library(
+  LIBRARY_NAME CFloatAlgoBase INTERFACE
+  SOURCE CFloatAlgoBase.h
+  LIBRARIES
+  INTERFACE
+  art::Utilities
+  art_root_io::TFileService_service
+  ROOT::Tree
+)
+
+cet_write_plugin_builder(
+  uboone_tool::CFloatAlgoBase art::tool Modules
+  INSTALL_BUILDER
+  LIBRARIES CONDITIONAL
+  ubreco::CFloatAlgoBase
+)
+
+cet_make_library(
+  LIBRARY_NAME CPriorityAlgoBase INTERFACE
+  SOURCE CPriorityAlgoBase.h
+  LIBRARIES
+  INTERFACE
+  art::Utilities
+  art_root_io::TFileService_service
+  ROOT::Tree
+)
+
+cet_write_plugin_builder(
+  uboone_tool::CPriorityAlgoBase art::tool Modules
+  INSTALL_BUILDER
+  LIBRARIES CONDITIONAL
+  ubreco::CPriorityAlgoBase
+)
 
 install_fhicl()
 install_headers()

@@ -2,61 +2,58 @@ include_directories(../wcopreco/data)
 include_directories(../wcopreco/deconv)
 include_directories(../wcopreco/algo)
 include_directories(../wcopreco/app)
-include_directories($ENV{EIGEN_INC})
 
-art_make( BASENAME_ONLY
-          LIBRARY_NAME  uboone_UBFlashFinder
-          LIB_LIBRARIES
-                   larcorealg_Geometry
-                   larcore_Geometry_Geometry_service
-                   ubcore::UBOpReadoutMap_service
-                   lardataobj_RecoBase
-                   art::Framework_Core
-                   art::Framework_Principal
-                   art::Framework_Services_Registry
-                   art_root_io::tfile_support ROOT::Core
-                   art_root_io::TFileService_service
-                   art::Persistency_Common
-                   art::Persistency_Provenance
-                   art::Utilities
-                   canvas::canvas
-                   messagefacility::MF_MessageLogger
-                   fhiclcpp::fhiclcpp
-                   cetlib::cetlib
-                   cetlib_except::cetlib_except
-                   ROOT::Geom
-                   ROOT::XMLIO
-                   ROOT::Gdml
-          MODULE_LIBRARIES
-                   uboone_UBFlashFinder
-                   larcorealg_Geometry
-                   larcore_Geometry_Geometry_service
-                   larevt_CalibrationDBI_IOVData
-                   larevt_CalibrationDBI_Providers
-                   ubreco_wcopreco_data
-                   ubreco_wcopreco_deconv
-                   ubreco_wcopreco_algo
-                   ubreco_wcopreco_app
-                   ubevt_Database
-                   ubevt_Utilities
-                   lardataobj_RecoBase
-                   art::Framework_Core
-                   art::Framework_Principal
-                   art::Framework_Services_Registry
-                   art_root_io::TFileService_service
-                   art::Persistency_Common
-                   art::Persistency_Provenance
-                   art::Utilities
-                   canvas::canvas
-                   messagefacility::MF_MessageLogger
-                   fhiclcpp::fhiclcpp
-                   cetlib::cetlib
-                   cetlib_except::cetlib_except
-                   ROOT::Geom
-                   ROOT::XMLIO
-                   ROOT::Gdml
-                   ROOT::Tree
-        )
+cet_make_library(
+  SOURCE
+  FlashAlgoBase.cxx
+  FlashAlgoFactory.cxx
+  FlashFinderFMWKInterface.cxx
+  FlashFinderManager.cxx
+  PECalib.cxx
+  SimpleFlashAlgo.cxx
+  LIBRARIES
+  PUBLIC
+  larcore::Geometry_Geometry_service
+  art::Framework_Core
+  art_root_io::TFileService_service
+)
+
+cet_build_plugin(
+  OpHitCorrectionProducer art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubevt::Utilities
+  larevt::CalibrationDBI_IOVData
+  larevt::PmtGainService
+  lardataobj::RecoBase
+)
+
+cet_build_plugin(
+  UBFlashFinder art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubreco::UBFlashFinder
+  ubevt::Utilities
+  larevt::PmtGainService
+  lardata::Utilities
+  lardataobj::RecoBase
+)
+
+cet_build_plugin(
+  UBWCFlashFinder art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubreco::UBFlashFinder
+  ubreco::wcopreco_app
+  larevt::PmtGainService
+  lardata::DetectorClocksService
+  larcore::Geometry_Geometry_service
+  lardataobj::RawData
+  lardataobj::RecoBase
+  art_root_io::TFileService_service
+  Eigen3::Eigen
+  ROOT::Tree
+)
 
 install_headers()
 install_source()

@@ -1,10 +1,28 @@
-include_directories( $ENV{EIGEN_INC} )
-
-art_make(
-          LIB_LIBRARIES
-
-        )
-
+cet_make_library(
+  SOURCE
+  COphit.cxx
+  Config_COpHit.cxx
+  Config_Deconvolver.cxx
+  Config_FlashFiltering.cxx
+  Config_FlashesBeam.cxx
+  Config_Hitfinder_Beam.cxx
+  Config_Hitfinder_Cosmic.cxx
+  Config_Opflash.cxx
+  Config_Params.cxx
+  Config_Saturation_Merger.cxx
+  Config_UB_rc.cxx
+  Config_UB_spe.cxx
+  ElasticNetModel.cxx
+  EventOpWaveforms.cxx
+  LassoModel.cxx
+  LinearModel.cxx
+  OpWaveform.cxx
+  OpWaveformCollection.cxx
+  Opflash.cxx
+  LIBRARIES
+  PUBLIC
+  Eigen3::Eigen
+)
 
 install_headers()
 #install_fhicl()

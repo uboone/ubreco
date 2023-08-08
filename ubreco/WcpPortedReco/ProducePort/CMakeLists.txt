@@ -1,31 +1,77 @@
-art_make(
-
-MODULE_LIBRARIES 
-	ubobj_WcpPort
-	larcorealg_Geometry
-	larcore_Geometry_Geometry_service
-	lardataobj_RawData
-	lardataobj_RecoBase
-	lardataobj_MCBase
-	nusimdata::SimulationBase
-	lardata_Utilities
-	lardataalg_DetectorInfo
-	larreco_RecoAlg
-	art::Framework_Core
-	art::Framework_Principal
-	art::Framework_Services_Registry
-	art::Persistency_Common
-	art::Persistency_Provenance
-	art::Utilities
-	canvas::canvas
-	messagefacility::MF_MessageLogger
-	ROOT::Geom
-	ROOT::XMLIO
-	ROOT::Gdml
-	ROOT::EG
+cet_build_plugin(
+  NuSelectionMetrics art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubobj::WcpPort
+  ROOT::Tree
 )
 
-#include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
+cet_build_plugin(
+  NuSelectionPlus art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubobj::WcpPort
+)
+
+cet_build_plugin(
+  PortedFlash art::EDProducer
+  LIBRARIES
+  PRIVATE
+  lardata::Utilities
+  lardata::DetectorClocksService
+  larcore::Geometry_Geometry_service
+  lardataobj::RecoBase
+)
+
+cet_build_plugin(
+  PortedHits art::EDProducer
+  LIBRARIES
+  PRIVATE
+  lardata::Utilities
+  lardata::DetectorClocksService
+  larcore::Geometry_Geometry_service
+  lardataobj::RecoBase
+)
+
+cet_build_plugin(
+  PortedSpacePoints art::EDProducer
+  LIBRARIES
+  PRIVATE
+  lardata::Utilities
+  lardataobj::RecoBase
+)
+
+cet_build_plugin(
+  SelectWires art::EDProducer
+  LIBRARIES
+  PRIVATE
+  larpandora::LArPandoraInterface
+  lardata::Utilities
+  lardata::DetectorClocksService
+  larcore::Geometry_Geometry_service
+  lardataobj::RawData
+  lardataobj::RecoBase
+)
+
+cet_build_plugin(
+  WCPHybrid art::EDProducer
+  LIBRARIES
+  PRIVATE
+  larpandora::LArPandoraInterface
+  lardata::Utilities
+  lardata::DetectorClocksService
+  larcore::Geometry_Geometry_service
+  lardataobj::RawData
+  lardataobj::RecoBase
+)
+
+cet_build_plugin(
+  WireCellPF art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubobj::WcpPort
+  nusimdata::SimulationBase
+)
 
 add_subdirectory(Check)
 add_subdirectory(job)

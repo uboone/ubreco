@@ -1,22 +1,29 @@
-art_make( BASENAME_ONLY
-   	  LIBRARY_NAME     ubreco_SelectionTool_OpT0FinderBase
-	  LIB_LIBRARIES
-	  ubcore::ubana_BasicTool_GeoAlgo
-	  fhiclcpp::fhiclcpp
-	  art::Utilities
-          cetlib::cetlib
-          cetlib_except::cetlib_except
-	larcorealg_Geometry
-	larcore_Geometry_Geometry_service
-	lardataalg_DetectorInfo
-	art::Framework_Core
-	art::Framework_Principal
-	art::Framework_Services_Registry
-	art::Framework_Services_Registry
-	art::Persistency_Common
-	art::Persistency_Provenance
-	art::Framework_Services_Registry
-	canvas::canvas
-	)
+cet_make_library(
+  SOURCE
+  BaseAlgorithm.cxx
+  BaseFlashFilter.cxx
+  BaseFlashHypothesis.cxx
+  BaseFlashMatch.cxx
+  BaseProhibitAlgo.cxx
+  BaseTPCFilter.cxx
+  CustomAlgoFactory.cxx
+  FlashFilterFactory.cxx
+  FlashHypothesisFactory.cxx
+  FlashMatchFactory.cxx
+  FlashMatchManager.cxx
+  FlashProhibitFactory.cxx
+  OpT0FinderException.cxx
+  OpT0FinderLogger.cxx
+  TPCFilterFactory.cxx
+  LIBRARIES
+  PUBLIC
+  ubcore::LLBasicTool_GeoAlgo
+  lardata::DetectorPropertiesService
+  larcore::Geometry_Geometry_service
+  art::Framework_Services_Registry
+  fhiclcpp::fhiclcpp
+  ROOT::Physics
+)
+
 install_headers()
 install_source()
