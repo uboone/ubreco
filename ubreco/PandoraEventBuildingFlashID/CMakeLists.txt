@@ -39,6 +39,8 @@ cet_build_plugin(
   LIBRARIES
   PRIVATE
   ubreco::LLSelectionTool_OpT0Finder_Base
+  ubevt::Database
+  ubobj::DataOverlay
   larpandora::LArPandoraInterface
   larevt::CalibrationDBI_IOVData
   lardata::Utilities
@@ -57,6 +59,8 @@ cet_build_plugin(
   PRIVATE
   ubreco::LLSelectionTool_OpT0Finder_Base
   ubreco::PandoraEventBuildingFlashID_HitCosmicTag_Algorithms
+  ubevt::Database
+  ubobj::DataOverlay
   larpandora::LArPandoraEventBuilding
   larreco::RecoAlg
   larevt::CalibrationDBI_IOVData

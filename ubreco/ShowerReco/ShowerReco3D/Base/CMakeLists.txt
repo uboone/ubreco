@@ -12,7 +12,8 @@ cet_make_library(
   ROOT::Physics
 )
 
-cet_make_library(LIBRARY_NAME ShowerRecoModuleBase INTERFACE
+cet_make_library(
+  LIBRARY_NAME ShowerRecoModuleBase INTERFACE
   SOURCE ShowerRecoModuleBase.h
   LIBRARIES INTERFACE
   lardata::Utilities

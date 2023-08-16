@@ -17,6 +17,7 @@ cet_build_plugin(
   PortedFlash art::EDProducer
   LIBRARIES
   PRIVATE
+  ubcore::Geometry
   lardata::Utilities
   lardata::DetectorClocksService
   larcore::Geometry_Geometry_service

@@ -12,6 +12,7 @@ cet_make_library(
   LIBRARIES
   PUBLIC
   ubreco::PandoraEventBuildingFlashID_HitCosmicTag_Base
+  ubcore::LLBasicTool_GeoAlgo
   ROOT::Physics
 )
 

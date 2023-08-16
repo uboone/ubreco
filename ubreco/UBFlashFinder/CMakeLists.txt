@@ -13,6 +13,7 @@ cet_make_library(
   SimpleFlashAlgo.cxx
   LIBRARIES
   PUBLIC
+  ubcore::Geometry
   larcore::Geometry_Geometry_service
   art::Framework_Core
   art_root_io::TFileService_service

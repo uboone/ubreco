@@ -24,6 +24,7 @@ cet_build_plugin(
   LIBRARIES
   PRIVATE
   ubevt::Utilities
+  ubobj::Optical
   larevt::SpaceChargeService
   lardata::Utilities
   larcore::Geometry_Geometry_service
