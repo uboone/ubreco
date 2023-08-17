@@ -1,4 +1,5 @@
 cet_make_library(
+  LOCAL_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
   SOURCE
   COphit.cxx
   Config_COpHit.cxx

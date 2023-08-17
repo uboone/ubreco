@@ -1,8 +1,5 @@
-include_directories(../data)
-include_directories(../deconv)
-include_directories(../algo)
-
 cet_make_library(
+  LOCAL_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
   SOURCE
   DataReader.cxx
   Saturation_Merger.cxx

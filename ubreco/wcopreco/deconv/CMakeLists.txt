@@ -1,6 +1,5 @@
-include_directories(../data)
-
 cet_make_library(
+  LOCAL_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
   SOURCE
   Deconvolver.cxx
   kernel_fourier.cxx

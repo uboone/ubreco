@@ -1,7 +1,5 @@
-include_directories(../data)
-include_directories(../deconv)
-
 cet_make_library(
+  LOCAL_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
   SOURCE
   FlashFiltering.cxx
   Flashes_beam.cxx

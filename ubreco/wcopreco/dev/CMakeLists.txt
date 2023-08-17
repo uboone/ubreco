@@ -1,8 +1,3 @@
-include_directories(../data)
-include_directories(../deconv)
-include_directories(../algo)
-include_directories(../app)
-
 cet_make_exec(
   NAME wcopreco
   SOURCE main.cxx

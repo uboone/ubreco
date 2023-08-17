@@ -1,8 +1,3 @@
-include_directories(../wcopreco/data)
-include_directories(../wcopreco/deconv)
-include_directories(../wcopreco/algo)
-include_directories(../wcopreco/app)
-
 cet_make_library(
   SOURCE
   FlashAlgoBase.cxx
