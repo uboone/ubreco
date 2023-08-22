@@ -38,7 +38,7 @@ cet_build_plugin(
   StoreFlashMatchChi2 art::EDProducer
   LIBRARIES
   PRIVATE
-  ubreco::LLSelectionTool_OpT0Finder_Base
+  ubreco::LLSelectionTool_OpT0Finder_Algorithms
   ubevt::Database
   ubobj::DataOverlay
   larpandora::LArPandoraInterface
@@ -57,7 +57,7 @@ cet_build_plugin(
   FlashNeutrinoId larpandora::SliceIdTool
   LIBRARIES
   PRIVATE
-  ubreco::LLSelectionTool_OpT0Finder_Base
+  ubreco::LLSelectionTool_OpT0Finder_Algorithms
   ubreco::PandoraEventBuildingFlashID_HitCosmicTag_Algorithms
   ubevt::Database
   ubobj::DataOverlay
