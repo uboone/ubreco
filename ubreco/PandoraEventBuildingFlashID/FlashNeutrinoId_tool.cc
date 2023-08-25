@@ -606,6 +606,9 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate()
       m_n_michel_hits_plane0(-std::numeric_limits<int>::max()),
       m_n_michel_hits_plane1(-std::numeric_limits<int>::max()),
       m_n_michel_hits_plane2(-std::numeric_limits<int>::max()),
+    // c14 warning:
+    // implicit conversion from 'std::numeric_limits<int>::type' (aka 'int') to 'float'
+    // changes value from -2147483647 to -2147483648 
       m_min_lin_braggalgonly_plane0(-std::numeric_limits<int>::max()),
       m_min_lin_braggalgonly_plane1(-std::numeric_limits<int>::max()),
       m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max()),
