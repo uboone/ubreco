@@ -315,12 +315,12 @@ std::map<size_t, std::vector<unsigned int> > BackTracking::GetMCShowerInfo(const
 
   // save the trackID of the pi0
   unsigned int pi0trkId = 0;
-  int npi0 = 0;
+  // int npi0 = 0; // unused
 
   for (size_t i=0; i < npart; i++){
     auto const& part = mct.GetParticle(i);
     if ( (part.PdgCode() == fPDG) and (part.StatusCode() == 1) ){
-      npi0 += 1;
+      // npi0 += 1; // unused
       pi0trkId = part.TrackId();
       xyz[0] = part.Trajectory().X(0);
       xyz[1] = part.Trajectory().Y(0);

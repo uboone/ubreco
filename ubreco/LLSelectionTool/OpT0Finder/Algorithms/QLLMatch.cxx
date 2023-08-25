@@ -230,12 +230,14 @@ namespace flashana {
     
     double nvalid_pmt = 0;
     
+    /* neither PEtot_Hyp norPEtot_Obs are used
     double PEtot_Hyp = 0;
     for (auto const &pe : hypothesis.pe_v)
       PEtot_Hyp += pe;
     double PEtot_Obs = 0;
     for (auto const &pe : measurement.pe_v)
       PEtot_Obs += pe;
+    */
     
     _current_chi2 = _current_llhd = 0.;
     
