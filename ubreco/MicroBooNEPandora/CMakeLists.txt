@@ -9,7 +9,6 @@ cet_make_library(
   LIBRARIES
   PUBLIC
   larpandoracontent::LArPandoraContent
-  PandoraPFA::PandoraSDK
 )
 
 cet_build_plugin(
