@@ -1,5 +1,5 @@
 # ======================================================================
-#  ubobj main build file
+#  ubreco main build file
 #
 #  cd .../path/to/build/directory
 #  source .../path/to/lardataobj/ups/setup_for_development <-d|-p>
@@ -9,7 +9,7 @@
 cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 
 find_package(cetmodules REQUIRED)
-project(ubreco VERSION 09.78.01 LANGUAGES CXX)
+project(ubreco VERSION 09.78.03 LANGUAGES CXX)
 
 include(CetCMakeEnv)
 cet_cmake_env()
