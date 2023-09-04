@@ -84,7 +84,7 @@ namespace michel {
     // starting from the michel start point
     // and pointing in the direction of the Michel
 
-    size_t ctr =0;
+    // size_t ctr =0; // unused
     
     for (auto& h : hits){
 
@@ -117,7 +117,7 @@ namespace michel {
 	continue;
       
       michel.push_back(h);
-      ctr += 1;
+      // ctr += 1; // unused
     }
 
     //std::cout << "Added " << ctr << " hits" << std::endl;

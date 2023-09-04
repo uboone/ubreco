@@ -606,6 +606,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate()
       m_n_michel_hits_plane0(-std::numeric_limits<int>::max()),
       m_n_michel_hits_plane1(-std::numeric_limits<int>::max()),
       m_n_michel_hits_plane2(-std::numeric_limits<int>::max()),
+      // deal with c14 warning about implicit int to float
       m_min_lin_braggalgonly_plane0(-std::numeric_limits<int>::max()),
       m_min_lin_braggalgonly_plane1(-std::numeric_limits<int>::max()),
       m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max()),
@@ -667,6 +668,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
       m_n_michel_hits_plane0(-std::numeric_limits<int>::max()),
       m_n_michel_hits_plane1(-std::numeric_limits<int>::max()),
       m_n_michel_hits_plane2(-std::numeric_limits<int>::max()),
+      // deal with c14 warning about implicit int to float
       m_min_lin_braggalgonly_plane0(-std::numeric_limits<int>::max()),
       m_min_lin_braggalgonly_plane1(-std::numeric_limits<int>::max()),
       m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max()),
@@ -735,6 +737,7 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
       m_n_michel_hits_plane0(-std::numeric_limits<int>::max()),
       m_n_michel_hits_plane1(-std::numeric_limits<int>::max()),
       m_n_michel_hits_plane2(-std::numeric_limits<int>::max()),
+      // deal with c14 warning about implicit int to float
       m_min_lin_braggalgonly_plane0(-std::numeric_limits<int>::max()),
       m_min_lin_braggalgonly_plane1(-std::numeric_limits<int>::max()),
       m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max()),

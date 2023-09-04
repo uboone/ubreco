@@ -436,11 +436,11 @@ sys::WireModifier::MatchEdepsToSubROIs(std::vector<sys::WireModifier::SubROIProp
   // for each TrackID, which EDeps are associated with it? keys are TrackIDs
   std::map<int, std::vector<const sim::SimEnergyDeposit*>> TrackIDMatchedEDepMap;
   // total energy of EDeps matched to the ROI (not strictly necessary, but useful for understanding/development)
-  double total_energy = 0.;
+  // double total_energy = 0.; // unused
   // loop over edeps, fill TrackIDMatchedEDepMap and calculate total energy
   for ( auto edep_ptr : edepPtrVec ) {
     TrackIDMatchedEDepMap[edep_ptr->TrackID()].push_back(edep_ptr);
-    total_energy += edep_ptr->E();
+    // total_energy += edep_ptr->E(); // unused
   }
   // calculate EDep properties by TrackID
   std::map<int, sys::WireModifier::TruthProperties_t> TrackIDMatchedPropertyMap;

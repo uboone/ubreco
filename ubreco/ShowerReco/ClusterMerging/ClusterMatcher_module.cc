@@ -130,11 +130,13 @@ void ClusterMatcher::produce(art::Event & e)
   // load input clusters
   auto const& clus_h = e.getValidHandle<std::vector<recob::Cluster>>(fClusterProducer);
 
+  /* unused
   int nabove = 0;
   for (size_t c=0; c < clus_h->size(); c++){
     auto clus = clus_h->at(c);
     if (clus.NHits() > 10) { nabove += 1; }
   }
+  */
 
   // load associated hits
   art::FindManyP<recob::Hit> clus_hit_assn_v(clus_h, e, fClusterProducer);

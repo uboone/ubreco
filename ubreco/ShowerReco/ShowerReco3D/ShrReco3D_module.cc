@@ -451,7 +451,7 @@ size_t ShrReco3D::BackTrack(detinfo::DetectorClocksData const& detClocks,
     float purity = 0;
     float completeness = 0;
 
-    float BackTrackEnergy       = 0;
+    // float BackTrackEnergy       = 0; // unused
     float BackTrackShowerEnergy = 0;
     float BackTrackCharge       = 0;
     float BackTrackShowerCharge = 0;
@@ -480,7 +480,7 @@ size_t ShrReco3D::BackTrack(detinfo::DetectorClocksData const& detClocks,
 	auto energy  = match_vec[i_p]->energy;
 
 	BackTrackCharge += charge;
-	BackTrackEnergy += energy;
+	// BackTrackEnergy += energy; // unused
 	// does this trackID match that of the MCShower?
 	for (auto const& shrtrkid : shrtrackIDs) {
 	  if ( shrtrkid == (unsigned int)mctrkid ){
