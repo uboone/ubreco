@@ -58,7 +58,7 @@ namespace showerreco {
     int planeTemp   =  0      ;
 
     if ( clusters.size() > 2 ) {
-        for ( auto const c : clusters ) {
+        for ( auto const & c : clusters ) {
             float distTemp = abs ( c._start.w - c._end.w );
 
             if ( distTemp < minClusDist ) {
@@ -83,7 +83,7 @@ namespace showerreco {
     //auto const& geomH = ::util::GeometryUtilities::GetME();
     auto const* geom  = ::lar::providerFrom<geo::Geometry>();
 
-    for ( auto const c : clusters ) {
+    for ( auto const& c : clusters ) {
 
         if ((int) c._plane != worstPlane) {
             wireStarts.emplace_back(

@@ -250,7 +250,7 @@ fwdir	product_dir	scripts
 product		version		qual	flags		<table_format=2>
 larpandora	v09_21_07	-
 larreco		v09_22_01	-
-swtrigger	v02_03_00f	-
+swtrigger	v02_03_00g	-
 ubsim		v09_78_02	-
 cetmodules	v3_21_01	-	only_for_build
 end_product_list
@@ -308,8 +308,12 @@ end_product_list
 #
 ####################################
 qualifier	ubsim		larreco		larpandora	swtrigger
+c14:debug       c14:debug       c14:debug       c14:debug       c14:debug
+c14:prof        c14:prof        c14:prof        c14:prof        c14:prof
 c7:debug	c7:debug	c7:debug	c7:debug	c7:debug
 c7:prof		c7:prof		c7:prof		c7:prof		c7:prof
+e26:debug       e26:debug       e26:debug       e26:debug       e26:debug
+e26:prof        e26:prof        e26:prof        e26:prof        e26:prof
 e20:debug	e20:debug	e20:debug	e20:debug	e20:debug
 e20:prof	e20:prof	e20:prof	e20:prof	e20:prof
 end_qualifier_list

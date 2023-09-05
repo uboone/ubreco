@@ -328,7 +328,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
 
 
   recob::Vertex nuvtx;
-  size_t neutrinos = 0;
+  // size_t neutrinos = 0; // unused
 
   for (size_t p=0; p < pfparticle_handle->size(); p++) {
     auto pfp = pfparticle_handle->at(p);
@@ -338,7 +338,7 @@ void Gamma3D::produce(art::Event & e)//START EVENT LOOP
     auto PDG = fabs(pfp.PdgCode());
     if ( (PDG == 12) || (PDG == 14) ) {
 
-      neutrinos += 1;
+      // neutrinos += 1; // unused
 
       // auto pfpkey = p;
       auto ass_vtx_v  =pfp_vertex_assn_v.at( p );
