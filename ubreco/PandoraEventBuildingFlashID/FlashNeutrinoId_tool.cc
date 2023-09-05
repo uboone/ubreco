@@ -607,9 +607,9 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate()
       m_n_michel_hits_plane1(-std::numeric_limits<int>::max()),
       m_n_michel_hits_plane2(-std::numeric_limits<int>::max()),
       // deal with c14 warning about implicit int to float
-      m_min_lin_braggalgonly_plane0(-std::numeric_limits<int>::max()),
-      m_min_lin_braggalgonly_plane1(-std::numeric_limits<int>::max()),
-      m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max()),
+      m_min_lin_braggalgonly_plane0(-float(std::numeric_limits<int>::max())),
+      m_min_lin_braggalgonly_plane1(-float(std::numeric_limits<int>::max())),
+      m_min_lin_braggalgonly_plane2(-float(std::numeric_limits<int>::max())),
       m_vtx_in_FV(false)
 {
 }
@@ -669,9 +669,9 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
       m_n_michel_hits_plane1(-std::numeric_limits<int>::max()),
       m_n_michel_hits_plane2(-std::numeric_limits<int>::max()),
       // deal with c14 warning about implicit int to float
-      m_min_lin_braggalgonly_plane0(-std::numeric_limits<int>::max()),
-      m_min_lin_braggalgonly_plane1(-std::numeric_limits<int>::max()),
-      m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max()),
+      m_min_lin_braggalgonly_plane0(-float(std::numeric_limits<int>::max())),
+      m_min_lin_braggalgonly_plane1(-float(std::numeric_limits<int>::max())),
+      m_min_lin_braggalgonly_plane2(-float(std::numeric_limits<int>::max())),
       m_vtx_in_FV(false)
 {
 }
@@ -738,9 +738,9 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
       m_n_michel_hits_plane1(-std::numeric_limits<int>::max()),
       m_n_michel_hits_plane2(-std::numeric_limits<int>::max()),
       // deal with c14 warning about implicit int to float
-      m_min_lin_braggalgonly_plane0(-std::numeric_limits<int>::max()),
-      m_min_lin_braggalgonly_plane1(-std::numeric_limits<int>::max()),
-      m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max()),
+      m_min_lin_braggalgonly_plane0(-float(std::numeric_limits<int>::max())),
+      m_min_lin_braggalgonly_plane1(-float(std::numeric_limits<int>::max())),
+      m_min_lin_braggalgonly_plane2(-float(std::numeric_limits<int>::max())),
       m_vtx_in_FV(false)
 {
     const auto chargeDeposition(this->GetDepositionVector(pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, slice));
