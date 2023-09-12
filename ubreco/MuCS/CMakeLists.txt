@@ -16,6 +16,7 @@ cet_build_plugin(
   ubobj::MuCS
   lardataobj::RawData
   ROOT::Graf
+  SQLite::SQLite3
 )
 
 cet_build_plugin(
