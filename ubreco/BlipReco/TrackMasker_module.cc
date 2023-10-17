@@ -170,7 +170,7 @@ void TrackMasker::produce(art::Event & evt)
   // Assuming input collection is original 'gaushit', we can 
   // use gaushitTruthMatch metadata to ID MC hits
   //******************************************************* 
-  if( fIgnoreDataOverlay ) { //|| fIgnoreDataTrks ) {
+  if( fIgnoreDataOverlay ) { 
     art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> fmhh(hit_h,evt,"gaushitTruthMatch");
     for (size_t h=0; h < hitlist.size(); h++) {
       if( !fmhh.at(h).size() ) hitIsReal[h] = true;
@@ -281,6 +281,11 @@ void TrackMasker::produce(art::Event & evt)
       _vetohits.push_back(hh);
       hitIsVetoed[hh] = true;
       additional_vetoed_hits++;
+
+      // TODO: group in nearby hits
+      // TODO: if hit in question was in a short track,
+      //       apply same veto to all other hits in that
+      //       track even if they are outside this radius.
     }
   }
   

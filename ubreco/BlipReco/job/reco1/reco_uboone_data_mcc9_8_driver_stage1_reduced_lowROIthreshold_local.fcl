@@ -5,3 +5,5 @@ physics.producers.gaushit.HitFinderToolVec.CandidateHitsPlane1.RoiThreshold: 1.5
 physics.producers.gaushit.HitFinderToolVec.CandidateHitsPlane2.RoiThreshold: 1.0
 
 physics.producers.nfspl1.wcls_main.configs: [ "pgrapher/experiment/uboone/wcls-nf-sp_lowROIthreshold.jsonnet" ]
+
+outputs.out1.fileName: "%ifb_%tc_reco1_lowthresh.root"

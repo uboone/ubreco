@@ -12,6 +12,7 @@ namespace blip {
     detProp               = art::ServiceHandle<detinfo::DetectorPropertiesService>()->provider();
     fNominalRecombFactor  = ModBoxRecomb(fCalodEdx,detProp->Efield());
     mWion                 = 1000./util::kGeVToElectrons;
+      
     
     // initialize channel list
     fBadChanMask       .resize(8256,false);
@@ -47,6 +48,7 @@ namespace blip {
     printf("  - equiv. recomb: %.4f\n",fNominalRecombFactor);
     printf("  - custom bad chans: %i\n",NBadChansFromFile);
     printf("*******************************************\n");
+    std::cout<<"LArIAT R = "<<ModBoxRecomb(2.8,0.484);
 
     // create diagnostic histograms
     art::ServiceHandle<art::TFileService> tfs;
@@ -108,7 +110,10 @@ namespace blip {
     // Efficiency as a function of energy deposited on a wire
     h_recoWireEff_denom = hdir.make<TH1D>("recoWireEff_trueCount","Collection plane;Electron energy deposited on wire [MeV];Count",40,0,2.0);
     h_recoWireEff_num   = hdir.make<TH1D>("recoWireEff","Collection plane;Electron energy deposited on wire [MeV];Hit reco efficiency",40,0,2.0);
-  
+    
+    h_recoWireEffQ_denom = hdir.make<TH1D>("recoWireEffQ_trueCount","Collection plane;Charge deposited on wire [e-];Count",50,0,100000);
+    h_recoWireEffQ_num   = hdir.make<TH1D>("recoWireEffQ","Collection plane;Charge deposited on wire [e-];Hit reco efficiency",50,0,100000);
+
   }
   
   //--------------------------------------------------------------
@@ -332,6 +337,7 @@ namespace blip {
     for(size_t i = 0; i<plist.size(); i++) map_g4trkid_pdg[plist[i]->TrackId()] = plist[i]->PdgCode();
   
     std::map<int, std::map<int,double> > map_g4trkid_chan_energy;
+    std::map<int, std::map<int,double> > map_g4trkid_chan_charge;
 
     //======================================================
     // Use SimChannels to make a map of the collected charge
@@ -357,10 +363,13 @@ namespace blip {
           // ####################################################
           if( fSimGainFactor > 0 ) ne /= fSimGainFactor;
           map_g4trkid_charge[ide.trackID] += ne;
-          
-          if( abs(map_g4trkid_pdg[ide.trackID]) == 11 ) {
-            //map_g4trkid_perWireEnergyDep[ide.trackID] += ide.energy;
-            map_g4trkid_chan_energy[ide.trackID][chan->Channel()] += ide.energy;
+         
+          // keep track of charge deposited per wire for efficiency plots
+          // (coll plane only)
+          if( chan->Channel() > 4800 ) {
+            map_g4trkid_chan_charge[ide.trackID][chan->Channel()] += ne; 
+            if( abs(map_g4trkid_pdg[ide.trackID]) == 11 ) 
+              map_g4trkid_chan_energy[ide.trackID][chan->Channel()] += ide.energy;
           }
         
         }
@@ -369,10 +378,14 @@ namespace blip {
     }
 
     for(auto& m : map_g4trkid_chan_energy ) {
-      //std::cout<<"G4Trk "<<m.first<<" deposited energy on "<<m.second.size()<<" wires: \n";
       for(auto& mm : m.second ) {
-        //std::cout<<"  chan "<<mm.first<<" --> "<<mm.second<<" MeV\n";
         if( mm.second > 0 ) h_recoWireEff_denom->Fill(mm.second);
+      }
+    }
+    
+    for(auto& m : map_g4trkid_chan_charge ) {
+      for(auto& mm : m.second ) {
+        if( mm.second > 0 ) h_recoWireEffQ_denom->Fill(mm.second);
       }
     }
    
@@ -429,7 +442,8 @@ namespace blip {
       hitinfo[i].peakTime     = thisHit->PeakTime();
       hitinfo[i].driftTime    = thisHit->PeakTime() - detProp->GetXTicksOffset(plane,0,0); // - fTimeOffsets[plane];
       hitinfo[i].gof          = thisHit->GoodnessOfFit() / thisHit->DegreesOfFreedom();
-     
+    
+      //std::cout<<"XTicks offset plane "<<plane<<<<": "<<detProp->GetXTicksOffset(plane,0,0)<<"\n";
       //h_hit_chanstatus->Fill( chanFilt.Status(chan) );
 
       if( plist.size() ) {
@@ -472,6 +486,11 @@ namespace blip {
             double trueEnergyDep = map_g4trkid_chan_energy[hitinfo[i].g4trkid][chan];
             //std::cout<<"Hit on channel "<<chan<<" came from G4ID "<<hitinfo[i].g4trkid<<" ("<<trueEnergyDep<<" MeV)\n";
             h_recoWireEff_num->Fill(trueEnergyDep);
+          }
+         
+          if( map_g4trkid_chan_charge[hitinfo[i].g4trkid][chan] > 0 ) {
+            double trueChargeDep = map_g4trkid_chan_charge[hitinfo[i].g4trkid][chan];
+            h_recoWireEffQ_num->Fill(trueChargeDep);
           }
 
         }
@@ -568,7 +587,7 @@ namespace blip {
         // initialize a new cluster with this hit as seed
         std::vector<blip::HitInfo> hitinfoVec;
         std::set<int> hitIDs;
-        
+
         hitinfoVec    .push_back(hitinfo[hi]);
         hitIDs        .insert(hi);
         int startWire = hitinfo[hi].wire;
@@ -582,7 +601,6 @@ namespace blip {
           hitsAdded = 0;  
           for(auto const& hj : planehits.second ) {
             
-            if( !hitIsGood[hj] || hitIsClustered[hj] ) continue; 
 
             // skip hits outside overall cluster wire range
             int w1 = hitinfo[hj].wire - fHitClustWireRange;
@@ -600,7 +618,13 @@ namespace blip {
               float t2 = hitinfo[hii].driftTime;
               float rms_sum = (hitinfo[hii].rms + hitinfo[hj].rms);
               if( fabs(t1-t2) > fHitClustWidthFact * rms_sum ) continue;
-
+              
+              if( hitIsTracked[hj] ) {
+                hitinfo[hii].touchTrk   = true;
+                hitinfo[hii].touchTrkID = hitinfo[hj].trkid;
+              }
+              if( !hitIsGood[hj] || hitIsClustered[hj] ) continue; 
+              
               hitinfoVec.push_back(hitinfo[hj]);
               startWire = std::min( hitinfo[hj].wire, startWire );
               endWire   = std::max( hitinfo[hj].wire, endWire );
@@ -682,7 +706,7 @@ namespace blip {
       
       }
     }
-   
+
 
     // =============================================================================
     // Plane matching and 3D blip formation
@@ -1031,6 +1055,9 @@ namespace blip {
     if( Efield != detProp->Efield() ) return mWion * (Q/ModBoxRecomb(fCalodEdx,Efield));
     else                              return mWion * (Q/fNominalRecombFactor);
   }
+  
+  //###########################################################
+  
 
   
   //###########################################################

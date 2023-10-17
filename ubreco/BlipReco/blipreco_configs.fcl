@@ -64,7 +64,7 @@ microboone_blipalg:
   MinDeadWireGap:       0               #// min wire gap size separating cluster from a dead region
 
   KeepAllClustersCol:   true
-  KeepAllClustersInd:   false
+  KeepAllClustersInd:   true #false
 }
 
 # ===============================================
@@ -74,7 +74,7 @@ microboone_blipana:
   module_type:        "BlipAna"
   BlipAlg:            @local::microboone_blipalg
   SaveTruthInfo:      true
-  SaveTrkInfo:        false
+  SaveTrkInfo:        true #false
   SaveHitInfo:        false
   SaveClustInfo:      true
   SaveEventTree:      true

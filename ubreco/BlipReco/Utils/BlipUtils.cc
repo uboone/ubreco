@@ -366,7 +366,7 @@ namespace BlipUtils {
       // use view with the maximal wire extent to calculate transverse (YZ) length
       if( hcs[i].NWires > newblip.MaxWireSpan ) {
         newblip.MaxWireSpan = hcs[i].NWires;
-        newblip.dYZ         = hcs[i].NWires * art::ServiceHandle<geo::Geometry>()->WirePitch(i);
+        newblip.dYZ         = hcs[i].NWires * art::ServiceHandle<geo::Geometry>()->WirePitch(pli);
       }
   
       for(size_t j=i+1; j<hcs.size(); j++){

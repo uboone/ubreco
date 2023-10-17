@@ -44,21 +44,22 @@ namespace blip {
     TVector3 position;
   };
   
+  // True energy depositions
   struct TrueBlip {
-    int       ID            = -9;
-    int       TPC           = -9;
-    float     Time          = -999e9;
-    float     Energy        = 0;
-    int       DepElectrons  = 0;
-    int       NumElectrons  = 0; // (post-drift)
-    float     DriftTime     = -9;
-    int       LeadG4ID      = -9;
-    int       LeadG4Index   = -9;
-    int       LeadG4PDG     = -9;
-    float     LeadCharge    = -9;
-    mif_t     G4ChargeMap;
+    int       ID            = -9;     // unique blip ID
+    int       TPC           = -9;     // TPC ID
+    float     Time          = -999e9; // time [us]
+    float     Energy        = 0;      // energy dep [MeV]
+    int       DepElectrons  = 0;      // deposited electrons
+    int       NumElectrons  = 0;      // electrons reaching wires
+    float     DriftTime     = -9;     // drift time [us]
+    int       LeadG4ID      = -9;     // lead G4 track ID
+    int       LeadG4Index   = -9;     // lead G4 track index
+    int       LeadG4PDG     = -9;     // lead G4 PDG
+    float     LeadCharge    = -9;     // lead G4 charge dep
+    TVector3  Position;               // XYZ position
+    mif_t     G4ChargeMap;          
     mif_t     G4PDGMap;
-    TVector3  Position;
   };
 
   struct HitInfo {
@@ -74,6 +75,8 @@ namespace blip {
     int   clustid       = -9;
     int   blipid        = -9;
     bool  ismatch       = false;
+    bool  touchTrk      = false;
+    int   touchTrkID    = -9;
     float integralADC    = -999;     // [ADCs] from integral
     float sigmaintegral = -999;
     float sumADC        = -999;     // [ADCs] from sum 

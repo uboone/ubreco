@@ -99,6 +99,9 @@ namespace blip {
     
     TH1D*   h_recoWireEff_denom;
     TH1D*   h_recoWireEff_num;
+    
+    TH1D*   h_recoWireEffQ_denom;
+    TH1D*   h_recoWireEffQ_num;
 
 
    private:

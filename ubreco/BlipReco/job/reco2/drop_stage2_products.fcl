@@ -2,9 +2,11 @@
 # that we will use later
 outputs.out1.outputCommands: [
    "keep *_*_*_*",
-   "drop raw::RawDigit*_*_*_*",
+   "drop raw::RawDigits_*_*_*",
+   "drop raw::OpDetWaveforms_*_*_*",
    "drop optdata::ChannelDataGroup_*_*_*",
    "drop recob::Wires_*nfspl1_*_*",
+   #"drop recob::Wires_*_*_*",
    #"drop sim::SimChannels_*_*_*",
    "drop sim::SimChannels_largeant_*_*",
    "drop sim::AuxDetSimChannels_*_*_*",
@@ -17,6 +19,7 @@ outputs.out1.outputCommands: [
    "drop recob::SpacePoints_*Kalman*_*_*",
    "drop *recob::SpacePoint*_*pmtrack*_*_*",
    "drop *_sps3d_noreg_*",
-   "drop *_sps3d_pre_*"
+   "drop *_sps3d_pre_*",
+   "drop *_pmtreadout_*_*"
    #"drop *_*calo*_*_*"
 ]
