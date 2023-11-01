@@ -740,8 +740,8 @@ class BlipAna : public art::EDAnalyzer
   TH1D*   h_clust_qres_dep;
   TH2D*   h_clust_qres_vs_q;
   TH2D*   h_qratio_vs_time_sim;
-  TH2D*   h_efield_distortion_yz;
-  TH2D*   h_efield_distortion_xz;
+  //TH2D*   h_efield_distortion_yz;
+  //TH2D*   h_efield_distortion_xz;
   TH1D*   h_ACPtrk_theta_xz;
   TH1D*   h_ACPtrk_theta_yz;
   TH1D*   h_ACPtrk_dEdx;
