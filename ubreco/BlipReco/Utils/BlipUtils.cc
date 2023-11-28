@@ -232,7 +232,6 @@ namespace BlipUtils {
         if( h.plane != plane ) return hc;
         if( h.tpc   != tpc   ) return hc;
       }
-
       // initialize values 
       hc.Plane            = plane;
       hc.TPC              = tpc;
@@ -282,6 +281,8 @@ namespace BlipUtils {
           //weightedRatio += q*(hitinfo.rms/hitinfo.amp);
           qGOF          += q;
         }
+        if( hitinfo.touchTrk ) hc.TouchTrkID   = hitinfo.touchTrkID; 
+      
       }//endloop over hits
       
       // mean goodness of fit
@@ -355,7 +356,8 @@ namespace BlipUtils {
     double driftVelocity = detProp->DriftVelocity(detProp->Efield(0),detProp->Temperature()); 
     double tick_to_cm    = samplePeriod * driftVelocity;
 
-    
+    bool validTouchTrk = true;
+
     // ------------------------------------------------
     // Look for valid wire intersections between 
     // central-most hits in each cluster
@@ -363,6 +365,18 @@ namespace BlipUtils {
     for(size_t i=0; i<hcs.size(); i++) {
       int pli = hcs[i].Plane;
       
+      // check for track touching clusters that could indicate this is a delta ray blip;
+      // if there is an inconsistency found (i.e., clusters on different planes are touching
+      // different tracks) this status is flagged as invalid.
+      int touchTrkID = hcs[i].TouchTrkID;
+      if( validTouchTrk && touchTrkID >= 0 ) {
+        if(newblip.TouchTrkID < 0 ) newblip.TouchTrkID = touchTrkID;
+        else if (newblip.TouchTrkID != touchTrkID ) {
+          validTouchTrk       = false; 
+          newblip.TouchTrkID  = -9;
+        }
+      }
+
       // use view with the maximal wire extent to calculate transverse (YZ) length
       if( hcs[i].NWires > newblip.MaxWireSpan ) {
         newblip.MaxWireSpan = hcs[i].NWires;

@@ -231,6 +231,8 @@ class BlipAnaTreeDataStruct
   int   clust_blipid[kMaxClusts];       // blip ID for this nlusteer (if it was made into one)
   int   clust_edepid[kMaxClusts];       // true energy dep ID
   bool  clust_ismatch[kMaxClusts];      // was this cluster plane-matched?
+  bool  clust_touchtrk[kMaxClusts];     // does this cluster connect to a trk (like a delta ray)?
+  int   clust_touchtrkid[kMaxClusts];   // connected track ID
 
   // --- 3D Blip information ---
   int   nblips;                       // number of blips in event
@@ -251,10 +253,10 @@ class BlipAnaTreeDataStruct
   int   blip_edepid[kMaxBlips];       // true energy dep ID ("edep_variable[id]")
   float blip_proxtrkdist[kMaxBlips];  // distance to nearest track
   int   blip_proxtrkid[kMaxBlips];    // index of nearest trk
+  bool  blip_touchtrk[kMaxBlips];     // is blip touching track?
+  int   blip_touchtrkid[kMaxBlips];   // track ID of touched track
   bool  blip_incylinder[kMaxBlips];   // is blip within a cylinder near a track
   int   blip_clustid[kNplanes][kMaxBlips];     // cluster ID per plane
-  
-  
   
   TTree*  calibTree;
   int     acptrk_npts;
@@ -384,6 +386,8 @@ class BlipAnaTreeDataStruct
     FillWith(clust_edepid,    -9);
     FillWith(clust_blipid,    -9);
     FillWith(clust_ismatch,   false);
+    FillWith(clust_touchtrk,   false);
+    FillWith(clust_touchtrkid,  -9);
     nblips                    = 0;
     FillWith(blip_id,         -9);
     FillWith(blip_tpc,        -9);
@@ -401,6 +405,8 @@ class BlipAnaTreeDataStruct
     FillWith(blip_yzcorr,     -9);
     FillWith(blip_proxtrkdist,-99);
     FillWith(blip_proxtrkid,  -9);
+    FillWith(blip_touchtrk,   false);
+    FillWith(blip_touchtrkid,  -9);
     FillWith(blip_incylinder, false);
     FillWith(blip_edepid,     -9);
     for(int i=0; i<kNplanes; i++) 
@@ -491,6 +497,8 @@ class BlipAnaTreeDataStruct
       //evtTree->Branch("clust_gof",      clust_gof,      "clust_gof[nclusts]/F");
       //evtTree->Branch("clust_ratio",      clust_ratio,  "clust_ratio[nclusts]/F");
       evtTree->Branch("clust_ismatch",  clust_ismatch,  "clust_ismatch[nclusts]/O");
+      evtTree->Branch("clust_touchtrk",  clust_touchtrk,  "clust_touchtrk[nclusts]/O");
+      if( saveTrkInfo ) evtTree->Branch("clust_touchtrkid",  clust_touchtrkid,  "clust_touchtrkid[nclusts]/I");
       evtTree->Branch("clust_blipid",   clust_blipid,   "clust_blipid[nclusts]/I");
       if( saveTruthInfo ) evtTree->Branch("clust_edepid",   clust_edepid,   "clust_edepid[nclusts]/I");
     }
@@ -510,7 +518,11 @@ class BlipAnaTreeDataStruct
     //evtTree->Branch("blip_energyTrue",blip_energyTrue,"blip_energyTrue[nblips]/F");
     evtTree->Branch("blip_incylinder",blip_incylinder,"blip_incylinder[nblips]/O");
     evtTree->Branch("blip_proxtrkdist",blip_proxtrkdist,"blip_proxtrkdist[nblips]/F");
-    if( saveTrkInfo ) evtTree->Branch("blip_proxtrkid",blip_proxtrkid,"blip_proxtrkid[nblips]/I");
+    evtTree->Branch("blip_touchtrk",blip_touchtrk,"blip_touchtrk[nblips]/O");
+    if( saveTrkInfo ) {
+      evtTree->Branch("blip_proxtrkid",blip_proxtrkid,"blip_proxtrkid[nblips]/I");
+      evtTree->Branch("blip_touchtrkid",blip_touchtrkid,"blip_touchtrkid[nblips]/I");
+    }
     if( saveTruthInfo ) evtTree->Branch("blip_edepid",blip_edepid,"blip_edepid[nblips]/I");
     for(int i=0;i<kNplanes;i++) evtTree->Branch(Form("blip_pl%i_clustid",i),blip_clustid[i],Form("blip_pl%i_clustid[nblips]/I",i));
     
@@ -1715,6 +1727,8 @@ void BlipAna::analyze(const art::Event& evt)
     fData->clust_endtime[i]   = Truncate(clust.EndTime,   0.1);
     fData->clust_ismatch[i]   = clust.isMatched;
     fData->clust_blipid[i]    = clust.BlipID;
+    fData->clust_touchtrk[i]  = (clust.TouchTrkID >= 0 );
+    fData->clust_touchtrkid[i]= clust.TouchTrkID;
       
     // if this clust has an associated "trueblip" ID, find it
     // and figure out the true G4 charge, energy, etc
@@ -1747,7 +1761,12 @@ void BlipAna::analyze(const art::Event& evt)
     
     }
       
-    if( fDebugMode ) PrintClusterInfo(clust);
+    if( fDebugMode ) {
+      PrintClusterInfo(clust);
+      if( clust.TouchTrkID >= 0 ) {
+        std::cout<<"!!! This cluster touches track "<<clust.TouchTrkID<<" (blipID "<<clust.BlipID<<")\n";
+      }
+    }
     
   }//endloop over 2D hit clusters
  
@@ -1782,6 +1801,8 @@ void BlipAna::analyze(const art::Event& evt)
     fData->blip_size[i]       = sqrt( pow(blp.dX,2) + pow(blp.dYZ,2) );
     fData->blip_proxtrkdist[i]= blp.ProxTrkDist;
     fData->blip_proxtrkid[i]  = blp.ProxTrkID;
+    fData->blip_touchtrk[i]   = (blp.TouchTrkID >= 0 );
+    fData->blip_touchtrkid[i] = blp.TouchTrkID;
     fData->blip_incylinder[i] = blp.inCylinder;
     fData->blip_charge[i]     = blp.Charge;
     fData->blip_energy[i]     = blp.Energy;
@@ -1841,7 +1862,13 @@ void BlipAna::analyze(const art::Event& evt)
   
   if( fDebugMode ) {
     std::cout<<"\nLooping over "<<fBlipAlg->blips.size()<<" reco'd blips...\n";
-    for(auto const& b : fBlipAlg->blips ) PrintBlipInfo(b);
+    for(auto const& b : fBlipAlg->blips ) {
+      PrintBlipInfo(b);
+      if( b.TouchTrkID >= 0 ) {
+        std::cout<<"!!! Blip touches track "<<b.TouchTrkID<<" at distance "<<b.ProxTrkDist<<" ("<<b.ProxTrkID<<")\n";
+        std::cout<<"    size "<<b.dX<<" x "<<b.dYZ<<" cm, uncertaintyYZ "<<b.SigmaYZ<<", Nplanes "<<b.NPlanes<<"\n";
+      }
+    }
   }
  
   
@@ -2003,7 +2030,7 @@ void BlipAna::PrintHitInfo(const blip::HitInfo& hi){
 }
 
 void BlipAna::PrintClusterInfo(const blip::HitClust& hc){
-  printf("  clustID: %4i, TPC: %i, plane: %i, time range: %7.2f - %7.2f, timespan: %6.2f, leadWire: %3i, nwires: %3i, nhits: %3i, edepid: %i, isMatched: %i\n",
+  printf("  clustID: %4i, TPC: %i, plane: %i, time range: %7.2f - %7.2f, timespan: %6.2f, leadWire: %3i, nwires: %3i, nhits: %3i, edepid: %i, isMatched: %i, blipID: %i\n",
     hc.ID,
     hc.TPC,
     hc.Plane,
@@ -2014,7 +2041,8 @@ void BlipAna::PrintClusterInfo(const blip::HitClust& hc){
     hc.NWires,
     hc.NHits,
     hc.EdepID,
-    hc.isMatched
+    hc.isMatched,
+    hc.BlipID
   );
 }
 

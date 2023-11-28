@@ -98,6 +98,7 @@ namespace blip {
     int     CenterWire      = -999;
     bool    isMerged        = false;
     bool    isMatched       = false;
+    int     TouchTrkID      = -9;
     int     DeadWireSep     = 99;
     int     TPC             = -9;
     int     Plane           = -9;
@@ -142,7 +143,8 @@ namespace blip {
     float     ProxTrkDist     = -9;         // Distance to cloest track
     int       ProxTrkID       = -9;         // ID of closest track
     bool      inCylinder      = false;      // Is it in a cone/cylinder region? 
-    
+    int       TouchTrkID      = -9;         // Track ID of track that is touched
+
     TVector3  Position;                     // 3D position TVector3
     float     SigmaYZ         = -9.;        // Uncertainty in YZ intersect [cm]
     float     dX              = -9;         // Equivalent length along drift direction [cm] 
@@ -150,7 +152,7 @@ namespace blip {
 
     // Plane/cluster-specific information
     blip::HitClust clusters[kNplanes];
-    
+
     // Truth-matched energy deposition
     blip::TrueBlip truth;
     

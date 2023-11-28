@@ -144,8 +144,9 @@ namespace blip {
     float               fMaxClusterSpan;
     int                 fMinMatchedPlanes;
     bool                fPickyBlips;
+    bool                fIgnoreDataTrks;
     bool                fApplyTrkCylinderCut;
-    float               fCylinderRadius; 
+    float               fCylinderRadius;
     
     bool                fVetoBadChannels;
     std::string         fBadChanProducer;

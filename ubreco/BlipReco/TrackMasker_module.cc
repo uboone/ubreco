@@ -164,7 +164,6 @@ void TrackMasker::produce(art::Event & evt)
   
   // boolean designating each hit as tracked
   std::vector<bool> hitIsVetoed( hitlist.size(), false);
-  std::vector<bool> hitIsReal( hitlist.size(), false);
 
   //******************************************************* 
   // Assuming input collection is original 'gaushit', we can 
@@ -173,17 +172,7 @@ void TrackMasker::produce(art::Event & evt)
   if( fIgnoreDataOverlay ) { 
     art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> fmhh(hit_h,evt,"gaushitTruthMatch");
     for (size_t h=0; h < hitlist.size(); h++) {
-      if( !fmhh.at(h).size() ) hitIsReal[h] = true;
-    }
-  }
-
-
-  //***********************************************************************
-  // If we are ignoring ALL overlay, simply veto every real hit in the event
-  //*********************************************************************
-  if( fIgnoreDataOverlay ) {
-    for (size_t h=0; h < hitlist.size(); h++) {
-      if( hitIsReal[h] ) {
+      if( !fmhh.at(h).size() ) {
         hitIsVetoed[h] = true;
         _vetohits.push_back(h);
       }
@@ -191,8 +180,8 @@ void TrackMasker::produce(art::Event & evt)
     std::cout <<"\n*** TRACKMASKER WARNING: ignoring all non-MC hits and tracks!\n"
               <<"*** "<<_vetohits.size()<<" out of "<<hitlist.size()<<" hits ignored.\n";
   }
-  
-  
+
+
   //***************************************************
   // First go through tracks and designate which ones
   // pass our track length cuts by saving a map based

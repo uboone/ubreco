@@ -12,7 +12,6 @@ namespace blip {
     detProp               = art::ServiceHandle<detinfo::DetectorPropertiesService>()->provider();
     fNominalRecombFactor  = ModBoxRecomb(fCalodEdx,detProp->Efield());
     mWion                 = 1000./util::kGeVToElectrons;
-      
     
     // initialize channel list
     fBadChanMask       .resize(8256,false);
@@ -48,7 +47,6 @@ namespace blip {
     printf("  - equiv. recomb: %.4f\n",fNominalRecombFactor);
     printf("  - custom bad chans: %i\n",NBadChansFromFile);
     printf("*******************************************\n");
-    std::cout<<"LArIAT R = "<<ModBoxRecomb(2.8,0.484);
 
     // create diagnostic histograms
     art::ServiceHandle<art::TFileService> tfs;
@@ -135,6 +133,7 @@ namespace blip {
     
     fHitProducer        = pset.get<std::string>   ("HitProducer",       "pandora");
     fTrkProducer        = pset.get<std::string>   ("TrkProducer",       "gaushit");
+    //fHitProducerTrkMask = pset.get<std::string>   ("HitProducerTrkMask","trackmasker");
     fGeantProducer      = pset.get<std::string>   ("GeantProducer",     "largeant");
     fSimDepProducer     = pset.get<std::string>   ("SimEDepProducer",   "ionization");
     fSimChanProducer    = pset.get<std::string>   ("SimChanProducer",   "driftWC:simpleSC");
@@ -170,7 +169,8 @@ namespace blip {
     fPickyBlips         = pset.get<bool>          ("PickyBlips",          false);
     fApplyTrkCylinderCut= pset.get<bool>          ("ApplyTrkCylinderCut", false);
     fCylinderRadius     = pset.get<float>         ("CylinderRadius",      15);
-    
+    fIgnoreDataTrks     = pset.get<bool>          ("IgnoreDataTrks",      false);
+
     fCaloAlg            = new calo::CalorimetryAlg( pset.get<fhicl::ParameterSet>("CaloAlg") );
     fCaloPlane          = pset.get<int>           ("CaloPlane",           2);
     fCalodEdx           = pset.get<float>         ("CalodEdx",            2.8);
@@ -256,18 +256,24 @@ namespace blip {
     std::vector<art::Ptr<sim::SimChannel> > simchanlist;
     if (evt.getByLabel(fSimChanProducer,simchanHandle)) 
       art::fill_ptr_vector(simchanlist, simchanHandle);
-
+    
     // -- hits (from input module, usually track-masked subset of gaushit)
     art::Handle< std::vector<recob::Hit> > hitHandle;
     std::vector<art::Ptr<recob::Hit> > hitlist;
     if (evt.getByLabel(fHitProducer,hitHandle))
       art::fill_ptr_vector(hitlist, hitHandle);
-
+    
     // -- hits (from gaushit), these are used in truth-matching of hits
     art::Handle< std::vector<recob::Hit> > hitHandleGH;
     std::vector<art::Ptr<recob::Hit> > hitlistGH;
     if (evt.getByLabel("gaushit",hitHandleGH))
       art::fill_ptr_vector(hitlistGH, hitHandleGH);
+    
+    // -- hits (from gaushit), these are used in truth-matching of hits
+    //art::Handle< std::vector<recob::Hit> > hitHandleTM;
+    //std::vector<art::Ptr<recob::Hit> > hitlistTM;
+    //if (evt.getByLabel(fHitProducerTrkMask,hitHandleTM))
+    //  art::fill_ptr_vector(hitlistTM, hitHandleTM);
 
     // -- tracks
     art::Handle< std::vector<recob::Track> > tracklistHandle;
@@ -313,6 +319,7 @@ namespace blip {
     // use gaushitTruthMatch later on)
     //===============================================================
     std::map< int, int > map_gh;
+    std::map< int, int > map_tm;
     // if input collection is already gaushit, this is trivial
     if( fHitProducer == "gaushit" ) {
       for(auto& h : hitlist ) map_gh[h.key()] = h.key(); 
@@ -410,14 +417,20 @@ namespace blip {
     //=======================================
     //std::cout<<"Looping over tracks...\n";
     std::map<size_t,size_t> map_trkid_index;
-    for(size_t i=0; i<tracklist.size(); i++) 
-      map_trkid_index[tracklist.at(i)->ID()] = i;
+    std::map<size_t,size_t> map_trkid_isMC;
+    std::map<size_t,size_t> map_trkid_nhits;
+    std::map<size_t,size_t> map_trkid_nhitsMC;
+    for(size_t i=0; i<tracklist.size(); i++){ 
+      map_trkid_index[tracklist.at(i)->ID()]    = i;
+      map_trkid_isMC[tracklist.at(i)->ID()]     = false;
+      map_trkid_nhits[tracklist.at(i)->ID()]    = 0;
+      map_trkid_nhitsMC[tracklist.at(i)->ID()]  = 0;
+    }
 
     //=======================================
     // Fill vector of hit info
     //========================================
     hitinfo.resize(hitlist.size());
-    
     std::map<int,std::vector<int>> planehitsMap;
     int nhits_untracked = 0;
 
@@ -510,12 +523,37 @@ namespace blip {
         if (fmtrkGH.at(gi).size()) hitinfo[i].trkid= fmtrkGH.at(gi)[0]->ID(); 
       }
 
+      // IF this hit was (a) matched to a track, and (b) matched to a truth
+      // energy deposit, then keep the tally
+      if( hitinfo[i].trkid > 0 ) {
+        map_trkid_nhits[hitinfo[i].trkid]++;
+        if( hitinfo[i].g4energy > 0 ) {
+          map_trkid_nhitsMC[hitinfo[i].trkid]++;
+        }
+      }
+
       // add to the map
       planehitsMap[plane].push_back(i);
       if( hitinfo[i].trkid < 0 ) nhits_untracked++;
       //printf("  %lu   plane: %i,  wire: %i, time: %i\n",i,hitinfo[i].plane,hitinfo[i].wire,int(hitinfo[i].driftTime));
 
     }//endloop over hits
+
+    //================================================================
+    // Mark tracks as MC if a considerable fraction of the total hits
+    // were matched to truth depositions
+    //===============================================================
+    for(auto mtrk : map_trkid_index ){
+      //std::cout<<"TrackID "<<mtrk.first<<" has index "<<mtrk.second<<"\n";
+      float mcfrac = float(map_trkid_nhitsMC[mtrk.first])/map_trkid_nhits[mtrk.first];
+      //std::cout<<"  MC frac = "<<mcfrac<<"\n";
+      if( mcfrac > 0.10 ) map_trkid_isMC[mtrk.first] = true;
+    }
+   
+    //std::cout<<"New event\n";
+    //for(auto mtrk : map_trkid_index ){
+      //std::cout<<"  Track ID "<<mtrk.first<<", L = "<<tracklist[mtrk.second]->Length()<<", isMC "<<map_trkid_isMC[mtrk.first]<<"\n";
+    //}
 
 
     //=================================================================
@@ -531,10 +569,9 @@ namespace blip {
     //  [x] Create "blip" object
 
     // Create a series of masks that we'll update as we go along
+    std::vector<bool> hitIsBad(hitlist.size(),      false);
     std::vector<bool> hitIsTracked(hitlist.size(),  false);
-    std::vector<bool> hitIsGood(hitlist.size(),     true);
     std::vector<bool> hitIsClustered(hitlist.size(),false);
-    
     
     // Basic track inclusion cut: exclude hits that were tracked
     for(size_t i=0; i<hitlist.size(); i++){
@@ -544,7 +581,7 @@ namespace blip {
       int trkindex = it->second;
       if( tracklist[trkindex]->Length() > fMaxHitTrkLength ) {
         hitIsTracked[i] = true;
-        hitIsGood[i] = false;
+        //hitIsGood[i] = false;
       }
     }
         
@@ -553,8 +590,8 @@ namespace blip {
     // multi-gaussian fits (multiplicity > 1), need to re-think this.
     if( fDoHitFiltering ) {
       for(size_t i=0; i<hitlist.size(); i++){
-        if( !hitIsGood[i] ) continue;
-        hitIsGood[i] = false;
+        if( hitIsTracked[i] ) continue;
+        hitIsBad[i] = true;
         auto& hit = hitlist[i];
         int plane = hit->WireID().Plane;
         if( hitinfo[i].gof        <= fMinHitGOF[plane] ) continue;
@@ -569,7 +606,7 @@ namespace blip {
         //if( hit_ratio             > fMaxHitRatio[plane] ) continue;
         
         // we survived the gauntlet of cuts -- hit is good!
-        hitIsGood[i] = true;
+        hitIsBad[i] = false;
       }
     }
 
@@ -581,18 +618,17 @@ namespace blip {
     for(auto const& planehits : planehitsMap){
       for(auto const& hi : planehits.second ){
         
-        // skip hits flagged as bad, or already clustered
-        if( !hitIsGood[hi] || hitIsClustered[hi] ) continue; 
-        
-        // initialize a new cluster with this hit as seed
-        std::vector<blip::HitInfo> hitinfoVec;
-        std::set<int> hitIDs;
+        // select a new seed hit;
+        // skip hits that are tracked, flagged as bad, or already clustered
+        if( hitIsTracked[hi] || hitIsBad[hi] || hitIsClustered[hi] ) continue;
 
-        hitinfoVec    .push_back(hitinfo[hi]);
+        // initialize a new cluster with this hit as seed
+        std::set<int> hitIDs;
         hitIDs        .insert(hi);
         int startWire = hitinfo[hi].wire;
         int endWire   = hitinfo[hi].wire;
         hitIsClustered[hi] = true;
+        bool clustIsValid = true;
 
         // see if we can add other hits to it; continue until 
         // no new hits can be lumped in with this clust
@@ -601,6 +637,8 @@ namespace blip {
           hitsAdded = 0;  
           for(auto const& hj : planehits.second ) {
             
+            // skip hits already clustered
+            if( hitIsClustered[hj] ) continue;
 
             // skip hits outside overall cluster wire range
             int w1 = hitinfo[hj].wire - fHitClustWireRange;
@@ -613,19 +651,24 @@ namespace blip {
 
               if( hitinfo[hii].wire > w2 ) continue;
               if( hitinfo[hii].wire < w1 ) continue;
-              
               float t1 = hitinfo[hj].driftTime;
               float t2 = hitinfo[hii].driftTime;
               float rms_sum = (hitinfo[hii].rms + hitinfo[hj].rms);
               if( fabs(t1-t2) > fHitClustWidthFact * rms_sum ) continue;
               
+              // If a single bad hit is attempted to be added,
+              // the entire cluster is tainted! Throw it out!
+              if( hitIsBad[hj] ) { clustIsValid = false; break; }
+      
+              // if the hit we are checking is touching a track
+              // take note of this so we can encode this info into
+              // the cluster later on for delta-ray ID
               if( hitIsTracked[hj] ) {
                 hitinfo[hii].touchTrk   = true;
                 hitinfo[hii].touchTrkID = hitinfo[hj].trkid;
+                continue;
               }
-              if( !hitIsGood[hj] || hitIsClustered[hj] ) continue; 
-              
-              hitinfoVec.push_back(hitinfo[hj]);
+            
               startWire = std::min( hitinfo[hj].wire, startWire );
               endWire   = std::max( hitinfo[hj].wire, endWire );
               hitIDs.insert(hj);
@@ -634,10 +677,15 @@ namespace blip {
               break;
             }
           
-
+            if( !clustIsValid ) break;
           }
-        } while ( hitsAdded!=0 );
+        } while ( hitsAdded!=0 && clustIsValid );
         
+        if( !clustIsValid ) continue;
+
+        std::vector<blip::HitInfo> hitinfoVec;
+        for(auto hitID : hitIDs ) hitinfoVec.push_back(hitinfo[hitID]);
+
         blip::HitClust hc = BlipUtils::MakeHitClust(hitinfoVec);
         float span = hc.EndTime - hc.StartTime;
         h_clust_nwires->Fill(hc.NWires);
@@ -875,6 +923,7 @@ namespace blip {
             // apply cylinder cut 
             for(auto& trk : tracklist ){
               if( trk->Length() < fMaxHitTrkLength ) continue;
+              if( fIgnoreDataTrks && !map_trkid_isMC[trk->ID()] ) continue;
               auto& a = trk->Vertex();
               auto& b = trk->End();
               TVector3 p1(a.X(), a.Y(), a.Z() );
@@ -884,6 +933,7 @@ namespace blip {
               TVector3 bp = newBlip.Position;
               float d = BlipUtils::DistToLine(p1,p2,bp);
               if( d > 0 ) {
+                
                 // update closest trkdist
                 if( newBlip.ProxTrkDist < 0 || d < newBlip.ProxTrkDist ) {
                   newBlip.ProxTrkDist = d;
@@ -901,6 +951,16 @@ namespace blip {
            
             if( fApplyTrkCylinderCut && newBlip.inCylinder ) continue;
             
+            // In the case that a cluster appeared to be touching a track in 
+            // one of the 3 views, but after 3D evaluation is found to be positioned
+            // far away from that track, we must update the "TouchTrk" status.
+            if( (newBlip.ProxTrkID != newBlip.TouchTrkID )
+            //    || (newBlip.ProxTrkDist > 1.5*newBlip.dX ) 
+            //    || (newBlip.ProxTrkDist > 1.5*newBlip.dYZ ) ) 
+            ) {
+              newBlip.TouchTrkID = -9;
+            }
+
             // ----------------------------------------
             // if we made it this far, the blip is good!
             // associate this blip with the hits and clusters within it
@@ -1071,8 +1131,11 @@ namespace blip {
     printf("  Min cluster overlap       : %4.1f\n",       fMatchMinOverlap);
     printf("  Clust match sigma-factor  : %4.1f\n",       fMatchSigmaFact);
     printf("  Clust match max dT        : %4.1f ticks\n", fMatchMaxTicks);
-    printf("  Charge diff limit         : %.1fe3\n",fMatchQDiffLimit/1000);
-    printf("  Charge ratio maximum      : %.1f\n",fMatchMaxQRatio);      
+    printf("  Charge diff limit         : %.1fe3\n",      fMatchQDiffLimit/1000);
+    printf("  Charge ratio maximum      : %.1f\n",        fMatchMaxQRatio);     
+    printf("  Ignoring data tracks?     : %i\n",          fIgnoreDataTrks);
+    printf("  Track-cylinder radius     : %.1f cm\n",     fCylinderRadius);
+    printf("  Applying cylinder cut?    : %i\n",          fApplyTrkCylinderCut);
     
     /*
     printf("  Min cluster overlap       : ");
@@ -1088,8 +1151,6 @@ namespace blip {
     printf("  pl%i matches per cand      : %4.2f\n",       i,h_nmatches[i]->GetMean());
     }
     
-    //printf("  Track-cylinder radius     : %.1f cm\n",       fCylinderRadius);
-    //printf("  Applying cylinder cut?    : %i\n",          fApplyTrkCylinderCut);
     //printf("  Picky blip mode?          : %i\n",        fPickyBlips);
     printf("\n");
     

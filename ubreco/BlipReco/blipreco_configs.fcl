@@ -52,6 +52,7 @@ microboone_blipalg:
   PickyBlips:           false           #// require 3 planes that all intersect at ~same point
   ApplyTrkCylinderCut:  false           #// reject blips in track cone-cylinder regions
   CylinderRadius:       15.0            #// 3D cylinder cut radius [cm]
+  IgnoreDataTrks:       false           #// only consider MC tracks when determining blip-track distances
   CaloPlane:            2               #// plane used for calorimetry (2=collection)
   CalodEdx:             2.8             #// assumed dE/dx for MeV-scale recombination corrections
   LifetimeCorrection:   false           #// correct blips for lifetime (assumes T0 = 0)

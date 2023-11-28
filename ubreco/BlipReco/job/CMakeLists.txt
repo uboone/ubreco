@@ -1,6 +1,5 @@
 add_subdirectory(g4)
-add_subdirectory(reco1)
-add_subdirectory(reco2)
+add_subdirectory(reco)
 add_subdirectory(detsim)
 add_subdirectory(utility)
 add_subdirectory(corsika)
