@@ -363,20 +363,29 @@ namespace gammacatcher {
 
     std::cout << "Vtx coordinates : [" << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << "]" << std::endl;
 
+    bool vtxok = true;
     for (size_t pl = 0; pl < 3; pl++) {
+      try {
+        auto const& pt = geomH.Get2DPointProjectionCM(xyz,pl);
+        _vtx_w_cm[pl] = pt.w;
+        _vtx_t_cm[pl] = pt.t + (trigger_offset(clockData) * _time2cm);
 
-      auto const& pt = geomH.Get2DPointProjectionCM(xyz,pl);
-      _vtx_w_cm[pl] = pt.w;
-      _vtx_t_cm[pl] = pt.t + (trigger_offset(clockData) * _time2cm);
-
-      std::cout << "trigger offset [cm] : " << (trigger_offset(clockData) * _time2cm) << std::endl;
-      std::cout << "Vtx @ pl " << pl << " [" << _vtx_w_cm[pl] << ", " << _vtx_t_cm[pl] << " ]" << std::endl;
-
+        std::cout << "trigger offset [cm] : " << (trigger_offset(clockData) * _time2cm) << std::endl;
+        std::cout << "Vtx @ pl " << pl << " [" << _vtx_w_cm[pl] << ", " << _vtx_t_cm[pl] << " ]" << std::endl;
+      }
+      catch(const geo::InvalidWireError&) {
+        vtxok = false;
+        _vtx_w_cm = {0., 0., 0.};
+        _vtx_t_cm = {0., 0., 0.};
+        std::cout << "Vtx wire lookup error for plane " << pl << std::endl;
+      }
+      if(!vtxok)
+        break;
     }
 
-    _vertex = true;
+    _vertex = vtxok;
 
-    return true;
+    return vtxok;
   }
 
 

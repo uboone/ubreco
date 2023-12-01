@@ -1,0 +1,99 @@
+BEGIN_PROLOG
+
+# ===================================
+# CalAreaConstants used in MCC9
+# DocDB-18982: 
+#   235 +/- 9 e/ADC in ext data --> 4.26e-3 ADC/e
+#   245 +/- 10 e/ADC in fullMC --> 4.08e-3 ADC/e
+#
+microboone_calo_mcc9_mc:
+{
+  CalAreaConstants: [ 4.08e-3, 3.97e-3, 4.08e-3 ]
+  CalAmpConstants:  [ 9.2e-4,  1.06e-3, 1.08e-3 ]
+  CaloDoLifeTimeCorrection: false
+  CaloLifeTimeForm: 0
+  CaloUseModBox: true
+}
+microboone_calo_mcc9_data:
+{
+  CalAreaConstants: [ 4.31e-3, 4.02e-3, 4.10e-3 ]
+  CalAmpConstants:  [ 9.2e-4, 1.062e-3, 1.08e-3 ]
+  CaloDoLifeTimeCorrection: false
+  CaloLifeTimeForm: 0
+  CaloUseModBox: true
+}
+
+
+# ===================================
+# Main BlipAlg settings
+microboone_blipalg:
+{
+  HitProducer:          "gaushit"       #// input recob::Hits to use for blip reconstruction
+  TrkProducer:          "pandora"       #// input recob::Tracks to use for blip reconstruction
+  GeantProducer:        "largeant"      #// input sim::MCParticles (getting true particle info)
+  SimEDepProducer:      "ionization"    #// input sim::SimEnergyDeposits (getting energy/electrons deposited)
+  SimChanProducer:      "driftWC:simpleSC" #// label for sim::SimChannels (getting drifted charge; optional)
+  SimGainFactor:        0.826           #// gain fudge factor applied in WireCell detsim
+  MaxHitTrkLength:      5.0             #// hits in trks > this length will be vetoed [cm]
+  DoHitFiltering:       true            #// filter hits based on amp, width, RMS
+  MinHitGOF:            [0, 0, 0]       #// -- exclude pulse-train hits
+  MaxWiresInCluster:    10              #// max allowable wires in a cluster
+  MaxClusterSpan:       50              #// max allowable time-ticks of a cluster
+  ClustMatchMinOverlap: 0.5             #// minimum fractional overlap to be eligible for matching
+  ClustMatchMaxTicks:   2.0             #// max extent for matching start/end time of clusters [ticks]
+  ClustMatchSigmaFact:  0.8             #// max extent for matching charge-weighted time [xRMS]
+  ClustMatchMaxQRatio:  4.0             #// max allowed charge ratio of two clusters to be matched
+  ClustMatchQDiffLimit: 10e3            #// if charge-diff >, clusters are subject to QRatio cut above [e-]
+  MinMatchedPlanes:     2               #// minimum number of planes matched for 3D blip
+  PickyBlips:           false           #// require 3 planes that all intersect at ~same point
+  ApplyTrkCylinderCut:  false           #// reject blips in track cone-cylinder regions
+  CylinderRadius:       15.0            #// 3D cylinder cut radius [cm]
+  CaloPlane:            2               #// plane used for calorimetry (2=collection)
+  CalodEdx:             2.8             #// assumed dE/dx for MeV-scale recombination corrections
+  LifetimeCorrection:   false           #// correct blips for lifetime (assumes T0 = 0)
+  SCECorrection:        false           #// correct blips for space charge (requires known XYZ)
+  CaloAlg:              @local::microboone_calo_mcc9_data
+  
+  VetoBadChannels:      true            #// don't cluster hits from "bad" channels
+  BadChanProducer:      "nfspl1:badchannels" #// label for vector of bad channel IDs from signal processing
+  #BadChanFile:          "blipreco_badchannels.txt"
+  MinDeadWireGap:       0               #// min wire gap size separating cluster from a dead region
+}
+
+# ===============================================
+# Main BlipAna settings (TTree + diagnostic hists)
+microboone_blipana:
+{
+  module_type:        "BlipAna"
+  BlipAlg:            @local::microboone_blipalg
+  SaveTruthInfo:      true
+  SaveTrkInfo:        true #false
+  SaveHitInfo:        false
+  SaveClustInfo:      true
+  SaveEventTree:      true
+  #DebugMode:          true
+}
+
+microboone_blipana_data:                    @local::microboone_blipana
+microboone_blipana_data.BlipAlg.CaloAlg:    @local::microboone_calo_mcc9_data
+microboone_blipana_data.SaveTruthInfo:      false
+
+microboone_blipana_fullmc:                          @local::microboone_blipana
+microboone_blipana_fullmc.BlipAlg.CaloAlg:          @local::microboone_calo_mcc9_mc
+microboone_blipana_fullmc.VetoBadChannels:          false
+#microboone_blipana_fullmc.BlipAlg.SimGainFactor:    1.0
+#microboone_blipana_fullmc.SaveHitInfo:      true
+
+# ===============================================
+# TrackMasker settings
+microboone_trackmasker:
+{ 
+  module_type:        "TrackMasker"
+  HitProducer:        "gaushit" 
+  TrkProducer:        "pandora"
+  MinTrkLength:       5   # cm
+  MinTrkLengthVeto:   15  # cm
+  VetoRadius:         15  # cm
+}
+
+END_PROLOG
