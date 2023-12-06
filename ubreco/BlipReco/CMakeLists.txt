@@ -1,45 +1,65 @@
-
-art_make(	
-	  LIB_LIBRARIES
-			${ART_FRAMEWORK_CORE}
-			art_Utilities canvas
-			${MF_MESSAGELOGGER}
-			cetlib cetlib_except
-      ${Boost_SYSTEM_LIBRARY}
-			${ROOT_BASIC_LIB_LIST}
-      MODULE_LIBRARIES 
-			larcorealg_Geometry
-			larcore_Geometry_Geometry_service
-			lardataobj_RecoBase
-			lardataobj_AnalysisBase	
-			lardata_RecoObjects larreco_Deprecated  
-			larreco_RecoAlg
-      larreco_Calorimetry
-			lardata_Utilities
-			larevt_Filters
-			nusimdata_SimulationBase
-			${LARRECO_LIB}
-			${LARDATA_LIB}
-      ${ART_FRAMEWORK_CORE}
-			${ART_FRAMEWORK_PRINCIPAL}
-			${ART_FRAMEWORK_SERVICES_REGISTRY}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-			art_Persistency_Common canvas
-			art_Persistency_Provenance canvas
-			${MF_MESSAGELOGGER}
-      ${FHICLCPP}
-			cetlib cetlib_except
-			${CLHEP}
-      ${ROOT_GEOM}
-      ${ROOT_XMLIO}
-      ${ROOT_GDML}
-			${ROOT_BASIC_LIB_LIST}
-      ubreco_BlipUtils
-      ubreco_BlipRecoAlg
-
+cet_build_plugin(
+  BlipAna art::EDAnalyzer
+  LIBRARIES
+  PRIVATE
+  ubreco::BlipReco_Alg
+  larreco::Calorimetry
+  larsim::MCCheater_BackTrackerService_service
+  larevt::SpaceChargeService
+  lardata::DetectorClocksService  
+  larcore::ServiceUtil
+  lardataobj::RecoBase
+  lardataobj::AnalysisBase
+  art_root_io::TFileService_service
+  ROOT::Tree
 )
+
+cet_build_plugin(
+  BlipRecoProducer art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubreco::BlipReco_Alg
+  larreco::Calorimetry
+  larsim::MCCheater_BackTrackerService_service
+  larevt::CalibrationDBI_IOVData
+  lardata::Utilities
+  lardata::LArPropertiesService
+  lardata::DetectorPropertiesService
+  lardata::DetectorClocksService
+  larcore::Geometry_Geometry_service
+  lardataobj::RawData
+  lardataobj::RecoBase
+  lardataobj::AnalysisBase
+  art_root_io::TFileService_service
+)
+
+cet_build_plugin(
+  ParticleDump art::EDAnalyzer
+  LIBRARIES
+  PRIVATE
+  ubreco::BlipReco_Alg
+  larsim::MCCheater_BackTrackerService_service
+  lardata::DetectorPropertiesService
+  lardata::DetectorClocksService
+  larcore::Geometry_Geometry_service
+  nusimdata::SimulationBase
+  art_root_io::TFileService_service
+)
+
+cet_build_plugin(
+  TrackMasker art::EDProducer
+  LIBRARIES
+  PRIVATE
+  larsim::MCCheater_BackTrackerService_service
+  lardata::Utilities
+  lardata::DetectorPropertiesService
+  larcore::Geometry_Geometry_service
+  lardataobj::RecoBase
+  nusimdata::SimulationBase
+  art_root_io::TFileService_service
+)
+
+
 
 add_subdirectory(Utils)
 add_subdirectory(Alg)
@@ -48,9 +68,5 @@ install_fhicl()
 install_source()
 install_headers()
 
-
-# install txt files
-#file(GLOB txt_file *.txt )
-#install( FILES ${txt_file} DESTINATION ${product}/${version}/fcl" )
 file(GLOB txt_file *.txt)
 install_fw(LIST ${txt_file})

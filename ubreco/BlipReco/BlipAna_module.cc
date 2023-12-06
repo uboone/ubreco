@@ -13,8 +13,8 @@
 #define BLIPANA_H
 
 // Framework includes
-#include "art/Framework/Services/Optional/TFileService.h"
-#include "art/Framework/Services/Optional/TFileDirectory.h"
+#include "art_root_io/TFileService.h"
+#include "art_root_io/TFileDirectory.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Core/EDAnalyzer.h"
 #include "art/Framework/Principal/Event.h"
@@ -1045,7 +1045,7 @@ void BlipAna::analyze(const art::Event& evt)
   float electronLifetime = elifetime_provider.Lifetime() * /*convert ms->mus*/ 1e3;
   fData->lifetime = electronLifetime;
   
-  auto const* detProp   = lar::providerFrom<detinfo::DetectorPropertiesService>();
+  auto const  detProp   = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob();
   auto const& SCE       = lar::providerFrom<spacecharge::SpaceChargeService>();
   auto const& tpcCalib  = art::ServiceHandle<lariov::TPCEnergyCalibService>()->GetProvider();
 
@@ -1275,7 +1275,7 @@ void BlipAna::analyze(const art::Event& evt)
   }//endif trueblips were made
   
 
-  float driftVelocity = detProp->DriftVelocity(detProp->Efield(),detProp->Temperature());
+  float driftVelocity = detProp.DriftVelocity(detProp.Efield(),detProp.Temperature());
   
   //====================================
   // Save track information
@@ -1354,7 +1354,7 @@ void BlipAna::analyze(const art::Event& evt)
           for(size_t j=0; j<Npts; j++){
             geo::Point_t point{ caloObj->XYZ().at(j).X() - X0, caloObj->XYZ().at(j).Y(), caloObj->XYZ().at(j).Z() };
             vec_XYZ_orig.push_back( point );
-            geo::Vector_t loc_offset = SCE->GetCalPosOffsets( point );
+            geo::Vector_t loc_offset = SCE->GetCalPosOffsets( point, 0 );
             point.SetXYZ(point.X()-loc_offset.X(),point.Y()+loc_offset.Y(),point.Z()+loc_offset.Z());
             vec_XYZ_corr.push_back( point );
           }
@@ -1385,10 +1385,10 @@ void BlipAna::analyze(const art::Event& evt)
 
             // correct for SCE field offset
             auto& point = vec_XYZ_corr.at(j);
-            float Efield = detProp->Efield();
+            float Efield = detProp.Efield();
             if( SCE->EnableCalEfieldSCE() ) {
-              auto const field_offset = SCE->GetCalEfieldOffsets(point); 
-              Efield = detProp->Efield()*std::hypot(1+field_offset.X(),field_offset.Y(),field_offset.Z());;
+              auto const field_offset = SCE->GetCalEfieldOffsets(point, 0); 
+              Efield = detProp.Efield()*std::hypot(1+field_offset.X(),field_offset.Y(),field_offset.Z());;
             }
             if( Efield <= 0 ) continue;
             
@@ -1959,8 +1959,8 @@ void BlipAna::endJob(){
   printf("\n***********************************************\n");
 
   if( fDoACPTrkCalib ) {
-    //auto const* detProp   = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    float driftVelocity =   lar::providerFrom<detinfo::DetectorPropertiesService>()->DriftVelocity();
+    auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob();
+    float driftVelocity = detProp.DriftVelocity();
     float calcLifetime = 999999.;
     if( h_ACPtrk_qratio->GetMean() < 1. ){ 
       //calcLifetime = (200./detProp->DriftVelocity()) / std::log( 1./h_ACPtrk_qratio->GetMean() );

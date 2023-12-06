@@ -79,7 +79,7 @@ class BlipReco3D : public art::EDProducer
 //###################################################
 //  BlipReco3D constructor and destructor
 //###################################################
-BlipReco3D::BlipReco3D(fhicl::ParameterSet const & pset)
+BlipReco3D::BlipReco3D(fhicl::ParameterSet const & pset) : art::EDProducer(pset)
 {
   // Read in fcl parameters for blip reco alg
   fhicl::ParameterSet pset_blipalg = pset.get<fhicl::ParameterSet>("BlipAlg");
