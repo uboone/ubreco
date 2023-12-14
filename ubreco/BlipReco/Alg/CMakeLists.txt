@@ -3,6 +3,8 @@ cet_make_library(
   BlipRecoAlg.cc
   LIBRARIES
   PUBLIC
+  ubobj::DataOverlay
+  ubevt::Database
   ubreco::BlipReco_Utils
   larevt::CalibrationDBI_IOVData
   larreco::Calorimetry
