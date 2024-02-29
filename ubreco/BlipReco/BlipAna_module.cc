@@ -72,9 +72,9 @@ namespace{
 // Set global constants and max array sizes
 const int kMaxHits    =  30000;
 const int kMaxClusts  =  5000; 
-const int kMaxTrks    =   500;
-const int kMaxBlips   =  1000;
-const int kMaxG4      = 30000;
+const int kMaxTrks    =  1000;
+const int kMaxBlips   =  2000;
+const int kMaxG4      = 50000;
 const int kMaxEDeps   = 10000;
 const int kMaxTrkPts  =   2000;  
 
@@ -105,6 +105,23 @@ class BlipAnaTreeDataStruct
   float         lifetime;             // electron lifetime
   int           badchans;             // #bad chans according to wirecell
   int           longtrks;             // tracks > 5 cm
+  
+  // --- Primary particles ---
+  // these are grabbed from the G4 MCParticles
+  // list with more details saved (XYZ, P, etc)
+  int   nprimaries;
+  int   primary_trackID[kMaxG4];
+  int   primary_pdg[kMaxG4];
+  float primary_x0[kMaxG4];
+  float primary_y0[kMaxG4];
+  float primary_z0[kMaxG4];
+  float primary_Px[kMaxG4];
+  float primary_Py[kMaxG4];
+  float primary_Pz[kMaxG4];
+  float primary_T0[kMaxG4];
+  float primary_xAV[kMaxG4];
+  float primary_yAV[kMaxG4];
+  float primary_zAV[kMaxG4];
 
   // --- G4 information ---
   int   nparticles;               // number of G4 particles
@@ -135,6 +152,7 @@ class BlipAnaTreeDataStruct
   float part_depEnergy[kMaxG4];        // energy deposited in AV (MeV)
   int   part_depElectrons[kMaxG4];     // electrons deposited
   std::vector<std::string> part_process;// process name
+
 
   // --- True energy deposit info (derived from SimChannels and SimEnergyDeposits) ---
   int   nedeps;                   // number of true localized energy depositions
@@ -277,6 +295,21 @@ class BlipAnaTreeDataStruct
     longtrks              = -99;
     timestamp             = -999;
     //timestamp_hr          = -999;
+    
+    nprimaries            = 0;    // --- G4 primaries ---
+    FillWith(primary_trackID, -999);
+    FillWith(primary_pdg, -99999);
+    FillWith(primary_x0,  -999.);
+    FillWith(primary_y0,  -999.);
+    FillWith(primary_z0,  -999.);
+    FillWith(primary_Px,  -999.);
+    FillWith(primary_Py,  -999.);
+    FillWith(primary_Pz,  -999.);
+    FillWith(primary_T0,  -99999.);
+    FillWith(primary_xAV,  -999.);
+    FillWith(primary_yAV,  -999.);
+    FillWith(primary_zAV,  -999.);
+    
     nparticles            = 0;    // --- G4 particles ---
     FillWith(part_isPrimary,   false);
     //FillWith(part_madeHitCol,        false);
@@ -528,6 +561,20 @@ class BlipAnaTreeDataStruct
     
     
     if( saveTruthInfo ) {
+      evtTree->Branch("nprimaries",&nprimaries,"nprimaries/I");
+      evtTree->Branch("primary_trackID",primary_trackID,"primary_trackID[nprimaries]/I");
+      evtTree->Branch("primary_pdg",primary_pdg,"primary_pdg[nprimaries]/I");
+      evtTree->Branch("primary_Px",primary_Px,"primary_Px[nprimaries]/F");
+      evtTree->Branch("primary_Py",primary_Py,"primary_Py[nprimaries]/F");
+      evtTree->Branch("primary_Pz",primary_Pz,"primary_Pz[nprimaries]/F");
+      evtTree->Branch("primary_x0",primary_x0,"primary_x0[nprimaries]/F");
+      evtTree->Branch("primary_y0",primary_y0,"primary_y0[nprimaries]/F");
+      evtTree->Branch("primary_z0",primary_z0,"primary_z0[nprimaries]/F");
+      evtTree->Branch("primary_xAV",primary_xAV,"primary_xAV[nprimaries]/F");
+      evtTree->Branch("primary_yAV",primary_yAV,"primary_yAV[nprimaries]/F");
+      evtTree->Branch("primary_zAV",primary_zAV,"primary_zAV[nprimaries]/F");
+      evtTree->Branch("primary_T0",primary_T0,"primary_T0[nprimaries]/F");
+      
       evtTree->Branch("nparticles",&nparticles,"nparticles/I");
       evtTree->Branch("part_isPrimary",part_isPrimary,"part_isPrimary[nparticles]/O");
       //evtTree->Branch("part_madeHitCol",part_madeHitCol,"part_madeHitCol[nparticles]/O");
@@ -1123,7 +1170,7 @@ void BlipAna::analyze(const art::Event& evt)
  
   // Resize data struct objects
   fData->nhits      = (int)hitlist.size();
-  fData->nparticles = (int)plist.size();
+  fData->nparticles = std::min((int)plist.size(),(int)kMaxG4);
   fData->ntrks      = (int)tracklist.size();
   fData->badchans   = fBlipAlg->EvtBadChanCount;
   fData->Resize();
@@ -1153,6 +1200,7 @@ void BlipAna::analyze(const art::Event& evt)
     
     // Loop through the MCParticles
     //if( fDebugMode ) std::cout<<"\nLooping over G4 MCParticles: \n";
+    int printed = 0;
     for(size_t i = 0; i<plist.size(); i++){
       auto& pPart = plist[i];
       map_g4trkid_index[pPart->TrackId()] = i;
@@ -1161,6 +1209,26 @@ void BlipAna::analyze(const art::Event& evt)
       
       // Save to TTree object
       if(i<kMaxG4){
+        
+        if(pinfo[i].isPrimary){
+          fData->nprimaries++;
+          fData->primary_trackID[i] = pPart->TrackId();
+          fData->primary_pdg[i]     = pPart->PdgCode();
+          fData->primary_Px[i]      = pinfo[i].Px;
+          fData->primary_Py[i]      = pinfo[i].Py;
+          fData->primary_Pz[i]      = pinfo[i].Pz;
+          fData->primary_x0[i]      = pPart->Vx();
+          fData->primary_y0[i]      = pPart->Vy();
+          fData->primary_z0[i]      = pPart->Vz();
+          fData->primary_T0[i]      = pinfo[i].time;
+          if( pinfo[i].pathLength ) {
+            fData->primary_xAV[i]     = pinfo[i].startPoint.X();
+            fData->primary_yAV[i]     = pinfo[i].startPoint.Y();
+            fData->primary_zAV[i]     = pinfo[i].startPoint.Z();
+          }
+        }
+        
+        
         fData->part_trackID[i]         = pPart->TrackId();
         fData->part_pdg[i]             = pPart->PdgCode();
         fData->part_nDaughters[i]      = pPart->NumberDaughters();
@@ -1188,10 +1256,15 @@ void BlipAna::analyze(const art::Event& evt)
         fData->part_depEnergy[i]       = pinfo[i].depEnergy;
         fData->part_depElectrons[i]    = pinfo[i].depElectrons;
         fData->part_isPrimary[i]       = pinfo[i].isPrimary;
-        if( fDebugMode ) PrintParticleInfo(i);
+        if( fDebugMode ) {
+          if( printed < 200 && pPart->Process() != "muIoni" ) {
+            PrintParticleInfo(i);
+            printed++;
+          }
+        }
       }
     } // endloop over G4 particles
-   
+  
     if( fDebugMode ) std::cout<<"True total energy deposited: "<<total_depEnergy<<" MeV \n";
   
   }//endif particles found in event
@@ -1704,32 +1777,33 @@ void BlipAna::analyze(const art::Event& evt)
     num_clusts[clust.Plane]++;
     if( clust.isMatched ) num_clusts_pm[clust.Plane]++;
     if( !fSavePlaneInfo[clust.Plane] ) continue;
-    fData->clust_id[i]        = clust.ID;
-    fData->clust_tpc[i]       = clust.TPC;
-    fData->clust_plane[i]     = clust.Plane;
-    fData->clust_wire[i]        = clust.CenterWire;
-    fData->clust_startwire[i]   = clust.StartWire;
-    fData->clust_endwire[i]     = clust.EndWire;
-    fData->clust_nwires[i]      = clust.NWires;
-    fData->clust_bydeadwire[i]  = (clust.DeadWireSep==0);
-    fData->clust_nhits[i]       = clust.NHits;
-    fData->clust_pulsetrain[i] = (clust.NPulseTrainHits>0);
-    //fData->clust_time[i]      = clust.Time;
-    //fData->clust_charge[i]    = clust.Charge;
-    // Truncate precision to reduce file size after ROOT compression
-    // (we don't need to know these to the Nth decimal place)
-    fData->clust_charge[i]    = Truncate(clust.Charge,    10);
-    fData->clust_chargeErr[i] = Truncate(clust.SigmaCharge, 10);
-    fData->clust_amp[i]       = Truncate(clust.Amplitude, 0.01);
-    fData->clust_time[i]      = Truncate(clust.Time,      0.1);
-    fData->clust_timespan[i]  = Truncate(clust.Timespan,  0.01);
-    fData->clust_starttime[i] = Truncate(clust.StartTime, 0.1);
-    fData->clust_endtime[i]   = Truncate(clust.EndTime,   0.1);
-    fData->clust_ismatch[i]   = clust.isMatched;
-    fData->clust_blipid[i]    = clust.BlipID;
-    fData->clust_touchtrk[i]  = (clust.TouchTrkID >= 0 );
-    fData->clust_touchtrkid[i]= clust.TouchTrkID;
-      
+    if( i < kMaxClusts ) {
+      fData->clust_id[i]        = clust.ID;
+      fData->clust_tpc[i]       = clust.TPC;
+      fData->clust_plane[i]     = clust.Plane;
+      fData->clust_wire[i]        = clust.CenterWire;
+      fData->clust_startwire[i]   = clust.StartWire;
+      fData->clust_endwire[i]     = clust.EndWire;
+      fData->clust_nwires[i]      = clust.NWires;
+      fData->clust_bydeadwire[i]  = (clust.DeadWireSep==0);
+      fData->clust_nhits[i]       = clust.NHits;
+      fData->clust_pulsetrain[i] = (clust.NPulseTrainHits>0);
+      //fData->clust_time[i]      = clust.Time;
+      //fData->clust_charge[i]    = clust.Charge;
+      // Truncate precision to reduce file size after ROOT compression
+      // (we don't need to know these to the Nth decimal place)
+      fData->clust_charge[i]    = Truncate(clust.Charge,    10);
+      fData->clust_chargeErr[i] = Truncate(clust.SigmaCharge, 10);
+      fData->clust_amp[i]       = Truncate(clust.Amplitude, 0.01);
+      fData->clust_time[i]      = Truncate(clust.Time,      0.1);
+      fData->clust_timespan[i]  = Truncate(clust.Timespan,  0.01);
+      fData->clust_starttime[i] = Truncate(clust.StartTime, 0.1);
+      fData->clust_endtime[i]   = Truncate(clust.EndTime,   0.1);
+      fData->clust_ismatch[i]   = clust.isMatched;
+      fData->clust_blipid[i]    = clust.BlipID;
+      fData->clust_touchtrk[i]  = (clust.TouchTrkID >= 0 );
+      fData->clust_touchtrkid[i]= clust.TouchTrkID;
+    }
     // if this clust has an associated "trueblip" ID, find it
     // and figure out the true G4 charge, energy, etc
     int tbi = clust.EdepID;
@@ -1861,14 +1935,7 @@ void BlipAna::analyze(const art::Event& evt)
   }
   
   if( fDebugMode ) {
-    std::cout<<"\nLooping over "<<fBlipAlg->blips.size()<<" reco'd blips...\n";
-    for(auto const& b : fBlipAlg->blips ) {
-      PrintBlipInfo(b);
-      if( b.TouchTrkID >= 0 ) {
-        std::cout<<"!!! Blip touches track "<<b.TouchTrkID<<" at distance "<<b.ProxTrkDist<<" ("<<b.ProxTrkID<<")\n";
-        std::cout<<"    size "<<b.dX<<" x "<<b.dYZ<<" cm, uncertaintyYZ "<<b.SigmaYZ<<", Nplanes "<<b.NPlanes<<"\n";
-      }
-    }
+    for(auto const& b : fBlipAlg->blips ) PrintBlipInfo(b);
   }
  
   

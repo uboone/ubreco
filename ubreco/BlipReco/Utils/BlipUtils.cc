@@ -54,6 +54,10 @@ namespace BlipUtils {
 
     // Pathlength (in AV) and start/end point
     pinfo.pathLength  = PathLength( part, pinfo.startPoint, pinfo.endPoint);
+    if( pinfo.pathLength <= 0 ) {
+      pinfo.startPoint.SetXYZ(-9999,-9999,-9999);
+      pinfo.endPoint.SetXYZ(-9999,-9999,-9999);
+    }
 
     // Central position of trajectory
     pinfo.position    = 0.5*(pinfo.startPoint+pinfo.endPoint);
