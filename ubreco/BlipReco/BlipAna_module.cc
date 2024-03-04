@@ -74,7 +74,7 @@ const int kMaxHits    =  30000;
 const int kMaxClusts  =  5000; 
 const int kMaxTrks    =  1000;
 const int kMaxBlips   =  2000;
-const int kMaxG4      = 50000;
+const int kMaxG4      = 100000;
 const int kMaxEDeps   = 10000;
 const int kMaxTrkPts  =   2000;  
 
@@ -212,6 +212,7 @@ class BlipAnaTreeDataStruct
   int   ntrks;                    // number tracks
   int   trk_id[kMaxTrks];         // trackID
   int   trk_npts[kMaxTrks];       // number 3D trajectory points
+  bool  trk_isMC[kMaxTrks];       // 10% of track hits matched to MC
   float trk_length[kMaxTrks];     // track length [cm]
   float trk_startx[kMaxTrks];     // starting X coordinate
   float trk_starty[kMaxTrks];     // starting Y coordinate
@@ -282,8 +283,8 @@ class BlipAnaTreeDataStruct
   float   acptrk_theta_yz;
   float   acptrk_qratio_median;
   float   acptrk_qratio_mean;
-  float   acptrk_dEdx[kMaxTrkPts];
-  float   acptrk_tdrift[kMaxTrkPts];
+  //float   acptrk_dEdx[kMaxTrkPts];
+  //float   acptrk_tdrift[kMaxTrkPts];
 
   // === Function for resetting data ===
   void Clear(){ 
@@ -389,6 +390,7 @@ class BlipAnaTreeDataStruct
       FillWith(trk_id,      -999); 
       FillWith(trk_npts,    -999); 
       FillWith(trk_length,  -999);    
+      FillWith(trk_isMC,    false);      
       FillWith(trk_startx,  -999);    
       FillWith(trk_starty,  -999);    
       FillWith(trk_startz,  -999);    
@@ -498,6 +500,7 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("ntrks",&ntrks,"ntrks/I");
       evtTree->Branch("trk_id",trk_id,"trk_id[ntrks]/I");       
       evtTree->Branch("trk_length",trk_length,"trk_length[ntrks]/F");
+      evtTree->Branch("trk_isMC",trk_isMC,"trk_isMC[ntrks]/O");
       evtTree->Branch("trk_startx",trk_startx,"trk_startx[ntrks]/F");
       evtTree->Branch("trk_starty",trk_starty,"trk_starty[ntrks]/F");
       evtTree->Branch("trk_startz",trk_startz,"trk_startz[ntrks]/F");
@@ -639,8 +642,8 @@ class BlipAnaTreeDataStruct
       calibTree->Branch("acptrk_qratio_median",&acptrk_qratio_median,"acptrk_qratio_median/F");
       calibTree->Branch("acptrk_qratio_mean",&acptrk_qratio_mean,"acptrk_qratio_mean/F");
       calibTree->Branch("acptrk_npts",&acptrk_npts,"acptrk_npts/I");
-      calibTree->Branch("acptrk_dEdx",&acptrk_dEdx,"acptrk_dEdx[acptrk_npts]/F");
-      calibTree->Branch("acptrk_tdrift",&acptrk_tdrift,"acptrk_tdrift[acptrk_npts]/F");
+      //calibTree->Branch("acptrk_dEdx",&acptrk_dEdx,"acptrk_dEdx[acptrk_npts]/F");
+      //calibTree->Branch("acptrk_tdrift",&acptrk_tdrift,"acptrk_tdrift[acptrk_npts]/F");
   }
   
 
@@ -1165,8 +1168,6 @@ void BlipAna::analyze(const art::Event& evt)
   if (evt.getByLabel(fTrkProducer,tracklistHandle))
     art::fill_ptr_vector(tracklist, tracklistHandle);
  
-  // pandoracalo = no corrections; pandoracali = YZ corrections
-  art::FindManyP<anab::Calorimetry> fmcal(tracklistHandle, evt, "pandoracali");
  
   // Resize data struct objects
   fData->nhits      = (int)hitlist.size();
@@ -1374,54 +1375,85 @@ void BlipAna::analyze(const art::Event& evt)
     fData->trk_endz[i]  = endPt.Z();
     fData->trk_startd[i]= BlipUtils::DistToBoundary(startPt);
     fData->trk_endd[i]  = BlipUtils::DistToBoundary(endPt);
-    float dX      = fabs(startPt.X() - endPt.X());
-    float dY      = fabs(startPt.Y() - endPt.Y());
-    float dZ      = fabs(startPt.Z() - endPt.Z());
     h_trk_length  ->Fill(trk->Length());
-    h_trk_xspan   ->Fill( dX );
-    
+    h_trk_xspan   ->Fill( fabs(startPt.X() - endPt.X()) );
     map_trkid_length[trk->ID()] = trk->Length();
     map_trkid_isMIP[trk->ID()]  = (trk->Length()>100) ? true : false;
-
     // count the number of non-blippy tracks to use
     // as a metric for cosmic activity in event
     if( trk->Length() > 5 ) fData->longtrks++;
-   
+  }
+  
+  for(size_t i=0; i<tracklist.size(); i++){
+   fData->trk_isMC[i] = fBlipAlg->map_trkid_isMC[ map_trkid_index[i]];
+  }
 
-    //================================================ 
-    // In-house lifetime calibration using anode-to-
-    // cathode-piercing (ACP) tracks. 
-    //================================================
-    if( fDoACPTrkCalib && dX > 250 && dX < 270 && fmcal.isValid() ) {
 
-      // Make sure this isn't just a really long wiggly track
-      //   1 = impossibly wiggly
-      //   0 = perfectly straight
-      float diff = sqrt( pow(dX,2) + pow(dY,2) + pow(dZ,2) );
-      float wigglyness = 1.-diff/trk->Length();
+    
 
-      // select only good angles (exclude 90 degree +/- 5 deg)
-      float theta_xz = 180*atan(dX/dZ)/3.14159;
-      float theta_yz = 180*atan(dY/dZ)/3.14159;
-      h_ACPtrk_theta_xz->Fill(theta_xz);
-      h_ACPtrk_theta_yz->Fill(theta_yz);
-      
-      if( theta_xz < 80 && wigglyness < 0.01 ) {
+  //================================================ 
+  // In-house lifetime calibration using anode-to-
+  // cathode-piercing (ACP) tracks. 
+  //================================================
+  if( fDoACPTrkCalib ) {
+    
+    // retrieve track calo data product
+    // - pandoracalo = no corrections; 
+    // - pandoracali = YZ transparency corrections only
+    art::FindManyP<anab::Calorimetry> fmcal(tracklistHandle, evt, "pandoracali");
+    if( fmcal.isValid() ) {
+
+      // set the required 'dX' that would indicate a
+      // track crossed the full drift distance
+      float dx_min = 250;
+      float dx_max = 270;
+  
+      //================================================
+      // loop over the tracklist 
+      //================================================
+      for(size_t i=0; i<tracklist.size(); i++){
+        auto& trk = tracklist[i];
+        auto& startPt = trk->Vertex();
+        auto& endPt   = trk->End();
+        float dX      = fabs(startPt.X() - endPt.X());
+        float dY      = fabs(startPt.Y() - endPt.Y());
+        float dZ      = fabs(startPt.Z() - endPt.Z());
         
+        // skip tracks that don't look like anode-cathode-piercing
+        if( dX < dx_min || dX > dx_max ) continue;
+        
+        // select only good angles (exclude 90 degree +/- 5 deg)
+        float theta_xz = 180*atan(dX/dZ)/3.14159;
+        float theta_yz = 180*atan(dY/dZ)/3.14159;
+        h_ACPtrk_theta_xz->Fill(theta_xz);
+        h_ACPtrk_theta_yz->Fill(theta_yz);
+        if( theta_xz > 80 ) continue;
+      
+        // Make sure this isn't just a really long wiggly track
+        //   1 = impossibly wiggly
+        //   0 = perfectly straight
+        float diff = sqrt( pow(dX,2) + pow(dY,2) + pow(dZ,2) );
+        float wigglyness = 1.-diff/trk->Length();
+        if(wigglyness > 0.01 ) continue;
+
+        //==============================================
         // loop the calo objects and find the one for collection plane
+        // also require at least 100 dE/dx points
+        //==============================================
         std::vector<art::Ptr<anab::Calorimetry> > caloObjs = fmcal.at(i);
         for(auto& caloObj : caloObjs ) {
           if( caloObj->PlaneID().Plane != 2 )       continue;
           if( caloObj->dEdx().size() < 100 )        continue;
-          if( caloObj->dEdx().size() > kMaxTrkPts ) continue;
           size_t Npts = caloObj->dEdx().size();
 
-          // X-offset
+          // Calculate the X-coordinate offset that we'll use to shift
+          // the track so that its start/end correspond to anode and cathode
+          //  - in MicroBooNE, X starts at 0 and increases toward cathode,
+          //    so we take the MIN of the two track endpoints as 0
           float X0 = std::min( startPt.X(), endPt.X() );
          
-          // ***********************************************
-          // First, apply SCE spatial corrections so we can
-          // scale dQdx appropriately based on the track distortion
+          // First, apply SCE spatial corrections at every 
+          // 3D point along the track...
           std::vector<geo::Point_t> vec_XYZ_orig;
           std::vector<geo::Point_t> vec_XYZ_corr;
           for(size_t j=0; j<Npts; j++){
@@ -1432,6 +1464,8 @@ void BlipAna::analyze(const art::Event& evt)
             vec_XYZ_corr.push_back( point );
           }
           
+          // record the "dx correction factor" applied at each
+          // trajectory point along the track
           std::vector<float> dx_corr_factor( Npts, 1. );
           for(size_t j=1; j<Npts-1; j++){
             float ds_prev = sqrt( ( vec_XYZ_orig[j-1] - vec_XYZ_orig[j+1] ).Mag2() );
@@ -1440,14 +1474,15 @@ void BlipAna::analyze(const art::Event& evt)
             dx_corr_factor[j] = corr_factor;
           }
           
-          // ******************************
+          // ------------------------------------
           // loop over track points
+          // ------------------------------------
           size_t nSavedPts = 0;
-          FillWith(fData->acptrk_dEdx,   0);
-          FillWith(fData->acptrk_tdrift, 0);
+          //FillWith(fData->acptrk_dEdx,   0);
+          //FillWith(fData->acptrk_tdrift, 0);
           std::vector<float> vec_dEdx_near;
           std::vector<float> vec_dEdx_far;
-
+          
           for(size_t j=1; j<Npts-1; j++){
             
             // make sure there are neighboring wires
@@ -1477,8 +1512,8 @@ void BlipAna::analyze(const art::Event& evt)
             // Save this point!
             nSavedPts++;
             
-            fData         ->acptrk_dEdx[nSavedPts-1]   = dEdx;
-            fData         ->acptrk_tdrift[nSavedPts-1] = tdrift;
+            //fData         ->acptrk_dEdx[nSavedPts-1]   = dEdx;
+            //fData         ->acptrk_tdrift[nSavedPts-1] = tdrift;
             h_ACPtrk_yz   ->Fill( point.Z(), point.Y() );
             h_ACPtrk_dEdx ->Fill(dEdx);
           
@@ -1517,11 +1552,11 @@ void BlipAna::analyze(const art::Event& evt)
         
         }//endloop on calo objs
 
-      }//end cut on angle
+      }//end tracklist loop
         
-    }//if track is ACP
+    }//endIF calo objects are valid
         
-  }//endloop over trks
+  }//endIF do ACPTrkCalib
 
   // DONE with ACP track lifetime calibrations
   

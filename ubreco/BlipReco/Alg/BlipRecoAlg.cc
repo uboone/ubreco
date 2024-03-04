@@ -417,7 +417,8 @@ namespace blip {
     //=======================================
     //std::cout<<"Looping over tracks...\n";
     std::map<size_t,size_t> map_trkid_index;
-    std::map<size_t,size_t> map_trkid_isMC;
+    //std::map<size_t,size_t> map_trkid_isMC;
+    map_trkid_isMC.clear();
     std::map<size_t,size_t> map_trkid_nhits;
     std::map<size_t,size_t> map_trkid_nhitsMC;
     for(size_t i=0; i<tracklist.size(); i++){ 

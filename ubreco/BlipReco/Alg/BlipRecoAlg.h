@@ -97,6 +97,8 @@ namespace blip {
     std::vector<bool>   fBadChanMaskPerEvt;
     int                 EvtBadChanCount;
     
+    std::map<size_t,size_t> map_trkid_isMC;
+    
     TH1D*   h_recoWireEff_denom;
     TH1D*   h_recoWireEff_num;
     
