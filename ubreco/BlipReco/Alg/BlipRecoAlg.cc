@@ -68,6 +68,7 @@ namespace blip {
     h_hit_chanstatus     ->GetXaxis()->SetBinLabel(5, "good");
     */
 
+    h_trkhits_mcfrac  = hdir.make<TH1D>("trkhits_mcfrac","Fraction of track hits matched to MC",101,0,1.01);
     h_chan_nhits      = hdir.make<TH1D>("chan_nhits","Untracked hits;TPC readout channel;Total hits",8256,0,8256);
     h_chan_nclusts    = hdir.make<TH1D>("chan_nclusts","Untracked isolated hits;TPC readout channel;Total clusts",8256,0,8256);
     h_chan_bad        = hdir.make<TH1D>("chan_bad","Channels marked as bad;TPC readout channel",8256,0,8256);
@@ -416,9 +417,9 @@ namespace blip {
     // Map track IDs to the index in the vector
     //=======================================
     //std::cout<<"Looping over tracks...\n";
-    std::map<size_t,size_t> map_trkid_index;
     //std::map<size_t,size_t> map_trkid_isMC;
     map_trkid_isMC.clear();
+    map_trkid_index.clear();
     std::map<size_t,size_t> map_trkid_nhits;
     std::map<size_t,size_t> map_trkid_nhitsMC;
     for(size_t i=0; i<tracklist.size(); i++){ 
@@ -528,9 +529,8 @@ namespace blip {
       // energy deposit, then keep the tally
       if( hitinfo[i].trkid > 0 ) {
         map_trkid_nhits[hitinfo[i].trkid]++;
-        if( hitinfo[i].g4energy > 0 ) {
+        if( hitinfo[i].g4energy > 0 ) 
           map_trkid_nhitsMC[hitinfo[i].trkid]++;
-        }
       }
 
       // add to the map
@@ -545,13 +545,20 @@ namespace blip {
     // were matched to truth depositions
     //===============================================================
     for(auto mtrk : map_trkid_index ){
-      //std::cout<<"TrackID "<<mtrk.first<<" has index "<<mtrk.second<<"\n";
-      float mcfrac = float(map_trkid_nhitsMC[mtrk.first])/map_trkid_nhits[mtrk.first];
-      //std::cout<<"  MC frac = "<<mcfrac<<"\n";
-      if( mcfrac > 0.10 ) map_trkid_isMC[mtrk.first] = true;
+      //std::cout<<"TrackID "<<mtrk.first<<" has index "<<mtrk.second<<" and length "<<tracklist[mtrk.second]->Length()<<"\n";
+      int nhitstrk = map_trkid_nhits[mtrk.first];
+      int nhitstrkmc = map_trkid_nhitsMC[mtrk.first];
+      float mcfrac = float(nhitstrkmc)/nhitstrk;
+
+      //std::cout<<"  nhits: "<<nhitstrk<<", mcfrac = "<< mcfrac<<"\n";
+      if( nhitstrk > 0 ) {
+        h_trkhits_mcfrac->Fill(mcfrac);
+        // Classify a track as "MC" if >50% of its hits
+        // are matched to MC particle
+        if( mcfrac > 0.50 ) map_trkid_isMC[mtrk.first] = true;
+      }
     }
    
-    //std::cout<<"New event\n";
     //for(auto mtrk : map_trkid_index ){
       //std::cout<<"  Track ID "<<mtrk.first<<", L = "<<tracklist[mtrk.second]->Length()<<", isMC "<<map_trkid_isMC[mtrk.first]<<"\n";
     //}

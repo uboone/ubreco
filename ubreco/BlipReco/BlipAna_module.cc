@@ -768,6 +768,8 @@ class BlipAna : public art::EDAnalyzer
   
   TH1D*   h_trk_length;
   TH1D*   h_trk_xspan;
+  TH1D*   h_trk_yspan;
+  TH1D*   h_trks_100cm[2];
   TH1D*   h_nblips;
   TH1D*   h_nblips_picky;
   TH2D*   h_blip_zy;
@@ -817,8 +819,12 @@ class BlipAna : public art::EDAnalyzer
       
     art::TFileDirectory dir_diag = tfs->mkdir("Diagnostics");
     
-    h_trk_length    = dir_diag.make<TH1D>("trk_length",";Track length [cm]",1000,0,500);
+    h_trk_length    = dir_diag.make<TH1D>("trk_length",";Track length [cm];Tracks per event per bin",500,0,500);
     h_trk_xspan     = dir_diag.make<TH1D>("trk_xspan",";Track dX [cm]",300,0,300);
+    h_trk_yspan     = dir_diag.make<TH1D>("trk_yspan",";Track dY [cm]",300,0,300);
+    h_trks_100cm[0]   = dir_diag.make<TH1D>("trks_100cm_data","Track length > 100 cm (data);Number of tracks per evd;Fraction of total per bin",50,0,50);
+    h_trks_100cm[1]   = dir_diag.make<TH1D>("trks_100cm_mc",  "Track length > 100 cm (mc);Number of tracks per evd;Fraction of total per bin",50,0,50);
+    
 
     if( fDoACPTrkCalib ) {
       h_ACPtrk_theta_xz   = dir_diag.make<TH1D>("trk_theta_xz","theta_xz",90,0,90);
@@ -1355,15 +1361,16 @@ void BlipAna::analyze(const art::Event& evt)
   // Save track information
   //====================================
   //std::cout<<"Looping over tracks...\n";
-  std::map<int,int> map_trkid_index;
   std::map<int,bool> map_trkid_isMIP;
   std::map<int,float> map_trkid_length;
+  int trks_100cm[2] = {0, 0};
   fData->longtrks=0;
   for(size_t i=0; i<tracklist.size(); i++){
     auto& trk = tracklist[i];
     const auto& startPt = trk->Vertex();
     const auto& endPt   = trk->End();
-    map_trkid_index[trk->ID()] = i;
+    bool isMC = fBlipAlg->map_trkid_isMC[trk->ID()];
+    fData->trk_isMC[i]  = isMC;
     fData->trk_id[i]    = trk->ID();
     fData->trk_npts[i]  = trk->NumberTrajectoryPoints();
     fData->trk_length[i]= trk->Length();
@@ -1376,18 +1383,29 @@ void BlipAna::analyze(const art::Event& evt)
     fData->trk_startd[i]= BlipUtils::DistToBoundary(startPt);
     fData->trk_endd[i]  = BlipUtils::DistToBoundary(endPt);
     h_trk_length  ->Fill(trk->Length());
-    h_trk_xspan   ->Fill( fabs(startPt.X() - endPt.X()) );
+    float dX = fabs(startPt.X() - endPt.X());
+    float dY = fabs(startPt.Y() - endPt.Y());
+    h_trk_xspan   ->Fill( dX );
+    h_trk_yspan   ->Fill( dY );
     map_trkid_length[trk->ID()] = trk->Length();
     map_trkid_isMIP[trk->ID()]  = (trk->Length()>100) ? true : false;
     // count the number of non-blippy tracks to use
     // as a metric for cosmic activity in event
     if( trk->Length() > 5 ) fData->longtrks++;
+    
+    if( trk->Length() > 100 ) trks_100cm[(int)isMC]++;
+    // TODO:
+    // identify "cosmic"-looking tracks that pierce
+    // the top of the TPC ceiling at Y = + 117cm
+    //float ytop = 117;
+    //bool isStartAtBnd = ( fabs(startPt.Y()-ytop) < 2. );
+    //bool isEndAtTop   = ( fabs(endPt.Y()  -ytop) < 2. );
+    //if( (isStartAtTop || isEndAtTop) && dY > 20. ) {
+    //}
   }
   
-  for(size_t i=0; i<tracklist.size(); i++){
-   fData->trk_isMC[i] = fBlipAlg->map_trkid_isMC[ map_trkid_index[i]];
-  }
-
+  h_trks_100cm[0]->Fill(trks_100cm[0]);
+  h_trks_100cm[1]->Fill(trks_100cm[1]);
 
     
 
@@ -1995,10 +2013,18 @@ void BlipAna::endJob(){
   fBlipAlg->h_recoWireEffQ_num->SetOption("hist");
   fBlipAlg->h_recoWireEffQ_num->SetBit(TH1::kIsAverage);
 
-  float nEvents = float(fNumEvents);
+  float nEvents   =  float(fNumEvents);
+  float scalefac  = 1/nEvents;
 
-  h_trk_length->Scale(1./nEvents);
-  h_trk_xspan->Scale(1./nEvents);
+  h_trk_length->Scale(scalefac);
+  h_trk_xspan->Scale(scalefac);
+  h_trks_100cm[0]->Scale(scalefac);
+  h_trks_100cm[1]->Scale(scalefac);
+  
+  h_trk_length->SetOption("hist");
+  h_trk_xspan->SetOption("hist");
+  h_trks_100cm[0]->SetOption("hist");
+  h_trks_100cm[1]->SetOption("hist");
 
   BlipUtils::NormalizeHist(h_clust_qres_anode);
   BlipUtils::NormalizeHist(h_clust_qres_dep);
