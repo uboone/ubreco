@@ -182,6 +182,7 @@ namespace blip {
     fModBoxB            = pset.get<float>         ("ModBoxB",             0.212);
     
     fVetoBadChannels    = pset.get<bool>          ("VetoBadChannels",     true);
+    fVetoNoisyChannels  = pset.get<bool>          ("VetoNoisyChannels",   false);
     fBadChanProducer    = pset.get<std::string>   ("BadChanProducer",     "nfspl1:badchannels");
     fBadChanFile        = pset.get<std::string>   ("BadChanFile",         "");
     fMinDeadWireGap     = pset.get<int>           ("MinDeadWireGap",      1);
@@ -343,7 +344,8 @@ namespace blip {
     //=====================================================
     std::map<int,int> map_g4trkid_pdg;
     for(size_t i = 0; i<plist.size(); i++) map_g4trkid_pdg[plist[i]->TrackId()] = plist[i]->PdgCode();
-  
+ 
+    std::map<int, std::set<int>>         map_g4trkid_chan;
     std::map<int, std::map<int,double> > map_g4trkid_chan_energy;
     std::map<int, std::map<int,double> > map_g4trkid_chan_charge;
 
@@ -354,12 +356,18 @@ namespace blip {
     //======================================================
     std::map<int,double> map_g4trkid_charge;
     for(auto const &chan : simchanlist ) {
-      if( geom->View(chan->Channel()) != geo::kW ) continue;
+      int pl = (int)geom->View(chan->Channel());
+      //std::cout<<"Channel: "<<chan->Channel()<<", plane "<<pl<<": "<<chanFilt.IsPresent(chan->Channel())<<"   "<<chanFilt.IsBad(chan->Channel())<<"    "<<chanFilt.IsNoisy(chan->Channel())<<"\n";
+      //if( geom->View(chan->Channel()) != geo::kW ) continue;
       //std::map<int,double> map_g4trkid_perWireEnergyDep;
       for(auto const& tdcide : chan->TDCIDEMap() ) {
         for(auto const& ide : tdcide.second) {
           if( ide.trackID < 0 ) continue;
           double ne = ide.numElectrons;
+          
+          map_g4trkid_chan[ide.trackID].insert(chan->Channel());
+
+          if( pl != fCaloPlane ) continue;
           
           // ####################################################
           // ###         behavior as of Nov 2022              ###
@@ -412,6 +420,17 @@ namespace blip {
       BlipUtils::MergeTrueBlips(trueblips, fTrueBlipMergeDist);
     }
 
+    for(size_t i=0; i<trueblips.size(); i++){
+      int g4id = trueblips[i].LeadG4ID;
+      // loop over the channels and look for bad
+      for(auto ch : map_g4trkid_chan[g4id] ) {
+        if( chanFilt.IsBad(ch) ) {
+          trueblips[i].AllChansGood = false;
+          break;
+        }
+      }
+    }
+
 
     //=======================================
     // Map track IDs to the index in the vector
@@ -457,6 +476,7 @@ namespace blip {
       hitinfo[i].peakTime     = thisHit->PeakTime();
       hitinfo[i].driftTime    = thisHit->PeakTime() - detProp->GetXTicksOffset(plane,0,0); // - fTimeOffsets[plane];
       hitinfo[i].gof          = thisHit->GoodnessOfFit() / thisHit->DegreesOfFreedom();
+      if( thisHit->DegreesOfFreedom() ) hitinfo[i].gof = -9;
     
       //std::cout<<"XTicks offset plane "<<plane<<<<": "<<detProp->GetXTicksOffset(plane,0,0)<<"\n";
       //h_hit_chanstatus->Fill( chanFilt.Status(chan) );
@@ -602,8 +622,8 @@ namespace blip {
         hitIsBad[i] = true;
         auto& hit = hitlist[i];
         int plane = hit->WireID().Plane;
-        if( hitinfo[i].gof        <= fMinHitGOF[plane] ) continue;
-        if( hitinfo[i].gof        >= fMaxHitGOF[plane] ) continue;
+        if( hitinfo[i].gof  <= fMinHitGOF[plane] && fMinHitGOF[plane] > 0) continue;
+        if( hitinfo[i].gof  >= fMaxHitGOF[plane] && fMaxHitGOF[plane] > 0) continue;
         if( hit->RMS()            <= fMinHitRMS[plane] ) continue;
         if( hit->RMS()            >= fMaxHitRMS[plane] ) continue;
         if( hit->PeakAmplitude()  <= fMinHitAmp[plane] ) continue;
@@ -705,17 +725,19 @@ namespace blip {
         if( hc.Charge < fMinClusterCharge )   continue;
         if( hc.Charge > fMaxClusterCharge )   continue;
        
-        // Exclude cluster if it is *entirely* on bad channels
-        if( fVetoBadChannels ) {
-          int nbadchanhits = 0;
-          for(auto const& hitID : hc.HitIDs ) {
-            int chan = hitinfo[hitID].chan;
-            if( chanFilt.Status(chan) < 4 ||
-              fBadChanMaskPerEvt[chan] ) nbadchanhits++;
-          }
-          if( nbadchanhits == hc.NHits ) continue;
+        // Exclude cluster if it is *entirely* on bad or noisy chans
+        hc.NWiresNoisy  = 0;
+        hc.NWiresBad    = 0;
+        //for(auto const& hitID : hc.HitIDs ) {
+        for(auto const& chan : hc.Chans ) {
+          bool isBad  = ( chanFilt.IsBad(chan) || fBadChanMaskPerEvt[chan] );
+          bool isNoisy= chanFilt.IsNoisy(chan);
+          if( isBad   ) hc.NWiresBad++;
+          if( isNoisy ) hc.NWiresNoisy++;
         }
-        
+        if( fVetoBadChannels    && hc.NWiresBad   == hc.NWires ) continue;
+        if( fVetoNoisyChannels  && hc.NWiresNoisy == hc.NWires ) continue;
+
         // measure wire separation to nearest dead region
         // (0 = directly adjacent)
         for(size_t dw=1; dw<=5; dw++){

@@ -58,8 +58,10 @@ namespace blip {
     int       LeadG4PDG     = -9;     // lead G4 PDG
     float     LeadCharge    = -9;     // lead G4 charge dep
     TVector3  Position;               // XYZ position
+    bool      AllChansGood  = true;    
     mif_t     G4ChargeMap;          
     mif_t     G4PDGMap;
+    si_t      Chans;
   };
 
   struct HitInfo {
@@ -104,6 +106,8 @@ namespace blip {
     int     Plane           = -9;
     int     NHits           = -9;
     int     NWires          = -9;
+    int     NWiresNoisy     = -9;
+    int     NWiresBad     = -9;
     float   ADCs            = -999;
     float   Amplitude       = -999;
     float   Charge          = -999;

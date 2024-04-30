@@ -93,6 +93,8 @@ class BlipAnaTreeDataStruct
   // --- Configurations and switches ---
   std::string treeName      = "anatree";
   bool  saveTruthInfo       = true;
+  bool  saveTrueEDeps       = true;
+  bool  saveTrueParticles   = false;
   bool  saveTrkInfo         = true;
   bool  saveHitInfo         = true;
   bool  saveClustInfo       = true;
@@ -159,6 +161,7 @@ class BlipAnaTreeDataStruct
   int   edep_tpc[kMaxEDeps];      // TPC
   int   edep_g4id[kMaxEDeps];     // leading G4 index ("part_variable[g4id]")
   int   edep_g4trkid[kMaxEDeps];  // leading G4 track ID ("part_trackID")
+  bool  edep_allchansgood[kMaxEDeps]; // charge hits all good channels
   float edep_g4qfrac[kMaxEDeps];  // fraction of total charge from lead particle
   bool  edep_isPrimary[kMaxEDeps];// matched to a primary generated particle?
   int   edep_pdg[kMaxEDeps];      // leading G4 track PDG
@@ -232,6 +235,8 @@ class BlipAnaTreeDataStruct
   int   clust_startwire[kMaxClusts];    // starting wire
   int   clust_endwire[kMaxClusts];      // ending wire
   int   clust_nwires[kMaxClusts];       // number of wires in this cluster
+  int   clust_nwiresNoisy[kMaxClusts];
+  int   clust_nwiresBad[kMaxClusts];
   //int   clust_deadwiresep[kMaxClusts];  // separation from nearest dead region (0=adjacent)
   bool  clust_bydeadwire[kMaxClusts];     // is cluster adjacent to a dead wire
   //int   clust_nticks[kMaxClusts];       // timespan in ticks
@@ -296,7 +301,8 @@ class BlipAnaTreeDataStruct
     longtrks              = -99;
     timestamp             = -999;
     //timestamp_hr          = -999;
-    
+   
+    /*
     nprimaries            = 0;    // --- G4 primaries ---
     FillWith(primary_trackID, -999);
     FillWith(primary_pdg, -99999);
@@ -310,7 +316,8 @@ class BlipAnaTreeDataStruct
     FillWith(primary_xAV,  -999.);
     FillWith(primary_yAV,  -999.);
     FillWith(primary_zAV,  -999.);
-    
+    */
+
     nparticles            = 0;    // --- G4 particles ---
     FillWith(part_isPrimary,   false);
     //FillWith(part_madeHitCol,        false);
@@ -352,6 +359,7 @@ class BlipAnaTreeDataStruct
     FillWith(edep_z,      -99999.);
     FillWith(edep_dx,      -99999.);
     FillWith(edep_dz,      -99999.);
+    FillWith(edep_allchansgood,  true);
     FillWith(edep_g4trkid,  -9);
     FillWith(edep_g4id,     -9);
     FillWith(edep_g4qfrac,  -9);
@@ -405,6 +413,8 @@ class BlipAnaTreeDataStruct
     FillWith(clust_tpc,       -9);
     FillWith(clust_plane,     -9);
     FillWith(clust_nwires,    -9);
+    FillWith(clust_nwiresNoisy,    -9);
+    FillWith(clust_nwiresBad,    -9);
     FillWith(clust_bydeadwire, false);
     FillWith(clust_nhits,     -9);
     FillWith(clust_wire,      -9);
@@ -444,8 +454,9 @@ class BlipAnaTreeDataStruct
     FillWith(blip_touchtrkid,  -9);
     FillWith(blip_incylinder, false);
     FillWith(blip_edepid,     -9);
-    for(int i=0; i<kNplanes; i++) 
+    for(int i=0; i<kNplanes; i++){ 
       FillWith(blip_clustid[i],-9);
+    }
   }
 
   // === Function for resizing vectors (if necessary) ===
@@ -516,6 +527,7 @@ class BlipAnaTreeDataStruct
       //evtTree->Branch("clust_wire",     clust_wire,     "clust_wire[nclusts]/I");
       evtTree->Branch("clust_nhits",    clust_nhits,    "clust_nhits[nclusts]/I");
       evtTree->Branch("clust_nwires",   clust_nwires,   "clust_nwires[nclusts]/I");
+      evtTree->Branch("clust_nwiresNoisy",   clust_nwiresNoisy,   "clust_nwiresNoisy[nclusts]/I");
       //evtTree->Branch("clust_nticks",   clust_nticks,   "clust_nticks[nclusts]/I");
       evtTree->Branch("clust_startwire",clust_startwire,"clust_startwire[nclusts]/I");
       evtTree->Branch("clust_endwire",  clust_endwire,  "clust_endwire[nclusts]/I");
@@ -536,7 +548,7 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("clust_touchtrk",  clust_touchtrk,  "clust_touchtrk[nclusts]/O");
       if( saveTrkInfo ) evtTree->Branch("clust_touchtrkid",  clust_touchtrkid,  "clust_touchtrkid[nclusts]/I");
       evtTree->Branch("clust_blipid",   clust_blipid,   "clust_blipid[nclusts]/I");
-      if( saveTruthInfo ) evtTree->Branch("clust_edepid",   clust_edepid,   "clust_edepid[nclusts]/I");
+      if( saveTrueEDeps ) evtTree->Branch("clust_edepid",   clust_edepid,   "clust_edepid[nclusts]/I");
     }
 
     evtTree->Branch("nblips",&nblips,"nblips/I");
@@ -559,11 +571,12 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("blip_proxtrkid",blip_proxtrkid,"blip_proxtrkid[nblips]/I");
       evtTree->Branch("blip_touchtrkid",blip_touchtrkid,"blip_touchtrkid[nblips]/I");
     }
-    if( saveTruthInfo ) evtTree->Branch("blip_edepid",blip_edepid,"blip_edepid[nblips]/I");
+    if( saveTrueEDeps ) evtTree->Branch("blip_edepid",blip_edepid,"blip_edepid[nblips]/I");
     for(int i=0;i<kNplanes;i++) evtTree->Branch(Form("blip_pl%i_clustid",i),blip_clustid[i],Form("blip_pl%i_clustid[nblips]/I",i));
     
     
     if( saveTruthInfo ) {
+      /*
       evtTree->Branch("nprimaries",&nprimaries,"nprimaries/I");
       evtTree->Branch("primary_trackID",primary_trackID,"primary_trackID[nprimaries]/I");
       evtTree->Branch("primary_pdg",primary_pdg,"primary_pdg[nprimaries]/I");
@@ -577,7 +590,9 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("primary_yAV",primary_yAV,"primary_yAV[nprimaries]/F");
       evtTree->Branch("primary_zAV",primary_zAV,"primary_zAV[nprimaries]/F");
       evtTree->Branch("primary_T0",primary_T0,"primary_T0[nprimaries]/F");
+      */
       
+      if( saveTrueParticles ) {
       evtTree->Branch("nparticles",&nparticles,"nparticles/I");
       evtTree->Branch("part_isPrimary",part_isPrimary,"part_isPrimary[nparticles]/O");
       //evtTree->Branch("part_madeHitCol",part_madeHitCol,"part_madeHitCol[nparticles]/O");
@@ -606,12 +621,15 @@ class BlipAnaTreeDataStruct
       //evtTree->Branch("part_depElectrons",part_depElectrons,"part_depElectrons[nparticles]/I");
       //evtTree->Branch("part_numElectrons",part_numElectrons,"part_numElectrons[nparticles]/F");
       evtTree->Branch("part_process",&part_process);
+      }
       
+      if( saveTrueEDeps ) {
       evtTree->Branch("nedeps",&nedeps,"nedeps/I");
       evtTree->Branch("edep_g4id",edep_g4id,"edep_g4id[nedeps]/I"); 
       evtTree->Branch("edep_g4trkid",edep_g4trkid,"edep_g4trkid[nedeps]/I"); 
       evtTree->Branch("edep_g4qfrac",edep_g4qfrac,"edep_g4qfrac[nedeps]/F"); 
       evtTree->Branch("edep_isPrimary",edep_isPrimary,"edep_isPrimary[nedeps]/O"); 
+      evtTree->Branch("edep_allchansgood",edep_allchansgood,"edep_allchansgood[nedeps]/O"); 
       //evtTree->Branch("edep_madeHitCol",edep_madeHitCol,"edep_madeHitCol[nedeps]/O"); 
       evtTree->Branch("edep_madeClustCol",edep_madeClustCol,"edep_madeClustCol[nedeps]/O"); 
       evtTree->Branch("edep_pdg",edep_pdg,"edep_pdg[nedeps]/I"); 
@@ -627,6 +645,7 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("edep_z",edep_z,"edep_z[nedeps]/F"); 
       evtTree->Branch("edep_dx",edep_dx,"edep_dx[nedeps]/F"); 
       evtTree->Branch("edep_dz",edep_dz,"edep_dz[nedeps]/F"); 
+      }
     }
   }
 
@@ -1014,6 +1033,8 @@ BlipAna::BlipAna(fhicl::ParameterSet const& pset) :
   fData = new BlipAnaTreeDataStruct();
   fData ->treeName        = pset.get<std::string> ("EventTreeName", "anatree");
   fData ->saveTruthInfo   = pset.get<bool>        ("SaveTruthInfo", true);
+  fData ->saveTrueParticles = pset.get<bool>      ("SaveTrueParticles", true);
+  fData ->saveTrueEDeps = pset.get<bool>          ("SaveTrueEDeps", true);
   fData ->saveTrkInfo     = pset.get<bool>        ("SaveTrkInfo",   true);
   fData ->saveHitInfo     = pset.get<bool>        ("SaveHitInfo",   true);
   fData ->saveClustInfo   = pset.get<bool>        ("SaveClustInfo", true);
@@ -1216,7 +1237,8 @@ void BlipAna::analyze(const art::Event& evt)
       
       // Save to TTree object
       if(i<kMaxG4){
-        
+       
+        /*
         if(pinfo[i].isPrimary){
           fData->nprimaries++;
           fData->primary_trackID[i] = pPart->TrackId();
@@ -1234,8 +1256,9 @@ void BlipAna::analyze(const art::Event& evt)
             fData->primary_zAV[i]     = pinfo[i].startPoint.Z();
           }
         }
+        */
         
-        
+
         fData->part_trackID[i]         = pPart->TrackId();
         fData->part_pdg[i]             = pPart->PdgCode();
         fData->part_nDaughters[i]      = pPart->NumberDaughters();
@@ -1303,6 +1326,7 @@ void BlipAna::analyze(const art::Event& evt)
       fData->edep_isPrimary[i]= (pPart->Process() == "primary");
       fData->edep_dz[i]       = fabs(pPart->EndPosition()[2]-pPart->Vz());
       fData->edep_dx[i]       = fabs(pPart->EndPosition()[0]-pPart->Vx());
+      fData->edep_allchansgood[i] = trueblip.AllChansGood; 
 
       int proc_code = -9;
       std::string proc = fData->part_process[ig4];
@@ -1838,6 +1862,7 @@ void BlipAna::analyze(const art::Event& evt)
       fData->clust_startwire[i]   = clust.StartWire;
       fData->clust_endwire[i]     = clust.EndWire;
       fData->clust_nwires[i]      = clust.NWires;
+      fData->clust_nwiresNoisy[i] = clust.NWiresNoisy;
       fData->clust_bydeadwire[i]  = (clust.DeadWireSep==0);
       fData->clust_nhits[i]       = clust.NHits;
       fData->clust_pulsetrain[i] = (clust.NPulseTrainHits>0);

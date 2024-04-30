@@ -511,6 +511,10 @@ namespace BlipUtils {
     return CalcOverlap(hc1.StartTime,hc1.EndTime,hc2.StartTime,hc2.EndTime);
   }
 
+  // x1 = cluster A start
+  // x2 = cluster A end
+  // y1 = cluster B start
+  // y2 = cluster B end
   float CalcOverlap(const float& x1, const float& x2, const float& y1, const float& y2){
     float full_range = std::max(x2,y2) - std::min(x1,y1);
     float sum        = (x2-x1) + (y2-y1);

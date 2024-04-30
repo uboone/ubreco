@@ -152,6 +152,7 @@ namespace blip {
     float               fCylinderRadius;
     
     bool                fVetoBadChannels;
+    bool                fVetoNoisyChannels;
     std::string         fBadChanProducer;
     std::string         fBadChanFile;
     int                 fMinDeadWireGap;
