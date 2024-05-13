@@ -3,6 +3,7 @@
 
 #include "ProximityClusterer.h"
 #include "larcore/Geometry/WireReadout.h"
+#include "larcorealg/Geometry/Exceptions.h"
 #include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 
 namespace gammacatcher {
@@ -362,20 +363,29 @@ namespace gammacatcher {
     
     std::cout << "Vtx coordinates : [" << xyz.X() << ", " << xyz.Y() << ", " << xyz.Z() << "]" << std::endl;
 
-    for (unsigned int pl = 0; pl < 3; pl++) {
+    bool vtxok = true;
+    for (size_t pl = 0; pl < 3; pl++) {
+      try {
+        auto const& pt = geomH.Get2DPointProjectionCM(xyz, geo::PlaneID(0, 0, pl));
+        _vtx_w_cm[pl] = pt.w;
+        _vtx_t_cm[pl] = pt.t + (trigger_offset(clockData) * _time2cm);
 
-      auto const& pt = geomH.Get2DPointProjectionCM(xyz,{0, 0, pl});
-      _vtx_w_cm[pl] = pt.w;
-      _vtx_t_cm[pl] = pt.t + (trigger_offset(clockData) * _time2cm);
-
-      std::cout << "trigger offset [cm] : " << (trigger_offset(clockData) * _time2cm) << std::endl;
-      std::cout << "Vtx @ pl " << pl << " [" << _vtx_w_cm[pl] << ", " << _vtx_t_cm[pl] << " ]" << std::endl;
-
+        std::cout << "trigger offset [cm] : " << (trigger_offset(clockData) * _time2cm) << std::endl;
+        std::cout << "Vtx @ pl " << pl << " [" << _vtx_w_cm[pl] << ", " << _vtx_t_cm[pl] << " ]" << std::endl;
+      }
+      catch(const geo::InvalidWireError&) {
+        vtxok = false;
+        _vtx_w_cm = {0., 0., 0.};
+        _vtx_t_cm = {0., 0., 0.};
+        std::cout << "Vtx wire lookup error for plane " << pl << std::endl;
+      }
+      if(!vtxok)
+        break;
     }
 
-    _vertex = true;
+    _vertex = vtxok;
 
-    return true;
+    return vtxok;
   }
 
 

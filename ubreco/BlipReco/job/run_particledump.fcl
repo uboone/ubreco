@@ -1,0 +1,44 @@
+#include "backtrackerservice.fcl"
+#include "particleinventoryservice.fcl"
+#include "services_microboone.fcl"
+#include "triggeralgo_service.fcl"
+#include "cosmicfilter.fcl"
+#include "blipreco_configs.fcl"
+
+process_name: ParticleDump
+
+services: {
+  scheduler:               { defaultExceptions: false }    # Make all uncaught exceptions fatal.
+  TFileService: { fileName: "hist_ParticleDump.root" }
+  @table::microboone_services_reco
+  ParticleInventoryService: @local::standard_particleinventoryservice
+  BackTrackerService:   @local::microboone_backtrackerservice
+  LArProperties:        @local::microboone_properties
+  DetectorClocksService:   @local::microboone_detectorclocks
+  message:      @local::standard_info
+  FileCatalogMetadata:     @local::art_file_catalog_mc
+}
+
+source: {
+  module_type:  RootInput
+  maxEvents:    -1
+}
+
+physics:
+{
+  
+  analyzers:  
+  {
+    pdump:  {
+      module_type: "ParticleDump"
+    }
+  }
+
+  ana:           [ pdump ]
+  stream1:        [  ] 
+  trigger_paths:  [  ] 
+  end_paths:      [ ana ] 
+
+} # physics
+
+
