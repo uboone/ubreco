@@ -36,6 +36,9 @@ StatusCode MicroBooNEMasterAlgorithm::Run()
     if (m_passMCParticlesToWorkerInstances)
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles());
 
+    if (m_passAllCaloHitsToWorkerInstances)
+        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyAllCaloHits());
+
     PfoToFloatMap stitchedPfosToX0Map;
     VolumeIdToHitListMap volumeIdToHitListMap;
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->GetVolumeIdToHitListMap(volumeIdToHitListMap));
@@ -63,7 +66,7 @@ StatusCode MicroBooNEMasterAlgorithm::Run()
 
     if (m_shouldRunNeutrinoRecoOption || m_shouldRunCosmicRecoOption)
     {
-        if (m_customRunAction)
+        if (m_customRunAction && false)
             PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CustomRunAction());
 
         SliceHypotheses nuSliceHypotheses, crSliceHypotheses;
@@ -78,7 +81,6 @@ StatusCode MicroBooNEMasterAlgorithm::Run()
 
 StatusCode MicroBooNEMasterAlgorithm::Reset()
 {
-    m_customHitSet.clear();
     return MasterAlgorithm::Reset();
 }
 
