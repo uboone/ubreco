@@ -6,11 +6,21 @@ include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
 include_directories( $ENV{PANDORA_INC} )
 include_directories( $ENV{LARPANDORA_INC} )
 include_directories( $ENV{LARPANDORACONTENT_INC} )
+include_directories( $ENV{LARPANDORADLCONTENT_INC} )
+
+message(PANDORA_INC=$ENV{PANDORA_INC} )
+message(LARPANDORA_INC=$ENV{LARPANDORA_INC} )
+message(LARPANDORACONTENT_INC=$ENV{LARPANDORACONTENT_INC} )
+message(LARPANDORADLCONTENT_INC=$ENV{LARPANDORADLCONTENT_INC} )
+
+message(LARPANDORACONTENT=${LARPANDORACONTENT} )
+message(LARPANDORADLCONTENT=${LARPANDORADLCONTENT} )
 
 art_make( BASENAME_ONLY
           LIBRARY_NAME  MicroBooNEPandora
           LIB_LIBRARIES larpandora_LArPandoraInterface
                         ${LARPANDORACONTENT}
+                        ${LARPANDORADLCONTENT}
                         ${PANDORASDK}
                         ${PANDORAMONITORING}
                         ${ART_FRAMEWORK_CORE}
