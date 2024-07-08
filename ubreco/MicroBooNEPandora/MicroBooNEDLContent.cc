@@ -1,7 +1,7 @@
 /**
- *  @file   ubreco/MicroBooNEContent.cc
+ *  @file   ubreco/MicroBooNEDLContent.cc
  *
- *  @brief  Factory implementations for microboone pandora content
+ *  @brief  Factory implementations for MicroBooNE Pandora DL content
  *
  *  $Log: $
  */
@@ -17,7 +17,7 @@
 #include "MicroBooNEDLContent.h"
 
 /**
- *  @brief  MicroBooNE master algorithm factory
+ *  @brief  MicroBooNE DL master algorithm factory
  */
 class MicroBooNEDLMasterAlgorithmFactory : public pandora::AlgorithmFactory
 {

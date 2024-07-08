@@ -1,7 +1,7 @@
 /**
  *  @file   ubreco/MicroBooNEDLContent.h
  *
- *  @brief  Header file detailing microboone pandora content
+ *  @brief  Header file detailing MicroBooNE Pandora DL content
  *
  *  $Log: $
  */
@@ -13,7 +13,7 @@
 namespace pandora { class Pandora; }
 
 /**
- *  @brief  MicroBooNEContent class
+ *  @brief  MicroBooNEDLContent class
  */
 class MicroBooNEDLContent : public MicroBooNEContent
 {

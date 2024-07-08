@@ -6,4 +6,7 @@
 file(GLOB xml_file *.xml)
 file(GLOB pt_file *.pt)
 install_fw(LIST ${xml_file})
-install_fw(LIST ${pt_file})
+
+if(pt_file)
+    install_fw(LIST ${pt_file})
+endif()
