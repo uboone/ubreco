@@ -71,9 +71,9 @@ namespace{
 
 // Set global constants and max array sizes
 const int kMaxHits    =  30000;
-const int kMaxClusts  =  5000; 
+const int kMaxClusts  =  10000; 
 const int kMaxTrks    =  1000;
-const int kMaxBlips   =  2000;
+const int kMaxBlips   = 10000;
 const int kMaxG4      = 100000;
 const int kMaxEDeps   = 10000;
 const int kMaxTrkPts  =   2000;  
@@ -1936,6 +1936,7 @@ void BlipAna::analyze(const art::Event& evt)
   int nblips_picky          = 0;
   float true_blip_charge    = 0;
   for(size_t i=0; i<fBlipAlg->blips.size(); i++){
+    if( i > kMaxBlips ) break;
     auto& blp = fBlipAlg->blips[i];
   
     nblips_total++;

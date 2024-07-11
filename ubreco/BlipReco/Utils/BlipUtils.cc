@@ -660,17 +660,9 @@ namespace BlipUtils {
     TVector3 b      = (p-L1);
     double  projLen  = b.Dot(n);
     double d = -1;
-    /*
-    if      ( projLen < 0             ) d = (p-L1).Mag();
-    else if ( projLen > (L2-L1).Mag() ) d = (p-L2).Mag();
-    else                                d = (b-projLen*n).Mag();
-    */
-    if( projLen > 0 && projLen < (L2-L1).Mag() ) {
-      d = (b-projLen*n).Mag(); 
-    } else {
-      d = std::min( (p-L1).Mag(), (p-L2).Mag() );
-    }
-    
+    double L = (L2-L1).Mag();
+    if( projLen > 0 && projLen < L )  d = (b-projLen*n).Mag(); 
+    //else                              d = std::min( (p-L1).Mag(), (p-L2).Mag() );
     return d;
   }
   

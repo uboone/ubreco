@@ -140,6 +140,7 @@ namespace blip {
     //std::vector<float>  fTimeOffsets;
     float               fMatchMinOverlap;
     float               fMatchSigmaFact;
+    float               fMatchMinScore;
     float               fMatchMaxTicks;
     int                 fMaxWiresInCluster;
     float               fMinClusterCharge;
@@ -185,10 +186,20 @@ namespace blip {
     TH1D*   h_clust_dtfrac[kNplanes];
     TH2D*   h_clust_q[kNplanes]; 
     TH2D*   h_clust_q_cut[kNplanes]; 
+    TH1D*   h_clust_score[kNplanes]; 
+    
     TH1D*   h_clust_picky_overlap[kNplanes];
     TH1D*   h_clust_picky_dt[kNplanes];
     TH1D*   h_clust_picky_dtfrac[kNplanes];
-    TH2D*   h_clust_picky_q[kNplanes]; 
+    TH2D*   h_clust_picky_q[kNplanes];
+    TH1D*   h_clust_picky_score[kNplanes]; 
+
+    TH1D*   h_clust_true_overlap[kNplanes];
+    TH1D*   h_clust_true_dt[kNplanes];
+    TH1D*   h_clust_true_dtfrac[kNplanes];
+    TH2D*   h_clust_true_q[kNplanes]; 
+    TH1D*   h_clust_true_score[kNplanes]; 
+
     TH1D*   h_nmatches[kNplanes];
 
     TH1D*   h_recomb;
