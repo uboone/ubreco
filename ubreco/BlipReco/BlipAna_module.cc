@@ -267,8 +267,8 @@ class BlipAnaTreeDataStruct
   float blip_y[kMaxBlips];            // Y position [cm]
   float blip_z[kMaxBlips];            // Z position [cm]
   float blip_sigmayz[kMaxBlips];      // difference in wire intersection points
-  float blip_dx[kMaxBlips];           // dX [cm]
-  float blip_dyz[kMaxBlips];
+  float blip_dx[kMaxBlips];           // length along drift direction [cm]
+  float blip_dw[kMaxBlips];           // length projected onto axis perpendicular to wire orientation
   float blip_size[kMaxBlips];         // rough size estimation based on time-tick extent and wire span
   int   blip_charge[kMaxBlips];       // blip charge at anode [e-]
   float blip_energy[kMaxBlips];       // blip reco energy [MeV]
@@ -442,7 +442,7 @@ class BlipAnaTreeDataStruct
     FillWith(blip_z,          -9999);
     FillWith(blip_sigmayz,    -9);
     FillWith(blip_dx,         -9);
-    FillWith(blip_dyz,        -9);
+    FillWith(blip_dw,        -9);
     FillWith(blip_size,       -9);
     FillWith(blip_charge,     -999);
     FillWith(blip_energy,     -999);
@@ -558,7 +558,7 @@ class BlipAnaTreeDataStruct
     evtTree->Branch("blip_z",blip_z,"blip_z[nblips]/F");
     //evtTree->Branch("blip_sigmayz",blip_sigmayz,"blip_sigmayz[nblips]/F");
     evtTree->Branch("blip_dx",blip_dx,"blip_dx[nblips]/F");
-    evtTree->Branch("blip_dyz",blip_dyz,"blip_dyz[nblips]/F");
+    evtTree->Branch("blip_dw",blip_dw,"blip_dw[nblips]/F");
     evtTree->Branch("blip_size",blip_size,"blip_size[nblips]/F");
     evtTree->Branch("blip_charge",blip_charge,"blip_charge[nblips]/I");
     evtTree->Branch("blip_energy",blip_energy,"blip_energy[nblips]/F");
@@ -1950,7 +1950,7 @@ void BlipAna::analyze(const art::Event& evt)
     fData->blip_z[i]          = blp.Position.Z();
     fData->blip_sigmayz[i]    = blp.SigmaYZ;
     fData->blip_dx[i]         = blp.dX;
-    fData->blip_dyz[i]        = blp.dYZ;
+    fData->blip_dw[i]        = blp.dYZ;
     fData->blip_size[i]       = sqrt( pow(blp.dX,2) + pow(blp.dYZ,2) );
     fData->blip_proxtrkdist[i]= blp.ProxTrkDist;
     fData->blip_proxtrkid[i]  = blp.ProxTrkID;
