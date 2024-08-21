@@ -1,0 +1,16 @@
+BEGIN_PROLOG
+
+nuslhits_mc:
+{
+  module_type:   "NuSliceHitsProducer"
+  PfpLabel: "pandora"
+  SliceLabel: "pandora"
+  HitLabel: "gaushit"
+  HitTruthLabel: "gaushitTruthMatch"
+
+}
+
+nuslhits_data: @local::nuslhits_mc
+nuslhits_data.HitTruthLabel: ""
+
+END_PROLOG

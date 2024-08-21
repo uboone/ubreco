@@ -1,0 +1,26 @@
+BEGIN_PROLOG
+
+gaushit_ng:
+{ 
+  module_type:   "FilteredHitsProducer"
+  HitLabel:      "nuslhits"
+  MatchHitLabel: ""
+  HitScoreLabel: ["NuGraph","filter"]
+  HitSemanticLabel: ["NuGraph","semantic"]
+  HitTruthLabel: ""
+  RMScut:        -1.
+  ScoreCut:      0.5
+  isMC:          false
+}
+
+gaushitTruth_ng:
+{ 
+  module_type:   "FilteredHitsTruthProducer"
+  HitLabel:      "nuslhits"
+  FiltHitLabel:  "gaushit"
+  HitTruthLabel: "nuslhits"
+  RMScut:        0.0001 #this is to indentify the same hit in two different collections
+  isMC:          true
+}
+
+END_PROLOG
