@@ -1,6 +1,7 @@
 #include "ProtoShowerAlgBase.h"
 
 #include "lardataobj/RecoBase/PFParticleMetadata.h"
+#include "lardataobj/AnalysisBase/MVAOutput.h"
 
 namespace protoshower {
 
@@ -87,6 +88,16 @@ namespace protoshower {
 
     // grab the hits associated to the PFParticles
     auto pfp_hit_assn_v = lar::FindManyInChainP<recob::Hit, recob::Cluster>::find(pfp_h, e, fPFPproducer);
+
+    /*
+    // grab event hits and associations to NuGraph semantic score
+    auto const& hitsWithScores = proxy::getCollection<std::vector<recob::Hit>>(
+									       e,
+									       art::InputTag("gaushit"), //tag of the hit collection we ran the GNN on
+									       //proxy::withParallelData<anab::FeatureVector<1>>(art::InputTag("NuGraph", "filter")),
+									       proxy::withParallelData<anab::FeatureVector<5>>(art::InputTag("gaushit", "semantic")));
+    */
+
 
     // loop through PFParticles
     for (size_t p=0; p < pfp_h->size(); p++) {

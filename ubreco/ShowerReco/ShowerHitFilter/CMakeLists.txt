@@ -9,16 +9,21 @@ art_make(
                    	#larpandora_LArPandoraInterface	
                         ${Boost_SYSTEM_LIBRARY}
 			${ROOT_BASIC_LIB_LIST}
+			larcorealg_Geometry
+			lardata_Utilities
+			lardataobj_RecoBase
+			larcore_Geometry_Geometry_service
           MODULE_LIBRARIES 
+			ubreco_ShowerReco_ProximityClustering_Algorithms
 		   	#larpandora_LArPandoraInterface	
 			larcorealg_Geometry
 			larcore_Geometry_Geometry_service
 			lardataobj_RecoBase
-			lardataobj_MCBase
 			lardataobj_AnalysisBase	
 			lardata_RecoObjects larreco_Deprecated  
 			larreco_RecoAlg
 			lardata_Utilities
+                        ${Boost_SYSTEM_LIBRARY}
 			larevt_Filters
 			nusimdata_SimulationBase
 			${LARRECO_LIB}
@@ -43,15 +48,7 @@ art_make(
 			${ROOT_BASIC_LIB_LIST}
         )
 
-add_subdirectory(TwoDimTools)
-add_subdirectory(ShowerReco3D)
-add_subdirectory(ClusterMerging)
-add_subdirectory(ProximityClustering)
-add_subdirectory(ReCluster)
-add_subdirectory(Pi0Ana)
-add_subdirectory(TruthFilters)
-add_subdirectory(ShowerHitFilter)
-
+install_fhicl()
 install_headers()
 install_source()
 
