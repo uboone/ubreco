@@ -435,7 +435,7 @@ namespace blip {
       hitinfo[i].rms          = thisHit->RMS();
       hitinfo[i].integralADC  = thisHit->Integral();
       hitinfo[i].sigmaintegral = thisHit->SigmaIntegral();
-      hitinfo[i].sumADC       = thisHit->SummedADC();
+      hitinfo[i].sumADC       = thisHit->ROISummedADC();
       hitinfo[i].charge       = fCaloAlg->ElectronsFromADCArea(thisHit->Integral(),plane);
       hitinfo[i].peakTime     = thisHit->PeakTime();
       hitinfo[i].driftTime    = thisHit->PeakTime() - detProp.GetXTicksOffset(plane,0,0); // - fTimeOffsets[plane];
