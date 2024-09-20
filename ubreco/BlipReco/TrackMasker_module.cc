@@ -180,8 +180,7 @@ void TrackMasker::produce(art::Event & evt)
     std::cout <<"\n*** TRACKMASKER WARNING: ignoring all non-MC hits and tracks!\n"
               <<"*** "<<_vetohits.size()<<" out of "<<hitlist.size()<<" hits ignored.\n";
   }
-
-
+  
   //***************************************************
   // First go through tracks and designate which ones
   // pass our track length cuts by saving a map based

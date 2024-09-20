@@ -31,7 +31,6 @@
 #include "lardataobj/Simulation/SimEnergyDeposit.h"
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RecoBase/Track.h"
-//#include "larsim/MCCheater/BackTrackerService.h"
 #include "lardataobj/AnalysisBase/BackTrackerMatchingData.h"
 #include "larsim/MCCheater/ParticleInventoryService.h"
 #include "larcore/Geometry/Geometry.h"
@@ -96,7 +95,6 @@ namespace blip {
     std::vector<bool>   fBadChanMask;
     std::vector<bool>   fBadChanMaskPerEvt;
     int                 EvtBadChanCount;
-    
     std::map<size_t,size_t> map_trkid_index;
     std::map<size_t,size_t> map_trkid_isMC;
     
@@ -108,7 +106,7 @@ namespace blip {
 
 
    private:
-
+    
     const detinfo::DetectorProperties* detProp;
     
     float               mWion;
@@ -187,23 +185,18 @@ namespace blip {
     TH2D*   h_clust_q[kNplanes]; 
     TH2D*   h_clust_q_cut[kNplanes]; 
     TH1D*   h_clust_score[kNplanes]; 
-    
     TH1D*   h_clust_picky_overlap[kNplanes];
     TH1D*   h_clust_picky_dt[kNplanes];
     TH1D*   h_clust_picky_dtfrac[kNplanes];
     TH2D*   h_clust_picky_q[kNplanes];
     TH1D*   h_clust_picky_score[kNplanes]; 
-
     TH1D*   h_clust_true_overlap[kNplanes];
     TH1D*   h_clust_true_dt[kNplanes];
     TH1D*   h_clust_true_dtfrac[kNplanes];
     TH2D*   h_clust_true_q[kNplanes]; 
     TH1D*   h_clust_true_score[kNplanes]; 
-
     TH1D*   h_nmatches[kNplanes];
-
     TH1D*   h_recomb;
-
     TH1D*   h_trkhits_mcfrac;
 
   };

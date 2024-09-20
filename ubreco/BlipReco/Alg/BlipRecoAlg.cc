@@ -97,7 +97,6 @@ namespace blip {
         qbins,0,qmax,qbins,0,qmax);
       h_clust_q_cut[i]    ->SetOption("colz");
       h_clust_score[i]    = hdir.make<TH1D>(Form("pl%i_clust_score",i),   Form("Plane %i clusters;Match score",i),101,0,1.01);
-      
       h_clust_picky_overlap[i]   = hdir.make<TH1D>(Form("pl%i_clust_picky_overlap",i),  Form("Plane %i clusters (3 planes, intersect #Delta cut);Overlap fraction",i),101,0,1.01);
       h_clust_picky_dt[i]        = hdir.make<TH1D>(Form("pl%i_clust_picky_dt",i),       Form("Plane %i clusters (3 planes, intersect #Delta cut);dT [ticks]",i),200,-10,10);
       h_clust_picky_dtfrac[i]      = hdir.make<TH1D>(Form("pl%i_clust_picky_dtfrac",i),Form("Plane %i clusters (3 planes, intersect #Delta cut);Charge-weighted mean dT/RMS",i),120,-3,3);
@@ -147,7 +146,6 @@ namespace blip {
     
     fHitProducer        = pset.get<std::string>   ("HitProducer",       "pandora");
     fTrkProducer        = pset.get<std::string>   ("TrkProducer",       "gaushit");
-    //fHitProducerTrkMask = pset.get<std::string>   ("HitProducerTrkMask","trackmasker");
     fGeantProducer      = pset.get<std::string>   ("GeantProducer",     "largeant");
     fSimDepProducer     = pset.get<std::string>   ("SimEDepProducer",   "ionization");
     fSimChanProducer    = pset.get<std::string>   ("SimChanProducer",   "driftWC:simpleSC");
@@ -358,7 +356,6 @@ namespace blip {
     //=====================================================
     std::map<int,int> map_g4trkid_pdg;
     for(size_t i = 0; i<plist.size(); i++) map_g4trkid_pdg[plist[i]->TrackId()] = plist[i]->PdgCode();
- 
     std::map<int, std::set<int>>         map_g4trkid_chan;
     std::map<int, std::map<int,double> > map_g4trkid_chan_energy;
     std::map<int, std::map<int,double> > map_g4trkid_chan_charge;
@@ -371,16 +368,11 @@ namespace blip {
     std::map<int,double> map_g4trkid_charge;
     for(auto const &chan : simchanlist ) {
       int pl = (int)geom->View(chan->Channel());
-      //std::cout<<"Channel: "<<chan->Channel()<<", plane "<<pl<<": "<<chanFilt.IsPresent(chan->Channel())<<"   "<<chanFilt.IsBad(chan->Channel())<<"    "<<chanFilt.IsNoisy(chan->Channel())<<"\n";
-      //if( geom->View(chan->Channel()) != geo::kW ) continue;
-      //std::map<int,double> map_g4trkid_perWireEnergyDep;
       for(auto const& tdcide : chan->TDCIDEMap() ) {
         for(auto const& ide : tdcide.second) {
           if( ide.trackID < 0 ) continue;
           double ne = ide.numElectrons;
-          
           map_g4trkid_chan[ide.trackID].insert(chan->Channel());
-
           if( pl != fCaloPlane ) continue;
           
           // ####################################################
@@ -445,7 +437,6 @@ namespace blip {
       }
     }
 
-
     //=======================================
     // Map track IDs to the index in the vector
     //=======================================
@@ -491,10 +482,6 @@ namespace blip {
       hitinfo[i].driftTime    = thisHit->PeakTime() - detProp->GetXTicksOffset(plane,0,0); // - fTimeOffsets[plane];
       hitinfo[i].gof          = thisHit->GoodnessOfFit() / thisHit->DegreesOfFreedom();
       if( thisHit->DegreesOfFreedom() ) hitinfo[i].gof = -9;
-    
-      //std::cout<<"XTicks offset plane "<<plane<<<<": "<<detProp->GetXTicksOffset(plane,0,0)<<"\n";
-      //h_hit_chanstatus->Fill( chanFilt.Status(chan) );
-
       if( plist.size() ) {
         
         //int truthid;
@@ -526,9 +513,9 @@ namespace blip {
           
           // ###      uB behavior as of Nov 2022              ###
           // WireCell's detsim implements its gain "fudge factor" 
-          // by scaling the SimChannel electrons for some reason.
-          // So we need to correct for this effect to get accurate
-          // count of 'true' electrons collected on channel.
+          // by scaling the SimChannel electrons instead of the gain
+          // response. So we need to correct for this effect to get 
+          // accurate count of 'true' electrons collected on channel.
           if( fSimGainFactor > 0 ) hitinfo[i].g4charge /= fSimGainFactor;
           
           if( map_g4trkid_chan_energy[hitinfo[i].g4trkid][chan] > 0 ) {
@@ -541,7 +528,7 @@ namespace blip {
             double trueChargeDep = map_g4trkid_chan_charge[hitinfo[i].g4trkid][chan];
             h_recoWireEffQ_num->Fill(trueChargeDep);
           }
-
+          
         }
 
 
@@ -890,15 +877,12 @@ namespace blip {
               // *******************************************
               float qdiff     = fabs(hcB.Charge-hcA.Charge);
               float ratio     = std::max(hcA.Charge,hcB.Charge)/std::min(hcA.Charge,hcB.Charge);
-              //h_clust_q_cut[planeB]->Fill(0.001*hcA.Charge,0.001*hcB.Charge);
 
               // **************************************************
               // We made it through the cuts -- the match is good!
               // Combine metrics into a consolidated "score" that 
               // we can use later in the case of degenerate matches.
               // **************************************************
-              //float score = overlapFrac * exp(-fabs(ratio-1.)) * exp(-fabs(dt)/float(fMatchMaxTicks));
-              //float score = (1./3) * (overlapFrac + exp(-fabs(ratio-1.)) + exp(-fabs(dt)/float(fMatchMaxTicks)));
               float score = (1./3) * (overlapFrac + exp(-fabs(ratio-1.)) + exp(-fabs(dtfrac) ) );
               
               // If both clusters are matched to the same MC truth particle,
@@ -920,10 +904,8 @@ namespace blip {
               if( fabs(dt)      > _matchTicks )         continue;
               if( fabs(dtfrac)  > _matchSigmaFact )     continue;
               
-              h_clust_q[planeB]->Fill(0.001*hcA.Charge,0.001*hcB.Charge);
-              if( trueFlag ) {
-                h_clust_true_q[planeB]->Fill(0.001*hcA.Charge,0.001*hcB.Charge);
-              }
+                             h_clust_q[planeB]      ->Fill(0.001*hcA.Charge,0.001*hcB.Charge);
+              if( trueFlag ) h_clust_true_q[planeB] ->Fill(0.001*hcA.Charge,0.001*hcB.Charge);
 
               if( qdiff         > _matchQDiffLimit && ratio > _matchMaxQRatio ) continue;
               
@@ -1005,7 +987,6 @@ namespace blip {
               float dToLine = BlipUtils::DistToLine(p1,p2,bp);
               float d = dToLine;
               if( dToLine < 0 ) d = std::min( (bp-p1).Mag(), (bp-p2).Mag() );
-              
               if( d > 0 ) {
                 
                 // update closest trkdist

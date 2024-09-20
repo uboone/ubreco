@@ -155,7 +155,6 @@ class BlipAnaTreeDataStruct
   int   part_depElectrons[kMaxG4];     // electrons deposited
   std::vector<std::string> part_process;// process name
 
-
   // --- True energy deposit info (derived from SimChannels and SimEnergyDeposits) ---
   int   nedeps;                   // number of true localized energy depositions
   int   edep_tpc[kMaxEDeps];      // TPC
@@ -1195,7 +1194,6 @@ void BlipAna::analyze(const art::Event& evt)
   if (evt.getByLabel(fTrkProducer,tracklistHandle))
     art::fill_ptr_vector(tracklist, tracklistHandle);
  
- 
   // Resize data struct objects
   fData->nhits      = (int)hitlist.size();
   fData->nparticles = std::min((int)plist.size(),(int)kMaxG4);
@@ -1237,7 +1235,6 @@ void BlipAna::analyze(const art::Event& evt)
       
       // Save to TTree object
       if(i<kMaxG4){
-       
         /*
         if(pinfo[i].isPrimary){
           fData->nprimaries++;
@@ -1257,7 +1254,6 @@ void BlipAna::analyze(const art::Event& evt)
           }
         }
         */
-        
 
         fData->part_trackID[i]         = pPart->TrackId();
         fData->part_pdg[i]             = pPart->PdgCode();

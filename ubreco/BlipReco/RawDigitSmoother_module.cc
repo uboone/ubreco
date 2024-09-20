@@ -3,6 +3,12 @@
 // Plugin Type: producer (art v2_11_03)
 // File:        RawDigitSmoother_module.cc
 //
+// UNDER CONSTRUCTION -- not yet functional as of Aug 2024.
+//
+// This module attempts to average together neighboring channels and creates
+// a new collection of raw::Digits, which can then be passed through the 
+// rest of the signal processing chain.
+//
 // W. Foreman
 // Feb 2024
 ////////////////////////////////////////////////////////////////////////

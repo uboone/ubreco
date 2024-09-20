@@ -86,4 +86,3 @@ outputs:
   }
 }
 
-physics.producers.blipreco3D.BlipAlg.ClustMatchMaxTicks: 1.0

@@ -23,6 +23,7 @@ services:
 #services.BackTrackerService.BackTracker.OverrideRealData:             true
 services.ParticleInventoryService: @local::standard_particleinventoryservice
 #services.ParticleInventoryService.ParticleInventory.OverrideRealData: true
+
 # (note: in uboonecode v08_00_00_64 and earlier, 'OverrideRealData' does not
 # work for ParticleInventoryService; instead the service must be initialized
 # per event:
