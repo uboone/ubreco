@@ -153,6 +153,7 @@ namespace blip {
     float     SigmaYZ         = -9.;        // Uncertainty in YZ intersect [cm]
     float     dX              = -9;         // Equivalent length along drift direction [cm] 
     float     dYZ             = -9;         // Approximate length scale in YZ space [cm]
+                                            // (also referred to as 'dW')
 
     // Plane/cluster-specific information
     blip::HitClust clusters[kNplanes];

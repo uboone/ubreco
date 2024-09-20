@@ -94,6 +94,7 @@ class BlipAnaTreeDataStruct
   std::string treeName      = "anatree";
   bool  saveTruthInfo       = true;
   bool  saveTrueEDeps       = true;
+  bool  savePrimaries       = false;
   bool  saveTrueParticles   = false;
   bool  saveTrkInfo         = true;
   bool  saveHitInfo         = true;
@@ -575,7 +576,8 @@ class BlipAnaTreeDataStruct
     
     
     if( saveTruthInfo ) {
-      /*
+      
+      if( savePrimaries ) {
       evtTree->Branch("nprimaries",&nprimaries,"nprimaries/I");
       evtTree->Branch("primary_trackID",primary_trackID,"primary_trackID[nprimaries]/I");
       evtTree->Branch("primary_pdg",primary_pdg,"primary_pdg[nprimaries]/I");
@@ -589,7 +591,7 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("primary_yAV",primary_yAV,"primary_yAV[nprimaries]/F");
       evtTree->Branch("primary_zAV",primary_zAV,"primary_zAV[nprimaries]/F");
       evtTree->Branch("primary_T0",primary_T0,"primary_T0[nprimaries]/F");
-      */
+      }
       
       if( saveTrueParticles ) {
       evtTree->Branch("nparticles",&nparticles,"nparticles/I");
@@ -1033,6 +1035,7 @@ BlipAna::BlipAna(fhicl::ParameterSet const& pset) :
   fData ->treeName        = pset.get<std::string> ("EventTreeName", "anatree");
   fData ->saveTruthInfo   = pset.get<bool>        ("SaveTruthInfo", true);
   fData ->saveTrueParticles = pset.get<bool>      ("SaveTrueParticles", true);
+  fData ->savePrimaries     = pset.get<bool>      ("SavePrimaries", false);
   fData ->saveTrueEDeps = pset.get<bool>          ("SaveTrueEDeps", true);
   fData ->saveTrkInfo     = pset.get<bool>        ("SaveTrkInfo",   true);
   fData ->saveHitInfo     = pset.get<bool>        ("SaveHitInfo",   true);
@@ -1235,8 +1238,8 @@ void BlipAna::analyze(const art::Event& evt)
       
       // Save to TTree object
       if(i<kMaxG4){
-        /*
-        if(pinfo[i].isPrimary){
+        
+        if( fData->savePrimaries && pinfo[i].isPrimary ) {
           fData->nprimaries++;
           fData->primary_trackID[i] = pPart->TrackId();
           fData->primary_pdg[i]     = pPart->PdgCode();
@@ -1253,7 +1256,6 @@ void BlipAna::analyze(const art::Event& evt)
             fData->primary_zAV[i]     = pinfo[i].startPoint.Z();
           }
         }
-        */
 
         fData->part_trackID[i]         = pPart->TrackId();
         fData->part_pdg[i]             = pPart->PdgCode();

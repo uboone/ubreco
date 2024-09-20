@@ -199,17 +199,17 @@ namespace blip {
     fBadChanFile        = pset.get<std::string>   ("BadChanFile",         "");
     fMinDeadWireGap     = pset.get<int>           ("MinDeadWireGap",      1);
     
-    fKeepAllClusts[0] = pset.get<bool>          ("KeepAllClustersInd", false);
-    fKeepAllClusts[1] = pset.get<bool>          ("KeepAllClustersInd", false);
-    fKeepAllClusts[2] = pset.get<bool>          ("KeepAllClustersCol", true);
+    //fKeepAllClusts[0] = pset.get<bool>          ("KeepAllClustersInd", false);
+    //fKeepAllClusts[1] = pset.get<bool>          ("KeepAllClustersInd", false);
+    //fKeepAllClusts[2] = pset.get<bool>          ("KeepAllClustersCol", true);
     
-    keepAllClusts = true;
-    for(auto& config : fKeepAllClusts ) {
-      if( config == false ) {
-        keepAllClusts = false; 
-        break;
-      }
-    }
+    //keepAllClusts = true;
+    //for(auto& config : fKeepAllClusts ) {
+    //  if( config == false ) {
+    //    keepAllClusts = false; 
+    //    break;
+    //  }
+    //}
   }
 
 
@@ -1033,21 +1033,21 @@ namespace blip {
     }//endloop over TPCs
 
     // Re-index the clusters after removing unmatched
-    if( !keepAllClusts ) {
-      std::vector<blip::HitClust> hitclust_filt;
-      for(size_t i=0; i<hitclust.size(); i++){
-        auto& hc = hitclust[i];
-        int blipID = hc.BlipID;
-        if( fKeepAllClusts[hc.Plane] || blipID >= 0 ) {
-          int idx = (int)hitclust_filt.size();
-          hc.ID = idx;
-          for( auto& h : hc.HitIDs ) hitinfo[h].clustid = hc.ID;
-          if( blipID >= 0 ) blips[blipID].clusters[hc.Plane] = hc;
-          hitclust_filt.push_back(hc);
-        }
-      }
-      hitclust = hitclust_filt;
-    }
+    //if( !keepAllClusts ) {
+    //  std::vector<blip::HitClust> hitclust_filt;
+    //  for(size_t i=0; i<hitclust.size(); i++){
+    //    auto& hc = hitclust[i];
+    //    int blipID = hc.BlipID;
+    //    if( fKeepAllClusts[hc.Plane] || blipID >= 0 ) {
+    //      int idx = (int)hitclust_filt.size();
+    //      hc.ID = idx;
+    //      for( auto& h : hc.HitIDs ) hitinfo[h].clustid = hc.ID;
+    //      if( blipID >= 0 ) blips[blipID].clusters[hc.Plane] = hc;
+    //      hitclust_filt.push_back(hc);
+    //    }
+    //  }
+    //  hitclust = hitclust_filt;
+    //}
 
 
     for(size_t i=0; i<hitlist.size(); i++){
