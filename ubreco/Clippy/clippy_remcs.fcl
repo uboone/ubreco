@@ -1,0 +1,54 @@
+#include "reco_uboone_data_mcc9_8.fcl"
+#include "time_memory_tracker_microboone.fcl"
+#include "mcsfitproducer.fcl"
+
+services: {
+  scheduler: { defaultExceptions: false }
+  TFileService: { fileName: "hists.root" }
+  TimeTracker: @local::microboone_time_tracker
+  MemoryTracker: @local::microboone_memory_tracker
+  RandomNumberGenerator: {}
+  message: @local::microboone_message_services_prod_debug
+  FileCatalogMetadata: @local::art_file_catalog_data
+  @table::microboone_reco_data_services
+}
+
+services.DatabaseUtil.ShouldConnect: false
+services.TPCEnergyCalibService.TPCEnergyCalibProvider: @local::microboone_tpcenergycalib_provider_data
+
+process_name: ReMCSFit
+
+source: {
+  module_type: RootInput
+  maxEvents: -1
+  saveMemoryObjectThreshold: 0
+}
+
+physics: {
+  producers: {
+    rns: { module_type: RandomNumberSaver }
+    retrack: { module_type: Clippy }
+    remcs: @local::mcsfitproducer
+  }
+
+  filters: {}
+  analyzers: {}
+
+  reco: [ rns, retrack, remcs ]
+  trigger_paths: [ reco ]
+  stream1: [ out1 ]
+  end_paths: [ stream1 ]  
+}
+
+physics.producers.remcs.inputs.inputLabel: "retrack"
+
+outputs: {
+  out1: {
+    module_type: RootOutput
+    dataTier: "reconstructed"
+    compressionLevel: 1
+    saveMemoryObjectThreshold: 0
+    fileName: "%ifb_%tc_reco2.root"
+  }
+}
+
