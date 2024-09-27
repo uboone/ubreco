@@ -45,6 +45,11 @@
 
 #include "Base/ShowerRecoException.h"
 
+#include "larreco/RecoAlg/SpacePointAlg.h"
+#include "lardataobj/RecoBase/SpacePoint.h"
+#include "lardataobj/RecoBase/PCAxis.h"
+#include <Eigen/Dense>
+
 #include <memory>
 
 class ShrReco3D;
@@ -91,6 +96,8 @@ private:
   std::unique_ptr<::protoshower::ProtoShowerAlgBase> _psalg;
   //::protoshower::ProtoShowerAlgBase* _psalg;
 
+  trkf::SpacePointAlg* spsalg;
+
   // reconstruction ttree
   TTree* _rcshr_tree;
   double _shr_px, _shr_py, _shr_pz;
@@ -123,12 +130,22 @@ private:
 		  const showerreco::Shower_t& shower,
 		  std::unique_ptr< std::vector<recob::Shower> >& Shower_v,
 		  const art::PtrMaker<recob::Shower> ShowerPtrMaker,
+		  std::unique_ptr< std::vector<recob::SpacePoint> >& SpacePoint_v,
+		  const art::PtrMaker<recob::SpacePoint> SpacePointPtrMaker,
+		  std::unique_ptr< std::vector<recob::PCAxis> >& PCAxis_v,
+		  const art::PtrMaker<recob::PCAxis> PCAxisPtrMaker,
+		  std::unique_ptr< std::vector<recob::Vertex> >& Vertex_v,
+		  const art::PtrMaker<recob::Vertex> VertexPtrMaker,
 		  const art::ValidHandle<std::vector<recob::PFParticle> > pfp_h,
 		  const art::FindManyP<recob::Cluster> pfp_clus_assn_v,
 		  const std::vector<std::vector<art::Ptr<recob::Hit> > > pfp_hit_assn_v,
 		  std::unique_ptr< art::Assns <recob::Shower, recob::PFParticle> >& Shower_PFP_assn_v,
 		  std::unique_ptr< art::Assns <recob::Shower, recob::Cluster>    >& Shower_Cluster_assn_v,
-		  std::unique_ptr< art::Assns <recob::Shower, recob::Hit>        >& Shower_Hit_assn_v );
+		  std::unique_ptr< art::Assns <recob::Shower, recob::Hit>        >& Shower_Hit_assn_v,
+		  std::unique_ptr< art::Assns <recob::Shower, recob::SpacePoint> >& Shower_Sps_assn_v,
+		  std::unique_ptr< art::Assns <recob::Shower, recob::PCAxis>     >& Shower_PCAxis_assn_v,
+		  std::unique_ptr< art::Assns <recob::Shower, recob::Vertex>     >& Shower_Vertex_assn_v,
+		  std::unique_ptr< art::Assns <recob::SpacePoint, recob::Hit>    >& Sps_Hit_assn_v );
 
   /**
      @brief Backtracking function to find best MCShower matched with hits of a reco shower
@@ -155,7 +172,9 @@ private:
      @ return map connecting mcshower index to vector of track IDs associated to that shower
    */
   std::map<size_t, std::vector<unsigned int> > GetMCShowerInfo(const art::Handle<std::vector<sim::MCShower> > mcs_h);
-  
+
+
+  recob::PCAxis ComputePCA(std::vector<recob::SpacePoint> spv);
   // Declare member data here.
 
   /**
@@ -194,10 +213,19 @@ ShrReco3D::ShrReco3D(fhicl::ParameterSet const & p)
   //_manager = new ::showerreco::Pi0RecoAlgorithm();
   _psalg = art::make_tool<::protoshower::ProtoShowerAlgBase>(protoshower_pset);
 
+  spsalg = new trkf::SpacePointAlg(p.get<fhicl::ParameterSet>("SpacePointAlg"));
+
   produces<std::vector<recob::Shower> >();
+  produces<std::vector<recob::SpacePoint> >();
+  produces<std::vector<recob::PCAxis> >();
+  produces<std::vector<recob::Vertex> >();
   produces<art::Assns <recob::Shower, recob::PFParticle> >();
   produces<art::Assns <recob::Shower, recob::Cluster>    >();
   produces<art::Assns <recob::Shower, recob::Hit>        >();
+  produces<art::Assns <recob::Shower, recob::SpacePoint> >();
+  produces<art::Assns <recob::Shower, recob::PCAxis> >();
+  produces<art::Assns <recob::Shower, recob::Vertex> >();
+  produces<art::Assns <recob::SpacePoint, recob::Hit> >();
 
   _manager->Initialize();
 
@@ -222,12 +250,22 @@ void ShrReco3D::produce(art::Event & e)
 
   // produce recob::Showers
   std::unique_ptr< std::vector<recob::Shower> > Shower_v(new std::vector<recob::Shower> );
+  std::unique_ptr< std::vector<recob::SpacePoint> > SpacePoint_v(new std::vector<recob::SpacePoint> );
+  std::unique_ptr< std::vector<recob::PCAxis> > PCAxis_v(new std::vector<recob::PCAxis> );
+  std::unique_ptr< std::vector<recob::Vertex> > Vertex_v(new std::vector<recob::Vertex> );
   std::unique_ptr< art::Assns <recob::Shower, recob::PFParticle> > Shower_PFP_assn_v    ( new art::Assns<recob::Shower, recob::PFParticle>);
   std::unique_ptr< art::Assns <recob::Shower, recob::Cluster>    > Shower_Cluster_assn_v( new art::Assns<recob::Shower, recob::Cluster>   );
   std::unique_ptr< art::Assns <recob::Shower, recob::Hit>        > Shower_Hit_assn_v    ( new art::Assns<recob::Shower, recob::Hit>       );
+  std::unique_ptr< art::Assns <recob::Shower, recob::SpacePoint> > Shower_Sps_assn_v    ( new art::Assns<recob::Shower, recob::SpacePoint>);
+  std::unique_ptr< art::Assns <recob::Shower, recob::PCAxis>     > Shower_PCAxis_assn_v ( new art::Assns<recob::Shower, recob::PCAxis>    );
+  std::unique_ptr< art::Assns <recob::Shower, recob::Vertex>     > Shower_Vertex_assn_v ( new art::Assns<recob::Shower, recob::Vertex>    );
+  std::unique_ptr< art::Assns <recob::SpacePoint, recob::Hit>    > Sps_Hit_assn_v       ( new art::Assns<recob::SpacePoint, recob::Hit>   );
 
   // shower pointer maker for later to create associations
   art::PtrMaker<recob::Shower> ShowerPtrMaker(e);
+  art::PtrMaker<recob::SpacePoint> SpacePointPtrMaker(e);
+  art::PtrMaker<recob::PCAxis> PCAxisPtrMaker(e);
+  art::PtrMaker<recob::Vertex> VertexPtrMaker(e);
 
   // pass event to ProtoShowerAlgBase to create ProtoShower objects
   // which will then be fed to shower reco algorithm chain
@@ -272,8 +310,10 @@ void ShrReco3D::produce(art::Event & e)
   for (size_t s=0; s < output_shower_v.size(); s++) {
     try {
       SaveShower(e, s, output_shower_v.at(s), Shower_v, ShowerPtrMaker,
+		 SpacePoint_v, SpacePointPtrMaker, PCAxis_v, PCAxisPtrMaker, Vertex_v, VertexPtrMaker,
 		 pfp_h, pfp_clus_assn_v, pfp_hit_assn_v,
-		 Shower_PFP_assn_v, Shower_Cluster_assn_v, Shower_Hit_assn_v);
+		 Shower_PFP_assn_v, Shower_Cluster_assn_v, Shower_Hit_assn_v,
+		 Shower_Sps_assn_v, Shower_PCAxis_assn_v, Shower_Vertex_assn_v, Sps_Hit_assn_v);
     }
     catch (showerreco::ShowerRecoException e) {
       std::cout << e.what() << std::endl;
@@ -281,9 +321,16 @@ void ShrReco3D::produce(art::Event & e)
   }// for all output reconstructed showers
   
   e.put(std::move(Shower_v));
+  e.put(std::move(SpacePoint_v));
+  e.put(std::move(PCAxis_v));
+  e.put(std::move(Vertex_v));
   e.put(std::move(Shower_PFP_assn_v));
   e.put(std::move(Shower_Cluster_assn_v));
   e.put(std::move(Shower_Hit_assn_v));
+  e.put(std::move(Shower_Sps_assn_v));
+  e.put(std::move(Shower_PCAxis_assn_v));
+  e.put(std::move(Shower_Vertex_assn_v));
+  e.put(std::move(Sps_Hit_assn_v));
 
 }
 
@@ -303,12 +350,22 @@ void ShrReco3D::SaveShower(art::Event & e,
 			   const showerreco::Shower_t& shower,
 			   std::unique_ptr< std::vector<recob::Shower> >& Shower_v,
 			   const art::PtrMaker<recob::Shower> ShowerPtrMaker,
+			   std::unique_ptr< std::vector<recob::SpacePoint> >& SpacePoint_v,
+			   const art::PtrMaker<recob::SpacePoint> SpacePointPtrMaker,
+			   std::unique_ptr< std::vector<recob::PCAxis> >& PCAxis_v,
+			   const art::PtrMaker<recob::PCAxis> PCAxisPtrMaker,
+			   std::unique_ptr< std::vector<recob::Vertex> >& Vertex_v,
+			   const art::PtrMaker<recob::Vertex> VertexPtrMaker,
 			   const art::ValidHandle<std::vector<recob::PFParticle> > pfp_h,
 			   const art::FindManyP<recob::Cluster> pfp_clus_assn_v,
 			   const std::vector<std::vector<art::Ptr<recob::Hit> > > pfp_hit_assn_v,
 			   std::unique_ptr< art::Assns <recob::Shower, recob::PFParticle> >& Shower_PFP_assn_v,
 			   std::unique_ptr< art::Assns <recob::Shower, recob::Cluster> >& Shower_Cluster_assn_v,
-			   std::unique_ptr< art::Assns <recob::Shower, recob::Hit> >& Shower_Hit_assn_v)
+			   std::unique_ptr< art::Assns <recob::Shower, recob::Hit> >& Shower_Hit_assn_v,
+			   std::unique_ptr< art::Assns <recob::Shower, recob::SpacePoint> >& Shower_Sps_assn_v,
+			   std::unique_ptr< art::Assns <recob::Shower, recob::PCAxis> >& Shower_PCAxis_assn_v,
+			   std::unique_ptr< art::Assns <recob::Shower, recob::Vertex> >& Shower_Vertex_assn_v,
+			   std::unique_ptr< art::Assns <recob::SpacePoint, recob::Hit> >& Sps_Hit_assn_v)
   
 {
 
@@ -399,6 +456,32 @@ void ShrReco3D::SaveShower(art::Event & e,
     if (hit_v.at(h)->WireID().Plane == 2) { hit_idx_v.push_back( hit_v.at(h).key() ); }
   }// for all hits
   
+  // step 4 : sps
+  std::vector<recob::SpacePoint> spts;
+  art::PtrVector<recob::Hit> hit_ptr_v;
+  for (auto h : hit_v) hit_ptr_v.push_back(h);
+  spsalg->makeSpacePoints(hit_ptr_v, spts);
+  for (auto sp : spts) {
+    SpacePoint_v->push_back(sp);
+    art::Ptr<recob::SpacePoint> const SpsPtr = SpacePointPtrMaker(SpacePoint_v->size()-1);
+    Shower_Sps_assn_v->addSingle( ShrPtr, SpsPtr );
+    art::PtrVector<recob::Hit> hits = spsalg->getAssociatedHits(sp);
+    for (auto hp : hits) {
+      Sps_Hit_assn_v->addSingle( SpsPtr, hp );
+    }
+  }
+
+  // step 5 : PCAxis
+  PCAxis_v->push_back(ComputePCA(spts));
+  art::Ptr<recob::PCAxis> const PcaPtr = PCAxisPtrMaker(PCAxis_v->size()-1);
+  Shower_PCAxis_assn_v->addSingle( ShrPtr, PcaPtr );
+
+  // step 6 : Vertex
+  double vtx[3] = {s.ShowerStart().x(),s.ShowerStart().y(),s.ShowerStart().z()};
+  Vertex_v->push_back(recob::Vertex(vtx,int(Shower_v->size()-1)));
+  art::Ptr<recob::Vertex> const VtxPtr = VertexPtrMaker(Vertex_v->size()-1);
+  Shower_Vertex_assn_v->addSingle( ShrPtr, VtxPtr );
+
   if (fBacktrackTag != ""){
     float completeness_max, purity_max;
     BackTrack(e, hit_idx_v, completeness_max, purity_max);
@@ -612,6 +695,95 @@ std::map<size_t, std::vector<unsigned int> > ShrReco3D::GetMCShowerInfo(const ar
   return event_shower_map;
 }
 
+recob::PCAxis ShrReco3D::ComputePCA(std::vector<recob::SpacePoint> sps){
+
+  //float TotalCharge = 0;
+  float sumWeights = 0;
+  float xx = 0;
+  float yy = 0;
+  float zz = 0;
+  float xy = 0;
+  float xz = 0;
+  float yz = 0;
+
+  float ShowerCentre_c[3] = {0,0,0};
+  for (auto const& sp : sps) {
+    for (int i=0;i<3;i++) {
+      ShowerCentre_c[i] += sp.XYZ()[i];
+    }
+  }
+  for (int i=0;i<3;i++) ShowerCentre_c[i] *= (1. / sps.size());
+  geo::Point_t ShowerCentre(ShowerCentre_c[0],ShowerCentre_c[1],ShowerCentre_c[2]);
+
+  // //Get the Shower Centre
+  // if (fChargeWeighted) {
+  //   ShowerCentre = IShowerTool::GetLArPandoraShowerAlg().ShowerCentre(clockData, detProp, sps, fmh, TotalCharge);
+  // }
+  // else {
+  //   ShowerCentre = IShowerTool::GetLArPandoraShowerAlg().ShowerCentre(sps);
+  // }
+
+  //Normalise the spacepoints, charge weight and add to the PCA.
+  for (auto& sp : sps) {
+
+    float wht = 1;
+
+    //Normalise the spacepoint position.
+    auto const sp_position = geo::Point_t(sp.XYZ()[0], sp.XYZ()[1], sp.XYZ()[2]) - ShowerCentre;
+
+    // if (fChargeWeighted) {
+
+    //   //Get the charge.
+    //   float Charge = IShowerTool::GetLArPandoraShowerAlg().SpacePointCharge(sp, fmh);
+
+    //   //Get the time of the spacepoint
+    //   float Time = IShowerTool::GetLArPandoraShowerAlg().SpacePointTime(sp, fmh);
+
+    //   //Correct for the lifetime at the moment.
+    //   Charge *= std::exp((sampling_rate(clockData) * Time) / (detProp.ElectronLifetime() * 1e3));
+
+    //   //Charge Weight
+    //   wht *= std::sqrt(Charge / TotalCharge);
+    // }
+
+    xx += sp_position.X() * sp_position.X() * wht;
+    yy += sp_position.Y() * sp_position.Y() * wht;
+    zz += sp_position.Z() * sp_position.Z() * wht;
+    xy += sp_position.X() * sp_position.Y() * wht;
+    xz += sp_position.X() * sp_position.Z() * wht;
+    yz += sp_position.Y() * sp_position.Z() * wht;
+    sumWeights += wht;
+  }
+
+  // Using Eigen package
+  Eigen::Matrix3f matrix;
+
+  // Construct covariance matrix
+  matrix << xx, xy, xz, xy, yy, yz, xz, yz, zz;
+
+  // Normalise from the sum of weights
+  matrix /= sumWeights;
+
+  // Run the PCA
+  Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> eigenMatrix(matrix);
+
+  Eigen::Vector3f eigenValuesVector = eigenMatrix.eigenvalues();
+  Eigen::Matrix3f eigenVectorsMatrix = eigenMatrix.eigenvectors();
+
+  // Put in the required form for a recob::PCAxis
+  const bool svdOk = true; //TODO: Should probably think about this a bit more
+  const int nHits = sps.size();
+  // For some reason eigen sorts the eigenvalues from smallest to largest, reverse it
+  const double eigenValues[3] = {
+    eigenValuesVector(2), eigenValuesVector(1), eigenValuesVector(0)};
+  std::vector<std::vector<double>> eigenVectors = {
+    {eigenVectorsMatrix(0, 2), eigenVectorsMatrix(1, 2), eigenVectorsMatrix(2, 2)},
+    {eigenVectorsMatrix(0, 1), eigenVectorsMatrix(1, 1), eigenVectorsMatrix(2, 1)},
+    {eigenVectorsMatrix(0, 0), eigenVectorsMatrix(1, 0), eigenVectorsMatrix(2, 0)}};
+  const double avePos[3] = {ShowerCentre.X(), ShowerCentre.Y(), ShowerCentre.Z()};
+
+  return recob::PCAxis(svdOk, nHits, eigenValues, eigenVectors, avePos);
+}
 
 void ShrReco3D::SetTTree() {
 

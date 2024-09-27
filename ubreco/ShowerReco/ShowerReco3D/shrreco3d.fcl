@@ -55,5 +55,4 @@ ShrReco3DPandora.ShowerRecoTools:
         Algo5: @local::filllength
         #Algo6: @local::filtershowers
      }
-
 END_PROLOG
