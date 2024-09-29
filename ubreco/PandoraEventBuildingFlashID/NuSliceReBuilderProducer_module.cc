@@ -189,7 +189,17 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
 	break;
       }      
     }
-    //std::cout << "pfp->PdgCode()=" << pfp->PdgCode() << " primary=" << pfp->IsPrimary() << " self=" << pfp->Self() << " parent=" << pfp->Parent() << " ndaughters=" << pfp->NumDaughters() << " removed=" << removed << std::endl;
+    /////////
+    {
+      int nhits = 0;
+      auto clusters = inputPndrPFPCluAssns->at(pfp.key());
+      for (auto clu : clusters) {
+	auto hits = inputPndrCluHitAssns->at(clu.key());
+	nhits += hits.size();
+      }
+      std::cout << "pfp->PdgCode()=" << pfp->PdgCode() << " primary=" << pfp->IsPrimary() << " self=" << pfp->Self() << " parent=" << pfp->Parent() << " ndaughters=" << pfp->NumDaughters() << " nhits=" << nhits << " removed=" << removed << std::endl;
+    }
+    /////////
     if (removed) continue;
     //
     if (pfp->IsPrimary()) {
@@ -198,7 +208,8 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
       nu_pfp_idx = outputPFP->size();
       outputPFP->push_back(pfp_copy);
     } else {
-      recob::PFParticle pfp_copy(pfp->PdgCode(),d_pfp_idx,0,std::vector< size_t >());
+      //NG2 told us this is not a shower, so let's make it a track
+      recob::PFParticle pfp_copy(13,d_pfp_idx,0,std::vector< size_t >());
       d_pfp_idx++;
       outputPFP->push_back(pfp_copy);
     }
@@ -214,7 +225,16 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
       for (size_t ih=0; ih<hits.size(); ih++) {
 	outTrkHitAssns->addSingle(trk_ptr,hits[ih],*meta[ih]);
       }
+      //
+      auto pfmetas = inputPndrPFPMetAssns->at(pfp.key());
+      for (auto pfm : pfmetas) {
+	//for (auto pfmm : pfm->GetPropertiesMap()) std::cout << pfmm.first << " " << pfmm.second << std::endl;
+	outputPFMeta->push_back(*pfm);
+	auto pfm_ptr = pfmetaPtrMaker(outputPFMeta->size()-1);
+	outPFPMetAssns->addSingle(pfp_ptr,pfm_ptr);
+      }
     } else if (pfp->PdgCode()==11) {
+      /*
       //shower -- DO WE WANT TO DO THIS??? NG2 told us this is not a shower
       recob::Shower shower = *inputPndrPFPShrAssns->at(pfp.key());
       outputShower->push_back(shower);
@@ -230,6 +250,14 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
       for (auto h : hits) {
 	outShrHitAssns->addSingle(shr_ptr,h);	
       }
+      */
+      // force it to have track-like score
+      std::map<std::string,float> mmap;
+      mmap.emplace("TrackScore",1.);
+      larpandoraobj::PFParticleMetadata pfm(mmap);
+      outputPFMeta->push_back(pfm);
+      auto pfm_ptr = pfmetaPtrMaker(outputPFMeta->size()-1);
+      outPFPMetAssns->addSingle(pfp_ptr,pfm_ptr);
     }
     //
     auto clusters = inputPndrPFPCluAssns->at(pfp.key());
@@ -252,14 +280,6 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
       for (auto h : hits) {
 	outSpsHitAssns->addSingle(sps_ptr,h);	
       }
-    }
-    //
-    auto pfmetas = inputPndrPFPMetAssns->at(pfp.key());
-    for (auto pfm : pfmetas) {
-      //for (auto pfmm : pfm->GetPropertiesMap()) std::cout << pfmm.first << " " << pfmm.second << std::endl;
-      outputPFMeta->push_back(*pfm);
-      auto pfm_ptr = pfmetaPtrMaker(outputPFMeta->size()-1);
-      outPFPMetAssns->addSingle(pfp_ptr,pfm_ptr);
     }
     //
     auto vtx = inputPndrPFPVtxAssns->at(pfp.key());
@@ -285,7 +305,9 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
     art::Ptr<recob::Shower> shr(inputShowers, is);
     auto pfp = assocShrPfp->at(shr.key());
     // we need to redefine the pfp id, etc.
-    //std::cout << "pfp->PdgCode()=" << pfp->PdgCode() << " self=" << pfp->Self() << " parent=" << pfp->Parent() << " ndaughters=" << pfp->NumDaughters() << " added" << std::endl;
+    {
+      std::cout << "pfp->PdgCode()=" << pfp->PdgCode() << " self=" << pfp->Self() << " parent=" << pfp->Parent() << " ndaughters=" << pfp->NumDaughters() << " nhits=" << assocShrHit->at(shr.key()).size() << " added" << std::endl;
+    }
     recob::PFParticle pfp_copy(pfp->PdgCode(),d_pfp_idx,0,std::vector< size_t >());
     d_pfp_idx++;
     outputPFP->push_back(pfp_copy);
@@ -355,7 +377,7 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
   }
 
   //review pfps
-  //for (auto pfp : *outputPFP) std::cout << "final pfp->PdgCode()=" << pfp.PdgCode() << " self=" << pfp.Self() << " parent=" << pfp.Parent() << " ndaughters=" << pfp.NumDaughters() << std::endl;
+  for (auto pfp : *outputPFP) std::cout << "final pfp->PdgCode()=" << pfp.PdgCode() << " self=" << pfp.Self() << " parent=" << pfp.Parent() << " ndaughters=" << pfp.NumDaughters() << std::endl;
 
   e.put(std::move(outputPFP));
   e.put(std::move(outputSlice));  
