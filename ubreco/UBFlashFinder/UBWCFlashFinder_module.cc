@@ -18,6 +18,7 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 //LArSoft 
+#include "larcore/Geometry/WireReadout.h"
 #include "larcore/Geometry/Geometry.h"
 #include "larcoreobj/SimpleTypesAndConstants/RawTypes.h"
 #include "larcoreobj/SimpleTypesAndConstants/geo_types.h"
@@ -207,6 +208,7 @@ void UBWCFlashFinder::produce(art::Event & evt)
 
   // initialize data handles and services
   art::ServiceHandle<geo::Geometry> geo;
+  auto const& channelMapAlg = art::ServiceHandle<geo::WireReadout const>()->Get();
   auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataFor(evt);
   double triggerTime = clockData.TriggerTime();
 
@@ -216,7 +218,7 @@ void UBWCFlashFinder::produce(art::Event & evt)
     pmt_gainerr.clear();
     const lariov::PmtGainProvider& gain_provider = art::ServiceHandle<lariov::PmtGainService>()->GetProvider();
     for (unsigned int i=0; i!= geo->NOpDets(); ++i) {
-      if (geo->IsValidOpChannel(i) && i<32) {
+      if (channelMapAlg.IsValidOpChannel(i) && i<32) {
 	pmt_gain.push_back(gain_provider.Gain(i));
 	pmt_gainerr.push_back(gain_provider.GainErr(i));
 	//pmt_gain.push_back(gain_provider.ExtraInfo(i).GetFloatData("amplitude_gain"));

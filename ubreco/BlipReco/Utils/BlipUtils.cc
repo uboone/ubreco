@@ -1,5 +1,7 @@
 #include "BlipUtils.h"
 
+#include "larcore/Geometry/WireReadout.h"
+
 namespace BlipUtils {
 
   //============================================================================
@@ -363,6 +365,7 @@ namespace BlipUtils {
     // Look for valid wire intersections between 
     // central-most hits in each cluster
     std::vector<TVector3> wirex;
+    auto const& wireReadout = art::ServiceHandle<geo::WireReadout>()->Get();
     for(size_t i=0; i<hcs.size(); i++) {
       int pli = hcs[i].Plane;
       
@@ -381,27 +384,26 @@ namespace BlipUtils {
       // use view with the maximal wire extent to calculate transverse (YZ) length
       if( hcs[i].NWires > newblip.MaxWireSpan ) {
         newblip.MaxWireSpan = hcs[i].NWires;
-        newblip.dYZ         = hcs[i].NWires * art::ServiceHandle<geo::Geometry>()->WirePitch(static_cast<geo::View_t>(pli));
+        newblip.dYZ         = hcs[i].NWires * wireReadout.Plane(geo::TPCID(0, 0), 
+                                                                static_cast<geo::View_t>(pli)).WirePitch();
       }
   
       for(size_t j=i+1; j<hcs.size(); j++){
         int plj = hcs[j].Plane;
           
-        double y,z;
-        bool match3d = false;
+        std::optional<geo::WireIDIntersection> intersection = std::nullopt;
         // If this was already calculated, use that
         if( hcs[i].IntersectLocations.count(hcs[j].ID) ) {
-          match3d = true;
-          y = hcs[i].IntersectLocations.find(hcs[j].ID)->second.Y();
-          z = hcs[i].IntersectLocations.find(hcs[j].ID)->second.Z();
+          intersection = geo::WireIDIntersection{
+                           hcs[i].IntersectLocations.find(hcs[j].ID)->second.Y(),
+                           hcs[i].IntersectLocations.find(hcs[j].ID)->second.Z()
+                         };
         } else {
-          match3d = art::ServiceHandle<geo::Geometry>()
-            ->ChannelsIntersect(hcs[i].CenterChan,hcs[j].CenterChan,y,z);
+          intersection = wireReadout.ChannelsIntersect(hcs[i].CenterChan, hcs[j].CenterChan); 
         }
 
-        if( match3d ) {
-          TVector3 a(0., y, z);
-          wirex.push_back(a);
+        if(intersection) {
+          wirex.emplace_back(0., intersection->y, intersection->z);
           newblip.clusters[pli] = hcs[i];
           newblip.clusters[plj] = hcs[j];
         }
@@ -518,8 +520,7 @@ namespace BlipUtils {
 
   //====================================================================
   bool DoChannelsIntersect(int ch1, int ch2 ){
-    double y,z;
-    return art::ServiceHandle<geo::Geometry>()->ChannelsIntersect(ch1,ch2,y,z);
+    return art::ServiceHandle<geo::WireReadout>()->Get().ChannelsIntersect(ch1,ch2).has_value();
   }
   
   //====================================================================
@@ -678,11 +679,11 @@ namespace BlipUtils {
   void GetGeoBoundaries(double& xmin, double& xmax, double& ymin, double& ymax, double&zmin, double& zmax){
     art::ServiceHandle<geo::Geometry> geom;
     xmin = 0. + 1e-8;
-    xmax = 2.0 * geom->DetHalfWidth() - 1e-8;
-    ymin = - (geom->DetHalfHeight() + 1e-8);
-    ymax = geom->DetHalfHeight() -  1e-8;
+    xmax = 2.0 * geom->TPC().HalfWidth() - 1e-8;
+    ymin = - (geom->TPC().HalfHeight() + 1e-8);
+    ymax = geom->TPC().HalfHeight() -  1e-8;
     zmin = 0. + 1e-8;
-    zmax = geom->DetLength() - 1e-8;
+    zmax = geom->TPC().Length() - 1e-8;
   }
 
   //===========================================================================

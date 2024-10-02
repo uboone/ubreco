@@ -27,10 +27,7 @@
 #include "nusimdata/SimulationBase/MCTruth.h"
 #include "lardata/Utilities/AssociationUtil.h"
 
-#include "larcore/Geometry/Geometry.h"
 #include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
-#include "larcorealg/Geometry/GeometryCore.h"
-#include "lardata/Utilities/GeometryUtilities.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 
 class TruthVertex;
@@ -62,7 +59,7 @@ private:
   // producers
   std::string fMCTruthProducer;
 
-  double _time2cm, _wire2cm;
+  double _time2cm;
 
 };
 
@@ -74,10 +71,8 @@ TruthVertex::TruthVertex(fhicl::ParameterSet const & p)
   produces< std::vector< recob::Vertex > >();
   fMCTruthProducer = p.get<std::string>("MCTruthProducer");
 
-  auto const* geom = ::lar::providerFrom<geo::Geometry>();
   auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
   auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
-  _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
   _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
 }
 

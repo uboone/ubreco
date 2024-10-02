@@ -4,6 +4,7 @@
 #include <iostream>
 #include "ubreco/ShowerReco/ShowerReco3D/Base/ShowerRecoModuleBase.h"
 #include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
+#include "larcore/Geometry/WireReadout.h"
 
 //#include "ubreco/Database/TPCEnergyCalib/TPCEnergyCalibService.h"
 //#include "ubreco/Database/TPCEnergyCalib/TPCEnergyCalibProvider.h"
@@ -135,6 +136,7 @@ namespace showerreco {
     _pz = dir3D[2];
 
     // loop through planes
+    auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
     for (size_t n = 0; n < clusters.size(); n++) {
       
       auto const& clus = clusters.at(n);
@@ -151,8 +153,7 @@ namespace showerreco {
       if (_verbose)
 	std::cout << std::endl << "PLANE : " << pl << std::endl;
 
-      auto const* geom = ::lar::providerFrom<geo::Geometry>();
-      const geo::WireGeo& wire = geom->TPC().Plane(pl).MiddleWire();
+      const geo::WireGeo& wire = channelMap.Plane({0, 0, pl}).MiddleWire();
       geo::Vector_t const wireunitperp = wire.Direction();//(wire.GetStart()-wire.GetEnd()).Unit();
       // rotate by 90 degrees around x
       geo::Vector_t const wireunit{wireunitperp.X(), -wireunitperp.Z(), wireunitperp.Y()};

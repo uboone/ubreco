@@ -146,12 +146,12 @@ T0RecoAnodeCathodePiercingAna::T0RecoAnodeCathodePiercingAna(fhicl::ParameterSet
   _debug             = p.get<bool>       ("debug"            );
 
   // get boundaries based on detector bounds
-  auto const* geom = lar::providerFrom<geo::Geometry>();
+  auto const& tpc = lar::providerFrom<geo::Geometry>()->TPC();
 
-  _TOP    =   geom->DetHalfHeight() - fResolution;
-  _BOTTOM = - geom->DetHalfHeight() + fResolution;
+  _TOP    =   tpc.HalfHeight() - fResolution;
+  _BOTTOM = - tpc.HalfHeight() + fResolution;
   _FRONT  =   fResolution;
-  _BACK   =   geom->DetLength() - fResolution;
+  _BACK   =   tpc.Length() - fResolution;
 
 }
 

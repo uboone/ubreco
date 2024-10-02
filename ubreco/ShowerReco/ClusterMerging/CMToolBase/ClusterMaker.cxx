@@ -3,6 +3,8 @@
 
 #include "ClusterMaker.h"
 
+#include "larcore/Geometry/WireReadout.h"
+
 namespace cluster {
 
   ClusterMaker::ClusterMaker() {
@@ -11,10 +13,10 @@ namespace cluster {
     _vtx_t_cm = {0.,0.,0.};
 
     // get detector specific properties
-    auto const* geom = ::lar::providerFrom<geo::Geometry>();
+    auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
     auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
     auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
-    _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
+    _wire2cm = channelMap.Plane(geo::PlaneID{0,0,0}).WirePitch();
     _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
 
   }
@@ -109,9 +111,6 @@ namespace cluster {
   bool ClusterMaker::loadVertex(detinfo::DetectorClocksData const& clockData,
                                 const art::ValidHandle<std::vector<::recob::Vertex> > vtx_h) {
 
-    // load required services to obtain offsets
-    auto const* geom = ::lar::providerFrom<geo::Geometry>();
-    
     if (vtx_h->size() != 1) return false;
 
     auto const& vtx = (*vtx_h)[0].position();
@@ -119,10 +118,11 @@ namespace cluster {
 
     //std::cout << "Vtx coordinates : [" << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << "]" << std::endl;
 
+    auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
     auto const triggerOffset = trigger_offset(clockData);
     for (size_t pl = 0; pl < 3; pl++) {
 
-      _vtx_w_cm[pl] = geom->WireCoordinate(vtx,geo::PlaneID(0,0,pl)) * _wire2cm + 0.15;
+      _vtx_w_cm[pl] = channelMap.Plane(geo::PlaneID(0,0,pl)).WireCoordinate(vtx) * _wire2cm + 0.15;
       _vtx_t_cm[pl] = vtx.X() + (triggerOffset * _time2cm) + pl*0.3;
 
       std::cout << "trigger offset [cm] : " << (triggerOffset * _time2cm) << std::endl;

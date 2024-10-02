@@ -12,7 +12,7 @@
 #include "lardataobj/RawData/RawDigit.h"
 #include "lardataobj/RecoBase/Wire.h"
 #include "lardataobj/RecoBase/Hit.h"
-#include "larcore/Geometry/Geometry.h"
+#include "larcore/Geometry/WireReadout.h"
 #include "larcoreobj/SimpleTypesAndConstants/RawTypes.h"
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
@@ -63,7 +63,7 @@ void SelectWires::produce(art::Event& e)
   art::PtrMaker<raw::RawDigit> rawPtr(e,"");
   art::PtrMaker<recob::Wire> wirePtr(e,"");
 
-  art::ServiceHandle<geo::Geometry> geom;
+  auto const& channelMap = art::ServiceHandle<geo::WireReadout const>()->Get();
 
   art::Handle<std::vector<recob::Hit> > hit_handle;
   e.getByLabel(fHitProducer, hit_handle);
@@ -135,7 +135,7 @@ void SelectWires::produce(art::Event& e)
 
       if(found==true)
 	{
-	  outputWireVec->emplace_back(recob::Wire(roi,wire_channel,geom->View(wire_channel)));
+          outputWireVec->emplace_back(recob::Wire(roi,wire_channel,channelMap.View(wire_channel)));
 
 	  raw::RawDigit::ADCvector_t outadc;
 	  outadc.resize((int)wf.size(), 1);

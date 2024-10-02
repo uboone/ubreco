@@ -10,7 +10,7 @@
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "lardataobj/RecoBase/OpFlash.h"
-#include "larcore/Geometry/Geometry.h"
+#include "larcore/Geometry/WireReadout.h"
 #include "larcoreobj/SimpleTypesAndConstants/RawTypes.h"
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
@@ -59,7 +59,7 @@ pf::PortedFlash::PortedFlash(fhicl::ParameterSet const & p) : EDProducer{p}
 
 void pf::PortedFlash::produce(art::Event &e){
 
-  ::art::ServiceHandle<geo::Geometry> geo;
+  auto const& channelMap = ::art::ServiceHandle<geo::WireReadout const>()->Get();
 
   auto outputFlashVec = std::make_unique< std::vector<recob::OpFlash> >();
   auto outputIntVec = std::make_unique< std::vector<int> >();
@@ -109,7 +109,7 @@ void pf::PortedFlash::produce(art::Event &e){
     std::vector<double> tempA(32,0.0);
     for(size_t j=0; j<32; j++){
       tempA.at(j)=pe->at(j);
-      auto const PMTxyz = geo->OpDetGeoFromOpChannel(j).GetCenter();
+      auto const PMTxyz = channelMap.OpDetGeoFromOpChannel(j).GetCenter();
       sumy += pe->at(j)*PMTxyz.Y();
       sumy2 += pe->at(j)*PMTxyz.Y()*PMTxyz.Y();
       sumz += pe->at(j)*PMTxyz.Z();
@@ -146,7 +146,7 @@ void pf::PortedFlash::produce(art::Event &e){
       std::vector<double> tempB(32,0.0);
       for(size_t j=32; j<64; j++){
 	tempB.at(j-32)=pe->at(j);
-        auto const PMTxyz = geo->OpDetGeoFromOpChannel(j-32).GetCenter();
+        auto const PMTxyz = channelMap.OpDetGeoFromOpChannel(j-32).GetCenter();
         sumy += pe->at(j)*PMTxyz.Y();
         sumy2 += pe->at(j)*PMTxyz.Y()*PMTxyz.Y();
         sumz += pe->at(j)*PMTxyz.Z();

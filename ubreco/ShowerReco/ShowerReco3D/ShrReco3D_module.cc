@@ -39,6 +39,7 @@
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
+#include "larcore/Geometry/WireReadout.h"
 #include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 
 #include "art/Persistency/Common/PtrMaker.h"
@@ -248,6 +249,7 @@ void ShrReco3D::produce(art::Event & e)
   auto const detClocks = art::ServiceHandle<detinfo::DetectorClocksService>()->DataFor(e);
   auto const detProperties = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataFor(e, detClocks);
   util::GeometryUtilities const gser{*lar::providerFrom<geo::Geometry>(),
+                                     art::ServiceHandle<geo::WireReadout const>()->Get(),
                                      detClocks,
                                      detProperties};
   _manager->Reconstruct(gser, output_shower_v);

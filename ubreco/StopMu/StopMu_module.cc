@@ -46,9 +46,7 @@
 #include <climits>
 #include <limits>
 
-#include "larcore/Geometry/Geometry.h"
-#include "larcorealg/Geometry/GeometryCore.h"
-#include "lardata/Utilities/GeometryUtilities.h"
+#include "larcore/Geometry/WireReadout.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
@@ -400,12 +398,12 @@ StopMu::StopMu(fhicl::ParameterSet const & p)
   fUseTruth = p.get<bool>("UseTruth",false);
   fFillTTree = p.get<bool>("FillTTree",false);
   
-  auto const* geom = ::lar::providerFrom<geo::Geometry>();
+  auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
   auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
   auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
   double efield = detProp.Efield();
   double temp   = detProp.Temperature();
-  _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
+  _wire2cm = channelMap.Plane(geo::PlaneID{0,0,0}).WirePitch();
   _time2cm = sampling_rate(clockData) / 1000.0 * detProp.DriftVelocity(efield, temp);
 
   _tmean.setRadius(10);
@@ -804,8 +802,8 @@ int StopMu::findEndPointHits(const double& endx, const double& endy, const doubl
   int nearby = 0;
 
   // get end point coordinates in wire/time
-  auto const* geom = ::lar::providerFrom<geo::Geometry>();
-  auto stopwirecm = geom->WireCoordinate(geo::Point_t{endx,endy,endz},geo::PlaneID(0,0,pl)) * _wire2cm;
+  auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
+  auto stopwirecm = channelMap.Plane(geo::PlaneID(0,0,pl)).WireCoordinate(geo::Point_t{endx,endy,endz}) * _wire2cm;
   auto stoptickcm = endx;
 
   /*

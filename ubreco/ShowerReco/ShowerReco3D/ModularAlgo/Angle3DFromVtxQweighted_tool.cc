@@ -13,9 +13,8 @@
 #include <sstream>
 #include <algorithm>
 
-#include "larcore/Geometry/Geometry.h"
+#include "larcore/Geometry/WireReadout.h"
 #include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
-#include "larcorealg/Geometry/GeometryCore.h"
 #include "lardata/Utilities/GeometryUtilities.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 
@@ -47,10 +46,10 @@ namespace showerreco {
     configure(pset);
     _name = "Angle3DFromVtxQweighted";
 
-    auto const* geom = ::lar::providerFrom<geo::Geometry>();
+    auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
     auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
     auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
-    _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
+    _wire2cm = channelMap.Plane(geo::PlaneID{0,0,0}).WirePitch();
     _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
   }
 
@@ -96,6 +95,7 @@ namespace showerreco {
     std::vector<::util::PxPoint> planeDir(3);
 
     // we want an energy for each plane
+    auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
     for (size_t n = 0; n < clusters.size(); n++) {
       
       // get the hits associated with this cluster
@@ -107,8 +107,7 @@ namespace showerreco {
       // project vertex onto this plane
       //auto const& vtx2D = geomH.Get2DPointProjectionCM(vtx,pl);
       // get wire for yz pointx
-      auto const* geom = ::lar::providerFrom<geo::Geometry>();
-      auto wire = geom->WireCoordinate(vtx,geo::PlaneID(0,0,pl)) * _wire2cm;
+      auto wire = channelMap.Plane(geo::PlaneID(0, 0, pl)).WireCoordinate(vtx) * _wire2cm;
       auto time = vtx.X();
       util::PxPoint vtx2D(pl,wire,time);
 

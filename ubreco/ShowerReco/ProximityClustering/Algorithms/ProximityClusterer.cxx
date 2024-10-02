@@ -2,6 +2,7 @@
 #define GAMMACATCHER_PROXIMITYCLUSTERER_CXX
 
 #include "ProximityClusterer.h"
+#include "larcore/Geometry/WireReadout.h"
 #include "larcorealg/Geometry/Exceptions.h"
 #include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 
@@ -10,10 +11,10 @@ namespace gammacatcher {
   bool ProximityClusterer::initialize() {
 
     // get detector specific properties
-    auto const* geom = ::lar::providerFrom<geo::Geometry>();
+    auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
     auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
     auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
-    _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
+    _wire2cm = channelMap.Plane(geo::PlaneID{0,0,0}).WirePitch();
     _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
     
     return true;
@@ -348,6 +349,7 @@ namespace gammacatcher {
 
     // load required services to obtain offsets
     util::GeometryUtilities const geomH{*lar::providerFrom<geo::Geometry>(),
+                                        art::ServiceHandle<geo::WireReadout const>()->Get(),
                                         clockData,
                                         detProp};
     
@@ -357,17 +359,14 @@ namespace gammacatcher {
     }
 
     auto const& vtx = vtx_h->at(0);
+    auto const& xyz = vtx.position();
     
-    Double_t xyz[3] = {};
-    vtx.XYZ(xyz);
-
-
-    std::cout << "Vtx coordinates : [" << xyz[0] << ", " << xyz[1] << ", " << xyz[2] << "]" << std::endl;
+    std::cout << "Vtx coordinates : [" << xyz.X() << ", " << xyz.Y() << ", " << xyz.Z() << "]" << std::endl;
 
     bool vtxok = true;
     for (size_t pl = 0; pl < 3; pl++) {
       try {
-        auto const& pt = geomH.Get2DPointProjectionCM(xyz,pl);
+        auto const& pt = geomH.Get2DPointProjectionCM(xyz, geo::PlaneID(0, 0, pl));
         _vtx_w_cm[pl] = pt.w;
         _vtx_t_cm[pl] = pt.t + (trigger_offset(clockData) * _time2cm);
 

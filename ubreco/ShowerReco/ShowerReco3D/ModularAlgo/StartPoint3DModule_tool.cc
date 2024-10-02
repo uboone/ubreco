@@ -4,6 +4,7 @@
 #include <iostream>
 #include "ubreco/ShowerReco/ShowerReco3D/Base/ShowerRecoModuleBase.h"
 #include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
+#include "larcore/Geometry/WireReadout.h"
 /**
    \class ShowerRecoModuleBase
    User defined class ShowerRecoModuleBase ... these comments are used to generate
@@ -74,20 +75,18 @@ namespace showerreco {
     *  Store planes and wire start, calculate average time for best 2 clusters.
     */
     double sX = 0 ;
-    double sY ;
-    double sZ ;
 
     std::vector<unsigned int> wireStarts(0) ;
     std::vector<int> planes(0) ;
     
     //auto const& geomH = ::util::GeometryUtilities::GetME();
-    auto const* geom  = ::lar::providerFrom<geo::Geometry>();
+    auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
 
     for ( auto const& c : clusters ) {
 
         if ((int) c._plane != worstPlane) {
             wireStarts.emplace_back(
-               int(c._start.w / geom -> WirePitch(geo::PlaneID{0, 0, 0}) ) ) ;
+               int(c._start.w / channelMap.Plane(geo::PlaneID{0, 0, 0}).WirePitch() ) ) ;
             planes.emplace_back( c._plane ) ;
             sX += c._start.t;
         }
@@ -108,15 +107,15 @@ namespace showerreco {
     geo::PlaneID const plane_0(tpcid, planes.at(0));
     geo::PlaneID const plane_1(tpcid, planes.at(1));
 
-    if ( wireStarts.at(0) > geom->Nwires(plane_0) or
-         wireStarts.at(1) > geom->Nwires(plane_1) ) {
+    if ( wireStarts.at(0) > channelMap.Nwires(plane_0) or
+         wireStarts.at(1) > channelMap.Nwires(plane_1) ) {
       std::stringstream ss;
       ss << "Fail @ algo " << this->name() << " due to wires out of range";
       throw ShowerRecoException(ss.str());
     } 
 
-    geom->IntersectionPoint(geo::WireID(plane_0, wireStarts.at(0)),
-                            geo::WireID(plane_1, wireStarts.at(1)), sY, sZ );
+    auto intersection = channelMap.WireIDsIntersect(geo::WireID(plane_0, wireStarts.at(0)),
+                                               geo::WireID(plane_1, wireStarts.at(1)));
 
     // check if reconstructed start point is outside of TPC volume    
     /*
@@ -127,7 +126,7 @@ namespace showerreco {
     }
     */
 
-    resultShower.fXYZStart = {sX / 2, sY, sZ} ;
+    resultShower.fXYZStart = {sX / 2, intersection->y, intersection->z};
 
 }
   DEFINE_ART_CLASS_TOOL(StartPoint3DModule)

@@ -1,6 +1,8 @@
 #include <fstream>
 #include "ubreco/BlipReco/Alg/BlipRecoAlg.h"
 
+#include "larcore/Geometry/WireReadout.h"
+
 namespace blip {
 
   //###########################################################
@@ -236,7 +238,7 @@ namespace blip {
     auto const& chanFilt            = art::ServiceHandle<lariov::ChannelStatusService>()->GetProvider();
   
     // -- geometry
-    art::ServiceHandle<geo::Geometry> geom;
+    auto const& wireReadout = art::ServiceHandle<geo::WireReadout>()->Get();
 
     // -- G4 particles
     art::Handle< std::vector<simb::MCParticle> > pHandle;
@@ -346,7 +348,7 @@ namespace blip {
     //======================================================
     std::map<int,double> map_g4trkid_charge;
     for(auto const &chan : simchanlist ) {
-      if( geom->View(chan->Channel()) != geo::kW ) continue;
+      if( wireReadout.View(chan->Channel()) != geo::kW ) continue;
       for(auto const& tdcide : chan->TDCIDEMap() ) {
         for(auto const& ide : tdcide.second) {
           if( ide.trackID < 0 ) continue;
@@ -662,12 +664,12 @@ namespace blip {
           int  w2   = hc.EndWire+dw;
           bool flag = false;
           // treat edges of wireplane as "dead"
-          if( w1 < 0 || w2 >= (int)geom->Nwires(geo::PlaneID(0, 0, hc.Plane)) )
+          if( w1 < 0 || w2 >= (int)wireReadout.Nwires(geo::PlaneID(0, 0, hc.Plane)) )
             flag=true;
           //otherwise, use channel filter service
           else {
-            int ch1 = geom->PlaneWireToChannel(geo::WireID(0, 0, hc.Plane, w1));
-            int ch2 = geom->PlaneWireToChannel(geo::WireID(0, 0, hc.Plane, w2));
+            int ch1 = wireReadout.PlaneWireToChannel(geo::WireID(0, 0, hc.Plane, w1));
+            int ch2 = wireReadout.PlaneWireToChannel(geo::WireID(0, 0, hc.Plane, w2));
             if( chanFilt.Status(ch1)<2 ) flag=true;
             if( chanFilt.Status(ch2)<2 ) flag=true;
           }
@@ -762,14 +764,11 @@ namespace blip {
               // *******************************************
               // Check that the two central wires intersect
               // *******************************************
-              double y, z;
-              int& chanA = hcA.CenterChan;
-              int& chanB = hcB.CenterChan;
-              if( !art::ServiceHandle<geo::Geometry>()
-                ->ChannelsIntersect(chanA,chanB,y,z)) continue;
+              auto intersection = wireReadout.ChannelsIntersect(hcA.CenterChan, hcB.CenterChan);
+              if( !intersection ) continue;
               // Save intersect location, so we don't have to
               // make another call to the Geometry service later
-              TVector3 xloc(0,y,z);
+              TVector3 xloc(0,intersection->y,intersection->z);
               hcA.IntersectLocations[hcB.ID] = xloc;
               hcB.IntersectLocations[hcA.ID] = xloc;
               
@@ -940,16 +939,16 @@ namespace blip {
 
     for(size_t i=0; i<hitlist.size(); i++){
       if (hitinfo[i].trkid >= 0 ) continue;
-      h_chan_nhits->Fill(geom->PlaneWireToChannel(geo::WireID(0, 0, hitinfo[i].plane, hitinfo[i].wire)));
+      h_chan_nhits->Fill(wireReadout.PlaneWireToChannel(geo::WireID(0, 0, hitinfo[i].plane, hitinfo[i].wire)));
       
       int clustid = hitinfo[i].clustid;
       if( clustid >= 0 ) {
         if( hitclust[clustid].NWires > 1 ) continue;
-        h_chan_nclusts->Fill(geom->PlaneWireToChannel(geo::WireID(0, 0, hitinfo[i].plane, hitinfo[i].wire)));
+        h_chan_nclusts->Fill(wireReadout.PlaneWireToChannel(geo::WireID(0, 0, hitinfo[i].plane, hitinfo[i].wire)));
       }
       //if( hitinfo[i].ismatch    ) continue;
       //if( hitclust[clustid].NWires > 1 ) continue;
-      //h_chan_nclusts->Fill(geom->PlaneWireToChannel(hitinfo[i].plane,hitinfo[i].wire));
+      //h_chan_nclusts->Fill(wireReadout.PlaneWireToChannel(hitinfo[i].plane,hitinfo[i].wire));
     }
 
     

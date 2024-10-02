@@ -43,6 +43,7 @@
 #include "ubreco/LLSelectionTool/OpT0Finder/Base/OpT0FinderTypes.h"
 #include "ubreco/LLSelectionTool/OpT0Finder/Base/FlashMatchManager.h"
 
+#include "larcore/Geometry/WireReadout.h"
 #include "larcore/Geometry/Geometry.h"
 
 #include "TTree.h"
@@ -408,9 +409,10 @@ void StoreFlashMatchChi2::produce(art::Event& e)
   PEspectrum.resize(nOpDets);
   
   // apply gain to OpDets
+  auto const& channelMapAlg = art::ServiceHandle<geo::WireReadout const>()->Get();
   for (uint OpChannel = 0; OpChannel < nOpDets; ++OpChannel)
     {
-      uint opdet = geometry->OpDetFromOpChannel(OpChannel);
+      uint opdet = channelMapAlg.OpDetFromOpChannel(OpChannel);
       PEspectrum[opdet] = opflash.PEs().at(OpChannel);
     }
 

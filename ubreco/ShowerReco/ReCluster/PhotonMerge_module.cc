@@ -20,6 +20,7 @@
 #include <memory>
 
 // larsoft data-products
+#include "larcore/Geometry/WireReadout.h"
 #include "lardataobj/RecoBase/Cluster.h"
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RecoBase/PFParticle.h"
@@ -127,10 +128,10 @@ PhotonMerge::PhotonMerge(fhicl::ParameterSet const & p)
   fDebug          = p.get<bool>       ("Debug");
   
   // get detector specific properties
-  auto const* geom = ::lar::providerFrom<geo::Geometry>();
+  auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
   auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
   auto const detPropData = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
-  _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
+  _wire2cm = channelMap.Plane(geo::PlaneID{0,0,0}).WirePitch();
   _time2cm = sampling_rate(clockData) / 1000.0 * detPropData.DriftVelocity( detPropData.Efield(), detPropData.Temperature() );
   _trigoff = trigger_offset(clockData);
 }
@@ -189,8 +190,8 @@ void PhotonMerge::produce(art::Event & e)
 
   // load vertex and project on collection-plane
   auto const& vtx = vtx_h->at(0).position();
-  auto const* geom = ::lar::providerFrom<geo::Geometry>();
-  _vtxW = geom->WireCoordinate(vtx,geo::PlaneID(0,0,2)) * _wire2cm;
+  auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
+  _vtxW = channelMap.Plane(geo::PlaneID(0,0,2)).WireCoordinate(vtx) * _wire2cm;
   _vtxT = vtx.X();
   if (fDebug) std::cout << "\n\t Vertex @ Pl 2 : [w,t] -> [" << _vtxW << ", " << _vtxT << "]" << std::endl;
 
@@ -432,7 +433,7 @@ void PhotonMerge::produce(art::Event & e)
 			  endW,   0., endT,   0., 0., 0., 0., 
 			  CMCluster._sum_charge, 0., CMCluster._sum_charge, 0., 
 			  CMCluster.GetHits().size(), 0., 0., (s*3)+pl,
-			  geom->View(planeid),
+                          channelMap.Plane(planeid).View(),
 			  planeid);
       
       if (fDebug) std::cout << "\t creating cluster and hit in event record! " << std::endl;

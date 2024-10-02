@@ -9,7 +9,7 @@
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "lardataobj/RecoBase/Hit.h"
-#include "larcore/Geometry/Geometry.h"
+#include "larcore/Geometry/WireReadout.h"
 #include "larcoreobj/SimpleTypesAndConstants/RawTypes.h"
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
@@ -81,7 +81,7 @@ void ph::PortedHits::produce(art::Event &e){
   tin->SetBranchAddress("charge_error",&charge_error);
 
   //auto const &detClocks = lar::providerFrom<detinfo::DetectorClocksService>();
-  art::ServiceHandle<geo::Geometry> geom;
+  auto const& channelMap = art::ServiceHandle<geo::WireReadout const>()->Get();
   int cryostat_no=0, tpc_no=0, plane_no=0;
   for(int i=0; i<tin->GetEntries(); i++){
     tin->GetEntry(i);
@@ -102,7 +102,7 @@ void ph::PortedHits::produce(art::Event &e){
       channel=channel-4800; 
     }
     geo::WireID wire(cryostat_no,tpc_no,plane_no,channel);
-    raw::ChannelID_t chan = geom->PlaneWireToChannel(wire); // removed -1 
+    raw::ChannelID_t chan = channelMap.PlaneWireToChannel(wire); // removed -1
 
     //raw::TDCtick_t start_tdc = detClocks->TPCTick2TDC(start_tick-fTickOffset);
     //raw::TDCtick_t end_tdc = detClocks->TPCTick2TDC(start_tick+(fRebin-1)-fTickOffset);
@@ -123,8 +123,8 @@ void ph::PortedHits::produce(art::Event &e){
 					 0,
 					 1,
 					 1,
-					 geom->View(chan),
-					 geom->SignalType(chan),
+                                         channelMap.View(chan),
+                                         channelMap.SignalType(chan),
 					 wire));
   }
   

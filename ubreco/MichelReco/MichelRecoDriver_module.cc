@@ -18,7 +18,7 @@
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 // services etc...
-#include "larcore/Geometry/Geometry.h"
+#include "larcore/Geometry/WireReadout.h"
 #include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "lardata/DetectorInfoServices/LArPropertiesService.h"
@@ -97,10 +97,10 @@ MichelRecoDriver::MichelRecoDriver(fhicl::ParameterSet const & p)
   fMinClusSize      = p.get<size_t>     ("MinClusSize");
   
   // get detector specific properties
-  auto const* geom = lar::providerFrom<geo::Geometry>();
+  auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
   auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
   auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
-  _w2cm = geom->WirePitch();
+  _w2cm = channelMap.Plane({0, 0, 0}).WirePitch();
   _t2cm = sampling_rate(clockData) / 1000.0 * detProp.DriftVelocity( detProp.Efield(), detProp.Temperature() );
 
   std::cout << "**********************" << std::endl
