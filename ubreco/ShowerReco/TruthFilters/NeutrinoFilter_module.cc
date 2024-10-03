@@ -58,7 +58,7 @@ private:
 
   // Declare member data here.
 
-  double _time2cm, _wire2cm;
+  double _time2cm;
 
   double fECut;
 
