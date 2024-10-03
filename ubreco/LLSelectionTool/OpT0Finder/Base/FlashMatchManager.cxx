@@ -12,6 +12,9 @@
 #include "FlashHypothesisFactory.h"
 #include "FlashProhibitFactory.h"
 #include "CustomAlgoFactory.h"
+
+#include "larcore/Geometry/WireReadout.h"
+
 namespace flashana {
 
   FlashMatchManager::FlashMatchManager(const std::string name)
@@ -112,6 +115,7 @@ namespace flashana {
     //auto const drift_velocity = detector_cfg.get<double>("DriftVelocity");
 
     const art::ServiceHandle<geo::Geometry> geo; 
+    auto const& channelMap = art::ServiceHandle<geo::WireReadout const>()->Get();
     const geo::TPCGeo &thisTPC = geo->TPC();
     const geo::BoxBoundedGeo theTpcGeo = thisTPC.ActiveBoundingBox();
     auto const detPropData = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob();
@@ -126,7 +130,7 @@ namespace flashana {
     std::vector<double> pmt_z_pos(geo->NOpDets());
     for (uint i=0; i< geo->NOpDets(); ++i)
     {
-      auto const xyz = geo->OpDetGeoFromOpChannel(i).GetCenter();
+      auto const xyz = channelMap.OpDetGeoFromOpChannel(i).GetCenter();
       pmt_x_pos[i]=xyz.X();
       pmt_y_pos[i]=xyz.Y();
       pmt_z_pos[i]=xyz.Z();

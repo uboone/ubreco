@@ -34,10 +34,8 @@
 
 // Services
 #include "art_root_io/TFileService.h"
-#include "larcore/Geometry/Geometry.h"
+#include "larcore/Geometry/WireReadout.h"
 #include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
-//#include "larcore/Geometry/GeometryCore.h"
-#include "lardata/Utilities/GeometryUtilities.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "lardataobj/MCBase/MCTrack.h"
 #include "lardataobj/RecoBase/Cluster.h"
@@ -286,7 +284,7 @@ void ClusterTrackDistance::analyze(art::Event const & e)//START EVENT LOOP
   Int_t clustercounter=0; //Variable to keep track of cluster index
 
 
-
+  auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
   for (size_t i_c = 0, size_cluster = cluster_handle->size(); i_c != size_cluster; ++i_c) { //START CLUSTER FOR LOOP
 
     //  if(cluster[i_c].View()==2){//Y CLUSTER IF LOOP
@@ -315,11 +313,10 @@ void ClusterTrackDistance::analyze(art::Event const & e)//START EVENT LOOP
         std::tie(X_reco, Y_reco, Z_reco) = std::make_tuple(track_loc.X(), track_loc.Y(), track_loc.Z());
 
         //   //cout<<"X_reco: "<<X_reco<<endl;
-        auto const* geom = ::lar::providerFrom<geo::Geometry>();
-        auto V_wire_cm = geom->WireCoordinate(track_loc,geo::PlaneID(0,0,1)) * wire2cm;
+        auto V_wire_cm = channelMap.Plane(geo::PlaneID(0,0,1)).WireCoordinate(track_loc) * wire2cm;
         auto V_time_cm = X_reco;
 
-        auto U_wire_cm = geom->WireCoordinate(track_loc,geo::PlaneID(0,0,0)) * wire2cm;
+        auto U_wire_cm = channelMap.Plane(geo::PlaneID(0,0,0)).WireCoordinate(track_loc) * wire2cm;
         auto U_time_cm = X_reco;
 
 
@@ -429,8 +426,6 @@ V_t_max_common = -9999.; // end point of the overlap
 U_t_min_common = -9999.; //  start point of the overlap
 U_t_max_common = -9999.; // end point of the overlap
 
-auto const* geom = ::lar::providerFrom<geo::Geometry>();
-
 for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR LOOP (Y-COLLECTION PLANE LOOP)
 
   IoU_U.clear();
@@ -531,11 +526,10 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
 
     // V_cluster_charge=0;
 
-    geo::WireIDIntersection clusterintersectionV;
-    auto Vintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitj[0]->WireID(),clusterintersectionV);
+    auto clusterintersectionV = channelMap.WireIDsIntersect(hiti[0]->WireID(),hitj[0]->WireID());
     // //cout<<"Vintersect: "<<Vintersect<<endl;
 
-    if (Vintersect==0)
+    if (!clusterintersectionV)
     continue;
 
 
@@ -554,7 +548,7 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
       // Y_V_index.push_back(V_index_vector[j]);
       Y_V_index.push_back(j);
       IoU_V.push_back(V_iou);
-      y_V.push_back(clusterintersectionV.y);
+      y_V.push_back(clusterintersectionV->y);
 
 
     }
@@ -624,12 +618,10 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
 
     // U_cluster_charge=0;
 
-    geo::WireIDIntersection clusterintersectionU;
-    // geo::WireIDIntersection clusterintersectionUnew;
-    auto Uintersect = geom->WireIDsIntersect(hiti[0]->WireID(),hitk[0]->WireID(),clusterintersectionU);//
+    auto clusterintersectionU = channelMap.WireIDsIntersect(hiti[0]->WireID(),hitk[0]->WireID());
 
     // //cout<<"Uintersect: "<<Uintersect<<endl;
-    if (Uintersect==0)
+    if (!clusterintersectionU)
     continue;
 
 
@@ -646,7 +638,7 @@ for (size_t i = 0; i < Y_index_vector.size(); i++) {//START PLANE MATCHING FOR L
     if (U_iou>0){
       Y_U_index.push_back(k);
       IoU_U.push_back(U_iou);
-      y_U.push_back(clusterintersectionU.y);
+      y_U.push_back(clusterintersectionU->y);
     }
 
     // //cout<<"************IoU_U.size(): "<<IoU_U.size()<<endl;
@@ -1263,14 +1255,13 @@ void ClusterTrackDistance::beginJob()
 {
   // get detector specific properties
 
-  auto const* geom = ::lar::providerFrom<geo::Geometry>();
+  auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
   auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
   auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
   double efield = detProp.Efield();
   double temp   = detProp.Temperature();
-  //  auto const* geomcore = lar::providerFrom<geo::GeometryCore>();
 
-  wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
+  wire2cm = channelMap.Plane(geo::PlaneID{0,0,0}).WirePitch();
   time2cm = sampling_rate(clockData) / 1000.0 * detProp.DriftVelocity(efield, temp);
 
 

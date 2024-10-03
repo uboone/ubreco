@@ -1,5 +1,7 @@
 #include "ProtoShowerAlgBase.h"
 
+#include "larcore/Geometry/WireReadout.h"
+
 namespace protoshower {
   
   class ProtoShowerCMTool : public ProtoShowerAlgBase {
@@ -50,10 +52,10 @@ namespace protoshower {
     fVtxproducer     = pset.get<std::string>("Vtxproducer"    );
 
     // get detector specific properties
-    auto const* geom = ::lar::providerFrom<geo::Geometry>();
+    auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
     auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
     auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
-    _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
+    _wire2cm = channelMap.Plane(geo::PlaneID{0,0,0}).WirePitch();
     _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
   }
 

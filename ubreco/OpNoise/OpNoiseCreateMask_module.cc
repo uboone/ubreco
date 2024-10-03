@@ -20,6 +20,7 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
+#include "larcorealg/Geometry/OpDetGeo.h"
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RecoBase/OpHit.h"
 #include "lardataobj/RecoBase/Cluster.h"
@@ -30,9 +31,7 @@
 #include "larreco/HitFinder/HitFilterAlg.h"
 
 
-#include "larcore/Geometry/Geometry.h"
-#include "larcorealg/Geometry/GeometryCore.h"
-#include "lardata/Utilities/GeometryUtilities.h"
+#include "larcore/Geometry/WireReadout.h"
 
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
@@ -121,7 +120,7 @@ void OpNoiseCreateMask::produce(art::Event& e)
   art::InputTag OpHitCosmicInputTag("ophitCosmic");
   art::ValidHandle<std::vector<recob::OpHit> > inputOpHits = e.getValidHandle<std::vector<recob::OpHit> >(OpHitCosmicInputTag);
 
-  art::ServiceHandle<geo::Geometry> geom;
+  auto const& channelMap = art::ServiceHandle<geo::WireReadout const>()->Get();
 
   std::vector<double> pe;
   std::vector<double> peaktime;
@@ -154,12 +153,10 @@ void OpNoiseCreateMask::produce(art::Event& e)
 
       unsigned int opch=ophit.OpChannel();
       
-      auto const PMTxyz = geom->OpDetGeoFromOpChannel(opch).GetCenter();
+      auto const PMTxyz = channelMap.OpDetGeoFromOpChannel(opch).GetCenter();
 
-      for(int ipl=0; ipl<3; ipl++){
-	auto plid = geo::PlaneID(0,0,ipl);
-        auto wire = geom->WireCoordinate(PMTxyz,plid);
-	opwiretmp.push_back(wire);
+      for(auto const& plane : channelMap.Iterate<geo::PlaneGeo>(geo::TPCID{0, 0})) {
+        opwiretmp.push_back(plane.WireCoordinate(PMTxyz));
       }
       ophit_wire.push_back(opwiretmp);
     }

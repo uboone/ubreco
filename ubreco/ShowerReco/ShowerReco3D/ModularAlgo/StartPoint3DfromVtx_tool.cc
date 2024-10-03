@@ -3,9 +3,6 @@
 
 #include <iostream>
 
-#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
-#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
-
 #include "ubreco/ShowerReco/ShowerReco3D/Base/ShowerRecoModuleBase.h"
 /**
    \class ShowerRecoModuleBase
@@ -29,20 +26,11 @@ namespace showerreco {
     void do_reconstruction(const util::GeometryUtilities&,
                            const ::protoshower::ProtoShower &, Shower_t &);
 
-  private:
-
-    double _wire2cm, _time2cm;
-    
   };
   
   StartPoint3DfromVtx::StartPoint3DfromVtx(const fhicl::ParameterSet& pset)
   {
     _name = "StartPoint3DfromVtx"; 
-    auto const* geom = ::lar::providerFrom<geo::Geometry>();
-    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
-    auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
-    _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
-    _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
   }
 
   void StartPoint3DfromVtx::do_reconstruction(const util::GeometryUtilities&,

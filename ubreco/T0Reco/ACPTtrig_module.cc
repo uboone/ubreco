@@ -36,7 +36,7 @@
 
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
 
-#include "larcore/Geometry/Geometry.h"
+#include "larcore/Geometry/WireReadout.h"
 #include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 #include "larevt/CalibrationDBI/Interface/PmtGainService.h"
 #include "larevt/CalibrationDBI/Interface/PmtGainProvider.h"
@@ -292,7 +292,7 @@ void ACPTtrig::produce(art::Event& e)
   e.getByLabel(fFlashProducer,flash_h);
 
   // grab PMT calibrations if needed
-  art::ServiceHandle<geo::Geometry> geo;
+  auto const& channelMapAlg = art::ServiceHandle<geo::WireReadout const>()->Get();
   const lariov::PmtGainProvider& gain_provider = art::ServiceHandle<lariov::PmtGainService>()->GetProvider();
   // pmt remapping service
   const ::util::PMTRemapProvider &pmtremap_provider = art::ServiceHandle<util::PMTRemapService>()->GetProvider();
@@ -650,7 +650,7 @@ void ACPTtrig::produce(art::Event& e)
 	  
 	  for (size_t ch=0; ch < _flash_pe_v.size(); ch++) {
 	    if (ch < 32) {
-	      if (geo->IsValidOpChannel(ch) == true) { 
+              if (channelMapAlg.IsValidOpChannel(ch) == true) {
 		auto oldch = pmtremap_provider.OriginalOpChannel(ch);
 		// area gain
 		auto gain = gain_provider.Gain(oldch);

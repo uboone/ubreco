@@ -28,12 +28,6 @@
 
 #include "lardataobj/RecoBase/Hit.h"
 
-#include "larcore/Geometry/Geometry.h"
-#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
-#include "larcorealg/Geometry/GeometryCore.h"
-#include "lardata/Utilities/GeometryUtilities.h"
-#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
-
 //a polygon is a vector of std::pairs with first = x coordinate
 //and second = y coordinate of that vertex
 //access vertices with Point function. Points are:
