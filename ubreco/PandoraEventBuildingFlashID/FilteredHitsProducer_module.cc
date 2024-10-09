@@ -112,6 +112,7 @@ void FilteredHitsProducer::produce(art::Event& e)
   }
 
   for (size_t ihit=0; ihit<hitListHandle->size();ihit++) {
+    if (fScoreCut>=0 && ngFiltOutputHandle->size()==0) break;
     art::Ptr<recob::Hit> hit(hitListHandle,ihit);
 
     bool keepHit = false;
