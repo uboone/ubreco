@@ -2,30 +2,31 @@
 art_make(	
 	  LIB_LIBRARIES
 			${ART_FRAMEWORK_CORE}
-			art_Utilities canvas
+			#art_Utilities canvas
 			${MF_MESSAGELOGGER}
 			${MF_UTILITIES}
-			cetlib cetlib_except
+			#cetlib cetlib_except
                    	#larpandora_LArPandoraInterface	
                         ${Boost_SYSTEM_LIBRARY}
 			${ROOT_BASIC_LIB_LIST}
-			larcorealg_Geometry
-			lardata_Utilities
-			lardataobj_RecoBase
-			larcore_Geometry_Geometry_service
+			larcorealg::Geometry
+			lardata::Utilities
+			lardataobj::RecoBase
+			larcore::Geometry_Geometry_service
           MODULE_LIBRARIES 
-			ubreco_ShowerReco_ProximityClustering_Algorithms
+			ubreco::ShowerReco_ProximityClustering_Algorithms
 		   	#larpandora_LArPandoraInterface	
-			larcorealg_Geometry
-			larcore_Geometry_Geometry_service
-			lardataobj_RecoBase
-			lardataobj_AnalysisBase	
-			lardata_RecoObjects larreco_Deprecated  
-			larreco_RecoAlg
-			lardata_Utilities
+			larcorealg::Geometry
+			larcore::Geometry_Geometry_service
+			lardataobj::RecoBase
+			lardataobj::AnalysisBase	
+			lardata::RecoObjects
+                        #larreco::Deprecated  
+			larreco::RecoAlg
+			lardata::Utilities
                         ${Boost_SYSTEM_LIBRARY}
-			larevt_Filters
-			nusimdata_SimulationBase
+			larevt::Filters
+			nusimdata::SimulationBase
 			${LARRECO_LIB}
 			${LARDATA_LIB}
                         ${ART_FRAMEWORK_CORE}
@@ -34,18 +35,21 @@ art_make(
 			${ART_FRAMEWORK_SERVICES_OPTIONAL}
 			${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
 			${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-			art_Persistency_Common canvas
-			art_Persistency_Provenance canvas
-			art_Utilities canvas
+			art::Persistency_Common 
+                        #canvas
+			art::Persistency_Provenance
+			art::Utilities
 			${MF_MESSAGELOGGER}
 			${MF_UTILITIES}
 	                ${FHICLCPP}
-			cetlib cetlib_except
+			#cetlib 
+                        #cetlib_except
 			${CLHEP}
                         ${ROOT_GEOM}
                         ${ROOT_XMLIO}
                         ${ROOT_GDML}
 			${ROOT_BASIC_LIB_LIST}
+                        art_root_io::TFileService_service
         )
 
 install_fhicl()
