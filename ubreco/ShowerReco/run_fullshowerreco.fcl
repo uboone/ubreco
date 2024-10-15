@@ -108,7 +108,7 @@ ClusterProducer: "cmerger"
 Vtxproducer: "neutrinovertex"
 }
 
-physics.producers.showerreco3d.ADCtoE: [193.,197.,197.] # e-/ADC
+physics.producers.showerreco3d.ADCtoE: [245.,252.,237.6] # e-/ADC
 
 #physics.producers.cosmicfilter.VtxProducer: "ccvertex"
 #physics.producers.proximity.VtxProducer:    "ccvertex"
