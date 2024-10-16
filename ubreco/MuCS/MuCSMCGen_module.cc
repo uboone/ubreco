@@ -17,17 +17,18 @@
 #include "art/Framework/Core/EDProducer.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
+#include "art/Framework/Principal/Run.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "art/Framework/Principal/Handle.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
-#include "art/Framework/Services/Optional/TFileService.h"
-#include "art/Framework/Services/Optional/TFileDirectory.h"
+#include "art_root_io/TFileService.h"
+#include "art_root_io/TFileDirectory.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "art/Framework/Services/Optional/RandomNumberGenerator.h"
 
 // art extensions
-#include "nutools/RandomUtils/NuRandomService.h"
+#include "nurandom/RandomUtils/NuRandomService.h"
 
 // larsoft includes
 #include "nusimdata/SimulationBase/MCTruth.h"
@@ -82,9 +83,8 @@ MuCSMCGen::MuCSMCGen(fhicl::ParameterSet const& pset) :
   fParticlesPerEvent{pset.get<int>("ParticlesPerEvent",1)},
   // create a default random engine; obtain the random seed from NuRandomService,
   // unless overridden in configuration with key "Seed"
-  fEngine(art::ServiceHandle<rndm::NuRandomService>()->createEngine(*this, pset, "Seed"))
+  fEngine(art::ServiceHandle<rndm::NuRandomService>()->registerAndSeedEngine(createEngine(0), pset, "Seed"))
 {
-
   produces< std::vector<simb::MCTruth> >();
   produces< sumdata::RunData, art::InRun >();
 
@@ -113,7 +113,7 @@ void MuCSMCGen::beginRun(art::Run& run)
 {
   // grab the geometry object to see what geometry we are using
   art::ServiceHandle<geo::Geometry> geo;
-  run.put(std::make_unique<sumdata::RunData>(geo->DetectorName()));
+  run.put(std::make_unique<sumdata::RunData>(geo->DetectorName()), art::fullRun());
 }
 
 //____________________________________________________________________________

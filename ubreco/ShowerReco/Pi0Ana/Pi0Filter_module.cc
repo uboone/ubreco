@@ -17,7 +17,7 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 
 #include "Selection/SelectionAlg.h"
 
@@ -91,7 +91,7 @@ private:
 
 
 Pi0Filter::Pi0Filter(fhicl::ParameterSet const & p)
-// :
+: EDFilter(p)
 // Initialize member data here.
 {
   fShrProducer = p.get<std::string>("ShrProducer");  

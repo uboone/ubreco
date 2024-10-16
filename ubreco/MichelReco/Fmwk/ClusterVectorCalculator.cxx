@@ -356,7 +356,7 @@ namespace michel {
     // mean of x^2
     double m_xx = 0;
     // mean of y^2
-    double m_yy = 0;
+    // double m_yy = 0; // unused
     
     for (size_t n=0; n < pts.size(); n++){
 
@@ -367,7 +367,7 @@ namespace michel {
       m_x  += xi;
       m_y  += yi;
       m_xx += xi*xi;
-      m_yy += yi*yi;
+      // m_yy += yi*yi; // unused
 
     }
 
@@ -377,7 +377,7 @@ namespace michel {
     m_x  /= entries;
     m_y  /= entries;
     m_xx /= entries;
-    m_yy /= entries;
+    // m_yy /= entries; // unused
 
     double slope = (m_xy-m_x*m_y)/(m_xx-m_x*m_x);
     double intercept = m_y - slope * m_x;
@@ -406,7 +406,7 @@ namespace michel {
     // mean of x^2
     double m_xx = 0;
     // mean of y^2
-    double m_yy = 0;
+    // double m_yy = 0; // unused
     
     for (size_t n=0; n < x.size(); n++){
 
@@ -417,7 +417,7 @@ namespace michel {
       m_x  += xi;
       m_y  += yi;
       m_xx += xi*xi;
-      m_yy += yi*yi;
+      // m_yy += yi*yi; // unused
 
     }
 
@@ -427,7 +427,7 @@ namespace michel {
     m_x  /= entries;
     m_y  /= entries;
     m_xx /= entries;
-    m_yy /= entries;
+    // m_yy /= entries; // unused
 
     double slope = (m_xy-m_x*m_y)/(m_xx-m_x*m_x);
     double intercept = m_y - slope * m_x;

@@ -152,8 +152,8 @@ namespace BlipUtils {
     tblip.DepElectrons+= pinfo.depElectrons;
     tblip.NumElectrons+= std::max(0.,pinfo.numElectrons);
 
-    auto const* detProp   = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    float driftVel = detProp->DriftVelocity(detProp->Efield(0),detProp->Temperature());
+    auto const detProp   = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob();
+    float driftVel = detProp.DriftVelocity(detProp.Efield(0),detProp.Temperature());
     tblip.DriftTime = tblip.Position.X() / driftVel;
 
     tblip.G4ChargeMap[part.TrackId()] += pinfo.depElectrons;
@@ -351,9 +351,10 @@ namespace BlipUtils {
     // ------------------------------------------------
     // detector properties initialization
     //if( _tick_to_cm < 0 ) InitializeDetProps();
-    auto const* detProp   = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    double samplePeriod  = lar::providerFrom<detinfo::DetectorClocksService>()->TPCClock().TickPeriod();
-    double driftVelocity = detProp->DriftVelocity(detProp->Efield(0),detProp->Temperature()); 
+    auto const detProp   = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob();
+    auto const detClock  = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+    double samplePeriod  = detClock.TPCClock().TickPeriod();
+    double driftVelocity = detProp.DriftVelocity(detProp.Efield(0),detProp.Temperature()); 
     double tick_to_cm    = samplePeriod * driftVelocity;
 
     bool validTouchTrk = true;
@@ -380,7 +381,7 @@ namespace BlipUtils {
       // use view with the maximal wire extent to calculate transverse (YZ) length
       if( hcs[i].NWires > newblip.MaxWireSpan ) {
         newblip.MaxWireSpan = hcs[i].NWires;
-        newblip.dYZ         = hcs[i].NWires * art::ServiceHandle<geo::Geometry>()->WirePitch(pli);
+        newblip.dYZ         = hcs[i].NWires * art::ServiceHandle<geo::Geometry>()->WirePitch(static_cast<geo::View_t>(pli));
       }
   
       for(size_t j=i+1; j<hcs.size(); j++){

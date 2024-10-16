@@ -1,32 +1,15 @@
 # ======================================================================
-#  larsoft main build file
+#  ubreco main build file
 #
 #  cd .../path/to/build/directory
-#  source .../path/to/larsoft/ups/setup_for_development <-d|-p>
-#  cmake [-DCMAKE_INSTALL_PREFIX=/install/path]
-#        -DCMAKE_BUILD_TYPE=$CETPKG_TYPE
-#        $CETPKG_SOURCE
-#  make
-#  make test
-#  make install
-#  make package (builds distribution tarfile)
+#  source .../path/to/lardataobj/ups/setup_for_development <-d|-p>
+#  buildtool [-I /install/path] -bt[i] -jN
 # ======================================================================
 
-# use cmake 2.8 or later
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 
-project(ubreco)
-
-# cetbuildtools contains our cmake modules
-SET ( CETBUILDTOOLS_VERSION $ENV{CETBUILDTOOLS_VERSION} )
-IF (NOT CETBUILDTOOLS_VERSION)
-    MESSAGE (FATAL_ERROR "ERROR: setup cetbuildtools to get the cmake modules")
-ENDIF()
-
-
-set(CMAKE_MODULE_PATH $ENV{CANVAS_ROOT_IO_DIR}/Modules
-		      $ENV{CETBUILDTOOLS_DIR}/Modules
-		      ${CMAKE_MODULE_PATH})
+find_package(cetmodules REQUIRED)
+project(ubreco VERSION 09.92.00 LANGUAGES CXX)
 
 include(CetCMakeEnv)
 cet_cmake_env()
@@ -34,36 +17,16 @@ cet_cmake_env()
 cet_set_compiler_flags(DIAGS CAUTIOUS
   WERROR
   NO_UNDEFINED
-  ALLOW_DEPRECATIONS
   EXTRA_FLAGS -pedantic -Wno-unused-local-typedefs
 )
 
-cet_report_compiler_flags()
+cet_report_compiler_flags(REPORT_THRESHOLD VERBOSE)
 
-# these are minimum required versions, not the actual product versions
-find_ups_product( larcorealg )
-find_ups_product( larcoreobj )
-find_ups_product( lardataobj )
-find_ups_product( lardataalg )
-find_ups_product( cetbuildtools )
-find_ups_boost( v1_53_0 )
-find_ups_product( canvas )
-find_ups_product( ubsim v1_00_00 )
-find_ups_product( ubcore v1_00_00 )
-find_ups_product( pandora )
-find_ups_product( larpandora v1_00_00 )
-find_ups_product( larreco v1_00_00 )
-find_ups_product( swtrigger v1_00_00 )
-find_ups_product( art v1_00_00 )
-find_ups_product( larsim )
-find_ups_product( larevt )
-find_ups_product( lardata )
-find_ups_product( larcore )
-find_ups_product( nutools )
-find_ups_product( eigen )
-find_ups_product( ubobj )
-find_library( SWTRIG_LIBBASE NAMES SWTriggerBase PATHS $ENV{SWTRIGGER_LIBDIR} )
-find_library( SWTRIG_LIBFEMU NAMES FEMBeamTrigger PATHS $ENV{SWTRIGGER_LIBDIR} )
+find_package( ubevt REQUIRED EXPORT )
+find_package( ubcore REQUIRED EXPORT )
+find_package( larpandora REQUIRED EXPORT )
+
+cet_cmake_module_directories(Modules BINARY)
 
 # macros for dictionary and simple_plugin
 include(ArtDictionary)
@@ -77,7 +40,6 @@ add_subdirectory(ubreco)
 add_subdirectory(test)
 
 # ups - table and config files
-add_subdirectory(ups)
 
 # packaging utility
-include(UseCPack)
+cet_cmake_config()

@@ -1,19 +1,13 @@
-include_directories(../data)
-include_directories(../deconv)
-include_directories(../algo)
-include_directories(../app)
-
-art_make(
-	  LIB_LIBRARIES
-			${ROOT_BASIC_LIB_LIST}
-			ubreco_wcopreco_data
-			ubreco_wcopreco_deconv
-			ubreco_wcopreco_algo
-			ubreco_wcopreco_app
-        )
-
+cet_make_exec(
+  NAME wcopreco
+  SOURCE main.cxx
+  LIBRARIES
+  PUBLIC
+  ubreco::wcopreco_app
+  Eigen3::Eigen
+  ROOT::Tree
+)
 
 install_headers()
 #install_fhicl()
 install_source()
-

@@ -14,7 +14,7 @@
 #include "art/Framework/Principal/Handle.h"
 #include "art/Framework/Principal/Run.h"
 #include "art/Framework/Principal/SubRun.h"
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
@@ -100,7 +100,7 @@ private:
 //###################################################
 // Constructor
 //###################################################
-TrackMasker::TrackMasker(fhicl::ParameterSet const & p)
+TrackMasker::TrackMasker(fhicl::ParameterSet const & p) : art::EDProducer(p)
 {
   produces< std::vector< recob::Hit > >();
   
@@ -224,9 +224,10 @@ void TrackMasker::produce(art::Event & evt)
   // 2D wire-time coordinates for each hit
   std::vector<TVector2> wtpoint( hitlist.size());
 
-  auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-  double samplePeriod = lar::providerFrom<detinfo::DetectorClocksService>()->TPCClock().TickPeriod();
-  double driftVel     = detProp->DriftVelocity(detProp->Efield(0),detProp->Temperature()); 
+  auto const detProp  = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob();
+  auto const detClock = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+  double samplePeriod = detClock.TPCClock().TickPeriod();
+  double driftVel     = detProp.DriftVelocity(detProp.Efield(0),detProp.Temperature()); 
 
   for (size_t h=0; h < hitlist.size(); h++) {
 

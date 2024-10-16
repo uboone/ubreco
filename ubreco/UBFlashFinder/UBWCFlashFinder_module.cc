@@ -11,8 +11,8 @@
 #include "art/Framework/Principal/Handle.h"
 #include "art/Framework/Principal/Run.h"
 #include "art/Framework/Principal/SubRun.h"
-#include "art/Framework/Services/Optional/TFileService.h"
-#include "art/Framework/Services/Optional/TFileDirectory.h"
+#include "art_root_io/TFileService.h"
+#include "art_root_io/TFileDirectory.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
@@ -66,7 +66,9 @@ private:
   // Declare member data here.
   typedef enum {kBeamHighGain=0,kBeamLowGain,kCosmicHighGain,kCosmicLowGain} OpDiscrTypes;
   std::string _OpDataProducerBeam;
+  std::string _OpDataProducerBeamLG;
   std::string _OpDataProducerCosmic;
+  std::string _OpDataProducerCosmicLG;
   std::string _OpSatDataProducer;
   std::vector<std::string> _OpDataTypes;
   std::string _TriggerProducer;
@@ -124,11 +126,13 @@ private:
 
 
 UBWCFlashFinder::UBWCFlashFinder(fhicl::ParameterSet const & p)
-// :
+: EDProducer(p)
 // Initialize member data here.
 {
-  _OpDataProducerBeam = p.get<std::string>("OpDataProducerBeam", "pmtreadout" );   // Waveform Module name, to get waveforms
-  _OpDataProducerCosmic = p.get<std::string>("OpDataProducerCosmic", "pmtreadout" );   // Waveform Module name, to get waveforms
+  _OpDataProducerBeam = p.get<std::string>("OpDataProducerBeam", "pmtreadout" );   // Waveform Module name, to get high gain beam waveforms
+  _OpDataProducerBeamLG = p.get<std::string>("OpDataProducerBeamLG", _OpDataProducerBeam );   // Waveform Module name, to get low gain beam waveforms
+  _OpDataProducerCosmic = p.get<std::string>("OpDataProducerCosmic", "pmtreadout" );   // Waveform Module name, to get high gain cosmic waveforms
+  _OpDataProducerCosmicLG = p.get<std::string>("OpDataProducerCosmicLG", _OpDataProducerCosmic );   // Waveform Module name, to get low gain cosmic waveforms
   _OpSatDataProducer = p.get<std::string>("OpSatDataProducer", "saturation" );   // Saturation corrected waveforms
   _OpDataTypes       = p.get<std::vector<std::string> >("OpDataTypes");
   _flashProducts     = p.get<std::vector<std::string> >("FlashProducts");
@@ -203,8 +207,8 @@ void UBWCFlashFinder::produce(art::Event & evt)
 
   // initialize data handles and services
   art::ServiceHandle<geo::Geometry> geo;
-  auto const* ts = lar::providerFrom<detinfo::DetectorClocksService>();
-  double triggerTime = ts->TriggerTime();
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataFor(evt);
+  double triggerTime = clockData.TriggerTime();
 
   //get gains from database if requested
   if(_usePmtGainDB){
@@ -311,15 +315,18 @@ void UBWCFlashFinder::reco_default(art::Event &evt, double &triggerTime){
 
   evt.getByLabel( _OpDataProducerBeam, _OpDataTypes[kBeamHighGain], wfBHGHandle);
   std::vector<raw::OpDetWaveform> const& opwfms_bhg(*wfBHGHandle);
-  evt.getByLabel( _OpDataProducerBeam, _OpDataTypes[kBeamLowGain], wfBLGHandle);
+  evt.getByLabel( _OpDataProducerBeamLG, _OpDataTypes[kBeamLowGain], wfBLGHandle);
   std::vector<raw::OpDetWaveform> const& opwfms_blg(*wfBLGHandle);
   evt.getByLabel( _OpDataProducerCosmic, _OpDataTypes[kCosmicHighGain], wfCHGHandle);
   std::vector<raw::OpDetWaveform> const& opwfms_chg(*wfCHGHandle);
-  evt.getByLabel( _OpDataProducerCosmic, _OpDataTypes[kCosmicLowGain], wfCLGHandle);
+  evt.getByLabel( _OpDataProducerCosmicLG, _OpDataTypes[kCosmicLowGain], wfCLGHandle);
   std::vector<raw::OpDetWaveform> const& opwfms_clg(*wfCLGHandle);
 
   std::vector<raw::OpDetWaveform> sort_blg;
   std::vector<raw::OpDetWaveform> sort_clg;
+
+  // HBG: Below conditional should be true for every epoch contrary to embedded comment.
+
   if( /*evt.run() <= 3984*/ opwfms_blg.size()>opwfms_bhg.size() ){
     for (unsigned i=0; i<opwfms_blg.size(); i++){
       if(opwfms_blg.at(i).size()>=1500) sort_blg.push_back(opwfms_blg.at(i));

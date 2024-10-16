@@ -16,7 +16,7 @@
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 
 #include <memory>
 
@@ -32,6 +32,7 @@
 #include "art/Persistency/Common/PtrMaker.h"
 
 #include "larcore/Geometry/Geometry.h"
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 #include "larcorealg/Geometry/GeometryCore.h"
 
 // ROOT
@@ -79,7 +80,7 @@ private:
 
 
 PerfectClustering::PerfectClustering(fhicl::ParameterSet const & p)
-// :
+: EDProducer(p)
 // Initialize member data here.
 {
   
@@ -341,7 +342,7 @@ std::vector<size_t> PerfectClustering::AssociatedMCShowers(const size_t& h,
     // does this trackID match any shower?
     bool matched = false;
     int nshrmatch = 0;
-    size_t ctr = 0;
+    // size_t ctr = 0; // unused
     for (auto const& mcsinfo : event_shower_map){
       for (auto const& trkid : mcsinfo.second)
 	if ((unsigned int)mcp->TrackId() == trkid) {
@@ -349,7 +350,7 @@ std::vector<size_t> PerfectClustering::AssociatedMCShowers(const size_t& h,
 	  nshrmatch = mcsinfo.first;
 	  break;
 	}// if we found a matching mcshower for the hit!
-      ctr += 1;
+      // ctr += 1; // unused
     }// for all mcshowers associated to pi0
 
     if (matched == false) continue;

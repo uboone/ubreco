@@ -40,7 +40,7 @@
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
 
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 
 #include <memory>
 
@@ -149,19 +149,16 @@ void OpNoiseCreateMask::produce(art::Event& e)
     //look for noise if over some p.e. threshold
     if(ophit.PE()>fPEThresh && ophit.PeakTime()>-400 && ophit.PeakTime()<3200){
 
-      double PMTxyz[3];
-      unsigned int opch;
-
       pe.push_back(ophit.PE());
       peaktime.push_back(ophit.PeakTime());
 
-      opch=ophit.OpChannel();
+      unsigned int opch=ophit.OpChannel();
       
-      geom->OpDetGeoFromOpChannel(opch).GetCenter(PMTxyz);
+      auto const PMTxyz = geom->OpDetGeoFromOpChannel(opch).GetCenter();
 
       for(int ipl=0; ipl<3; ipl++){
 	auto plid = geo::PlaneID(0,0,ipl);
-	auto wire = geom->WireCoordinate(PMTxyz[1],PMTxyz[2],plid);
+        auto wire = geom->WireCoordinate(PMTxyz,plid);
 	opwiretmp.push_back(wire);
       }
       ophit_wire.push_back(opwiretmp);

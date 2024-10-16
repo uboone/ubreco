@@ -1,74 +1,55 @@
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
-include_directories(../wcopreco/data)
-include_directories(../wcopreco/deconv)
-include_directories(../wcopreco/algo)
-include_directories(../wcopreco/app)
+cet_make_library(
+  SOURCE
+  FlashAlgoBase.cxx
+  FlashAlgoFactory.cxx
+  FlashFinderFMWKInterface.cxx
+  FlashFinderManager.cxx
+  PECalib.cxx
+  SimpleFlashAlgo.cxx
+  LIBRARIES
+  PUBLIC
+  ubcore::Geometry
+  larcore::Geometry_Geometry_service
+  art::Framework_Core
+  art_root_io::TFileService_service
+)
 
-set( ROOTLIB -L$ENV{ROOTSYS}/lib -lCore -lRIO -lNet -lHist -lGraf -lGraf3d -lGpad -lTree -lRint -lPostscript -lMatrix -lPhysics -lMathCore -lThread -pthread -lm -ldl)
+cet_build_plugin(
+  OpHitCorrectionProducer art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubevt::Utilities
+  larevt::CalibrationDBI_IOVData
+  larevt::PmtGainService
+  lardataobj::RecoBase
+)
 
-link_libraries( ${LIB_NAME} -L$ENV{BOOST_LIB} -lboost_system ${ROOTLIB} )
+cet_build_plugin(
+  UBFlashFinder art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubreco::UBFlashFinder
+  ubevt::Utilities
+  larevt::PmtGainService
+  lardata::Utilities
+  lardataobj::RecoBase
+)
 
-art_make( BASENAME_ONLY
-	  LIBRARY_NAME  uboone_UBFlashFinder
-	  LIB_LIBRARIES
-	  	   larcorealg_Geometry
-		   larcore_Geometry_Geometry_service
-                   UBOpReadoutMap_service
-		   lardataobj_RecoBase
-		   ${UBOONECODE_LIB}
-		   ${LARDATA_LIB}
-		   ${ART_FRAMEWORK_CORE}
-		   ${ART_FRAMEWORK_PRINCIPAL}
-                   ${ART_FRAMEWORK_BASIC}
-		   ${ART_FRAMEWORK_SERVICES_REGISTRY}
-		   ${ART_FRAMEWORK_SERVICES_OPTIONAL}
-		   ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-		   art_Persistency_Common canvas
-		   art_Persistency_Provenance canvas
-		   art_Utilities canvas
-		   ${MF_MESSAGELOGGER}
-		   
-		   ${FHICLCPP}
-		   cetlib cetlib_except
-		   ${ROOT_GEOM}
-		   ${ROOT_XMLIO}
-		   ${ROOT_GDML}
-		   ${ROOT_BASIC_LIB_LIST}
-
-          MODULE_LIBRARIES
-		   uboone_UBFlashFinder
-	  	   larcorealg_Geometry
-		   larcore_Geometry_Geometry_service
-                   larevt_CalibrationDBI_IOVData
-                   larevt_CalibrationDBI_Providers
-		   ubreco_wcopreco_data
-		   ubreco_wcopreco_deconv
-		   ubreco_wcopreco_algo
-		   ubreco_wcopreco_app
-                   ubevt_Database
-		   ubevt_Utilities
-		   lardataobj_RecoBase
-		   ${UBOONECODE_LIB}
-		   ${LARDATA_LIB}
-		   ${ART_FRAMEWORK_CORE}
-		   ${ART_FRAMEWORK_PRINCIPAL}
-                   ${ART_FRAMEWORK_BASIC}
-		   ${ART_FRAMEWORK_SERVICES_REGISTRY}
-		   ${ART_FRAMEWORK_SERVICES_OPTIONAL}
-		   ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-		   art_Persistency_Common canvas
-		   art_Persistency_Provenance canvas
-		   art_Utilities canvas
-		   ${MF_MESSAGELOGGER}
-		   
-		   ${FHICLCPP}
-		   cetlib cetlib_except
-		   ${ROOT_GEOM}
-		   ${ROOT_XMLIO}
-		   ${ROOT_GDML}
-		   ${ROOT_BASIC_LIB_LIST}
-
-        )							   
+cet_build_plugin(
+  UBWCFlashFinder art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubreco::UBFlashFinder
+  ubreco::wcopreco_app
+  larevt::PmtGainService
+  lardata::DetectorClocksService
+  larcore::Geometry_Geometry_service
+  lardataobj::RawData
+  lardataobj::RecoBase
+  art_root_io::TFileService_service
+  Eigen3::Eigen
+  ROOT::Tree
+)
 
 install_headers()
 install_source()

@@ -109,12 +109,11 @@ void pf::PortedFlash::produce(art::Event &e){
     std::vector<double> tempA(32,0.0);
     for(size_t j=0; j<32; j++){
       tempA.at(j)=pe->at(j);
-      double PMTxyz[3];
-      geo->OpDetGeoFromOpChannel(j).GetCenter(PMTxyz);
-      sumy += pe->at(j)*PMTxyz[1];
-      sumy2 += pe->at(j)*PMTxyz[1]*PMTxyz[1];
-      sumz += pe->at(j)*PMTxyz[2];
-      sumz2 += pe->at(j)*PMTxyz[2]*PMTxyz[2];
+      auto const PMTxyz = geo->OpDetGeoFromOpChannel(j).GetCenter();
+      sumy += pe->at(j)*PMTxyz.Y();
+      sumy2 += pe->at(j)*PMTxyz.Y()*PMTxyz.Y();
+      sumz += pe->at(j)*PMTxyz.Z();
+      sumz2 += pe->at(j)*PMTxyz.Z()*PMTxyz.Z();
       totalPE += pe->at(j);
     }
     Ycenter = sumy/totalPE;
@@ -147,12 +146,11 @@ void pf::PortedFlash::produce(art::Event &e){
       std::vector<double> tempB(32,0.0);
       for(size_t j=32; j<64; j++){
 	tempB.at(j-32)=pe->at(j);
-	double PMTxyz[3];
-	geo->OpDetGeoFromOpChannel(j-32).GetCenter(PMTxyz);
-	sumy += pe->at(j)*PMTxyz[1];
-	sumy2 += pe->at(j)*PMTxyz[1]*PMTxyz[1];
-	sumz += pe->at(j)*PMTxyz[2];
-	sumz2 += pe->at(j)*PMTxyz[2]*PMTxyz[2];
+        auto const PMTxyz = geo->OpDetGeoFromOpChannel(j-32).GetCenter();
+        sumy += pe->at(j)*PMTxyz.Y();
+        sumy2 += pe->at(j)*PMTxyz.Y()*PMTxyz.Y();
+        sumz += pe->at(j)*PMTxyz.Z();
+        sumz2 += pe->at(j)*PMTxyz.Z()*PMTxyz.Z();
 	totalPE += pe->at(j);
       }
       Ycenter = sumy/totalPE;

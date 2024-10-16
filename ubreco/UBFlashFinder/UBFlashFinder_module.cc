@@ -75,7 +75,7 @@ private:
 
 
 UBFlashFinder::UBFlashFinder(pmtana::Config_t const & p)
-// :
+: EDProducer(p)
 // Initialize member data here.
 {
   _hit_producer   = p.get<std::string>("OpHitProducer");

@@ -1,3 +1,4 @@
+#include <fstream>
 #include "ubreco/BlipReco/Alg/BlipRecoAlg.h"
 
 namespace blip {
@@ -5,12 +6,12 @@ namespace blip {
   //###########################################################
   // Constructor
   //###########################################################
-  BlipRecoAlg::BlipRecoAlg( fhicl::ParameterSet const& pset )
+  BlipRecoAlg::BlipRecoAlg( fhicl::ParameterSet const& pset ) :
+    detProp(art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob())
   {
     this->reconfigure(pset);
     
-    detProp               = art::ServiceHandle<detinfo::DetectorPropertiesService>()->provider();
-    fNominalRecombFactor  = ModBoxRecomb(fCalodEdx,detProp->Efield());
+    fNominalRecombFactor  = ModBoxRecomb(fCalodEdx,detProp.Efield());
     mWion                 = 1000./util::kGeVToElectrons;
     
     // initialize channel list
@@ -41,8 +42,8 @@ namespace blip {
 
     printf("******************************************\n");
     printf("Initializing BlipRecoAlg...\n");
-    printf("  - Efield: %.4f kV/cm\n",detProp->Efield());
-    printf("  - Drift velocity: %.4f\n",detProp->DriftVelocity(detProp->Efield(),detProp->Temperature()));
+    printf("  - Efield: %.4f kV/cm\n",detProp.Efield());
+    printf("  - Drift velocity: %.4f\n",detProp.DriftVelocity(detProp.Efield(),detProp.Temperature()));
     printf("  - using dE/dx: %.2f MeV/cm\n",fCalodEdx);
     printf("  - equiv. recomb: %.4f\n",fNominalRecombFactor);
     printf("  - custom bad chans: %i\n",NBadChansFromFile);
@@ -115,7 +116,8 @@ namespace blip {
   }
   
   //--------------------------------------------------------------
-  BlipRecoAlg::BlipRecoAlg( )
+  BlipRecoAlg::BlipRecoAlg( ) :
+    detProp(art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob())
   {
   }
   
@@ -433,10 +435,10 @@ namespace blip {
       hitinfo[i].rms          = thisHit->RMS();
       hitinfo[i].integralADC  = thisHit->Integral();
       hitinfo[i].sigmaintegral = thisHit->SigmaIntegral();
-      hitinfo[i].sumADC       = thisHit->SummedADC();
+      hitinfo[i].sumADC       = thisHit->ROISummedADC();
       hitinfo[i].charge       = fCaloAlg->ElectronsFromADCArea(thisHit->Integral(),plane);
       hitinfo[i].peakTime     = thisHit->PeakTime();
-      hitinfo[i].driftTime    = thisHit->PeakTime() - detProp->GetXTicksOffset(plane,0,0); // - fTimeOffsets[plane];
+      hitinfo[i].driftTime    = thisHit->PeakTime() - detProp.GetXTicksOffset(plane,0,0); // - fTimeOffsets[plane];
       hitinfo[i].gof          = thisHit->GoodnessOfFit() / thisHit->DegreesOfFreedom();
       //h_hit_chanstatus->Fill( chanFilt.Status(chan) );
 
@@ -660,12 +662,12 @@ namespace blip {
           int  w2   = hc.EndWire+dw;
           bool flag = false;
           // treat edges of wireplane as "dead"
-          if( w1 < 0 || w2 >= (int)geom->Nwires(hc.Plane) )
+          if( w1 < 0 || w2 >= (int)geom->Nwires(geo::PlaneID(0, 0, hc.Plane)) )
             flag=true;
           //otherwise, use channel filter service
           else {
-            int ch1 = geom->PlaneWireToChannel(hc.Plane,w1);
-            int ch2 = geom->PlaneWireToChannel(hc.Plane,w2);
+            int ch1 = geom->PlaneWireToChannel(geo::WireID(0, 0, hc.Plane, w1));
+            int ch2 = geom->PlaneWireToChannel(geo::WireID(0, 0, hc.Plane, w2));
             if( chanFilt.Status(ch1)<2 ) flag=true;
             if( chanFilt.Status(ch2)<2 ) flag=true;
           }
@@ -938,12 +940,12 @@ namespace blip {
 
     for(size_t i=0; i<hitlist.size(); i++){
       if (hitinfo[i].trkid >= 0 ) continue;
-      h_chan_nhits->Fill(geom->PlaneWireToChannel(hitinfo[i].plane,hitinfo[i].wire));
+      h_chan_nhits->Fill(geom->PlaneWireToChannel(geo::WireID(0, 0, hitinfo[i].plane, hitinfo[i].wire)));
       
       int clustid = hitinfo[i].clustid;
       if( clustid >= 0 ) {
         if( hitclust[clustid].NWires > 1 ) continue;
-        h_chan_nclusts->Fill(geom->PlaneWireToChannel(hitinfo[i].plane,hitinfo[i].wire));
+        h_chan_nclusts->Fill(geom->PlaneWireToChannel(geo::WireID(0, 0, hitinfo[i].plane, hitinfo[i].wire)));
       }
       //if( hitinfo[i].ismatch    ) continue;
       //if( hitclust[clustid].NWires > 1 ) continue;
@@ -972,7 +974,7 @@ namespace blip {
       //    Method 2: ESTAR lookup table method ala ArgoNeuT
       // ================================================================================
       float depEl   = std::max(0.0,(double)blip.Charge);
-      float Efield  = detProp->Efield();
+      float Efield  = detProp.Efield();
 
       // --- Lifetime correction ---
       // Ddisabled by default. Without knowing real T0 of a blip, attempting to 
@@ -988,7 +990,7 @@ namespace blip {
         if( SCE_provider->EnableCalSpatialSCE() ) {
           // TODO: Deal with cases where X falls outside AV (diffuse out-of-time signal)
           //       For example, maybe re-assign to center of drift volume?
-          geo::Vector_t loc_offset = SCE_provider->GetCalPosOffsets(point);
+          geo::Vector_t loc_offset = SCE_provider->GetCalPosOffsets(point, 0);
           point.SetXYZ(point.X()-loc_offset.X(),point.Y()+loc_offset.Y(),point.Z()+loc_offset.Z());
         }
       
@@ -1003,8 +1005,8 @@ namespace blip {
         //   - Blips can have negative 'X' if the T0 correction isn't applied. Obviously 
         //     the SCE map will return (0,0,0) for these points.
         if( SCE_provider->EnableCalEfieldSCE() ) {
-          auto const field_offset = SCE_provider->GetCalEfieldOffsets(point); 
-          Efield = detProp->Efield()*std::hypot(1+field_offset.X(),field_offset.Y(),field_offset.Z());;
+          auto const field_offset = SCE_provider->GetCalEfieldOffsets(point, 0); 
+          Efield = detProp.Efield()*std::hypot(1+field_offset.X(),field_offset.Y(),field_offset.Z());;
         }
 
       }
@@ -1040,20 +1042,20 @@ namespace blip {
   
   //###########################################################
   float BlipRecoAlg::ModBoxRecomb(float dEdx, float Efield) {
-    float rho = detProp->Density();
+    float rho = detProp.Density();
     float Xi = fModBoxB * dEdx / ( Efield * rho );
     return log(fModBoxA+Xi)/Xi;
   }
 
   float BlipRecoAlg::dQdx_to_dEdx(float dQdx_e, float Efield){
-    float rho = detProp->Density();
+    float rho = detProp.Density();
     float beta  = fModBoxB / (rho * Efield);
     float alpha = fModBoxA;
     return ( exp( beta * mWion * dQdx_e ) - alpha ) / beta;
   }
   
   float BlipRecoAlg::Q_to_E(float Q, float Efield){
-    if( Efield != detProp->Efield() ) return mWion * (Q/ModBoxRecomb(fCalodEdx,Efield));
+    if( Efield != detProp.Efield() ) return mWion * (Q/ModBoxRecomb(fCalodEdx,Efield));
     else                              return mWion * (Q/fNominalRecombFactor);
   }
   

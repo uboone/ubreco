@@ -19,8 +19,10 @@
 
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RecoBase/Vertex.h"
+#include "art/Framework/Principal/Handle.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "larcore/Geometry/Geometry.h"
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 #include "larcorealg/Geometry/GeometryCore.h"
 #include "lardata/Utilities/GeometryUtilities.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
@@ -69,7 +71,9 @@ namespace gammacatcher {
     void setVerbose(bool on) { _verbose = on; }
 
     // vertex coordinates on each plane
-    bool loadVertex(const art::ValidHandle<std::vector<::recob::Vertex> > vtx_h,
+    bool loadVertex(detinfo::DetectorClocksData const& clockData,
+                    detinfo::DetectorPropertiesData const& detProp,
+                    const art::ValidHandle<std::vector<::recob::Vertex> > vtx_h,
 		    const double& ROI);
     
   protected:

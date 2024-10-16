@@ -1,13 +1,15 @@
-include_directories(../data)
-
-art_make(
-	  LIB_LIBRARIES
-			${ROOT_BASIC_LIB_LIST}
-			ubreco_wcopreco_data
-        )
-
+cet_make_library(
+  LOCAL_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}
+  SOURCE
+  Deconvolver.cxx
+  kernel_fourier.cxx
+  kernel_fourier_container.cxx
+  LIBRARIES
+  PUBLIC
+  ubreco::wcopreco_data
+  ROOT::Hist
+)
 
 install_headers()
 #install_fhicl()
 install_source()
-

@@ -19,7 +19,8 @@ namespace protoshower {
      @input art::Ptr to cluster
      @input vector of art::Ptr to hits associated to the cluster
   */
-    cluster2d::Cluster2D MakeCluster2D( const art::Ptr<recob::Cluster>& clus, const std::vector< art::Ptr<recob::Hit> >& hit_v);
+    cluster2d::Cluster2D MakeCluster2D(const detinfo::DetectorClocksData& clockData,
+                                       const art::Ptr<recob::Cluster>& clus, const std::vector< art::Ptr<recob::Hit> >& hit_v);
    
   /**
      @brief Generate ProtoShower objects starting with from art event
@@ -50,10 +51,10 @@ namespace protoshower {
 
     // get detector specific properties
     auto const* geom = ::lar::providerFrom<geo::Geometry>();
-    auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    _wire2cm = geom->WirePitch(0,0,0);
-    _time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
-
+    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+    auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
+    _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
+    _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
   }
 
   void ProtoShowerCMTool::GenerateProtoShowers(::art::Event & e,
@@ -74,6 +75,7 @@ namespace protoshower {
     // load event vertex associated to tagged neutrino interaction
     auto const& vertex_h = e.getValidHandle<std::vector<recob::Vertex> >(fVtxproducer);
 
+    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataFor(e);
     // loop through PFParticles
     for (size_t p=0; p < pfp_h->size(); p++) {
 
@@ -104,7 +106,7 @@ namespace protoshower {
 	    clusterhits.push_back( hit );
 	}//for all hits associated to PFParticle
 
-	proto_shower._clusters.at(c) = MakeCluster2D( clus, clusterhits );
+        proto_shower._clusters.at(c) = MakeCluster2D( clockData, clus, clusterhits );
 	
 	proto_shower.hasCluster2D(true);
 
@@ -129,12 +131,10 @@ namespace protoshower {
     
   }// GenerateProtoShower end
 
-  ::cluster2d::Cluster2D ProtoShowerCMTool::MakeCluster2D( const art::Ptr<recob::Cluster>& clus, 
+  ::cluster2d::Cluster2D ProtoShowerCMTool::MakeCluster2D(const detinfo::DetectorClocksData& clockData,
+                                                          const art::Ptr<recob::Cluster>& clus,
 							    const std::vector< art::Ptr<recob::Hit> >& hit_v) 
   {
-    
-    auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    
     ::cluster2d::Cluster2D clus2d;
     clus2d.Reset();
     
@@ -143,7 +143,7 @@ namespace protoshower {
       // create PxHit
       ::util::PxHit hit2d( clus->Plane().Plane,
 			   hit->WireID().Wire * _wire2cm,
-			   (hit->PeakTime() - detp->TriggerOffset()) * _time2cm,
+                           (hit->PeakTime() - trigger_offset(clockData)) * _time2cm,
 			   hit->Integral() * _ADC_to_MeV[clus->Plane().Plane],
 			   hit->Integral() * _ADC_to_MeV[clus->Plane().Plane],
 			   hit->PeakAmplitude() );
@@ -159,8 +159,8 @@ namespace protoshower {
 
     auto const& sw = clus->StartWire() * _wire2cm;
     auto const& ew = clus->EndWire()   * _wire2cm;
-    auto const& st = (clus->StartTick() - detp->TriggerOffset()) * _time2cm;
-    auto const& et = (clus->EndTick()   - detp->TriggerOffset()) * _time2cm;
+    auto const& st = (clus->StartTick() - trigger_offset(clockData)) * _time2cm;
+    auto const& et = (clus->EndTick()   - trigger_offset(clockData)) * _time2cm;
     
     clus2d._start = ::util::PxHit(clus->Plane().Plane, sw, st, 0., 0., 0.);
     clus2d._end   = ::util::PxHit(clus->Plane().Plane, ew, et, 0., 0., 0.);

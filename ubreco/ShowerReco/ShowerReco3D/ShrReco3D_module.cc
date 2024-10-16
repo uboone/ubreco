@@ -22,7 +22,7 @@
 #include "Base/ShrRecoManager.h"
 // include specific protoshower and recomanager instances
 
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 
 #include "art/Utilities/make_tool.h"
 
@@ -34,10 +34,12 @@
 #include "lardataobj/RecoBase/Vertex.h"
 #include "lardataobj/RecoBase/Shower.h"
 #include "lardata/Utilities/AssociationUtil.h"
+#include "lardata/Utilities/GeometryUtilities.h"
 #include "lardataobj/AnalysisBase/BackTrackerMatchingData.h"
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 
 #include "art/Persistency/Common/PtrMaker.h"
 
@@ -118,7 +120,9 @@ private:
      @input Shower_Cluster_assn_v : output shower -> cluster assn vector
      @input Shower_Hit_assn_v     : output shower -> hit assn vector
   */
-  void SaveShower(art::Event & e,
+  void SaveShower(detinfo::DetectorClocksData const& detClocks,
+                  detinfo::DetectorPropertiesData const& detProperties,
+                  art::Event & e,
 		  const size_t idx,
 		  const showerreco::Shower_t& shower,
 		  std::unique_ptr< std::vector<recob::Shower> >& Shower_v,
@@ -139,7 +143,9 @@ private:
      @input purity : see above
      @return index of associated mcshower
    */
-  size_t BackTrack(art::Event & e, const std::vector<unsigned int>& hit_idx_v, float& completeness, float& purity);
+  size_t BackTrack(detinfo::DetectorClocksData const& detClocks,
+                   detinfo::DetectorPropertiesData const& detProperties,
+                   art::Event & e, const std::vector<unsigned int>& hit_idx_v, float& completeness, float& purity);
 
   /**
      @brief find showers associated to neutrino interaction
@@ -167,7 +173,7 @@ private:
 
 
 ShrReco3D::ShrReco3D(fhicl::ParameterSet const & p)
-// :
+: EDProducer(p)
 // Initialize member data here.
 {
 
@@ -239,7 +245,12 @@ void ShrReco3D::produce(art::Event & e)
 
   // output showers to be saved to event
   std::vector< ::showerreco::Shower_t> output_shower_v;
-  _manager->Reconstruct(output_shower_v);
+  auto const detClocks = art::ServiceHandle<detinfo::DetectorClocksService>()->DataFor(e);
+  auto const detProperties = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataFor(e, detClocks);
+  util::GeometryUtilities const gser{*lar::providerFrom<geo::Geometry>(),
+                                     detClocks,
+                                     detProperties};
+  _manager->Reconstruct(gser, output_shower_v);
 
   // if using truth, backtrack and load mcshowers
   if (fBacktrackTag != ""){
@@ -271,11 +282,12 @@ void ShrReco3D::produce(art::Event & e)
   // save output showers
   for (size_t s=0; s < output_shower_v.size(); s++) {
     try {
-      SaveShower(e, s, output_shower_v.at(s), Shower_v, ShowerPtrMaker,
+      SaveShower(detClocks, detProperties,
+                 e, s, output_shower_v.at(s), Shower_v, ShowerPtrMaker,
 		 pfp_h, pfp_clus_assn_v, pfp_hit_assn_v,
 		 Shower_PFP_assn_v, Shower_Cluster_assn_v, Shower_Hit_assn_v);
     }
-    catch (showerreco::ShowerRecoException e) {
+    catch (showerreco::ShowerRecoException const& e) {
       std::cout << e.what() << std::endl;
     }
   }// for all output reconstructed showers
@@ -298,7 +310,9 @@ void ShrReco3D::endJob()
 }
 
 
-void ShrReco3D::SaveShower(art::Event & e,
+void ShrReco3D::SaveShower(detinfo::DetectorClocksData const& detClocks,
+                           detinfo::DetectorPropertiesData const& detProperties,
+                           art::Event & e,
 			   const size_t idx,
 			   const showerreco::Shower_t& shower,
 			   std::unique_ptr< std::vector<recob::Shower> >& Shower_v,
@@ -401,7 +415,7 @@ void ShrReco3D::SaveShower(art::Event & e,
   
   if (fBacktrackTag != ""){
     float completeness_max, purity_max;
-    BackTrack(e, hit_idx_v, completeness_max, purity_max);
+    BackTrack(detClocks, detProperties, e, hit_idx_v, completeness_max, purity_max);
   }
 
   if (fFillTree)
@@ -410,7 +424,9 @@ void ShrReco3D::SaveShower(art::Event & e,
   return;
 }// end of SaveShower function
 
-size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit_idx_v, float& completeness_max, float& purity_max)
+size_t ShrReco3D::BackTrack(detinfo::DetectorClocksData const& detClocks,
+                            detinfo::DetectorPropertiesData const& detProperties,
+                            art::Event & e, const std::vector<unsigned int>& hit_idx_v, float& completeness_max, float& purity_max)
 {
   
   art::InputTag BacktrackTag { fBacktrackTag };
@@ -435,7 +451,7 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
     float purity = 0;
     float completeness = 0;
 
-    float BackTrackEnergy       = 0;
+    // float BackTrackEnergy       = 0; // unused
     float BackTrackShowerEnergy = 0;
     float BackTrackCharge       = 0;
     float BackTrackShowerCharge = 0;
@@ -464,7 +480,7 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
 	auto energy  = match_vec[i_p]->energy;
 
 	BackTrackCharge += charge;
-	BackTrackEnergy += energy;
+	// BackTrackEnergy += energy; // unused
 	// does this trackID match that of the MCShower?
 	for (auto const& shrtrkid : shrtrackIDs) {
 	  if ( shrtrkid == (unsigned int)mctrkid ){
@@ -502,12 +518,11 @@ size_t ShrReco3D::BackTrack(art::Event & e, const std::vector<unsigned int>& hit
 
   // get X offset due to time w.r. trigger time
   if (fNeutrinoEvent) {
-    auto const& detProperties = lar::providerFrom<detinfo::DetectorPropertiesService>(); 
-    auto const& detClocks = lar::providerFrom<detinfo::DetectorClocksService>();
     auto const& mct_h = e.getValidHandle<std::vector<simb::MCTruth> >("generator");
     auto gen = mct_h->at(0);
-    double g4Ticks = detClocks->TPCG4Time2Tick(gen.GetNeutrino().Nu().T()) + detProperties->GetXTicksOffset(0, 0, 0) - detProperties->TriggerOffset();
-    _xtimeoffset = detProperties->ConvertTicksToX(g4Ticks, 0, 0, 0);
+    double g4Ticks = detClocks.TPCG4Time2Tick(gen.GetNeutrino().Nu().T()) + detProperties.GetXTicksOffset(0, 0, 0) - trigger_offset(detClocks);
+    //std::cout << "nu vtx @ [" << gen.GetNeutrino().Nu().Vx() << ", " << gen.GetNeutrino().Nu().Vy() << ", " << gen.GetNeutrino().Nu().Vz() << " ]" << std::endl;
+    _xtimeoffset = detProperties.ConvertTicksToX(g4Ticks, 0, 0, 0);
   }
   else { _xtimeoffset = 0.; }
 

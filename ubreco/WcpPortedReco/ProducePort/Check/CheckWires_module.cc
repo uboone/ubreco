@@ -13,8 +13,8 @@
 #include "art/Framework/Principal/Handle.h"
 #include "art/Framework/Principal/Run.h"
 #include "art/Framework/Principal/SubRun.h"
-#include "art/Framework/Services/Optional/TFileService.h"
-#include "art/Framework/Services/Optional/TFileDirectory.h"
+#include "art_root_io/TFileService.h"
+#include "art_root_io/TFileDirectory.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
@@ -86,14 +86,10 @@ void CheckWires::reconfigure(fhicl::ParameterSet const& pset)
 
 void CheckWires::analyze(art::Event const& e)
 {
-  art::Handle<std::vector<recob::Wire> > wire_handle;
-  e.getByLabel(fWireLabel,wire_handle);
-  std::vector<art::Ptr<recob::Wire> > wire_vec;
-  art::fill_ptr_vector(wire_vec,wire_handle);
-  for(size_t i=0; i<wire_vec.size(); i++){
-    art::Ptr<recob::Wire> wire = wire_vec.at(i);
-    int refChannel = wire->Channel();
-    std::vector<float> wf = wire->Signal();
+  auto const& wire_vec = e.getProduct<std::vector<recob::Wire>>(fWireLabel);
+  for(recob::Wire const& wire : wire_vec) {
+    int refChannel = wire.Channel();
+    std::vector<float> wf = wire.Signal();
     int nbin = (int)wf.size();
     if(refChannel<2400){
       for(int j=0; j<nbin; j++){
@@ -112,14 +108,10 @@ void CheckWires::analyze(art::Event const& e)
     }
   }
 
-  art::Handle<std::vector<recob::Wire> > sp_wire_handle;
-  e.getByLabel(fSigprocLabel,sp_wire_handle);
-  std::vector<art::Ptr<recob::Wire> > sp_wire_vec;
-  art::fill_ptr_vector(sp_wire_vec,sp_wire_handle);
-  for(size_t i=0; i<sp_wire_vec.size(); i++){
-    art::Ptr<recob::Wire> wire = sp_wire_vec.at(i);
-    int refChannel = wire->Channel();
-    std::vector<float> wf = wire->Signal();
+  auto const& sp_wire_vec = e.getProduct<std::vector<recob::Wire>>(fSigprocLabel);
+  for(recob::Wire const& wire : sp_wire_vec) {
+    int refChannel = wire.Channel();
+    std::vector<float> wf = wire.Signal();
     int nbin = (int)wf.size();
     if(refChannel<2400){
       for(int j=0; j<nbin; j++){
@@ -138,17 +130,11 @@ void CheckWires::analyze(art::Event const& e)
     }
   }
 
-  auto const& scHandle = e.getValidHandle<std::vector<sim::SimChannel>>(fScLabel);
-  auto const& sc_vec(*scHandle);
-  for(size_t i=0; i<sc_vec.size(); i++){
-
-    sim::SimChannel sc = sc_vec[i];
+  auto const& sc_vec = e.getProduct<std::vector<sim::SimChannel>>(fScLabel);
+  for(sim::SimChannel const& sc : sc_vec) {
     auto const timeSlices = sc.TDCIDEMap();
-    for(auto timeSlice : timeSlices){
+    for(auto const& [tdc, energyDeposits] : timeSlices){
 
-      auto tdc = timeSlice.first;
-
-      auto const& energyDeposits = timeSlice.second;
       for(auto energyDeposit : energyDeposits){
 
 	unsigned int tick = (unsigned int) tdc - ((DefaultTrigTime + TriggerOffsetTPC)/TickPeriod);

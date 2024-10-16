@@ -2,6 +2,8 @@
 #define YPLANESTARTPOINT3D_CXX
 
 #include <iostream>
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "ubreco/ShowerReco/ShowerReco3D/Base/ShowerRecoModuleBase.h"
 /**
    \class ShowerRecoModuleBase
@@ -22,7 +24,8 @@ namespace showerreco {
     ~YPlaneStartPoint3D() {}
     
     /// Inherited/overloaded function from ShowerRecoModuleBase
-    void do_reconstruction(const ::protoshower::ProtoShower &, Shower_t &);
+    void do_reconstruction(util::GeometryUtilities const&,
+                           const ::protoshower::ProtoShower &, Shower_t &);
 
   private:
 
@@ -34,13 +37,14 @@ namespace showerreco {
   {
     _name = "YPlaneStartPoint3D"; 
     auto const* geom = ::lar::providerFrom<geo::Geometry>();
-    auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    _wire2cm = geom->WirePitch(0,0,0);
-    _time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
-
+    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+    auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
+    _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
+    _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature());
   }
 
-  void YPlaneStartPoint3D::do_reconstruction( const ::protoshower::ProtoShower & proto_shower,
+  void YPlaneStartPoint3D::do_reconstruction(util::GeometryUtilities const&,
+                                             const ::protoshower::ProtoShower & proto_shower,
 					      Shower_t& resultShower)
 {
 
@@ -61,6 +65,7 @@ namespace showerreco {
     
     // get the proto-shower 3D vertex
     auto const& vtx3D = proto_shower.vertex();
+    auto const vtx3D_pt = geo::vect::toPoint(vtx3D);
     auto const& dir3D = resultShower.fDCosStart;
     double d2D;
 
@@ -86,8 +91,8 @@ namespace showerreco {
       // project vertex onto this plane
       //auto const& vtx2D = util::PxPoint(pl,0,0);//geomH->Get2DPointProjection(vtx,pl);
       auto const* geom = ::lar::providerFrom<geo::Geometry>();
-      auto wire = geom->WireCoordinate(vtx3D[1],vtx3D[2],geo::PlaneID(0,0,pl)) * _wire2cm;
-      auto time = vtx3D[0];
+      auto wire = geom->WireCoordinate(vtx3D_pt,geo::PlaneID(0,0,pl)) * _wire2cm;
+      auto time = vtx3D.X();
       auto const& start = clus._start;
 
       util::PxPoint vtx2D(pl,wire,time);

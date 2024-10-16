@@ -16,7 +16,7 @@
 #define BLIPRECOALG_H
 
 // framework includes
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h" 
 #include "canvas/Persistency/Common/Ptr.h" 
 #include "canvas/Persistency/Common/PtrVector.h" 
@@ -106,7 +106,7 @@ namespace blip {
 
    private:
     
-    const detinfo::DetectorProperties* detProp;
+    const detinfo::DetectorPropertiesData detProp;
     
     float               mWion;
 

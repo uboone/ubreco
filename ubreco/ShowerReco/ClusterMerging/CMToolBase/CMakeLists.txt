@@ -1,57 +1,74 @@
-art_make(
-          LIB_LIBRARIES
-			ubreco_ShowerReco_TwoDimTools
-			art_Framework_Core
-			art_Framework_Services_Registry
-			art_Framework_Principal
-			lardataobj_RecoBase
-			${ART_FRAMEWORK_CORE}
-			larcorealg_Geometry
-			lardata_Utilities # added now
-		   	#uboone_Geometry		
-			larcore_Geometry_Geometry_service	
-			art_Utilities canvas
-                        ${MF_MESSAGELOGGER}
-                        ${MF_UTILITIES}
-                        ${CETLIB} cetlib_except
-			${Boost_FILESYSTEM_LIBRARY}
-                        ${Boost_SYSTEM_LIBRARY}
-                        ${ROOT_BASIC_LIB_LIST}
-		   	${ART_FRAMEWORK_SERVICES_REGISTRY}
-		   	${ART_FRAMEWORK_SERVICES_OPTIONAL}
-          TOOL_LIBRARIES  
-			  ubreco_ShowerReco_TwoDimTools
-                          lardata_Utilities_LArFFT_service
-                          larcorealg_Geometry
-			  larevt_CalibrationDBI_IOVData
-			  larevt_CalibrationDBI_Providers
-			  lardataobj_RecoBase
-			  larcore_Geometry_Geometry_service
-			  lardata_Utilities
-			  nutools_RandomUtils_NuRandomService_service
-  			  ${ART_FRAMEWORK_CORE}
-			  ${ART_FRAMEWORK_PRINCIPAL}
-			  ${ART_FRAMEWORK_SERVICES_REGISTRY}
-			  art_Persistency_Common
-			  art_Persistency_Provenance
-			  ${ART_FRAMEWORK_SERVICES_BASIC}
-			  ${ART_FRAMEWORK_SERVICES_OPTIONAL}
-                          ${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
-			  ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-			  ${ART_FRAMEWORK_SERVICES_SYSTEM_FILECATALOGMETADATA_SERVICE}
-			  art_Utilities
-			  canvas
-			  ${MF_MESSAGELOGGER}
-			  ${MF_UTILITIES}
-			  ${FHICLCPP}
-			  ${CETLIB} cetlib_except
-			  ${Boost_FILESYSTEM_LIBRARY}
-			  ${Boost_SYSTEM_LIBRARY}
-                          ${CLHEP}
-			  ${ROOT_BASIC_LIB_LIST}
-        )
+cet_make_library(
+  SOURCE
+  CMManagerBase.cxx
+  CMTException.cxx
+  CMatchBookKeeper.cxx
+  CMatchManager.cxx
+  CMergeBookKeeper.cxx
+  CMergeManager.cxx
+  Cluster.cxx
+  ClusterMaker.cxx
+  LIBRARIES
+  PUBLIC
+  ubreco::ShowerReco_TwoDimTools
+  lardata::Utilities
+  larcore::Geometry_Geometry_service
+  art::Utilities
+  art_root_io::TFileService_service
+  ROOT::Core
+)
+
+cet_make_library(
+  LIBRARY_NAME CBoolAlgoBase INTERFACE
+  SOURCE CBoolAlgoBase.h
+  LIBRARIES
+  INTERFACE
+  art::Utilities
+  art_root_io::TFileService_service
+  ROOT::Tree
+)
+
+cet_write_plugin_builder(
+  uboone_tool::CBoolAlgoBase art::tool Modules
+  INSTALL_BUILDER
+  LIBRARIES CONDITIONAL
+  ubreco::CBoolAlgoBase
+)
+
+cet_make_library(
+  LIBRARY_NAME CFloatAlgoBase INTERFACE
+  SOURCE CFloatAlgoBase.h
+  LIBRARIES
+  INTERFACE
+  art::Utilities
+  art_root_io::TFileService_service
+  ROOT::Tree
+)
+
+cet_write_plugin_builder(
+  uboone_tool::CFloatAlgoBase art::tool Modules
+  INSTALL_BUILDER
+  LIBRARIES CONDITIONAL
+  ubreco::CFloatAlgoBase
+)
+
+cet_make_library(
+  LIBRARY_NAME CPriorityAlgoBase INTERFACE
+  SOURCE CPriorityAlgoBase.h
+  LIBRARIES
+  INTERFACE
+  art::Utilities
+  art_root_io::TFileService_service
+  ROOT::Tree
+)
+
+cet_write_plugin_builder(
+  uboone_tool::CPriorityAlgoBase art::tool Modules
+  INSTALL_BUILDER
+  LIBRARIES CONDITIONAL
+  ubreco::CPriorityAlgoBase
+)
 
 install_fhicl()
 install_headers()
 install_source()
-

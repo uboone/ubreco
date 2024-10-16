@@ -33,16 +33,17 @@ namespace showerreco {
     return;
   }
   
-  void ShrRecoManager::Reconstruct(std::vector<showerreco::Shower_t>& showers)
+  void ShrRecoManager::Reconstruct(util::GeometryUtilities const& gser,
+				   std::vector<showerreco::Shower_t>& showers)
   {
     
     showers.clear();
     showers.reserve(_proto_showers.size());
     
     // for all pfparticle proto-showers
-    for (auto const& proto_shower : _proto_showers)
-      showers.push_back(RecoOneShower(proto_shower));
-
+    for (auto const& proto_shower : _proto_showers) 
+      showers.push_back(RecoOneShower(gser, proto_shower));
+    
     // Check that the showers reconstructed are the same length as the proto_showers vector
     if (showers.size() != _proto_showers.size()) {
       throw ShowerRecoException("ERROR: number of reconstructed showers doesn't match input list!!");
@@ -51,7 +52,8 @@ namespace showerreco {
     return;
   }
 
-  ::showerreco::Shower_t ShrRecoManager::RecoOneShower(const ::protoshower::ProtoShower& proto_shower)
+  ::showerreco::Shower_t ShrRecoManager::RecoOneShower(util::GeometryUtilities const& gser,
+						       const ::protoshower::ProtoShower& proto_shower)
   {
     
     // reset product shoer
@@ -69,9 +71,9 @@ namespace showerreco {
       _watch.Start();
 
       try {
-	_alg_v[n] -> do_reconstruction(proto_shower, result);
+        _alg_v[n] -> do_reconstruction(gser, proto_shower, result);
       }// if reco succeeds
-      catch (ShowerRecoException e) {
+      catch (ShowerRecoException const& e) {
 	//catch (std::exception e) {
 	result.fPassedReconstruction = false;
 	std::cout << e.what() << std::endl;

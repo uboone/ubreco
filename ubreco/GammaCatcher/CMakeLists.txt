@@ -1,44 +1,68 @@
+cet_build_plugin(
+  CheckNeutrino art::EDAnalyzer
+  LIBRARIES
+  PRIVATE
+  lardataobj::RecoBase
+  art_root_io::TFileService_service
+  ROOT::Tree
+)
 
-art_make(	
-	  LIB_LIBRARIES
-			${ART_FRAMEWORK_CORE}
-			art_Utilities canvas
-			${MF_MESSAGELOGGER}
-			
-			cetlib cetlib_except
-                        ${Boost_SYSTEM_LIBRARY}
-			${ROOT_BASIC_LIB_LIST}
-          MODULE_LIBRARIES 
-			larcorealg_Geometry
-			larcore_Geometry_Geometry_service
-			lardataobj_RecoBase
-			lardataobj_AnalysisBase	
-			lardata_RecoObjects larreco_Deprecated  
-			larreco_RecoAlg
-			lardata_Utilities
-			larevt_Filters
-			nusimdata_SimulationBase
-			${LARRECO_LIB}
-			${LARDATA_LIB}
-                        ${ART_FRAMEWORK_CORE}
-			${ART_FRAMEWORK_PRINCIPAL}
-			${ART_FRAMEWORK_SERVICES_REGISTRY}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-			art_Persistency_Common canvas
-			art_Persistency_Provenance canvas
-			art_Utilities canvas
-			${MF_MESSAGELOGGER}
-			
-	                ${FHICLCPP}
-			cetlib cetlib_except
-			${CLHEP}
-                        ${ROOT_GEOM}
-                        ${ROOT_XMLIO}
-                        ${ROOT_GDML}
-			${ROOT_BASIC_LIB_LIST}
-        )
+cet_build_plugin(
+  ClusterTrackDistance art::EDAnalyzer
+  LIBRARIES
+  PRIVATE
+  lardata::Utilities
+  lardata::DetectorPropertiesService
+  larcore::Geometry_Geometry_service
+  lardataobj::RecoBase
+  nusimdata::SimulationBase
+  art_root_io::TFileService_service
+  ROOT::Tree
+)
+
+cet_build_plugin(
+  Gamma3D art::EDProducer
+  LIBRARIES
+  PRIVATE
+  lardata::Utilities
+  lardata::DetectorPropertiesService
+  larcore::Geometry_Geometry_service
+  lardataobj::RecoBase
+  art_root_io::TFileService_service
+  ROOT::Tree
+)
+
+cet_build_plugin(
+  SelectNeutrino art::EDFilter
+  LIBRARIES
+  PRIVATE
+)
+
+cet_build_plugin(
+  TruthStudies art::EDAnalyzer
+  LIBRARIES
+  PRIVATE
+  lardata::Utilities
+  lardata::DetectorPropertiesService
+  lardata::DetectorClocksService
+  larcore::Geometry_Geometry_service
+  lardataobj::RecoBase
+  lardataobj::AnalysisBase
+  art_root_io::TFileService_service
+  nusimdata::SimulationBase
+  ROOT::Tree
+)
+
+cet_build_plugin(
+  gammacorrelation art::EDAnalyzer
+  LIBRARIES
+  PRIVATE
+  lardata::Utilities
+  lardata::DetectorPropertiesService
+  lardataobj::RecoBase
+  art_root_io::TFileService_service
+  ROOT::Tree
+)
 
 add_subdirectory(Analysis)
 add_subdirectory(HitFinding)

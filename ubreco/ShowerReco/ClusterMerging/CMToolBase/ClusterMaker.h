@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "larcore/Geometry/Geometry.h"
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 #include "larcorealg/Geometry/GeometryCore.h"
 #include "lardata/Utilities/GeometryUtilities.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
@@ -53,7 +54,8 @@ namespace cluster {
     /// Default destructor
     ~ClusterMaker(){}
 
-    void MakeClusters(const art::ValidHandle<std::vector<recob::Cluster> >& clus_h,
+    void MakeClusters(detinfo::DetectorClocksData const& clockData,
+                      const art::ValidHandle<std::vector<recob::Cluster> >& clus_h,
 		      const art::FindManyP<recob::Hit>&  clus_hit_assn_v,
 		      const art::ValidHandle<std::vector<recob::Vertex> >& vtx_h,
 		      std::vector<::cluster::Cluster>& cluster);
@@ -62,7 +64,8 @@ namespace cluster {
     void MakeCluster(const std::vector<art::Ptr<recob::Hit> >& hit_v,
 		     ::cluster::Cluster& cluster);
 
-    bool loadVertex(const art::ValidHandle<std::vector<::recob::Vertex> > vtx_h);
+    bool loadVertex(detinfo::DetectorClocksData const& clockData,
+                    const art::ValidHandle<std::vector<::recob::Vertex> > vtx_h);
 
   private:
 
@@ -81,4 +84,3 @@ namespace cluster {
 }
 #endif
 /** @} */ // end of doxygen group 
-

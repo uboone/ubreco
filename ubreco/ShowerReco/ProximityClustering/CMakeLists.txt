@@ -1,56 +1,47 @@
+cet_build_plugin(
+  CCVertex art::EDFilter
+  LIBRARIES
+  PRIVATE
+  lardata::Utilities
+  lardataobj::RecoBase
+  art_root_io::TFileService_service
+)
 
-art_make(	
-	  LIB_LIBRARIES
-			${ART_FRAMEWORK_CORE}
-			art_Utilities canvas
-			${MF_MESSAGELOGGER}
-			${MF_UTILITIES}
-			cetlib cetlib_except
-                   	#larpandora_LArPandoraInterface	
-                        ${Boost_SYSTEM_LIBRARY}
-			${ROOT_BASIC_LIB_LIST}
-			larcorealg_Geometry
-			lardata_Utilities
-			lardataobj_RecoBase
-			larcore_Geometry_Geometry_service
-          MODULE_LIBRARIES 
-			ubreco_ShowerReco_ProximityClustering_Algorithms
-		   	#larpandora_LArPandoraInterface	
-			larcorealg_Geometry
-			larcore_Geometry_Geometry_service
-			lardataobj_RecoBase
-			lardataobj_AnalysisBase	
-			lardata_RecoObjects larreco_Deprecated  
-			larreco_RecoAlg
-			lardata_Utilities
-                        ${Boost_SYSTEM_LIBRARY}
-			larevt_Filters
-			nusimdata_SimulationBase
-			${LARRECO_LIB}
-			${LARDATA_LIB}
-                        ${ART_FRAMEWORK_CORE}
-			${ART_FRAMEWORK_PRINCIPAL}
-			${ART_FRAMEWORK_SERVICES_REGISTRY}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-			art_Persistency_Common canvas
-			art_Persistency_Provenance canvas
-			art_Utilities canvas
-			${MF_MESSAGELOGGER}
-			${MF_UTILITIES}
-	                ${FHICLCPP}
-			cetlib cetlib_except
-			${CLHEP}
-                        ${ROOT_GEOM}
-                        ${ROOT_XMLIO}
-                        ${ROOT_GDML}
-			${ROOT_BASIC_LIB_LIST}
-        )
+cet_build_plugin(
+  CosmicFilter art::EDProducer
+  LIBRARIES
+  PRIVATE
+  lardata::Utilities
+  lardata::DetectorPropertiesService
+  larcore::Geometry_Geometry_service
+  lardataobj::RecoBase
+  art_root_io::TFileService_service
+)
+
+cet_build_plugin(
+  ProximityClustering art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubreco::ShowerReco_ProximityClustering_Algorithms
+  art_root_io::TFileService_service
+  ROOT::Tree
+)
+
+cet_build_plugin(
+  TruthVertex art::EDFilter
+  LIBRARIES
+  PRIVATE
+  larevt::SpaceChargeService
+  lardata::Utilities
+  lardata::DetectorPropertiesService
+  larcore::Geometry_Geometry_service
+  lardataobj::RecoBase
+  art_root_io::TFileService_service
+  nusimdata::SimulationBase
+)
 
 add_subdirectory(Algorithms)
 
 install_fhicl()
 install_headers()
 install_source()
-

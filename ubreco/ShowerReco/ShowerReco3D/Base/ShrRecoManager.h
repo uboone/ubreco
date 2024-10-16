@@ -20,6 +20,9 @@
 #include "ShowerRecoModuleBase.h"
 #include "ShowerAnaBase.h"
 #include "TStopwatch.h"
+namespace util {
+  class GeometryUtilities;
+}
 
 namespace showerreco {
 
@@ -53,12 +56,14 @@ public:
   /**
    * @brief Reconstruct showers
    */
-  void Reconstruct (std::vector< ::showerreco::Shower_t>& showers);
+  void Reconstruct (util::GeometryUtilities const& gser,
+                    std::vector< ::showerreco::Shower_t>& showers);
   
   /**
      Reconstruct one shower
    */
-  ::showerreco::Shower_t RecoOneShower(const ::protoshower::ProtoShower& proto_shower);
+  ::showerreco::Shower_t RecoOneShower(util::GeometryUtilities const& gser,
+                                       const ::protoshower::ProtoShower& proto_shower);
 
   /**
      Finalize: provide TFile access so that anything that needs to be stored can be stored
@@ -132,4 +137,3 @@ public:
 
 #endif
 /** @} */ // end of doxygen group
-

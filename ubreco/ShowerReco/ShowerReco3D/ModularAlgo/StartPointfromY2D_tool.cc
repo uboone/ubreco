@@ -2,6 +2,9 @@
 #define YPLANESTARTPOINT3D_CXX
 
 #include <iostream>
+
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 #include "ubreco/ShowerReco/ShowerReco3D/Base/ShowerRecoModuleBase.h"
 /**
    \class ShowerRecoModuleBase
@@ -22,7 +25,8 @@ namespace showerreco {
     ~StartPointfromY2D() {}
     
     /// Inherited/overloaded function from ShowerRecoModuleBase
-    void do_reconstruction(const ::protoshower::ProtoShower &, Shower_t &);
+    void do_reconstruction(util::GeometryUtilities const&,
+                           const ::protoshower::ProtoShower &, Shower_t &);
 
   private:
 
@@ -34,13 +38,14 @@ namespace showerreco {
   {
     _name = "StartPointfromY2D"; 
     auto const* geom = ::lar::providerFrom<geo::Geometry>();
-    auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    _wire2cm = geom->WirePitch(0,0,0);
-    _time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
-
+    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+    auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
+    _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
+    _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
   }
 
-  void StartPointfromY2D::do_reconstruction( const ::protoshower::ProtoShower & proto_shower,
+  void StartPointfromY2D::do_reconstruction(util::GeometryUtilities const&,
+                                            const ::protoshower::ProtoShower & proto_shower,
 					      Shower_t& resultShower)
 {
 

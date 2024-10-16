@@ -12,7 +12,10 @@
 #include <string>
 #include <vector>
 #include <fstream>
-using namespace std;
+#include <memory>
+#include <map>
+#include <tuple>
+
 #include "art/Framework/Core/EDAnalyzer.h"
 #include "art/Framework/Core/EDProducer.h"
 #include "art/Framework/Core/ModuleMacros.h"
@@ -28,11 +31,11 @@ using namespace std;
 //#include "canvas/Persistency/Common/Assns.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
-#include <memory>
-#include <map>
+
 // Services
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 #include "larcore/Geometry/Geometry.h"
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 //#include "larcore/Geometry/GeometryCore.h"
 #include "lardata/Utilities/GeometryUtilities.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
@@ -57,10 +60,7 @@ using namespace std;
 #include "TVector3.h"
 #include "TGraph.h"
 
-
-
-class ClusterTrackDistance;
-
+using namespace std;
 
 class ClusterTrackDistance : public art::EDAnalyzer {
 public:
@@ -311,18 +311,15 @@ void ClusterTrackDistance::analyze(art::Event const & e)//START EVENT LOOP
       for(size_t m=0;m<(track.NumberTrajectoryPoints());m++){//START RECO POINT LOOP
 
 
-        X_reco=track.LocationAtPoint(m).X();
-        Y_reco=track.LocationAtPoint(m).Y();
-        Z_reco=track.LocationAtPoint(m).Z();
+        auto const& track_loc = track.LocationAtPoint(m);
+        std::tie(X_reco, Y_reco, Z_reco) = std::make_tuple(track_loc.X(), track_loc.Y(), track_loc.Z());
 
         //   //cout<<"X_reco: "<<X_reco<<endl;
         auto const* geom = ::lar::providerFrom<geo::Geometry>();
-        auto V_wire_cm = geom->WireCoordinate(Y_reco,Z_reco,geo::PlaneID(0,0,1)) * wire2cm;
-        //  auto V_wire_id = geom->WireCoordinate(Y_reco,Z_reco,geo::PlaneID(0,0,1));
+        auto V_wire_cm = geom->WireCoordinate(track_loc,geo::PlaneID(0,0,1)) * wire2cm;
         auto V_time_cm = X_reco;
 
-        auto U_wire_cm = geom->WireCoordinate(Y_reco,Z_reco,geo::PlaneID(0,0,0)) * wire2cm;
-        //  auto U_wire_id = geom->WireCoordinate(Y_reco,Z_reco,geo::PlaneID(0,0,0));
+        auto U_wire_cm = geom->WireCoordinate(track_loc,geo::PlaneID(0,0,0)) * wire2cm;
         auto U_time_cm = X_reco;
 
 
@@ -1267,11 +1264,14 @@ void ClusterTrackDistance::beginJob()
   // get detector specific properties
 
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
-  auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+  auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
+  double efield = detProp.Efield();
+  double temp   = detProp.Temperature();
   //  auto const* geomcore = lar::providerFrom<geo::GeometryCore>();
 
-  wire2cm = geom->WirePitch(0,0,0);
-  time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
+  wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
+  time2cm = sampling_rate(clockData) / 1000.0 * detProp.DriftVelocity(efield, temp);
 
 
 

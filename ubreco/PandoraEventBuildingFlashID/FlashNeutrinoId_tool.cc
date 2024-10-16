@@ -6,6 +6,8 @@
 
 #include "FlashNeutrinoId_tool.h"
 
+#include <algorithm>
+
 namespace lar_pandora
 {
 
@@ -300,7 +302,6 @@ void FlashNeutrinoId::FillSliceTree(const art::Event &evt, const SliceVector &sl
       art::Handle< std::vector<simb::MCTruth> > mcTruthHandle;
       evt.getByLabel(m_truthLabel, mcTruthHandle);
       if (mcTruthHandle.isValid()) {
-	art::Ptr<simb::MCTruth> beamNuMCTruth;   
 	for (unsigned int i = 0; i < mcTruthHandle->size(); ++i)
 	  {
 	    const art::Ptr<simb::MCTruth> mcTruth(mcTruthHandle, i);
@@ -484,13 +485,12 @@ void FlashNeutrinoId::FlashCandidate::GetFlashLocation()
     art::ServiceHandle<geo::Geometry> geometry;
     for (unsigned int opdet = 0; opdet < m_peSpectrum.size(); opdet++)
     {
-        double PMTxyz[3];
-        geometry->OpDetGeoFromOpDet(opdet).GetCenter(PMTxyz);
+        auto const PMTxyz = geometry->OpDetGeoFromOpDet(opdet).GetCenter();
         // Add up the position, weighting with PEs
-        sumy += m_peSpectrum[opdet] * PMTxyz[1];
-        sumy2 += m_peSpectrum[opdet] * PMTxyz[1] * PMTxyz[1];
-        sumz += m_peSpectrum[opdet] * PMTxyz[2];
-        sumz2 += m_peSpectrum[opdet] * PMTxyz[2] * PMTxyz[2];
+        sumy += m_peSpectrum[opdet] * PMTxyz.Y();
+        sumy2 += m_peSpectrum[opdet] * PMTxyz.Y() * PMTxyz.Y();
+        sumz += m_peSpectrum[opdet] * PMTxyz.Z();
+        sumz2 += m_peSpectrum[opdet] * PMTxyz.Z() * PMTxyz.Z();
         m_totalPE += m_peSpectrum[opdet];
     }
     m_centerY = sumy / m_totalPE;
@@ -606,9 +606,10 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate()
       m_n_michel_hits_plane0(-std::numeric_limits<int>::max()),
       m_n_michel_hits_plane1(-std::numeric_limits<int>::max()),
       m_n_michel_hits_plane2(-std::numeric_limits<int>::max()),
-      m_min_lin_braggalgonly_plane0(-std::numeric_limits<int>::max()),
-      m_min_lin_braggalgonly_plane1(-std::numeric_limits<int>::max()),
-      m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max()),
+      // deal with c14 warning about implicit int to float
+      m_min_lin_braggalgonly_plane0(-float(std::numeric_limits<int>::max())),
+      m_min_lin_braggalgonly_plane1(-float(std::numeric_limits<int>::max())),
+      m_min_lin_braggalgonly_plane2(-float(std::numeric_limits<int>::max())),
       m_vtx_in_FV(false)
 {
 }
@@ -667,9 +668,10 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
       m_n_michel_hits_plane0(-std::numeric_limits<int>::max()),
       m_n_michel_hits_plane1(-std::numeric_limits<int>::max()),
       m_n_michel_hits_plane2(-std::numeric_limits<int>::max()),
-      m_min_lin_braggalgonly_plane0(-std::numeric_limits<int>::max()),
-      m_min_lin_braggalgonly_plane1(-std::numeric_limits<int>::max()),
-      m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max()),
+      // deal with c14 warning about implicit int to float
+      m_min_lin_braggalgonly_plane0(-float(std::numeric_limits<int>::max())),
+      m_min_lin_braggalgonly_plane1(-float(std::numeric_limits<int>::max())),
+      m_min_lin_braggalgonly_plane2(-float(std::numeric_limits<int>::max())),
       m_vtx_in_FV(false)
 {
 }
@@ -735,9 +737,10 @@ FlashNeutrinoId::SliceCandidate::SliceCandidate(const art::Event &event, const S
       m_n_michel_hits_plane0(-std::numeric_limits<int>::max()),
       m_n_michel_hits_plane1(-std::numeric_limits<int>::max()),
       m_n_michel_hits_plane2(-std::numeric_limits<int>::max()),
-      m_min_lin_braggalgonly_plane0(-std::numeric_limits<int>::max()),
-      m_min_lin_braggalgonly_plane1(-std::numeric_limits<int>::max()),
-      m_min_lin_braggalgonly_plane2(-std::numeric_limits<int>::max()),
+      // deal with c14 warning about implicit int to float
+      m_min_lin_braggalgonly_plane0(-float(std::numeric_limits<int>::max())),
+      m_min_lin_braggalgonly_plane1(-float(std::numeric_limits<int>::max())),
+      m_min_lin_braggalgonly_plane2(-float(std::numeric_limits<int>::max())),
       m_vtx_in_FV(false)
 {
     const auto chargeDeposition(this->GetDepositionVector(pfParticleMap, pfParticleToSpacePointMap, spacePointToHitMap, slice));
@@ -810,15 +813,15 @@ FlashNeutrinoId::SliceCandidate::DepositionVector FlashNeutrinoId::SliceCandidat
 
     //--------------------------------------------------------------------
     // implementing electron lifetime correction [D. Caratelli 08/12/2022]
-    const detinfo::DetectorProperties* detprop;
-    detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->provider();
+    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+    auto const detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
 
     //handle to electron lifetime calibration provider
     const lariov::UBElectronLifetimeProvider& elifetimeCalibProvider
       = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
 
     float elifetime  = elifetimeCalibProvider.Lifetime(); // [ms]
-    float driftvelocity = detprop->DriftVelocity(); // [cm/us] 
+    float driftvelocity = detprop.DriftVelocity(); // [cm/us] 
 
     //std::cout << "LIFETIMECORRECTION [FlashNeutrinoId][GetDepositionVector] lifetime is : " 
     //      << elifetime << " [ms] and drift velocity is " << driftvelocity << " [cm/us]" << std::endl;
@@ -1316,9 +1319,8 @@ float FlashNeutrinoId::SliceCandidate::RunOpHitFinder(double the_time, double tr
 
         //size_t opdet = geo->OpDetFromOpChannel(oh->OpChannel());
 
-        double pmt_xyz[3] = {-9999, -9999, -9999};
-        geo->OpDetGeoFromOpChannel(oh->OpChannel()).GetCenter(pmt_xyz);
-        double pmt_z = pmt_xyz[2];
+        auto const pmt_xyz = geo->OpDetGeoFromOpChannel(oh->OpChannel()).GetCenter();
+        double pmt_z = pmt_xyz.Z();
 
         double dz = 1e9;
         if (pmt_z > trk_z_start && pmt_z < trk_z_end)
@@ -1549,15 +1551,15 @@ void FlashNeutrinoId::GetBestObviousCosmicMatch(const art::Event &event, const F
 
     //--------------------------------------------------------------------
     // implementing electron lifetime correction [D. Caratelli 08/12/2022]
-    const detinfo::DetectorProperties* detprop;
-    detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->provider();
+    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+    auto const detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
 
     //handle to electron lifetime calibration provider
     const lariov::UBElectronLifetimeProvider& elifetimeCalibProvider
       = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
 
     float elifetime  = elifetimeCalibProvider.Lifetime(); // [ms]
-    float driftvelocity = detprop->DriftVelocity(); // [cm/us] 
+    float driftvelocity = detprop.DriftVelocity(); // [cm/us] 
 
     //std::cout << "LIFETIMECORRECTION [FlashNeutrinoId][GetBestObviousCosmicMatch] lifetime is : " 
     //      << elifetime << " [ms] and drift velocity is " << driftvelocity << " [cm/us]" << std::endl;
@@ -1747,27 +1749,30 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
     float bnd = 20.;
 
     // Declare fiducial volume - need this for later (copied from RejectStopMuByDirMCS above)
-    auto InFV = [&geo, bnd](double p[3]) -> bool { return (p[0] > bnd && p[0] < (2. * geo->DetHalfWidth() - bnd) && p[1] > (-geo->DetHalfHeight() + bnd) && p[1] < (geo->DetHalfHeight() - bnd) && p[2] > bnd && p[2] < (geo->DetLength() - bnd)); };
+    auto InFV = [&geo, bnd](geo::Point_t const& p) -> bool {
+                  return p.X() > bnd && p.X() < (2. * geo->DetHalfWidth() - bnd) and
+                         p.Y() > (-geo->DetHalfHeight() + bnd) && p.Y() < (geo->DetHalfHeight() - bnd) and
+                         p.Z() > bnd && p.Z() < (geo->DetLength() - bnd);
+                };
 
     // Configure cosmic tag manager
     ::cosmictag::CosmicTagManager _ct_manager;
     _ct_manager.Configure(cosmictagmanager);
 
     // Detector properties
-    ::detinfo::DetectorProperties const *fDetectorProperties;
-    fDetectorProperties = lar::providerFrom<detinfo::DetectorPropertiesService>();
+    auto const fDetectorProperties = art::ServiceHandle<detinfo::DetectorPropertiesService const>()->DataFor(event);
 
     //--------------------------------------------------------------------
     // implementing electron lifetime correction [D. Caratelli 08/12/2022]
-    const detinfo::DetectorProperties* detprop;
-    detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->provider();
+    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+    auto const detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
 
     //handle to electron lifetime calibration provider
     const lariov::UBElectronLifetimeProvider& elifetimeCalibProvider
       = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
 
     float elifetime  = elifetimeCalibProvider.Lifetime(); // [ms]
-    float driftvelocity = detprop->DriftVelocity(); // [cm/us] 
+    float driftvelocity = detprop.DriftVelocity(); // [cm/us] 
 
     //std::cout << "LIFETIMECORRECTION [FlashNeutrinoId][RejectStopMuByCalo] lifetime is : " 
     //      << elifetime << " [ms] and drift velocity is " << driftvelocity << " [cm/us]" << std::endl;
@@ -1910,36 +1915,25 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
         return;
     }
 
-    const double *highest_point_c = sp_v.at(0)->XYZ();
-    double highest_point[3] = {highest_point_c[0], highest_point_c[1], highest_point_c[2]};
+    auto highest_point = sp_v.at(0)->position();
 
     // Find highest point in the detector (also called "containing" the point)
-    double x = highest_point[0];
-    double y = highest_point[1];
-    double z = highest_point[2];
-    double e = std::numeric_limits<double>::epsilon();
+    double x = highest_point.X();
+    double y = highest_point.Y();
+    double z = highest_point.Z();
+    constexpr double e = std::numeric_limits<double>::epsilon();
 
-    if (x < 0. + e)
-        highest_point[0] = 0. + e;
-    if (x > 2. * geo->DetHalfWidth() - e)
-        highest_point[0] = 2. * geo->DetHalfWidth() - e;
-
-    if (y < -geo->DetHalfWidth() + e)
-        highest_point[1] = -geo->DetHalfWidth() + e;
-    if (y > geo->DetHalfWidth() - e)
-        highest_point[1] = geo->DetHalfWidth() - e;
-
-    if (z < 0. + e)
-        highest_point[2] = 0. + e;
-    if (z > geo->DetLength() - e)
-        highest_point[2] = geo->DetLength() - e;
+    highest_point.SetX(std::clamp(x, e, 2. * geo->DetHalfWidth() - e));
+    highest_point.SetY(std::clamp(y, -geo->DetHalfWidth() + e, geo->DetHalfWidth() - e));
+    highest_point.SetZ(std::clamp(z, e, geo->DetLength() - e));
 
     // Create an approximate start hit on plane 0
-    int highest_w = geo->NearestWire(highest_point, 0);
-    double highest_t = fDetectorProperties->ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 0)) / 4.;
+    geo::PlaneID const plane_0{0, 0, 0};
+    int highest_w = geo->NearestWireID(highest_point, plane_0).Wire;
+    double highest_t = fDetectorProperties.ConvertXToTicks(highest_point.X(), plane_0) / 4.;
     if (mm_verbose)
-        std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWire(highest_point, 0)
-                  << ", time: " << fDetectorProperties->ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 0))
+        std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWireID(highest_point, plane_0).Wire
+                  << ", time: " << fDetectorProperties.ConvertXToTicks(highest_point.X(), plane_0)
                   << std::endl;
 
     cosmictag::SimpleHit start_highest_plane0;
@@ -1948,11 +1942,12 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
     start_highest_plane0.plane = 0;
 
     // Create an approximate start hit on plane 1
-    highest_w = geo->NearestWire(highest_point, 1);
-    highest_t = fDetectorProperties->ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 1)) / 4.;
+    geo::PlaneID const plane_1{0, 0, 1};
+    highest_w = geo->NearestWireID(highest_point, plane_1).Wire;
+    highest_t = fDetectorProperties.ConvertXToTicks(highest_point.X(), plane_1) / 4.;
     if (mm_verbose)
-        std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWire(highest_point, 1)
-                  << ", time: " << fDetectorProperties->ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 1))
+        std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWireID(highest_point, plane_1).Wire
+                  << ", time: " << fDetectorProperties.ConvertXToTicks(highest_point.X(), plane_1)
                   << std::endl;
 
     cosmictag::SimpleHit start_highest_plane1;
@@ -1961,11 +1956,12 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
     start_highest_plane1.plane = 1;
 
     // Create an approximate start hit on plane 2
-    highest_w = geo->NearestWire(highest_point, 2);
-    highest_t = fDetectorProperties->ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 2)) / 4.;
+    geo::PlaneID const plane_2{0, 0, 2};
+    highest_w = geo->NearestWireID(highest_point, plane_2).Wire;
+    highest_t = fDetectorProperties.ConvertXToTicks(highest_point.X(), plane_2) / 4.;
     if (mm_verbose)
-        std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWire(highest_point, 2)
-                  << ", time: " << fDetectorProperties->ConvertXToTicks(highest_point[0], geo::PlaneID(0, 0, 2))
+        std::cout << "[StoppingMuonTagger] Highest point: wire: " << geo->NearestWireID(highest_point, plane_2).Wire
+                  << ", time: " << fDetectorProperties.ConvertXToTicks(highest_point.X(), plane_2)
                   << std::endl;
 
     cosmictag::SimpleHit start_highest_plane2;
@@ -1987,7 +1983,7 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
 
         cosmictag::SimpleHit sh;
 
-        sh.t = fDetectorProperties->ConvertTicksToX(h->PeakTime(), geo::PlaneID(0, 0, h->View()));
+        sh.t = fDetectorProperties.ConvertTicksToX(h->PeakTime(), geo::PlaneID(0, 0, h->View()));
         sh.w = h->WireID().Wire * geo->WirePitch(geo::PlaneID(0, 0, h->View()));
 
         sh.plane = h->View();

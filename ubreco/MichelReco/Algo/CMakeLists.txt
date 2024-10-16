@@ -1,16 +1,46 @@
-
-art_make(	
-	  LIB_LIBRARIES
-			ubreco_MichelReco_Fmwk
-			#${MF_MESSAGELOGGER}
-			#
-			#${CETLIB}
-			${ROOT_BASIC_LIB_LIST}
-			${ROOT_SPECTRUM}
-        )
-
+cet_make_library(
+  SOURCE
+  AlgorithmFactory.cxx
+  BoundaryFromTQMaxQ.cxx
+  CalcTruncated.cxx
+  ChiBoundary.cxx
+  ClusterPhotons.cxx
+  ConeHitFinder.cxx
+  CovarianceFollowBoundary.cxx
+  CutOnFiducialVolume.cxx
+  CutOnMeanHitCharge.cxx
+  CutOnMichelNumHits.cxx
+  CutOnMuonLength.cxx
+  CutOnMuonLinearity.cxx
+  CutOnTotNumHits.cxx
+  DecideIfStoppingMuon.cxx
+  EdgeMerger.cxx
+  FilterStraightLineClusters.cxx
+  FindBraggPeak.cxx
+  ForwardMichelID.cxx
+  MatchBoundaries.cxx
+  MaxQBoundary.cxx
+  PhotonFinder.cxx
+  RadiusMichelCluster.cxx
+  RecoMichelDirection.cxx
+  RemoveBadPhotonClusters.cxx
+  RemoveBraggPeakHits.cxx
+  RemoveFakePMTSignals.cxx
+  RequireBoundaryInLowCov.cxx
+  RequireCloseTruncatedPeaks.cxx
+  RequireCovarianceDip.cxx
+  RequireLargeAngle.cxx
+  RequireSlopeSignFlip.cxx
+  StepAroundCluster.cxx
+  StepSuperSonicCluster.cxx
+  SuperSonicClusterer.cxx
+  TruncatedQBoundary.cxx
+  LIBRARIES
+  PUBLIC
+  ubreco::MichelReco_Fmwk
+  ROOT::Hist
+)
 
 install_headers()
 install_fhicl()
 install_source()
-

@@ -3,12 +3,14 @@
 
 #include <iostream>
 #include "ubreco/ShowerReco/ShowerReco3D/Base/ShowerRecoModuleBase.h"
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 
 //#include "ubreco/Database/TPCEnergyCalib/TPCEnergyCalibService.h"
 //#include "ubreco/Database/TPCEnergyCalib/TPCEnergyCalibProvider.h"
 
+#include "Math/VectorUtil.h"
 #include "TTree.h"
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 
 /**
    \class dedxModule : ShowerRecoModuleBase
@@ -29,7 +31,8 @@ namespace showerreco {
 
     void configure(const fhicl::ParameterSet& pset);
     
-    void do_reconstruction(const ::protoshower::ProtoShower &, Shower_t &);
+    void do_reconstruction(const util::GeometryUtilities&,
+                           const ::protoshower::ProtoShower &, Shower_t &);
     
     void initialize();
     
@@ -106,7 +109,8 @@ namespace showerreco {
     return;
   }
   
-  void dEdxModule::do_reconstruction(const ::protoshower::ProtoShower & proto_shower, Shower_t & resultShower) {
+  void dEdxModule::do_reconstruction(const util::GeometryUtilities&,
+                                     const ::protoshower::ProtoShower & proto_shower, Shower_t & resultShower) {
 
     //handle to tpc energy calibration provider
     //const lariov::TPCEnergyCalibProvider& energyCalibProvider  = art::ServiceHandle<lariov::TPCEnergyCalibService>()->GetProvider();
@@ -149,12 +153,12 @@ namespace showerreco {
 
       auto const* geom = ::lar::providerFrom<geo::Geometry>();
       const geo::WireGeo& wire = geom->TPC().Plane(pl).MiddleWire();
-      TVector3 wireunitperp = wire.Direction();//(wire.GetStart()-wire.GetEnd()).Unit();
+      geo::Vector_t const wireunitperp = wire.Direction();//(wire.GetStart()-wire.GetEnd()).Unit();
       // rotate by 90 degrees around x
-      TVector3 wireunit = {wireunitperp[0], -wireunitperp[2], wireunitperp[1]}; 
+      geo::Vector_t const wireunit{wireunitperp.X(), -wireunitperp.Z(), wireunitperp.Y()};
       if (_verbose)
-	std::cout << "wire unit on plane : " << pl << " is " << wireunit[0] << ", " << wireunit[1] << ", " << wireunit[2] << std::endl;
-      double cosPlane = fabs(cos(wireunit.Angle(dir3D)));
+        std::cout << "wire unit on plane : " << pl << " is " << wireunit.X() << ", " << wireunit.Y() << ", " << wireunit.Z() << std::endl;
+      double cosPlane = fabs(cos(ROOT::Math::VectorUtil::Angle(wireunit, geo::vect::toVector(dir3D))));
 
       std::vector<double> dedx_v;
       if (_verbose)

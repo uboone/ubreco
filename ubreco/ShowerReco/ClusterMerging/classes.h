@@ -16,14 +16,10 @@
 #include "canvas/Persistency/Common/Assns.h"
 #include "lardataobj/RecoBase/PFParticle.h"
 #include "lardataobj/RecoBase/Hit.h"
-#include "nusimdata/SimulationBase/MCTruth.h"
+//#include "nusimdata/SimulationBase/MCTruth.h"
 
 //
 // Only include objects that we would like to be able to put into the event.
 // Do not include the objects they contain internally.
 //
 
-template class art::Assns<recob::Hit,recob::PFParticle,void>;
-template class art::Assns<recob::PFParticle,recob::Hit,void>;
-template class art::Wrapper<art::Assns<recob::Hit,recob::PFParticle,void> >;
-template class art::Wrapper<art::Assns<recob::PFParticle,recob::Hit,void> >;

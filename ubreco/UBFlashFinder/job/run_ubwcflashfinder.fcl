@@ -32,7 +32,6 @@ services.DetectorClocksService.TrigModuleName:               "daq"
 
 services.PmtGainService.PmtGainProvider.UseDB:		     true
 
-services.Geometry.ForceUseFCLOnly: true
 
 services.TimeTracker.printSummary: false
 services.TimeTracker.dbOutput: {}

@@ -47,7 +47,8 @@ private:
 };
 
 
-OpHitCorrectionProducer::OpHitCorrectionProducer(fhicl::ParameterSet const & p)
+OpHitCorrectionProducer::OpHitCorrectionProducer(fhicl::ParameterSet const & p) :
+  art::EDProducer(p)
 {
   inputTag_ = p.get<art::InputTag>("OpHitsInputTag");
   //outputProducer = p.get<std::string>("OutputProducer","ophitcorrectionBeam");

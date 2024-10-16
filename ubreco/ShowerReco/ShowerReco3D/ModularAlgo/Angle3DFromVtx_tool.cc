@@ -27,7 +27,8 @@ namespace showerreco {
     ~Angle3DFromVtx(){};
     
     
-    void do_reconstruction(const ::protoshower::ProtoShower &, Shower_t &);
+    void do_reconstruction(util::GeometryUtilities const&,
+                           const ::protoshower::ProtoShower &, Shower_t &);
     
   private:
     
@@ -44,7 +45,8 @@ namespace showerreco {
     return;
   }
   
-  void Angle3DFromVtx::do_reconstruction(const ::protoshower::ProtoShower & proto_shower,
+  void Angle3DFromVtx::do_reconstruction(util::GeometryUtilities const&,
+                                         const ::protoshower::ProtoShower & proto_shower,
 					 Shower_t& resultShower) {
 
     //if the module does not have 2D cluster info -> fail the reconstruction

@@ -4,42 +4,36 @@ art_make(
     larcorealg_Geometry
     larcore_Geometry_Geometry_service
     larsim_Simulation
-    nutools_ParticleNavigation
+    nug4::ParticleNavigation
     lardataobj_Simulation
     lardata_Utilities
     larevt_Filters
     lardataobj_RawData
     lardataobj_RecoBase 
     lardata_RecoObjects 
-    larreco_Deprecated
     larreco_RecoAlg
     larpandora_LArPandoraInterface
     larpandora_LArPandoraEventBuilding
     SignalShapingServiceMicroBooNE_service
-    nusimdata_SimulationBase
+    nusimdata::SimulationBase
     ubobj_Trigger
     ubobj_Optical
     ubreco_mReA_helpers
-    ${LARRECO_LIB}
-    ${LARDATA_LIB}
-    ${ART_FRAMEWORK_CORE}
-    ${ART_FRAMEWORK_PRINCIPAL}
-    ${ART_FRAMEWORK_SERVICES_REGISTRY}
-    ${ART_FRAMEWORK_SERVICES_OPTIONAL}
-    ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-    art_Persistency_Common canvas
-    art_Persistency_Provenance canvas
-    art_Utilities canvas
-    ${MF_MESSAGELOGGER}
-    ${FHICLCPP}
-    cetlib 
-    cetlib_except
-    ${ROOT_GEOM}
-    ${ROOT_XMLIO}
-    ${ROOT_GDML}
-    ${ROOT_BASIC_LIB_LIST}
-    ${Boost_SYSTEM_LIBRARY}
-  )
+    art::Framework_Core
+    art::Framework_Principal
+    art::Framework_Services_Registry
+    art::Persistency_Common
+    art::Persistency_Provenance
+    art::Utilities
+    canvas::canvas
+    messagefacility::MF_MessageLogger
+    fhiclcpp::fhiclcpp
+    cetlib::cetlib 
+    cetlib_except::cetlib_except
+    ROOT::Geom
+    ROOT::XMLIO
+    ROOT::Gdml
+  ) ### MIGRATE-ACTION-RECOMMENDED (migrate-3.21.01) - deprecated: use art_make_library(), art_dictonary(), and cet_build_plugin() with explicit source lists and plugin base types
 
 add_subdirectory(helpers)
 add_subdirectory(job)

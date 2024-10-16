@@ -14,12 +14,13 @@
 #include "art/Framework/Principal/Run.h"
 #include "art/Framework/Principal/SubRun.h"
 #include "canvas/Utilities/InputTag.h"
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 // services etc...
 #include "larcore/Geometry/Geometry.h"
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 
 // data-products
@@ -288,12 +289,10 @@ void T0RecoAnodeCathodePiercingAna::beginJob()
   _2dhit_tree->Branch("_rc_z_end",&_rc_z_end,"rc_z_end/D");
   _2dhit_tree->Branch("_t0",&_t0,"t0/D");
 
-  // Use '_detp' to find 'efield' and 'temp'
-  auto const* _detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-  double efield = _detp -> Efield();
-  double temp   = _detp -> Temperature();
-  // Determine the drift velocity from 'efield' and 'temp'
-  fDriftVelocity = _detp -> DriftVelocity(efield,temp);
+  auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob();
+  double efield = detProp.Efield();
+  double temp   = detProp.Temperature();
+  fDriftVelocity = detProp.DriftVelocity(efield,temp);
 
 }
 

@@ -17,7 +17,7 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 
 #include "lardata/Utilities/AssociationUtil.h"
 
@@ -179,15 +179,15 @@ void StoreFlashMatchChi2::produce(art::Event& e)
 
   //--------------------------------------------------------------------
   // implementing electron lifetime correction [D. Caratelli 08/12/2022]
-  const detinfo::DetectorProperties* detprop;
-  detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->provider();
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+  auto const detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
   
   //handle to electron lifetime calibration provider
   const lariov::UBElectronLifetimeProvider& elifetimeCalibProvider
     = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
   
   float elifetime  = elifetimeCalibProvider.Lifetime(); // [ms]
-  float driftvelocity = detprop->DriftVelocity(); // [cm/us] 
+  float driftvelocity = detprop.DriftVelocity(); // [cm/us] 
   
   std::cout << "LIFETIMECORRECTION [StoreFlashMatchChi2] lifetime is : " << elifetime << " [ms] and drift velocity is " << driftvelocity << " [cm/us]" << std::endl;
   // implementing electron lifetime correction [D. Caratelli 08/12/2022]
@@ -424,13 +424,12 @@ void StoreFlashMatchChi2::produce(art::Event& e)
   
   for (unsigned int opdet = 0; opdet < PEspectrum.size(); opdet++)
     {
-      double PMTxyz[3];
-      geometry->OpDetGeoFromOpDet(opdet).GetCenter(PMTxyz);
+      auto const PMTxyz = geometry->OpDetGeoFromOpDet(opdet).GetCenter();
       // Add up the position, weighting with PEs
-      sumy += PEspectrum[opdet] * PMTxyz[1];
-      sumy2 += PEspectrum[opdet] * PMTxyz[1] * PMTxyz[1];
-      sumz += PEspectrum[opdet] * PMTxyz[2];
-      sumz2 += PEspectrum[opdet] * PMTxyz[2] * PMTxyz[2];
+      sumy += PEspectrum[opdet] * PMTxyz.Y();
+      sumy2 += PEspectrum[opdet] * PMTxyz.Y() * PMTxyz.Y();
+      sumz += PEspectrum[opdet] * PMTxyz.Z();
+      sumz2 += PEspectrum[opdet] * PMTxyz.Z() * PMTxyz.Z();
       totalPE += PEspectrum[opdet];
     }
   flash.y = sumy / totalPE;

@@ -11,7 +11,7 @@
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 #include "larcore/Geometry/Geometry.h"
 #include "larcorealg/Geometry/CryostatGeo.h"
 #include "larcorealg/Geometry/PlaneGeo.h"
@@ -34,7 +34,10 @@ namespace pmtana {
 
   void OpDetCenterFromOpChannel(size_t opch, double *xyz) {
     ::art::ServiceHandle<geo::Geometry> geo;
-    geo->OpDetGeoFromOpChannel(opch).GetCenter(xyz); 
+    auto const tmp = geo->OpDetGeoFromOpChannel(opch).GetCenter();
+    xyz[0] = tmp.X();
+    xyz[1] = tmp.Y();
+    xyz[2] = tmp.Z();
   }
 
 }

@@ -31,8 +31,9 @@ using namespace std;
 #include <memory>
 #include <map>
 // Services
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 #include "larcore/Geometry/Geometry.h"
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 //#include "larcore/Geometry/GeometryCore.h"
 #include "lardata/Utilities/GeometryUtilities.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
@@ -235,15 +236,12 @@ void RecoEfficiency::analyze(art::Event const & e)
 
 
         //CORRECTIONS TO X OFFSET FOR TRACKS FALLING OUT OF THE 4.8ms spill
-        auto const& detProperties = lar::providerFrom<detinfo::DetectorPropertiesService>();
-        auto const& detClocks = lar::providerFrom<detinfo::DetectorClocksService>();
+	auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+	auto const detPropData = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
 
+        Double_t g4Ticks = clockData.TPCG4Time2Tick(track.at(0).T()) + detPropData.GetXTicksOffset(0, 0, 0) - trigger_offset(clockData);
 
-
-
-        Double_t g4Ticks = detClocks->TPCG4Time2Tick(track.at(0).T()) + detProperties->GetXTicksOffset(0, 0, 0) - detProperties->TriggerOffset();
-
-        Double_t xtimeoffset = detProperties->ConvertTicksToX(g4Ticks, 0, 0, 0);
+        Double_t xtimeoffset = detPropData.ConvertTicksToX(g4Ticks, 0, 0, 0);
 
 
 

@@ -1,21 +1,15 @@
-art_make(
-          LIB_LIBRARIES
-		   	larcorealg_Geometry		
-			lardata_Utilities	
-			larcore_Geometry_Geometry_service	
-			lardataobj_RecoBase
-			art_Utilities canvas
-                        ${MF_MESSAGELOGGER}
-                        ${MF_UTILITIES}
-                        ${CETLIB} cetlib_except
-                        ${Boost_SYSTEM_LIBRARY}
-                        ${ROOT_BASIC_LIB_LIST}
-		   	${ART_FRAMEWORK_SERVICES_REGISTRY}
-		   	${ART_FRAMEWORK_SERVICES_OPTIONAL}
-
-        )
+cet_make_library(
+  SOURCE
+  ProximityClusterer.cxx
+  LIBRARIES
+  PUBLIC
+  lardata::Utilities
+  larcore::Geometry_Geometry_service
+  lardataobj::RecoBase
+  art::Framework_Principal
+  messagefacility::MF_MessageLogger
+)
 
 install_fhicl()
 install_headers()
 install_source()
-

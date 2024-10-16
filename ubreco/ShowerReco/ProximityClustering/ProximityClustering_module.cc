@@ -20,7 +20,7 @@
 #include <memory>
 
 // Services
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 
 // Data Products
 #include "lardataobj/RecoBase/Vertex.h"
@@ -97,7 +97,7 @@ private:
 
 
 ProximityClustering::ProximityClustering(fhicl::ParameterSet const & p)
-// :
+: EDProducer(p)
 // Initialize member data here.
 {
 
@@ -137,7 +137,9 @@ void ProximityClustering::produce(art::Event & e)
   if (fVtxProducer != "") {
     // load vertices
     auto const& vtx_h = e.getValidHandle<std::vector<recob::Vertex> >(fVtxProducer);
-    _ProximityClusterer->loadVertex(vtx_h,fROI);
+    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataFor(e);
+    auto const detProp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataFor(e, clockData);
+    _ProximityClusterer->loadVertex(clockData, detProp, vtx_h,fROI);
   }
 
   // cluster index vectors will be stored here

@@ -1,38 +1,78 @@
-art_make(
-
-MODULE_LIBRARIES 
-	ubobj_WcpPort
-	larcorealg_Geometry
-	larcore_Geometry_Geometry_service
-	lardataobj_RawData
-	lardataobj_RecoBase
-	lardataobj_MCBase
-	nusimdata_SimulationBase
-	lardata_Utilities
-	lardataalg_DetectorInfo
-	larreco_RecoAlg
-	${ART_FRAMEWORK_CORE}
-	${ART_FRAMEWORK_PRINCIPAL}
-	${ART_FRAMEWORK_SERVICES_REGISTRY}
-	${ART_FRAMEWORK_SERVICES_OPTIONAL}
-	${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-	art_Persistency_Common
-	art_Persistency_Provenance
-	art_Utilities
-	canvas
-	${MF_MESSAGELOGGER}
-
-	${FHICLCPP}
-	cetlib cetlib_except
-	${ROOT_GEOM}
-	${ROOT_XMLIO}
-	${ROOT_GDML}
-	${ROOT_EG}
-	${ROOT_BASIC_LIB_LIST}
-
+cet_build_plugin(
+  NuSelectionMetrics art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubobj::WcpPort
+  ROOT::Tree
 )
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
+cet_build_plugin(
+  NuSelectionPlus art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubobj::WcpPort
+)
+
+cet_build_plugin(
+  PortedFlash art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubcore::Geometry
+  lardata::Utilities
+  lardata::DetectorClocksService
+  larcore::Geometry_Geometry_service
+  lardataobj::RecoBase
+)
+
+cet_build_plugin(
+  PortedHits art::EDProducer
+  LIBRARIES
+  PRIVATE
+  lardata::Utilities
+  lardata::DetectorClocksService
+  larcore::Geometry_Geometry_service
+  lardataobj::RecoBase
+)
+
+cet_build_plugin(
+  PortedSpacePoints art::EDProducer
+  LIBRARIES
+  PRIVATE
+  lardata::Utilities
+  lardataobj::RecoBase
+)
+
+cet_build_plugin(
+  SelectWires art::EDProducer
+  LIBRARIES
+  PRIVATE
+  larpandora::LArPandoraInterface
+  lardata::Utilities
+  lardata::DetectorClocksService
+  larcore::Geometry_Geometry_service
+  lardataobj::RawData
+  lardataobj::RecoBase
+)
+
+cet_build_plugin(
+  WCPHybrid art::EDProducer
+  LIBRARIES
+  PRIVATE
+  larpandora::LArPandoraInterface
+  lardata::Utilities
+  lardata::DetectorClocksService
+  larcore::Geometry_Geometry_service
+  lardataobj::RawData
+  lardataobj::RecoBase
+)
+
+cet_build_plugin(
+  WireCellPF art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubobj::WcpPort
+  nusimdata::SimulationBase
+)
 
 add_subdirectory(Check)
 add_subdirectory(job)

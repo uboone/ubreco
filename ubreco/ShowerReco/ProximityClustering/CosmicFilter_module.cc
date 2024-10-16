@@ -20,7 +20,7 @@
 #include <memory>
 #include <map>
 
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 
 #include "larcore/Geometry/Geometry.h"
 #include "larcorealg/Geometry/GeometryCore.h"
@@ -102,7 +102,7 @@ private:
 
 
 CosmicFilter::CosmicFilter(fhicl::ParameterSet const & p)
-// :
+: EDProducer(p)
 // Initialize member data here.
 {
   produces< std::vector< recob::Hit > >();

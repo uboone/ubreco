@@ -1,15 +1,24 @@
-
-art_make(
-	  LIB_LIBRARIES
-			#${MF_MESSAGELOGGER}
-			#
-			#${CETLIB}
-                        #${Boost_SYSTEM_LIBRARY}
-			${ROOT_BASIC_LIB_LIST}
-        )
-
+cet_make_library(
+  SOURCE
+  BaseAlgBinaryMerger.cxx
+  BaseAlgFilter.cxx
+  BaseAlgMerger.cxx
+  BaseMichelAlgo.cxx
+  CMergeBookKeeper.cxx
+  ClusterVectorCalculator.cxx
+  ColorPrint.cxx
+  HitPt.cxx
+  Michel.cxx
+  MichelAnaBase.cxx
+  MichelCluster.cxx
+  MichelException.cxx
+  MichelRecoManager.cxx
+  UtilFunc.cxx
+  LIBRARIES
+  PUBLIC
+  ROOT::Core
+)
 
 install_headers()
 install_fhicl()
 install_source()
-

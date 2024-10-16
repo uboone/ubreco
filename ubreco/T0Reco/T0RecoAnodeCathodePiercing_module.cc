@@ -14,12 +14,13 @@
 #include "art/Framework/Principal/Run.h"
 #include "art/Framework/Principal/SubRun.h"
 #include "canvas/Utilities/InputTag.h"
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 
 // services etc...
 #include "larcore/Geometry/Geometry.h"
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 
 // data-products
@@ -149,7 +150,7 @@ private:
 
 
 T0RecoAnodeCathodePiercing::T0RecoAnodeCathodePiercing(fhicl::ParameterSet const & p)
-// :
+: EDProducer(p)
 // Initialize member data here.
 {
 
@@ -188,12 +189,11 @@ T0RecoAnodeCathodePiercing::T0RecoAnodeCathodePiercing(fhicl::ParameterSet const
   
   _det_width = geom->DetHalfWidth() * 2;
 
-  // Use '_detp' to find 'efield' and 'temp'
-  auto const* _detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-  double efield = _detp -> Efield();
-  double temp   = _detp -> Temperature();
-  // Determine the drift velocity from 'efield' and 'temp'
-  fDriftVelocity = _detp -> DriftVelocity(efield,temp);
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+  auto const detPropData = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
+  double efield = detPropData.Efield();
+  double temp   = detPropData.Temperature();
+  fDriftVelocity = detPropData.DriftVelocity(efield,temp);
 
 
   art::ServiceHandle<art::TFileService> tfs;

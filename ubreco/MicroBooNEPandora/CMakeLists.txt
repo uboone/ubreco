@@ -1,44 +1,25 @@
+cet_make_library(
+  SOURCE
+  DummyVertexParticleCreationAlgorithm.cc
+  MicroBooNEContent.cc
+  MicroBooNEExampleAlgorithm.cc
+  MicroBooNEExternalVertexCreationAlgorithm.cc
+  MicroBooNEMasterAlgorithm.cc
+  MicroBooNEDLMasterAlgorithm.cc
+  MicroBooNEPreProcessingAlgorithm.cc
+  LIBRARIES
+  PUBLIC
+  larpandoracontent::LArPandoraContent
+  larpandoracontent::LArPandoraDLContent
+)
 
-# where should the scripts/..xml file be installed?  Perhaps in bin?
-
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
-
-include_directories( $ENV{PANDORA_INC} )
-include_directories( $ENV{LARPANDORA_INC} )
-include_directories( $ENV{LARPANDORACONTENT_INC} )
-
-message(PANDORA_INC=$ENV{PANDORA_INC} )
-message(LARPANDORA_INC=$ENV{LARPANDORA_INC} )
-message(LARPANDORACONTENT_INC=$ENV{LARPANDORACONTENT_INC} )
-
-message(LARPANDORACONTENT=${LARPANDORACONTENT} )
-message(LARPANDORADLCONTENT=${LARPANDORADLCONTENT} )
-# message(LARPANDORADLCONTENT=${LARPANDORADLCONTENT} )
-
-art_make( BASENAME_ONLY
-          LIBRARY_NAME  MicroBooNEPandora
-          LIB_LIBRARIES larpandora_LArPandoraInterface
-                        ${LARPANDORACONTENT}
-                        ${LARPANDORADLCONTENT}
-                        ${PANDORASDK}
-                        ${PANDORAMONITORING}
-                        ${ART_FRAMEWORK_CORE}
-                        ${ART_FRAMEWORK_PRINCIPAL}
-                        ${ART_FRAMEWORK_SERVICES_REGISTRY}
-                        ${ART_FRAMEWORK_SERVICES_BASIC}
-                        ${ART_ROOT_IO_TFILE_SUPPORT} ${ROOT_CORE}
-                        ${ART_ROOT_IO_TFILESERVICE_SERVICE}
-                        art_Persistency_Common canvas
-                        art_Persistency_Provenance canvas
-                        art_Utilities canvas
-                        ${MF_MESSAGELOGGER}
-                        ${FHICLCPP}
-                        cetlib cetlib_except
-                        ${ROOT_BASIC_LIB_LIST}
-                        ${ROOT_GEOM}
-                        ${Boost_SYSTEM_LIBRARY}
-          MODULE_LIBRARIES MicroBooNEPandora
-          )
+cet_build_plugin(
+  MicroBooNEPandora art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubreco::MicroBooNEPandora
+  larpandora::LArPandoraInterface
+)
 
 install_headers()
 install_fhicl()

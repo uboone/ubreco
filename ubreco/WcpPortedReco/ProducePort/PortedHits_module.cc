@@ -117,6 +117,7 @@ void ph::PortedHits::produce(art::Event &e){
 					 charge_error*fChargeScaling/fRebin,
 					 charge*fChargeScaling,
 					 charge*fChargeScaling,
+					 charge*fChargeScaling,
 					 charge_error*fChargeScaling,
 					 -1, // 1
 					 0,

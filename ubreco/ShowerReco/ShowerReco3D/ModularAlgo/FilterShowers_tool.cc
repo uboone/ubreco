@@ -2,6 +2,9 @@
 #define FILTERSHOWERS_CXX
 
 #include <iostream>
+
+#include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 #include "ubreco/ShowerReco/ShowerReco3D/Base/ShowerRecoModuleBase.h"
 
 #include <sstream>
@@ -27,7 +30,8 @@ namespace showerreco {
     void configure(const fhicl::ParameterSet& pset);
     
     
-    void do_reconstruction(const ::protoshower::ProtoShower &, Shower_t &);
+    void do_reconstruction(util::GeometryUtilities const&,
+                           const ::protoshower::ProtoShower &, Shower_t &);
     
   private:
     
@@ -41,9 +45,10 @@ namespace showerreco {
   {
     _name = "FilterShowers";
     auto const* geom = ::lar::providerFrom<geo::Geometry>();
-    auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    _wire2cm = geom->WirePitch(0,0,0);
-    _time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
+    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+    auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
+    _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
+    _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
     configure(pset);
   }
 
@@ -52,7 +57,8 @@ namespace showerreco {
     _anglecut = pset.get<double>("anglecut");
   }
 
-void FilterShowers::do_reconstruction(const ::protoshower::ProtoShower & proto_shower,
+void FilterShowers::do_reconstruction(util::GeometryUtilities const&,
+                                      const ::protoshower::ProtoShower & proto_shower,
                                     Shower_t& resultShower) {
 
   //if the module does not have 2D cluster info -> fail the reconstruction
@@ -68,7 +74,7 @@ void FilterShowers::do_reconstruction(const ::protoshower::ProtoShower & proto_s
   }
   
   // take the vtx -> start point direction as the 3D direction
-  auto const& vtx = proto_shower.vertex();
+  auto const vtx = geo::vect::toPoint(proto_shower.vertex());
   
   //auto const& geomH = ::util::GeometryUtilities::GetME();
   
@@ -96,8 +102,8 @@ void FilterShowers::do_reconstruction(const ::protoshower::ProtoShower & proto_s
 
     // project vertex onto this plane
     auto const* geom = ::lar::providerFrom<geo::Geometry>();
-    auto wire = geom->WireCoordinate(vtx[1],vtx[2],geo::PlaneID(0,0,clus._plane)) * _wire2cm;
-    auto time = vtx[0];
+    auto wire = geom->WireCoordinate(vtx,geo::PlaneID(0,0,clus._plane)) * _wire2cm;
+    auto time = vtx.X();
     auto const& vtx2D = util::PxPoint(2,wire,time);// geomH->Get2DPointProjection(vtx,2);
     
     // get hits and start-point, calculate average angle of hits w.r.t. projected

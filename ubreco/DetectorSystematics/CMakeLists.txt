@@ -1,47 +1,35 @@
+cet_build_plugin(
+  DummyRawDigitCreator art::EDProducer
+  LIBRARIES
+  PRIVATE
+  lardataobj::RawData
+)
 
-art_make(	
-	  LIB_LIBRARIES
-			${ART_FRAMEWORK_CORE}
-			art_Utilities canvas
-			${MF_MESSAGELOGGER}
-			
-			cetlib cetlib_except
-                        ${Boost_SYSTEM_LIBRARY}
-			${ROOT_BASIC_LIB_LIST}
-			${ROOT_HIST}
-          MODULE_LIBRARIES 
-			larcorealg_Geometry
-			larcore_Geometry_Geometry_service
-			lardataobj_RawData
-			lardataobj_RecoBase
-			lardataobj_AnalysisBase	
-			lardata_RecoObjects larreco_Deprecated  
-			larreco_RecoAlg
-			lardata_Utilities
-			larevt_Filters
-			nusimdata_SimulationBase
-			${LARRECO_LIB}
-			${LARDATA_LIB}
-                        ${ART_FRAMEWORK_CORE}
-			${ART_FRAMEWORK_PRINCIPAL}
-			${ART_FRAMEWORK_SERVICES_REGISTRY}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-			art_Persistency_Common canvas
-			art_Persistency_Provenance canvas
-			art_Utilities canvas
-			${MF_MESSAGELOGGER}
-                        ubevt_Utilities						
-	                ${FHICLCPP}
-			cetlib cetlib_except
-			${CLHEP}
-                        ${ROOT_GEOM}
-                        ${ROOT_XMLIO}
-                        ${ROOT_GDML}
-			${ROOT_BASIC_LIB_LIST}
-			${ROOT_HIST}
-        )
+cet_build_plugin(
+  HitVariationsAnalyzer art::EDAnalyzer
+  LIBRARIES
+  PRIVATE
+  larevt::SpaceChargeService
+  larcore::ServiceUtil
+  lardataobj::RawData
+  lardataobj::RecoBase
+  lardataobj::AnalysisBase
+  art_root_io::TFileService_service
+  nusimdata::SimulationBase
+  ROOT::Tree
+)
+
+cet_build_plugin(
+  WireModifier art::EDProducer
+  LIBRARIES
+  PRIVATE
+  lardata::Utilities
+  lardataobj::RawData
+  lardataobj::RecoBase
+  art_root_io::TFileService_service
+  nusimdata::SimulationBase
+  ROOT::Tree
+)
 
 install_headers()
 install_fhicl()

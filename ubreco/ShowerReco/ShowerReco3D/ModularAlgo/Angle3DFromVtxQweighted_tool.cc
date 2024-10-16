@@ -14,6 +14,7 @@
 #include <algorithm>
 
 #include "larcore/Geometry/Geometry.h"
+#include "larcore/CoreUtils/ServiceUtil.h" // lar::providerFrom<>()
 #include "larcorealg/Geometry/GeometryCore.h"
 #include "lardata/Utilities/GeometryUtilities.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
@@ -32,7 +33,8 @@ namespace showerreco {
     
     void configure(const fhicl::ParameterSet& pset);
     
-    void do_reconstruction(const ::protoshower::ProtoShower &, Shower_t &);
+    void do_reconstruction(util::GeometryUtilities const& gser,
+                           const ::protoshower::ProtoShower &, Shower_t &);
     
   private:
     
@@ -46,10 +48,10 @@ namespace showerreco {
     _name = "Angle3DFromVtxQweighted";
 
     auto const* geom = ::lar::providerFrom<geo::Geometry>();
-    auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-    _wire2cm = geom->WirePitch(0,0,0);
-    _time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
-
+    auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+    auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
+    _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
+    _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
   }
 
   void Angle3DFromVtxQweighted::configure(const fhicl::ParameterSet& pset)
@@ -58,7 +60,8 @@ namespace showerreco {
     return;
   }
   
-  void Angle3DFromVtxQweighted::do_reconstruction(const ::protoshower::ProtoShower & proto_shower,
+  void Angle3DFromVtxQweighted::do_reconstruction(util::GeometryUtilities const& geomH,
+                                                  const ::protoshower::ProtoShower & proto_shower,
 						  Shower_t& resultShower) {
     
     //if the module does not have 2D cluster info -> fail the reconstruction
@@ -75,8 +78,6 @@ namespace showerreco {
       throw ShowerRecoException(ss.str());
     }
 
-    auto const& geomH = ::util::GeometryUtilities::GetME();
-    
     if (proto_shower.hasVertex() == false){
       std::stringstream ss;
       ss << "Fail @ algo " << this->name() << " due to number of vertices != one!";
@@ -84,7 +85,7 @@ namespace showerreco {
     }
     
     // get the proto-shower 3D vertex
-    auto const& vtx = proto_shower.vertex();
+    auto const vtx = geo::vect::toPoint(proto_shower.vertex());
 
     std::vector<double> dir3D = {0,0,0};
 
@@ -104,15 +105,15 @@ namespace showerreco {
       auto const& pl = clusters.at(n)._plane;
 
       // project vertex onto this plane
-      //auto const& vtx2D = geomH->Get2DPointProjectionCM(vtx,pl);
+      //auto const& vtx2D = geomH.Get2DPointProjectionCM(vtx,pl);
       // get wire for yz pointx
       auto const* geom = ::lar::providerFrom<geo::Geometry>();
-      auto wire = geom->WireCoordinate(vtx[1],vtx[2],geo::PlaneID(0,0,pl)) * _wire2cm;
-      auto time = vtx[0];
+      auto wire = geom->WireCoordinate(vtx,geo::PlaneID(0,0,pl)) * _wire2cm;
+      auto time = vtx.X();
       util::PxPoint vtx2D(pl,wire,time);
 
       if (_verbose){
-	std::cout << "3D vertex : [ " << vtx[0] << ", " << vtx[1] << ", " << vtx[2] << " ]" << std::endl;
+        std::cout << "3D vertex : [ " << vtx.X() << ", " << vtx.Y() << ", " << vtx.Z() << " ]" << std::endl;
 	std::cout << "2D projection of vtx on plane " << pl << " @ [w,t] -> [ " << vtx2D.w << ", " << vtx2D.t << "]" <<  std::endl;
       }
 
@@ -177,7 +178,7 @@ namespace showerreco {
     angle_mid = atan2( planeDir[pl_mid].t , planeDir[pl_mid].w );
     
     double theta, phi;
-    geomH->Get3DaxisN(pl_max, pl_mid,
+    geomH.Get3DaxisN(pl_max, pl_mid,
 		      angle_max, angle_mid,
 		      phi, theta);
 

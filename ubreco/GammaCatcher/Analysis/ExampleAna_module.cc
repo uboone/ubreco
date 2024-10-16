@@ -27,7 +27,7 @@
 #include "lardata/Utilities/AssociationUtil.h"
 
 // needed for TTree
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 #include "TTree.h"
 #include "TVector3.h"
 

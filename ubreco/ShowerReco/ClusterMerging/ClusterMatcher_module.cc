@@ -79,15 +79,16 @@ private:
 
 
 ClusterMatcher::ClusterMatcher(fhicl::ParameterSet const & pset)
-// :
+: EDProducer(pset)
 // Initialize member data here.
 {
 
   // get detector specific properties
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
-  auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-  _wire2cm = geom->WirePitch(0,0,0);
-  _time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+  auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
+  _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
+  _time2cm = sampling_rate(clockData) / 1000.0 * detp.DriftVelocity( detp.Efield(), detp.Temperature() );
 
   // Call appropriate produces<>() functions here.
   _mgr = new ::clusmtool::CMatchManager(geom->Nplanes());
@@ -129,11 +130,13 @@ void ClusterMatcher::produce(art::Event & e)
   // load input clusters
   auto const& clus_h = e.getValidHandle<std::vector<recob::Cluster>>(fClusterProducer);
 
+  /* unused
   int nabove = 0;
   for (size_t c=0; c < clus_h->size(); c++){
     auto clus = clus_h->at(c);
     if (clus.NHits() > 10) { nabove += 1; }
   }
+  */
 
   // load associated hits
   art::FindManyP<recob::Hit> clus_hit_assn_v(clus_h, e, fClusterProducer);
@@ -143,7 +146,8 @@ void ClusterMatcher::produce(art::Event & e)
 
   // create cluster::Clusters
   std::vector<::cluster::Cluster> event_clusters;
-  _CMaker->MakeClusters(clus_h, clus_hit_assn_v, vtx_h, event_clusters);
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataFor(e);
+  _CMaker->MakeClusters(clockData, clus_h, clus_hit_assn_v, vtx_h, event_clusters);
 
   _mgr->Reset();
   _mgr->SetClusters(event_clusters);

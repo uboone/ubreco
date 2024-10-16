@@ -89,7 +89,8 @@ private:
   // map connecting photon cluster index to poly2d object
   std::map< size_t, twodimtools::Poly2D > _photon_poly_map; 
 
-  twodimtools::Poly2D projectShower(const art::Ptr<recob::Cluster> clus);
+  twodimtools::Poly2D projectShower(detinfo::DetectorClocksData const& clockData,
+                                    const art::Ptr<recob::Cluster> clus);
 
   double PhotonShowerAngle(const twodimtools::Poly2D& shr,
 			   const twodimtools::Linearity& photon);
@@ -107,7 +108,7 @@ private:
 
 
 PhotonMerge::PhotonMerge(fhicl::ParameterSet const & p)
-// :
+: EDProducer(p)
 // Initialize member data here.
 {
   produces<std::vector<recob::PFParticle> >();
@@ -127,10 +128,11 @@ PhotonMerge::PhotonMerge(fhicl::ParameterSet const & p)
   
   // get detector specific properties
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
-  auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-  _wire2cm = geom->WirePitch(0,0,0);
-  _time2cm = detp->SamplingRate() / 1000.0 * detp->DriftVelocity( detp->Efield(), detp->Temperature() );
-  _trigoff = detp->TriggerOffset();
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+  auto const detPropData = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
+  _wire2cm = geom->WirePitch(geo::PlaneID{0,0,0});
+  _time2cm = sampling_rate(clockData) / 1000.0 * detPropData.DriftVelocity( detPropData.Efield(), detPropData.Temperature() );
+  _trigoff = trigger_offset(clockData);
 }
 
 void PhotonMerge::produce(art::Event & e)
@@ -182,15 +184,14 @@ void PhotonMerge::produce(art::Event & e)
   if (photon_h->size() == 0)
     std::cout << "no photons" << std::endl;
 
-  _clusterMaker.loadVertex(vtx_h);
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataFor(e);
+  _clusterMaker.loadVertex(clockData, vtx_h);
 
   // load vertex and project on collection-plane
-  auto const vtx = vtx_h->at(0);
-  Double_t xyz[3] = {};
-  vtx.XYZ(xyz);
+  auto const& vtx = vtx_h->at(0).position();
   auto const* geom = ::lar::providerFrom<geo::Geometry>();
-  _vtxW = geom->WireCoordinate(xyz[1],xyz[2],geo::PlaneID(0,0,2)) * _wire2cm;
-  _vtxT = xyz[0];
+  _vtxW = geom->WireCoordinate(vtx,geo::PlaneID(0,0,2)) * _wire2cm;
+  _vtxT = vtx.X();
   if (fDebug) std::cout << "\n\t Vertex @ Pl 2 : [w,t] -> [" << _vtxW << ", " << _vtxT << "]" << std::endl;
 
   // create polygon objects for each photon cluster.
@@ -265,7 +266,7 @@ void PhotonMerge::produce(art::Event & e)
     for (auto const& shr_hit : shr_hit_v)
       shr_hit_plv_v.at(shr_hit->WireID().Plane).push_back( shr_hit ); 
     
-    auto shrPoly = projectShower(shr_clus_v.at(collidx));
+    auto shrPoly = projectShower(clockData, shr_clus_v.at(collidx));
     
     if (fDebug) { std::cout << "hits on Y plane before merging : " << shr_hit_plv_v[2].size() << std::endl; }
     
@@ -417,10 +418,10 @@ void PhotonMerge::produce(art::Event & e)
       _clusterMaker.MakeCluster(plane_hits,CMCluster);
 
       float startW = CMCluster._start_pt._w / _wire2cm;
-      float startT = CMCluster._start_pt._t / _time2cm;// + detp->TriggerOffset();
+      float startT = CMCluster._start_pt._t / _time2cm;
       
       float endW   = CMCluster._end_pt._w / _wire2cm;
-      float endT   = CMCluster._end_pt._t / _time2cm;// + detp->TriggerOffset();
+      float endT   = CMCluster._end_pt._t / _time2cm;
 
       if (pl ==2 && fDebug)
 	std::cout << "\t new cluster: Shower Collection plane start wire/tick are @ " << startW << ", " << startT << std::endl;
@@ -458,12 +459,11 @@ void PhotonMerge::produce(art::Event & e)
   return;
   }
 
-twodimtools::Poly2D PhotonMerge::projectShower(const art::Ptr<recob::Cluster> clus) {
-  
-  auto const* detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+twodimtools::Poly2D PhotonMerge::projectShower(detinfo::DetectorClocksData const& clockData,
+                                               const art::Ptr<recob::Cluster> clus) {
 
   double sW = clus->StartWire() * _wire2cm;
-  double sT = ( clus->StartTick() - detp->TriggerOffset() ) * _time2cm;
+  double sT = ( clus->StartTick() - trigger_offset(clockData) ) * _time2cm;
 
   double dW = (sW-_vtxW);
   double dT = (sT-_vtxT);

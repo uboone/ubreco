@@ -1,58 +1,92 @@
+cet_build_plugin(
+  MuCSDT art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubobj::MuCS
+  lardata::LArPropertiesService
+  larcore::Geometry_Geometry_service
+  art_root_io::TFileService_service
+  ifdh::ifdh
+)
 
-# for classes_def.xml!!
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
-include_directories( $ENV{NUTOOLS_INC} )
-cet_find_library( SQLITE3 NAMES sqlite3 PATHS ENV NO_DEFAULT_PATH )
-cet_find_library( CRY NAMES CRY PATHS ENV CRY_LIB NO_DEFAULT_PATH )
-cet_find_library( IFDH NAMES ifdh PATHS ENV IFDHC_LIB NO_DEFAULT_PATH )
-include_directories ( $ENV{CRYHOME}/src )
-include_directories( $ENV{IFDHC_FQ_DIR}/inc )
+cet_build_plugin(
+  MuCSExtrapolate art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubobj::MuCS
+  lardataobj::RawData
+  ROOT::Graf
+  SQLite::SQLite3
+)
 
-art_make( BASENAME_ONLY
-      MODULE_LIBRARIES  
-			larevt_CalibrationDBI_IOVData
-      			larcorealg_Geometry
-			larcore_Geometry_Geometry_service
-			larcoreobj_SummaryData
-			larsim_Simulation nutools_ParticleNavigation lardataobj_Simulation
-			larsim_MCCheater_ParticleInventoryService_service
-			larsim_MCCheater_BackTrackerService_service
-			lardata_Utilities
-			larevt_Filters
-			lardataobj_RawData
-			lardataobj_RecoBase
-			lardata_RecoObjects larreco_Deprecated  
-			larreco_RecoAlg
-			ubobj_MuCS
-			SignalShapingServiceMicroBooNE_service
-			lardataobj_AnalysisBase
-      			nusimdata_SimulationBase
-      			${LARRECO_LIB}
-      			${LARDATA_LIB}
-      			${ART_FRAMEWORK_CORE}
-			${ART_FRAMEWORK_PRINCIPAL}
-			${ART_FRAMEWORK_SERVICES_REGISTRY}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
-			art_Persistency_Common canvas
-			art_Persistency_Provenance canvas
-			art_Utilities canvas
-			nutools_RandomUtils_NuRandomService_service
-			${MF_MESSAGELOGGER}
-			${FHICLCPP}
-			cetlib cetlib_except
-			${CLHEP}
-			${ROOT_PHYSICS}
-      			${ROOT_GEOM}
-      			${ROOT_XMLIO}
-      			${ROOT_GDML}
-			${ROOT_BASIC_LIB_LIST}
-			${ROOT_CORE}
-			${ROOT_EG}
-			${SQLITE3}
-			${CRY}
-			${IFDH}
+cet_build_plugin(
+  MuCSMCGen art::EDProducer
+  LIBRARIES
+  PRIVATE
+  larcore::Geometry_Geometry_service
+  art_root_io::TFileService_service
+  nutools::EventGeneratorBase_CRY
+  nurandom::RandomUtils_NuRandomService_service
+  nusimdata::SimulationBase
+  CRY::CRY
+  ROOT::EG
+)
+
+cet_build_plugin(
+  MuCSMerger art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubobj::MuCS
+  lardataobj::RawData
+  ifdh::ifdh
+)
+
+cet_build_plugin(
+  MuCSReader art::EDAnalyzer
+  LIBRARIES
+  PRIVATE
+  ubobj::MuCS
+  larreco::RecoAlg
+  larsim::Simulation
+  lardata::LArPropertiesService
+  larcore::Geometry_Geometry_service
+  lardataobj::RawData
+  art_root_io::TFileService_service
+  nusimdata::SimulationBase
+)
+
+cet_build_plugin(
+  MuCSRecoToMC art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubobj::MuCS
+  art_root_io::TFileService_service
+  nutools::EventGeneratorBase_CRY
+  nurandom::RandomUtils_NuRandomService_service
+  nusimdata::SimulationBase
+  ROOT::EG
+)
+
+cet_build_plugin(
+  MuCSReco art::EDProducer
+  LIBRARIES
+  PRIVATE
+  ubobj::MuCS
+  lardataobj::RawData
+  SQLite::SQLite3
+)
+
+cet_build_plugin(
+  MuCSTrackTagger art::EDProducer
+  LIBRARIES
+  PRIVATE
+  larevt::PmtGainService
+  lardata::LArPropertiesService
+  larcore::Geometry_Geometry_service
+  lardataobj::RecoBase
+  lardataobj::AnalysisBase
+  art_root_io::TFileService_service
+  ROOT::Tree
 )
 
 install_fhicl()

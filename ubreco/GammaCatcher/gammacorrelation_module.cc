@@ -41,7 +41,7 @@
 
 #include "TTree.h"
 #include "TRandom3.h"
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 #include <memory>
 
 class gammacorrelation;

@@ -5,9 +5,12 @@
  */
 
 #include "art/Utilities/ToolMacros.h"
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art/Framework/Principal/Event.h"
+#include "art/Framework/Principal/Handle.h"
+#include "art_root_io/TFileService.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "canvas/Persistency/Common/FindMany.h"
+#include "nusimdata/SimulationBase/MCTruth.h"
 
 #include "larcore/Geometry/Geometry.h"
 
@@ -727,10 +730,9 @@ FlashNeutrinoId::FlashNeutrinoId(fhicl::ParameterSet const &pset) : m_flashLabel
   m_dt_resolution_ophit = pset.get<float>("dt_resolution_ophit");
 
   // setup drift velocity variable
-  auto const *_detp = lar::providerFrom<detinfo::DetectorPropertiesService>();
-  double efield = _detp->Efield();
-  double temp = _detp->Temperature();
-  m_driftVel = _detp->DriftVelocity(efield, temp);
+  auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
+  auto const detp = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(clockData);
+  m_driftVel = detp.DriftVelocity();
 
   if (!m_shouldWriteToFile)
     return;

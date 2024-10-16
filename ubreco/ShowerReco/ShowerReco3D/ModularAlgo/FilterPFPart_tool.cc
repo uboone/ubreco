@@ -26,7 +26,8 @@ namespace showerreco {
 
     void configure(const fhicl::ParameterSet& pset);
     
-    void do_reconstruction(const ::protoshower::ProtoShower &, Shower_t &);
+    void do_reconstruction(const util::GeometryUtilities&,
+                           const ::protoshower::ProtoShower &, Shower_t &);
     
     void setMinNHitsAbsolute(int n) { _min_nhits_absolute = n; }
     void setMinNHitsLargest (int n) { _min_nhits_largest  = n; }
@@ -50,7 +51,8 @@ namespace showerreco {
     _min_nhits_largest  = pset.get<size_t>("min_nhits_largest" );
   }
 
-  void FilterPFPart::do_reconstruction(const ::protoshower::ProtoShower & proto_shower,
+  void FilterPFPart::do_reconstruction(const util::GeometryUtilities&,
+                                       const ::protoshower::ProtoShower & proto_shower,
 				       Shower_t& resultShower) {
     
     //if the module does not have 2D cluster info -> fail the reconstruction
@@ -62,7 +64,7 @@ namespace showerreco {
     
     auto & clusters = proto_shower.clusters();
     
-    // keep track of largest cluster
+    // keep track of large cluster
     size_t largest_cluster_nhits = 0;
     
     // loop through clusters, find number of hits in each

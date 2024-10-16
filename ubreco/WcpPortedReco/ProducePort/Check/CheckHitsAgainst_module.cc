@@ -4,8 +4,8 @@
 #include "art/Framework/Principal/Handle.h"
 #include "art/Framework/Principal/Run.h"
 #include "art/Framework/Principal/SubRun.h"
-#include "art/Framework/Services/Optional/TFileService.h"
-#include "art/Framework/Services/Optional/TFileDirectory.h"
+#include "art_root_io/TFileService.h"
+#include "art_root_io/TFileDirectory.h"
 #include "art/Framework/Services/Registry/ServiceHandle.h"
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
@@ -88,19 +88,15 @@ void CheckHitsAgainst::reconfigure(fhicl::ParameterSet const& pset)
 
 void CheckHitsAgainst::analyze(art::Event const& e)
 {
-  art::Handle<std::vector<recob::Hit> > hit_handle;
-  e.getByLabel(fHitLabel,hit_handle);
-  std::vector<art::Ptr<recob::Hit> > hit_vec;
-  art::fill_ptr_vector(hit_vec,hit_handle);
-  for(size_t i=0; i<hit_vec.size(); i++){
-    art::Ptr<recob::Hit> hit = hit_vec.at(i);
-    int refChannel = hit->Channel();
-    float refTime = hit->PeakTime();
-    float refCharge = hit->Integral();
-    if(hit->View()==0){
+  auto const& hit_vec = e.getProduct<std::vector<recob::Hit>>(fHitLabel);
+  for(recob::Hit const& hit : hit_vec) {
+    int refChannel = hit.Channel();
+    float refTime = hit.PeakTime();
+    float refCharge = hit.Integral();
+    if(hit.View()==0){
       hit_u->SetBinContent(refChannel+1,(int)refTime,refCharge);
     }
-    else if(hit->View()==1){
+    else if(hit.View()==1){
       hit_v->SetBinContent(refChannel+1-2400,(int)refTime,refCharge);
     }
     else{
@@ -108,19 +104,15 @@ void CheckHitsAgainst::analyze(art::Event const& e)
     }
   }
 
-  art::Handle<std::vector<recob::Hit> > ls_hit_handle;
-  e.getByLabel(fLsHitLabel,ls_hit_handle);
-  std::vector<art::Ptr<recob::Hit> > ls_hit_vec;
-  art::fill_ptr_vector(ls_hit_vec,ls_hit_handle);
-  for(size_t i=0; i<ls_hit_vec.size(); i++){
-    art::Ptr<recob::Hit> hit = ls_hit_vec.at(i);
-    int refChannel = hit->Channel();
-    float refTime = hit->PeakTime();
-    float refCharge = hit->Integral();
-    if(hit->View()==0){
+  auto const& ls_hit_vec = e.getProduct<std::vector<recob::Hit>>(fLsHitLabel);
+  for(recob::Hit const& hit : ls_hit_vec) {
+    int refChannel = hit.Channel();
+    float refTime = hit.PeakTime();
+    float refCharge = hit.Integral();
+    if(hit.View()==0){
       ls_hit_u->SetBinContent(refChannel+1,(int)refTime,refCharge);
     }
-    else if(hit->View()==1){
+    else if(hit.View()==1){
       ls_hit_v->SetBinContent(refChannel+1-2400,(int)refTime,refCharge);
     }
     else{
@@ -129,17 +121,11 @@ void CheckHitsAgainst::analyze(art::Event const& e)
   }
 
   if(fMC==true){
-    auto const& scHandle = e.getValidHandle<std::vector<sim::SimChannel>>(fScLabel);
-    auto const& sc_vec(*scHandle);
-    for(size_t i=0; i<sc_vec.size(); i++){
-      
-      sim::SimChannel sc = sc_vec[i];
+    auto const& sc_vec = e.getProduct<std::vector<sim::SimChannel>>(fScLabel);
+    for(sim::SimChannel const& sc : sc_vec) {
       auto const timeSlices = sc.TDCIDEMap();
-      for(auto timeSlice : timeSlices){
+      for(auto const& [tdc, energyDeposits] : timeSlices){
 	
-	auto tdc = timeSlice.first;
-	
-	auto const& energyDeposits = timeSlice.second;
 	for(auto energyDeposit : energyDeposits){
 	  
 	  unsigned int tick = (unsigned int) tdc - ((DefaultTrigTime + TriggerOffsetTPC)/TickPeriod);
@@ -158,21 +144,17 @@ void CheckHitsAgainst::analyze(art::Event const& e)
     }
   }
   if(fMC==false){
-    art::Handle<std::vector<recob::Wire> > wire_handle;
-    e.getByLabel(fWireLabel,wire_handle);
-    std::vector<art::Ptr<recob::Wire> > wire_vec;
-    art::fill_ptr_vector(wire_vec,wire_handle);
-    for(size_t i=0; i<wire_vec.size(); i++){
-      art::Ptr<recob::Wire> wire = wire_vec.at(i);
-      int refChannel = wire->Channel();
-      std::vector<float> wf = wire->Signal();
+    auto const& wire_vec = e.getProduct<std::vector<recob::Wire>>(fWireLabel);
+    for(recob::Wire const& wire : wire_vec) {
+      int refChannel = wire.Channel();
+      std::vector<float> wf = wire.Signal();
       int nbin = (int)wf.size();
-      if(wire->View()==0){
+      if(wire.View()==0){
 	for(int j=0; j<nbin; j++){
 	  wire_u->SetBinContent(refChannel+1,j+1,wf[j]);
 	}
       }
-      else if(wire->View()==1){
+      else if(wire.View()==1){
 	for(int j=0; j<nbin; j++){
 	  wire_v->SetBinContent(refChannel+1-2400,j+1,wf[j]);
 	}

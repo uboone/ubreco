@@ -11,7 +11,7 @@
 //#include "ubreco/Database/TPCEnergyCalib/TPCEnergyCalibProvider.h"
 
 #include "TTree.h"
-#include "art/Framework/Services/Optional/TFileService.h"
+#include "art_root_io/TFileService.h"
 
 /**
    \class ShowerRecoModuleBase
@@ -34,7 +34,8 @@ namespace showerreco {
     void configure(const fhicl::ParameterSet& pset);
 
     
-    void do_reconstruction(const ::protoshower::ProtoShower &, Shower_t &);
+    void do_reconstruction(const util::GeometryUtilities& geomUtils,
+                           const ::protoshower::ProtoShower &, Shower_t &);
     
     void initialize();
     
@@ -82,7 +83,8 @@ namespace showerreco {
     return;
   }
   
-  void LinearEnergy::do_reconstruction(const ::protoshower::ProtoShower & proto_shower,
+  void LinearEnergy::do_reconstruction(const util::GeometryUtilities&,
+                                       const ::protoshower::ProtoShower & proto_shower,
 				       Shower_t& resultShower) {
     
 

@@ -114,9 +114,10 @@ namespace flashana {
     const art::ServiceHandle<geo::Geometry> geo; 
     const geo::TPCGeo &thisTPC = geo->TPC();
     const geo::BoxBoundedGeo theTpcGeo = thisTPC.ActiveBoundingBox();
-    const detinfo::DetectorProperties *_detprop = lar::providerFrom<detinfo::DetectorPropertiesService>();
-
-    auto const drift_velocity = _detprop->DriftVelocity();
+    auto const detPropData = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob();
+    double efield = detPropData.Efield();
+    double temp   = detPropData.Temperature();
+    double drift_velocity = detPropData.DriftVelocity(efield,temp);
     std::vector<double> det_xrange = {theTpcGeo.MinX(), theTpcGeo.MaxX()};
     std::vector<double> det_yrange = {theTpcGeo.MinY(), theTpcGeo.MaxY()};
     std::vector<double> det_zrange = {theTpcGeo.MinZ(), theTpcGeo.MaxZ()};
@@ -125,11 +126,10 @@ namespace flashana {
     std::vector<double> pmt_z_pos(geo->NOpDets());
     for (uint i=0; i< geo->NOpDets(); ++i)
     {
-      Double_t xyz[3] ={};
-      geo->OpDetGeoFromOpChannel(i).GetCenter(xyz);
-      pmt_x_pos[i]=xyz[0];
-      pmt_y_pos[i]=xyz[1];
-      pmt_z_pos[i]=xyz[2];
+      auto const xyz = geo->OpDetGeoFromOpChannel(i).GetCenter();
+      pmt_x_pos[i]=xyz.X();
+      pmt_y_pos[i]=xyz.Y();
+      pmt_z_pos[i]=xyz.Z();
     }
 
     auto const flash_filter_name = mgr_cfg.get<std::string>("FlashFilterAlgo","");

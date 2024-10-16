@@ -1,73 +1,50 @@
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
-include_directories( $ENV{NUTOOLS_INC} )
-cet_find_library( SQLITE3 NAMES sqlite3 PATHS ENV NO_DEFAULT_PATH )
-cet_find_library( CRY NAMES CRY PATHS ENV CRY_LIB NO_DEFAULT_PATH )
-cet_find_library( IFDH NAMES ifdh PATHS ENV IFDHC_LIB NO_DEFAULT_PATH )
-include_directories ( $ENV{CRYHOME}/src )
-include_directories( $ENV{IFDHC_FQ_DIR}/inc )
+cet_build_plugin(
+  StopMuMCFilter art::EDFilter
+  LIBRARIES
+  PRIVATE
+  nusimdata::SimulationBase
+)
 
-art_make(	
-	  LIB_LIBRARIES
-			${ART_FRAMEWORK_CORE}
-			art_Utilities canvas
-			${MF_MESSAGELOGGER}
-			${MF_UTILITIES}
-			cetlib cetlib_except
-                   	#larpandora_LArPandoraInterface	
-                        ${Boost_SYSTEM_LIBRARY}
-			${ROOT_BASIC_LIB_LIST}
-			larcorealg_Geometry
-			lardata_Utilities
-			lardataobj_RecoBase
-			lardataobj_MCBase
-			lardataobj_Simulation	
-			lardataobj_MCBase
-			larcore_Geometry_Geometry_service
-          MODULE_LIBRARIES 
-		   	#larpandora_LArPandoraInterface	
-			larevt_CalibrationDBI_IOVData
-			larsim_Simulation nutools_ParticleNavigation lardataobj_Simulation
-			larsim_MCCheater_ParticleInventoryService_service
-			larsim_MCCheater_BackTrackerService_service
-			larcorealg_Geometry
-			larcore_Geometry_Geometry_service
-			larcoreobj_SummaryData
-			lardataobj_RecoBase
-			lardataobj_MCBase
-			lardataobj_Simulation	
-			lardataobj_AnalysisBase	
-			lardata_RecoObjects larreco_Deprecated  
-			larreco_RecoAlg
-			lardata_Utilities
-			larevt_Filters
-			nusimdata_SimulationBase
-			nutools_RandomUtils_NuRandomService_service
-			${LARRECO_LIB}
-			${LARDATA_LIB}
-                        ${ART_FRAMEWORK_CORE}
-			${ART_FRAMEWORK_PRINCIPAL}
-			${ART_FRAMEWORK_SERVICES_REGISTRY}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
-			${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
-			art_Persistency_Common canvas
-			art_Persistency_Provenance canvas
-			art_Utilities canvas
-			${MF_MESSAGELOGGER}
-			${MF_UTILITIES}
-	                ${FHICLCPP}
-			cetlib cetlib_except
-			${CLHEP}
-			${ROOT_PHYSICS}
-      			${ROOT_GEOM}
-      			${ROOT_XMLIO}
-      			${ROOT_GDML}
-			${ROOT_BASIC_LIB_LIST}
-			${ROOT_CORE}
-			${ROOT_EG}
-			${CRY}
-        )
+cet_build_plugin(
+  StopMuMCGen art::EDProducer
+  LIBRARIES
+  PRIVATE
+  larcore::Geometry_Geometry_service
+  art_root_io::TFileService_service
+  nutools::EventGeneratorBase_CRY
+  nurandom::RandomUtils_NuRandomService_service
+  nusimdata::SimulationBase
+  nugen::EventGeneratorBase_GENIE
+  CRY::CRY
+  ROOT::EG
+)
 
+cet_build_plugin(
+  StopMu art::EDProducer
+  LIBRARIES
+  PRIVATE
+  larevt::SpaceChargeService
+  lardata::Utilities
+  lardata::DetectorPropertiesService
+  lardata::DetectorClocksService
+  larcore::Geometry_Geometry_service
+  lardataobj::RecoBase
+  lardataobj::AnalysisBase
+  art_root_io::TFileService_service
+  nusimdata::SimulationBase
+  ROOT::Tree
+)
+
+cet_build_plugin(
+  ThroughMu art::EDAnalyzer
+  LIBRARIES
+  PRIVATE
+  lardata::Utilities
+  lardataobj::RecoBase
+  lardataobj::AnalysisBase
+  art_root_io::TFileService_service
+  ROOT::Tree
+)
 
 install_fhicl()
 install_headers()

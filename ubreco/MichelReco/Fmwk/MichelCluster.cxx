@@ -78,7 +78,7 @@ namespace michel {
   {
     _verbosity = msg::kNORMAL;
     try{ ProcessHits(); }
-    catch (MichelException exception) { _hits.clear(); }
+    catch (MichelException const&) { _hits.clear(); }
   }
 
   MichelCluster::MichelCluster(std::vector<HitPt>&& hits,
@@ -90,7 +90,7 @@ namespace michel {
   {
     _verbosity = msg::kNORMAL;
     try { ProcessHits(); }
-    catch (MichelException exception) { _hits.clear(); }
+    catch (MichelException const&) { _hits.clear(); }
   }
   /*
   MichelCluster::MichelCluster(const MichelCluster&& rhs)
@@ -296,4 +296,3 @@ int ClusterYPlane::match(const TVector2& michel_loc) {
   */
 }
 #endif
-
