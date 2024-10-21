@@ -2,6 +2,7 @@ cet_make_library(
   SOURCE
   DummyVertexParticleCreationAlgorithm.cc
   MicroBooNEContent.cc
+  MicroBooNEDLContent.cc
   MicroBooNEExampleAlgorithm.cc
   MicroBooNEExternalVertexCreationAlgorithm.cc
   MicroBooNEMasterAlgorithm.cc

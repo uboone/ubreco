@@ -36,9 +36,6 @@ StatusCode MicroBooNEMasterAlgorithm::Run()
     if (m_passMCParticlesToWorkerInstances)
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyMCParticles());
 
-    if (m_passAllCaloHitsToWorkerInstances)
-        PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CopyAllCaloHits());
-
     PfoToFloatMap stitchedPfosToX0Map;
     VolumeIdToHitListMap volumeIdToHitListMap;
     PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->GetVolumeIdToHitListMap(volumeIdToHitListMap));
