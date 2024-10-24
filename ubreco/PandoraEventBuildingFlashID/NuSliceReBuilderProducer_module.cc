@@ -34,7 +34,6 @@
 #include "lardataobj/RecoBase/Vertex.h"
 #include "lardataobj/RecoBase/Cluster.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
-#include "lardataobj/RecoBase/PFParticleMetadata.h"
 
 class NuSliceReBuilderProducer;
 
