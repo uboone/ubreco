@@ -1,5 +1,5 @@
 /**
- *  @file   ubreco/MicroBooNEMasterAlgorithm.cc
+ *  @file   ubreco/MicroBooNEDLMasterAlgorithm.cc
  *
  *  @brief  Implementation of the microboone master algorithm class.
  *
@@ -11,24 +11,27 @@
 
 #include "Pandora/AlgorithmHeaders.h"
 
-#include "MicroBooNEContent.h"
-#include "MicroBooNEMasterAlgorithm.h"
+#include "MicroBooNEDLContent.h"
+#include "MicroBooNEDLMasterAlgorithm.h"
+
+#include "Xml/tinyxml.h"
 
 using namespace pandora;
+using namespace lar_content;
 
-namespace lar_content
+namespace lar_dl_content
 {
 
-MicroBooNEMasterAlgorithm::MicroBooNEMasterAlgorithm() :
+MicroBooNEDLMasterAlgorithm::MicroBooNEDLMasterAlgorithm() :
     m_customRunAction(false)
 {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-StatusCode MicroBooNEMasterAlgorithm::Run()
+StatusCode MicroBooNEDLMasterAlgorithm::Run()
 {
-    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, MasterAlgorithm::Reset());
+    PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, DLMasterAlgorithm::Reset());
 
     if (!m_workerInstancesInitialized)
         PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->InitializeWorkerInstances());
@@ -76,23 +79,23 @@ StatusCode MicroBooNEMasterAlgorithm::Run()
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-StatusCode MicroBooNEMasterAlgorithm::Reset()
+StatusCode MicroBooNEDLMasterAlgorithm::Reset()
 {
-    return MasterAlgorithm::Reset();
+    return DLMasterAlgorithm::Reset();
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-StatusCode MicroBooNEMasterAlgorithm::RegisterCustomContent(const Pandora *const pPandora) const
+StatusCode MicroBooNEDLMasterAlgorithm::RegisterCustomContent(const Pandora *const pPandora) const
 {
     PANDORA_RETURN_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, MicroBooNEContent::RegisterAlgorithms(*pPandora));
 
-    return STATUS_CODE_SUCCESS;
+    return DLMasterAlgorithm::RegisterCustomContent(pPandora);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-StatusCode MicroBooNEMasterAlgorithm::CustomRunAction()
+StatusCode MicroBooNEDLMasterAlgorithm::CustomRunAction()
 {
     // HACK Get representation of custom vertex position into the slice nu worker
     if (!m_pSliceNuWorkerInstance)
@@ -117,12 +120,12 @@ StatusCode MicroBooNEMasterAlgorithm::CustomRunAction()
 
 //------------------------------------------------------------------------------------------------------------------------------------------
 
-StatusCode MicroBooNEMasterAlgorithm::ReadSettings(const TiXmlHandle xmlHandle)
+StatusCode MicroBooNEDLMasterAlgorithm::ReadSettings(const TiXmlHandle xmlHandle)
 {
     PANDORA_RETURN_RESULT_IF_AND_IF(STATUS_CODE_SUCCESS, STATUS_CODE_NOT_FOUND, !=, XmlHelper::ReadValue(xmlHandle,
         "CustomRunAction", m_customRunAction));
 
-    return MasterAlgorithm::ReadSettings(xmlHandle);
+    return DLMasterAlgorithm::ReadSettings(xmlHandle);
 }
 
-} // namespace lar_content
+} // namespace lar_dl_content
