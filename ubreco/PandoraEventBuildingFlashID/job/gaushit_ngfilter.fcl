@@ -9,7 +9,7 @@ gaushit_ng:
   HitSemanticLabel: ["NuGraph","semantic"]
   HitTruthLabel: ""
   RMScut:        -1.
-  ScoreCut:      0.5
+  ScoreCut:      0.25
   isMC:          false
 }
 

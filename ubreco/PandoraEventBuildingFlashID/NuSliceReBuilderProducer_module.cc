@@ -210,7 +210,7 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
       outputPFP->push_back(pfp_copy);
     } else {
       //skip pfparticles with no space points, they will have invalid track pointers
-      if (inputPndrPFPSpsAssns->at(pfp.key()).size()==0) continue;
+      if (inputPndrPFPSpsAssns->at(pfp.key()).size()==0 || inputPndrPFPTrkAssns->at(pfp.key()).isAvailable()==0) continue;
       //NG2 told us this is not a shower, so let's make it a track
       recob::PFParticle pfp_copy(13,d_pfp_idx,0,std::vector< size_t >());
       d_pfp_idx++;
