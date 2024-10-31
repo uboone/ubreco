@@ -138,6 +138,7 @@ void FilteredHitsProducer::produce(art::Event& e)
 
   }
 
+  std::cout << "FilteredHitProducer nhits=" << outputHits->size() << std::endl;
   e.put(std::move(outputHits));
   if (fIsMC) e.put(std::move(outputHitPartAssns));
   if (fScoreCut>=0) e.put(std::move(semtcol), "semantic");
