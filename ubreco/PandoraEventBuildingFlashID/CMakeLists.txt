@@ -19,6 +19,15 @@ cet_build_plugin(
 )
 
 cet_build_plugin(
+  FilteredHitsProducerByPfp art::EDProducer
+  LIBRARIES
+  PRIVATE
+  lardataobj::RecoBase
+  lardataobj::AnalysisBase
+  nusimdata::SimulationBase
+)
+
+cet_build_plugin(
   FilteredHitsTruthProducer art::EDProducer
   LIBRARIES
   PRIVATE

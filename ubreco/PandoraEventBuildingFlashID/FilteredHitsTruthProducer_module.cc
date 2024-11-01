@@ -114,7 +114,7 @@ void FilteredHitsTruthProducer::produce(art::Event& e)
 
   }
 
-  std::cout << "FilteredHitProducer inhits=" << inhits << " inass=" << inass << " outhits=" << outhits << " outass=" << outass << std::endl;
+  std::cout << "FilteredHitsTruthProducer inhits=" << inhits << " inass=" << inass << " outhits=" << outhits << " outass=" << outass << std::endl;
   e.put(std::move(outputHitPartAssns));
 
 }
