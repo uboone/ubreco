@@ -24,6 +24,7 @@ cet_build_plugin(
   PRIVATE
   lardataobj::RecoBase
   lardataobj::AnalysisBase
+  larpandora::LArPandoraInterface
   nusimdata::SimulationBase
 )
 

@@ -17,6 +17,7 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
 #include "canvas/Persistency/Common/FindManyP.h"
+#include "canvas/Persistency/Common/FindOneP.h"
 
 #include <memory>
 
@@ -30,6 +31,8 @@
 #include "lardataobj/AnalysisBase/MVAOutput.h"
 // #include "lardata/Utilities/AssociationUtil.h"
 // #include "lardata/RecoBaseProxy/ProxyBase.h"
+
+#include "larpandora/LArPandoraInterface/LArPandoraHelper.h"
 
 class FilteredHitsProducerByPfp;
 
@@ -121,7 +124,7 @@ void FilteredHitsProducerByPfp::produce(art::Event& e)
   art::FindManyP<recob::Hit> cluster_hit_assn_v(cluster_h, e, fPfpLabel);
   auto const& slice_h = e.getValidHandle<std::vector<recob::Slice> >(fPfpLabel);
   art::FindManyP<recob::Hit> slice_hit_assn_v(slice_h, e, fPfpLabel);
-  auto assocPfpMetadata = e.getValidHandle<std::vector<larpandoraobj::PFParticleMetadata>>(fPfpLabel);
+  art::FindOneP<larpandoraobj::PFParticleMetadata> assocPfpMetadata(pfp_h, e, fPfpLabel);
 
   std::cout << "N slices=" << slice_h->size() << std::endl;
 
@@ -172,38 +175,67 @@ void FilteredHitsProducerByPfp::produce(art::Event& e)
   // std::cout << "hit_cluster_v.size()=" << hit_cluster_v.size() << std::endl;
 
   if (!foundNuSlice) {
-    //get the slice with largest NuScore, but don't bother looking at PFPs as they are from the cosmic reco path for now
-    size_t primaryIdx = pfp_h->size();
+    //
+    //get the slice with largest NuScore, from the "allOutcomes" output so that we can look at it under the neutrino interpretation
+    art::InputTag aotag("pandoraPatRec","allOutcomes");
+    auto const& slice_ao_h = e.getValidHandle<std::vector<recob::Slice> >(aotag);
+    auto const& pfp_ao_h = e.getValidHandle<std::vector<recob::PFParticle> >(aotag);
+    auto const& cluster_ao_h = e.getValidHandle<std::vector<recob::Cluster> >(aotag);
+    art::FindOneP<larpandoraobj::PFParticleMetadata> assocPfpMetadata_AO(pfp_ao_h, e, aotag);
+    art::FindManyP<recob::PFParticle> assocSlicePfp_AO(slice_ao_h, e, aotag);
+    art::FindManyP<recob::Cluster> pfp_cluster_ao_assn_v(pfp_ao_h, e, aotag);
+    art::FindManyP<recob::Hit> cluster_hit_ao_assn_v(cluster_ao_h, e, aotag);
+    art::FindManyP<recob::Hit> slice_hit_ao_assn_v(slice_ao_h, e, aotag);
+    //
+    //std::cout << "assocSlicePfp.size()=" << assocSlicePfp_AO.size() << std::endl;
+    std::vector<art::Ptr<recob::Slice> > slice_ao_ptr_v;
+    std::vector<art::Ptr<recob::PFParticle> > pfp_ao_ptr_v;
+    art::fill_ptr_vector(slice_ao_ptr_v,slice_ao_h);
+    art::fill_ptr_vector(pfp_ao_ptr_v,pfp_ao_h);
+    std::map<int, art::Ptr<recob::PFParticle>> pfpmap_ao;
+    lar_pandora::LArPandoraHelper::BuildPFParticleMap(pfp_ao_ptr_v,pfpmap_ao);
+    //
+    size_t sliceIdx = slice_ao_h->size();
     float maxNuScore = std::numeric_limits<float>::lowest();
-    for (unsigned int p=0; p < pfp_h->size(); p++){
-
-      const art::Ptr<recob::PFParticle> pfp_ptr(pfp_h, p);
-      if (pfp_ptr->IsPrimary() == false) continue;
-    
-      auto pfParticleMetadata = assocPfpMetadata->at(p);
-      auto pfParticlePropertiesMap = pfParticleMetadata.GetPropertiesMap();
-      if (!pfParticlePropertiesMap.empty()) {
-	auto it = pfParticlePropertiesMap.begin();
-	while (it != pfParticlePropertiesMap.end()) {
-	  //std::cout << "ipfp=" << p << " primary=" << pfp_ptr->IsPrimary() << " pdg=" << pfp_ptr->PdgCode() << " meta=" << it->first << " " << it->second << std::endl;
-	  if (it->first == "NuScore") {
-	    std::cout << "ipfp=" << p << " primary=" << pfp_ptr->IsPrimary() << " pdg=" << pfp_ptr->PdgCode() << " meta=" << it->first << " " << it->second << std::endl;
-	    if (pfParticlePropertiesMap.at(it->first)>maxNuScore) {
-	      primaryIdx = p;
-	      maxNuScore = pfParticlePropertiesMap.at(it->first);
+    std::multimap<size_t,art::Ptr<recob::PFParticle>> slc2pfp;
+    for (auto& slice : slice_ao_ptr_v) {
+      const std::vector<art::Ptr<recob::PFParticle> >& nuSlicePFPs_AO(assocSlicePfp_AO.at(slice.key()));
+      for (auto& pfp_AO : nuSlicePFPs_AO) {
+	if (!lar_pandora::LArPandoraHelper::IsNeutrino(lar_pandora::LArPandoraHelper::GetParentPFParticle(pfpmap_ao,pfp_AO)) ) continue;
+	if (!pfp_AO->IsPrimary()) {
+	  slc2pfp.insert({slice.key(),pfp_AO});
+	} else {
+	  //std::cout << "AO slice, pfp pdg=" <<pfp_AO->PdgCode() << std::endl;
+	  auto pfParticleMetadata = assocPfpMetadata_AO.at(pfp_AO.key());
+	  auto pfParticlePropertiesMap = pfParticleMetadata->GetPropertiesMap();
+	  for (auto& it : pfParticlePropertiesMap) {
+	    //std::cout << it.first << " " << it.second << std::endl;
+	    if (it.first=="NuScore" && it.second>maxNuScore) {
+	      sliceIdx = slice.key();
+	      maxNuScore = it.second;
 	    }
 	  }
-	  it++;
 	}
-      } // if PFP metadata exists!
+      }
     }
-    if (primaryIdx < pfp_h->size()) {
-      const std::vector< art::Ptr<recob::Slice> > this_slice_ptr_v = pfp_slice_assn_v.at( primaryIdx );
-      for (auto slice_ptr : this_slice_ptr_v) {
-	const std::vector< art::Ptr<recob::Hit> > this_hit_ptr_v = slice_hit_assn_v.at( slice_ptr.key() );
-	for (auto hit_ptr : this_hit_ptr_v) {
-	  hit_slice_v.push_back(hit_ptr);
+    if (sliceIdx < slice_ao_h->size()) {
+      std::cout << "recovering slice id=" << sliceIdx << " nuscore=" << maxNuScore << std::endl;
+      const std::vector< art::Ptr<recob::Hit> > this_hit_ptr_v = slice_hit_ao_assn_v.at( sliceIdx );
+      for (auto hit_ptr : this_hit_ptr_v) {
+	hit_slice_v.push_back(hit_ptr);
+      }
+      auto p = slc2pfp.equal_range(sliceIdx);
+      for (auto& q = p.first; q != p.second; ++q) {
+	std::vector<art::Ptr<recob::Hit>> hit_pfp_v;
+	const std::vector< art::Ptr<recob::Cluster> > this_cluster_ptr_v = pfp_cluster_assn_v.at( q->second.key() );
+	for (auto cluster_ptr : this_cluster_ptr_v) {
+	  const std::vector< art::Ptr<recob::Hit> > this_hit_ptr_v = cluster_hit_assn_v.at( cluster_ptr.key() );
+	  for (auto hit_ptr : this_hit_ptr_v) {
+	    hit_cluster_v.push_back(hit_ptr);
+	    hit_pfp_v.push_back(hit_ptr);
+	  }
 	}
+	hit_pfp_v_v.push_back(hit_pfp_v);
       }
     }
   }
