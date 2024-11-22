@@ -63,7 +63,7 @@ StatusCode MicroBooNEMasterAlgorithm::Run()
 
     if (m_shouldRunNeutrinoRecoOption || m_shouldRunCosmicRecoOption)
     {
-        if (m_customRunAction && false)
+        if (m_customRunAction)
             PANDORA_RETURN_RESULT_IF(STATUS_CODE_SUCCESS, !=, this->CustomRunAction());
 
         SliceHypotheses nuSliceHypotheses, crSliceHypotheses;
@@ -78,6 +78,7 @@ StatusCode MicroBooNEMasterAlgorithm::Run()
 
 StatusCode MicroBooNEMasterAlgorithm::Reset()
 {
+    m_customHitSet.clear();
     return MasterAlgorithm::Reset();
 }
 
