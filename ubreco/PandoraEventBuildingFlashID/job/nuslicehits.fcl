@@ -2,15 +2,16 @@ BEGIN_PROLOG
 
 nuslhits_mc:
 {
-  module_type:   "NuSliceHitsProducer"
+  module_type:   "NuSliceHitsProducerWithRecovery"
   PfpLabel: "pandora"
   SliceLabel: "pandora"
   HitLabel: "gaushit"
   HitTruthLabel: "gaushitTruthMatch"
+  AllOutcomesLabel: "pandoraPatRec:allOutcomes"
   RecoverHighestNuScoreSlice: false
   Recover2ndShower: false
   VtxDistCut: 100.
-  MaxHitCut: 300
+  MaxHitCut: 200
 }
 
 nuslhits_data: @local::nuslhits_mc

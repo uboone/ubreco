@@ -38,6 +38,16 @@ cet_build_plugin(
 )
 
 cet_build_plugin(
+  NuSliceHitsProducerWithRecovery art::EDProducer
+  LIBRARIES
+  PRIVATE
+  lardataobj::RecoBase
+  lardataobj::AnalysisBase
+  larpandora::LArPandoraInterface
+  nusimdata::SimulationBase
+)
+
+cet_build_plugin(
   NuSliceReBuilderProducer art::EDProducer
   LIBRARIES
   PRIVATE
