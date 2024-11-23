@@ -27,10 +27,7 @@
 #include "lardataobj/RecoBase/Slice.h"
 #include "lardataobj/RecoBase/Cluster.h"
 #include "lardataobj/RecoBase/PFParticle.h"
-#include "lardataobj/RecoBase/PFParticleMetadata.h"
 #include "lardataobj/AnalysisBase/MVAOutput.h"
-// #include "lardata/Utilities/AssociationUtil.h"
-// #include "lardata/RecoBaseProxy/ProxyBase.h"
 
 #include "larpandora/LArPandoraInterface/LArPandoraHelper.h"
 
@@ -55,25 +52,17 @@ private:
 
   // Declare member data here.
   art::InputTag fHitLabel;
-  art::InputTag fMatchHitLabel;
   art::InputTag fPfpLabel;
   art::InputTag fHitScoreLabel;
   art::InputTag fHitSemanticLabel;
   float fScoreCut;
   float fFracCut;
-
-  void AddDaughters(const art::Ptr<recob::PFParticle>& pfp_ptr,
-                    const art::ValidHandle<std::vector<recob::PFParticle> >& pfp_h,
-                    std::vector<art::Ptr<recob::PFParticle> > &pfp_v,
-		    std::map<unsigned int, unsigned int>& pfpmap);
-
 };
 
 
 FilteredHitsProducerByPfp::FilteredHitsProducerByPfp(fhicl::ParameterSet const& p)
   : EDProducer{p},
   fHitLabel(p.get<art::InputTag>("HitLabel")),
-  fMatchHitLabel(p.get<art::InputTag>("MatchHitLabel")),
   fPfpLabel(p.get<art::InputTag>("PfpLabel")),
   fHitScoreLabel(p.get<art::InputTag>("HitScoreLabel")),
   fHitSemanticLabel(p.get<art::InputTag>("HitSemanticLabel")),
@@ -99,152 +88,34 @@ void FilteredHitsProducerByPfp::produce(art::Event& e)
 
   art::Handle< std::vector< recob::Hit > > hitListHandle;
   e.getByLabel(fHitLabel, hitListHandle);
-  art::Handle< std::vector< recob::Hit > > mtchHitListHandle;
-  e.getByLabel(fMatchHitLabel, mtchHitListHandle);
-  std::map<size_t,size_t> hmap;
-  for (size_t imtchhit=0; imtchhit<mtchHitListHandle->size();imtchhit++) {
-    art::Ptr<recob::Hit> mtchhit(mtchHitListHandle,imtchhit);
-    for (size_t ihit=0; ihit<hitListHandle->size();ihit++) {
-      art::Ptr<recob::Hit> hit(hitListHandle,ihit);
-      if (hit->WireID().Plane==mtchhit->WireID().Plane &&
-	  hit->WireID().Wire==mtchhit->WireID().Wire &&
-	  std::fabs(hit->PeakTime()-mtchhit->PeakTime())<0.0001 &&
-	  std::fabs(hit->RMS()-mtchhit->RMS())<0.0001) {
-	hmap[mtchhit.key()] = hit.key();
-	break;
-      }
-    }
-  }
 
-  ///
   auto const& pfp_h = e.getValidHandle<std::vector<recob::PFParticle> >(fPfpLabel);
   art::FindManyP<recob::Cluster> pfp_cluster_assn_v(pfp_h, e, fPfpLabel);
-  art::FindManyP<recob::Slice>   pfp_slice_assn_v(pfp_h, e, fPfpLabel);
   auto const& cluster_h = e.getValidHandle<std::vector<recob::Cluster> >(fPfpLabel);
   art::FindManyP<recob::Hit> cluster_hit_assn_v(cluster_h, e, fPfpLabel);
-  auto const& slice_h = e.getValidHandle<std::vector<recob::Slice> >(fPfpLabel);
-  art::FindManyP<recob::Hit> slice_hit_assn_v(slice_h, e, fPfpLabel);
-  art::FindOneP<larpandoraobj::PFParticleMetadata> assocPfpMetadata(pfp_h, e, fPfpLabel);
 
-  std::cout << "N slices=" << slice_h->size() << std::endl;
+  // Step 1: Fill vector of all slice hits
+  std::vector<art::Ptr<recob::Hit>> hit_slice_v;
+  art::fill_ptr_vector(hit_slice_v,hitListHandle);
 
-  std::map<unsigned int, unsigned int> pfpmap;
-  for (unsigned int p=0; p < pfp_h->size(); p++) pfpmap[pfp_h->at(p).Self()] = p;
-
-  std::vector<art::Ptr<recob::PFParticle> > pfp_ptr_v;
+  // Step 2: Fill vector of clustered slice hits
   std::vector<std::vector<art::Ptr<recob::Hit>>> hit_pfp_v_v;
   std::vector<art::Ptr<recob::Hit>> hit_cluster_v;
-  std::vector<art::Ptr<recob::Hit>> hit_slice_v;
-  bool foundNuSlice = false;
   for (unsigned int p=0; p < pfp_h->size(); p++){
-
     const art::Ptr<recob::PFParticle> pfp_ptr(pfp_h, p);
-
-    // start from primary neutrino PFParticles
-    if (pfp_ptr->IsPrimary() == false) continue;
-    if (pfp_ptr->PdgCode()!=12 && pfp_ptr->PdgCode()!=14) continue;
-    foundNuSlice = true;
-
-    const std::vector< art::Ptr<recob::Slice> > this_slice_ptr_v = pfp_slice_assn_v.at( pfp_ptr.key() );
-    for (auto slice_ptr : this_slice_ptr_v) {
-      const std::vector< art::Ptr<recob::Hit> > this_hit_ptr_v = slice_hit_assn_v.at( slice_ptr.key() );
+    std::vector<art::Ptr<recob::Hit>> hit_pfp_v;
+    const std::vector< art::Ptr<recob::Cluster> > this_cluster_ptr_v = pfp_cluster_assn_v.at( pfp_ptr.key() );
+    for (auto cluster_ptr : this_cluster_ptr_v) {
+      const std::vector< art::Ptr<recob::Hit> > this_hit_ptr_v = cluster_hit_assn_v.at( cluster_ptr.key() );
       for (auto hit_ptr : this_hit_ptr_v) {
-	hit_slice_v.push_back(hit_ptr);
+	hit_cluster_v.push_back(hit_ptr);
+	hit_pfp_v.push_back(hit_ptr);
       }
     }
-
-    AddDaughters(pfp_ptr, pfp_h, pfp_ptr_v,pfpmap);
-
-    for (unsigned int q=0; q < pfp_ptr_v.size(); q++) {
-      std::vector<art::Ptr<recob::Hit>> hit_pfp_v;
-      const std::vector< art::Ptr<recob::Cluster> > this_cluster_ptr_v = pfp_cluster_assn_v.at( pfp_ptr_v[q].key() );
-      for (auto cluster_ptr : this_cluster_ptr_v) {
-	const std::vector< art::Ptr<recob::Hit> > this_hit_ptr_v = cluster_hit_assn_v.at( cluster_ptr.key() );
-	for (auto hit_ptr : this_hit_ptr_v) {
-	  hit_cluster_v.push_back(hit_ptr);
-	  hit_pfp_v.push_back(hit_ptr);
-	}
-      }
-      hit_pfp_v_v.push_back(hit_pfp_v);
-    }
-
-  } // pfp loop
-
-  // std::cout << __FILE__ << " " << __LINE__ << std::endl;
-  // std::cout << "hit_slice_v.size()=" << hit_slice_v.size() << std::endl;
-  // std::cout << "hit_cluster_v.size()=" << hit_cluster_v.size() << std::endl;
-
-  if (!foundNuSlice) {
-    //
-    //get the slice with largest NuScore, from the "allOutcomes" output so that we can look at it under the neutrino interpretation
-    art::InputTag aotag("pandoraPatRec","allOutcomes");
-    auto const& slice_ao_h = e.getValidHandle<std::vector<recob::Slice> >(aotag);
-    auto const& pfp_ao_h = e.getValidHandle<std::vector<recob::PFParticle> >(aotag);
-    auto const& cluster_ao_h = e.getValidHandle<std::vector<recob::Cluster> >(aotag);
-    art::FindOneP<larpandoraobj::PFParticleMetadata> assocPfpMetadata_AO(pfp_ao_h, e, aotag);
-    art::FindManyP<recob::PFParticle> assocSlicePfp_AO(slice_ao_h, e, aotag);
-    art::FindManyP<recob::Cluster> pfp_cluster_ao_assn_v(pfp_ao_h, e, aotag);
-    art::FindManyP<recob::Hit> cluster_hit_ao_assn_v(cluster_ao_h, e, aotag);
-    art::FindManyP<recob::Hit> slice_hit_ao_assn_v(slice_ao_h, e, aotag);
-    //
-    //std::cout << "assocSlicePfp.size()=" << assocSlicePfp_AO.size() << std::endl;
-    std::vector<art::Ptr<recob::Slice> > slice_ao_ptr_v;
-    std::vector<art::Ptr<recob::PFParticle> > pfp_ao_ptr_v;
-    art::fill_ptr_vector(slice_ao_ptr_v,slice_ao_h);
-    art::fill_ptr_vector(pfp_ao_ptr_v,pfp_ao_h);
-    std::map<int, art::Ptr<recob::PFParticle>> pfpmap_ao;
-    lar_pandora::LArPandoraHelper::BuildPFParticleMap(pfp_ao_ptr_v,pfpmap_ao);
-    //
-    size_t sliceIdx = slice_ao_h->size();
-    float maxNuScore = std::numeric_limits<float>::lowest();
-    std::multimap<size_t,art::Ptr<recob::PFParticle>> slc2pfp;
-    for (auto& slice : slice_ao_ptr_v) {
-      const std::vector<art::Ptr<recob::PFParticle> >& nuSlicePFPs_AO(assocSlicePfp_AO.at(slice.key()));
-      for (auto& pfp_AO : nuSlicePFPs_AO) {
-	if (!lar_pandora::LArPandoraHelper::IsNeutrino(lar_pandora::LArPandoraHelper::GetParentPFParticle(pfpmap_ao,pfp_AO)) ) continue;
-	if (!pfp_AO->IsPrimary()) {
-	  slc2pfp.insert({slice.key(),pfp_AO});
-	} else {
-	  //std::cout << "AO slice, pfp pdg=" <<pfp_AO->PdgCode() << std::endl;
-	  auto pfParticleMetadata = assocPfpMetadata_AO.at(pfp_AO.key());
-	  auto pfParticlePropertiesMap = pfParticleMetadata->GetPropertiesMap();
-	  for (auto& it : pfParticlePropertiesMap) {
-	    //std::cout << it.first << " " << it.second << std::endl;
-	    if (it.first=="NuScore" && it.second>maxNuScore) {
-	      sliceIdx = slice.key();
-	      maxNuScore = it.second;
-	    }
-	  }
-	}
-      }
-    }
-    if (sliceIdx < slice_ao_h->size()) {
-      std::cout << "recovering slice id=" << sliceIdx << " nuscore=" << maxNuScore << std::endl;
-      const std::vector< art::Ptr<recob::Hit> > this_hit_ptr_v = slice_hit_ao_assn_v.at( sliceIdx );
-      for (auto hit_ptr : this_hit_ptr_v) {
-	hit_slice_v.push_back(hit_ptr);
-      }
-      auto p = slc2pfp.equal_range(sliceIdx);
-      for (auto& q = p.first; q != p.second; ++q) {
-	std::vector<art::Ptr<recob::Hit>> hit_pfp_v;
-	const std::vector< art::Ptr<recob::Cluster> > this_cluster_ptr_v = pfp_cluster_assn_v.at( q->second.key() );
-	for (auto cluster_ptr : this_cluster_ptr_v) {
-	  const std::vector< art::Ptr<recob::Hit> > this_hit_ptr_v = cluster_hit_assn_v.at( cluster_ptr.key() );
-	  for (auto hit_ptr : this_hit_ptr_v) {
-	    hit_cluster_v.push_back(hit_ptr);
-	    hit_pfp_v.push_back(hit_ptr);
-	  }
-	}
-	hit_pfp_v_v.push_back(hit_pfp_v);
-      }
-    }
+    hit_pfp_v_v.push_back(hit_pfp_v);
   }
 
-  // std::cout << __FILE__ << " " << __LINE__ << std::endl;
-  // std::cout << "hit_slice_v.size()=" << hit_slice_v.size() << std::endl;
-  // std::cout << "hit_cluster_v.size()=" << hit_cluster_v.size() << std::endl;
-
-   // Step 3: Sort both vectors
+  // Step 3: Sort both vectors
   sort(hit_slice_v.begin(), hit_slice_v.end());
   sort(hit_cluster_v.begin(), hit_cluster_v.end());
 
@@ -258,9 +129,9 @@ void FilteredHitsProducerByPfp::produce(art::Event& e)
   // Step 6: Filter unclustered hits
   for (unsigned int ih=0; ih<hit_unclustered_v.size(); ih++) {
     art::Ptr<recob::Hit> hit_ptr = hit_unclustered_v[ih];
-    if (ngFiltOutputHandle->at(hmap[hit_ptr.key()]).at(0)>=fScoreCut) {
+    if (ngFiltOutputHandle->at(hit_ptr.key()).at(0)>=fScoreCut) {
       outputHits->emplace_back(*hit_ptr);
-      semtcol->emplace_back(ngSemtOutputHandle->at(hmap[hit_ptr.key()]));
+      semtcol->emplace_back(ngSemtOutputHandle->at(hit_ptr.key()));
     }
   }
 
@@ -268,10 +139,9 @@ void FilteredHitsProducerByPfp::produce(art::Event& e)
   for (size_t j=0; j<hit_pfp_v_v.size(); j++) {
     auto hit_pfp_v = hit_pfp_v_v[j];
     unsigned int pass = 0, fail = 0;
-    //std::cout << "pfp pdg=" << pfp_ptr_v[j]->PdgCode() << " primary=" << pfp_ptr_v[j]->IsPrimary() << " nhits="<< hit_pfp_v.size()<< std::endl;
     if (hit_pfp_v.size()==0) continue;
     for (auto hit_ptr : hit_pfp_v) {
-      if (ngFiltOutputHandle->at(hmap[hit_ptr.key()]).at(0)>=fScoreCut) {
+      if (ngFiltOutputHandle->at(hit_ptr.key()).at(0)>=fScoreCut) {
 	pass++;
       } else {
 	fail++;
@@ -280,35 +150,13 @@ void FilteredHitsProducerByPfp::produce(art::Event& e)
     if ( pass < ((pass+fail)*fFracCut) ) continue;
     for (auto hit_ptr : hit_pfp_v) {
       outputHits->emplace_back(*hit_ptr);
-      semtcol->emplace_back(ngSemtOutputHandle->at(hmap[hit_ptr.key()]));
+      semtcol->emplace_back(ngSemtOutputHandle->at(hit_ptr.key()));
     }
   }
 
   std::cout << "FilteredHitProducerByPfp nhits=" << outputHits->size() << std::endl;
   e.put(std::move(outputHits));
   e.put(std::move(semtcol), "semantic");
-}
-
-void FilteredHitsProducerByPfp::AddDaughters(const art::Ptr<recob::PFParticle>& pfp_ptr,  const art::ValidHandle<std::vector<recob::PFParticle> >& pfp_h, std::vector<art::Ptr<recob::PFParticle> > &pfp_v,std::map<unsigned int, unsigned int>& pfpmap) {
-
-  auto daughters = pfp_ptr->Daughters();
-
-  pfp_v.push_back(pfp_ptr);
-
-  for(auto const& daughterid : daughters) {
-
-    if (pfpmap.find(daughterid) == pfpmap.end()) {
-      std::cout << "Did not find DAUGHTERID in map! error"<< std::endl;
-      continue;
-    }
-
-    const art::Ptr<recob::PFParticle> pfp_ptr(pfp_h, pfpmap.at(daughterid) );
-
-    AddDaughters(pfp_ptr, pfp_h, pfp_v, pfpmap);
-
-  }// for all daughters
-
-  return;
 }
 
 DEFINE_ART_MODULE(FilteredHitsProducerByPfp)

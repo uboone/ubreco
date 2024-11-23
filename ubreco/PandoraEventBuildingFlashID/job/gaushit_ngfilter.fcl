@@ -18,7 +18,7 @@ gaushit_ngbypfp:
   module_type:   "FilteredHitsProducerByPfp"
   HitLabel:      "nuslhits"
   MatchHitLabel: "gaushit"
-  PfpLabel:      "pandora"
+  PfpLabel:      "nuslhits"
   HitScoreLabel: ["NuGraph","filter"]
   HitSemanticLabel: ["NuGraph","semantic"]
   ScoreCut:      0.25
