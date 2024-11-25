@@ -1,6 +1,7 @@
 #include "ProtoShowerAlgBase.h"
 
 #include "lardataobj/RecoBase/PFParticleMetadata.h"
+#include "lardataobj/AnalysisBase/MVAOutput.h"
 
 #include "larcore/Geometry/WireReadout.h"
 
@@ -92,6 +93,7 @@ namespace protoshower {
     auto pfp_hit_assn_v = lar::FindManyInChainP<recob::Hit, recob::Cluster>::find(pfp_h, e, fPFPproducer);
 
     auto const clockData = art::ServiceHandle<detinfo::DetectorClocksService>()->DataFor(e);
+
     // loop through PFParticles
     for (size_t p=0; p < pfp_h->size(); p++) {
 

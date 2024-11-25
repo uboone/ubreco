@@ -91,14 +91,19 @@ void FilteredHitsTruthProducer::produce(art::Event& e)
     map[filthit->WireID().Plane][filthit->WireID().Wire].push_back({filthit->PeakTime(),ifilthit});
   }
 
+  size_t inhits=0, outhits=0, inass=0, outass=0;
   for (size_t ihit=0; ihit<hitListHandle->size();ihit++) {
     art::Ptr<recob::Hit> hit(hitListHandle,ihit);
+    std::vector<art::Ptr<simb::MCParticle> > particle_vec = hittruth->at(hit.key());
+    inhits++;
+    if (particle_vec.size()>0) inass++;
 
     for (auto ifilt : map[hit->WireID().Plane][hit->WireID().Wire]) {
       if ( std::fabs(hit->PeakTime()-ifilt.first)>fRMSCut*hit->RMS() ) continue;
       //
+      outhits++;
+      if (particle_vec.size()>0) outass++;
       const art::Ptr<recob::Hit> ahp(filtHitListHandle,ifilt.second);
-      std::vector<art::Ptr<simb::MCParticle> > particle_vec = hittruth->at(hit.key());
       std::vector<anab::BackTrackerHitMatchingData const *> match_vec = hittruth->data(hit.key());
       for (size_t i_p = 0; i_p < particle_vec.size(); ++i_p) {
 	outputHitPartAssns->addSingle(particle_vec[i_p],ahp,*match_vec[i_p]);
@@ -109,6 +114,7 @@ void FilteredHitsTruthProducer::produce(art::Event& e)
 
   }
 
+  std::cout << "FilteredHitsTruthProducer inhits=" << inhits << " inass=" << inass << " outhits=" << outhits << " outass=" << outass << std::endl;
   e.put(std::move(outputHitPartAssns));
 
 }
