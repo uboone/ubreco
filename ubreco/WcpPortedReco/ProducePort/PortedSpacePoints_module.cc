@@ -58,6 +58,8 @@ void psp::PortedSpacePoints::produce(art::Event &e){
 
   auto outputSpacePointVec = std::make_unique< std::vector<recob::SpacePoint> >();
 
+  std::cout << "lhagaman modified, adding Pandora spacepoints here:" << std::endl;
+
   std::string path(fInput);
   std::string file = (path);
   std::cout<<"INPUT FILE NAME: "<<file<<std::endl;
