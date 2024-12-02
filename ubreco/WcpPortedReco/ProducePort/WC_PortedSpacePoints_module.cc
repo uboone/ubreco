@@ -21,17 +21,17 @@
 #include <dirent.h>
 #include <iostream>
 
-namespace psp {
-  class PortedSpacePoints;
+namespace wc_psp {
+  class WC_PortedSpacePoints;
 }
 
-class psp::PortedSpacePoints : public art::EDProducer {
+class wc_psp::WC_PortedSpacePoints : public art::EDProducer {
 public:
-  explicit PortedSpacePoints(fhicl::ParameterSet const & p);
-  PortedSpacePoints(PortedSpacePoints const &) = delete;
-  PortedSpacePoints(PortedSpacePoints &&) = delete;
-  PortedSpacePoints & operator = (PortedSpacePoints const &) = delete;
-  PortedSpacePoints & operator = (PortedSpacePoints &&) = delete;
+  explicit WC_PortedSpacePoints(fhicl::ParameterSet const & p);
+  WC_PortedSpacePoints(WC_PortedSpacePoints const &) = delete;
+  WC_PortedSpacePoints(WC_PortedSpacePoints &&) = delete;
+  WC_PortedSpacePoints & operator = (WC_PortedSpacePoints const &) = delete;
+  WC_PortedSpacePoints & operator = (WC_PortedSpacePoints &&) = delete;
 
 private:
   void produce(art::Event &e) override;
@@ -43,7 +43,7 @@ private:
   short fTickOffset;
 };
 
-psp::PortedSpacePoints::PortedSpacePoints(fhicl::ParameterSet const & p) : EDProducer{p}
+wc_psp::WC_PortedSpacePoints::WC_PortedSpacePoints(fhicl::ParameterSet const & p) : EDProducer{p}
 {
   fInput = p.get<std::string>("PortInput");
   fTreeName = p.get<std::string>("TreeName");
@@ -54,16 +54,11 @@ psp::PortedSpacePoints::PortedSpacePoints(fhicl::ParameterSet const & p) : EDPro
   produces<std::vector<recob::SpacePoint> >();
 }
 
-void psp::PortedSpacePoints::produce(art::Event &e){
+void wc_psp::WC_PortedSpacePoints::produce(art::Event &e){
 
   auto outputSpacePointVec = std::make_unique< std::vector<recob::SpacePoint> >();
 
-  std::cout << "\nlhagaman modified, adding Pandora spacepoints here:" << std::endl;
-  std::cout << "    fInput: " << fInput << std::endl;
-  std::cout << "    fTreeName: " << fTreeName << std::endl;
-  std::cout << "    fMainCluster: " << fMainCluster << std::endl;
-  std::cout << "    fSpacePointLabel: " << fSpacePointLabel << std::endl;
-  std::cout << "    fTickOffset: " << fTickOffset << std::endl;
+  std::cout << "lhagaman modified, adding WC no-trajectory-fitting neutrino cluster spacepoints here:" << std::endl;
 
   std::string path(fInput);
   std::string file = (path);
@@ -95,7 +90,7 @@ void psp::PortedSpacePoints::produce(art::Event &e){
 
     if( run!=(int)e.run() || 
         subrun!=(int)e.subRun() || 
-	event!=(int)e.id().event() ) continue;
+        event!=(int)e.id().event() ) continue;
 
     int id = -1;
     double xyz[3] = {0., 0., 0.};
@@ -114,4 +109,4 @@ void psp::PortedSpacePoints::produce(art::Event &e){
   e.put(std::move(outputSpacePointVec));
 }
 
-DEFINE_ART_MODULE(psp::PortedSpacePoints)
+DEFINE_ART_MODULE(wc_psp::WC_PortedSpacePoints)
