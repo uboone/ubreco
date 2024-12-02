@@ -21,17 +21,17 @@
 #include <dirent.h>
 #include <iostream>
 
-namespace wc_psp {
-  class WC_PortedSpacePoints;
+namespace WCPsp {
+  class WCPortedSpacePoints;
 }
 
-class wc_psp::WC_PortedSpacePoints : public art::EDProducer {
+class WCPsp::WCPortedSpacePoints : public art::EDProducer {
 public:
-  explicit WC_PortedSpacePoints(fhicl::ParameterSet const & p);
-  WC_PortedSpacePoints(WC_PortedSpacePoints const &) = delete;
-  WC_PortedSpacePoints(WC_PortedSpacePoints &&) = delete;
-  WC_PortedSpacePoints & operator = (WC_PortedSpacePoints const &) = delete;
-  WC_PortedSpacePoints & operator = (WC_PortedSpacePoints &&) = delete;
+  explicit WCPortedSpacePoints(fhicl::ParameterSet const & p);
+  WCPortedSpacePoints(WCPortedSpacePoints const &) = delete;
+  WCPortedSpacePoints(WCPortedSpacePoints &&) = delete;
+  WCPortedSpacePoints & operator = (WCPortedSpacePoints const &) = delete;
+  WCPortedSpacePoints & operator = (WCPortedSpacePoints &&) = delete;
 
 private:
   void produce(art::Event &e) override;
@@ -43,7 +43,7 @@ private:
   short fTickOffset;
 };
 
-wc_psp::WC_PortedSpacePoints::WC_PortedSpacePoints(fhicl::ParameterSet const & p) : EDProducer{p}
+WCPsp::WCPortedSpacePoints::WCPortedSpacePoints(fhicl::ParameterSet const & p) : EDProducer{p}
 {
   fInput = p.get<std::string>("PortInput");
   fTreeName = p.get<std::string>("TreeName");
@@ -54,7 +54,7 @@ wc_psp::WC_PortedSpacePoints::WC_PortedSpacePoints(fhicl::ParameterSet const & p
   produces<std::vector<std::array<float, 4> > >(); // x, y, z, q
 }
 
-void wc_psp::WC_PortedSpacePoints::produce(art::Event &e){
+void WCPsp::WCPortedSpacePoints::produce(art::Event &e){
 
   auto outputSpacePointVec = std::make_unique< std::vector<recob::SpacePoint> >();
 
@@ -108,4 +108,4 @@ void wc_psp::WC_PortedSpacePoints::produce(art::Event &e){
   e.put(std::move(outputSpacePointVec));
 }
 
-DEFINE_ART_MODULE(wc_psp::WC_PortedSpacePoints)
+DEFINE_ART_MODULE(WCPsp::WCPortedSpacePoints)
