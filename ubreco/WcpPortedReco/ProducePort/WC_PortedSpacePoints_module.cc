@@ -51,7 +51,7 @@ wc_psp::WC_PortedSpacePoints::WC_PortedSpacePoints(fhicl::ParameterSet const & p
   fSpacePointLabel = p.get<std::string>("SpacePointLabel");
   fTickOffset = p.get<short>("TickOffset");
 
-  produces<std::vector<recob::SpacePoint> >();
+  produces<std::vector<std::array<float, 4> > >(); // x, y, z, q
 }
 
 void wc_psp::WC_PortedSpacePoints::produce(art::Event &e){
@@ -93,15 +93,14 @@ void wc_psp::WC_PortedSpacePoints::produce(art::Event &e){
         event!=(int)e.id().event() ) continue;
 
     int id = -1;
-    double xyz[3] = {0., 0., 0.};
-    double xyz_err[6] = {0., 0., 0., 0., 0., 0.};
-    double chisq = 0.;
+    float xyzq[4] = {0., 0., 0., 0.};
 
-    xyz[0]=x; // x alignment not confirmed
-    xyz[1]=y;
-    xyz[2]=z;
-    recob::SpacePoint sp(xyz, xyz_err, chisq, id);
-    outputSpacePointVec->emplace_back(sp);
+    xyzq[0]=x;
+    xyzq[1]=y;
+    xyzq[2]=z;
+    xyzq[3]=q;
+
+    outputSpacePointVec->emplace_back(xyzq);
   }
 
   fin->Close();

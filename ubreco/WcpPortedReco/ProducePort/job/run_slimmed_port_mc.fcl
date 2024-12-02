@@ -26,15 +26,15 @@ physics:
     nuselMetrics: @local::standard_nuselectionmetrics
     portedFlash: @local::standard_portedflash
     portedSpacePointsThreshold: @local::standard_portedspacepoints         // Pandora spacepoints
-    //portedWC_SpacePointsThreshold: @local::standard_WC_portedspacepoints // WC no-trajectory-fitting neutrino-cluster spacepoints
+    portedWC_SpacePointsThreshold: @local::standard_WC_portedspacepoints   // WC no-trajectory-fitting neutrino-cluster spacepoints
   }
 
   reco: [ 
 	  portedThresholdhit,
           nuselMetrics,
           portedFlash,
-	  portedSpacePointsThreshold//,
-    //portedWC_SpacePointsThreshold          
+	  portedSpacePointsThreshold,
+    portedWC_SpacePointsThreshold          
 	]
   trigger_paths: [ reco ]
 
