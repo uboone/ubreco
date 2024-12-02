@@ -20,7 +20,7 @@ standard_portedflash:
  TreeName:    "T_port_flash"
 }
 
-standard_portedspacepoints:
+standard_portedspacepoints: // Pandora spacepoints
 {
  module_type:     "PortedSpacePoints"
  PortInput:       "./merge.root"
@@ -32,6 +32,19 @@ standard_portedspacepoints:
 
 standard_portedspacepoints_mainOnly: @local::standard_portedspacepoints
 standard_portedspacepoints_mainOnly.MainCluster: true 
+
+standard_WC_portedspacepoints: // WC no-trajectory-fitting neutrino-cluster spacepoints
+{
+ module_type:     "WC_PortedSpacePoints"
+ PortInput:       "./merge.root"
+ MainCluster:     false
+ TreeName:        "T_port_3d"
+ SpacePointLabel: "WC_portedSpacePoints"
+ TickOffset:      2400
+}
+
+standard_WC_portedspacepoints_mainOnly: @local::standard_WC_portedspacepoints
+standard_WC_portedspacepoints_mainOnly.MainCluster: true
 
 standard_nuselectionmetrics:
 {
