@@ -51,12 +51,12 @@ WCPsp::WCPortedSpacePoints::WCPortedSpacePoints(fhicl::ParameterSet const & p) :
   fSpacePointLabel = p.get<std::string>("SpacePointLabel");
   fTickOffset = p.get<short>("TickOffset");
 
-  produces<std::vector<std::array<float, 4> > >(); // x, y, z, q
+  produces<std::vector<std::array<float, 4>>>(); // x, y, z, q
 }
 
 void WCPsp::WCPortedSpacePoints::produce(art::Event &e){
 
-  auto outputSpacePointVec = std::make_unique< std::vector<recob::SpacePoint> >();
+  auto outputSpacePointVec = std::make_unique<std::vector<std::array<float, 4>>>();
 
   std::cout << "lhagaman modified, adding WC no-trajectory-fitting neutrino cluster spacepoints here:" << std::endl;
 
@@ -92,13 +92,7 @@ void WCPsp::WCPortedSpacePoints::produce(art::Event &e){
         subrun!=(int)e.subRun() || 
         event!=(int)e.id().event() ) continue;
 
-    int id = -1;
-    float xyzq[4] = {0., 0., 0., 0.};
-
-    xyzq[0]=x;
-    xyzq[1]=y;
-    xyzq[2]=z;
-    xyzq[3]=q;
+    std::array<float, 4> xyzq = std::array<float, 4>{(float) x, (float) y, (float) z, (float) q};
 
     outputSpacePointVec->emplace_back(xyzq);
   }
