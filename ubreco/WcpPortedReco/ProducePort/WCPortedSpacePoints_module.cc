@@ -12,6 +12,8 @@
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
 
+#include "ubreco/WcpPortedReco/ProducePort/SimpleSpacePoint.h"
+
 #include "TTree.h"
 #include "TBranch.h"
 #include "TFile.h"
@@ -36,6 +38,7 @@ public:
 private:
   void produce(art::Event &e) override;
 
+
   std::string fInput;
   std::string fTreeName;
   bool fMainCluster;
@@ -51,12 +54,12 @@ WCPsp::WCPortedSpacePoints::WCPortedSpacePoints(fhicl::ParameterSet const & p) :
   fSpacePointLabel = p.get<std::string>("SpacePointLabel");
   fTickOffset = p.get<short>("TickOffset");
 
-  produces<std::vector<std::array<float, 4>>>(); // x, y, z, q
+  produces<std::vector<SimpleSpacePoint>>();
 }
 
 void WCPsp::WCPortedSpacePoints::produce(art::Event &e){
 
-  auto outputSpacePointVec = std::make_unique<std::vector<std::array<float, 4>>>();
+  auto outputSpacePointVec = std::make_unique<std::vector<SimpleSpacePoint>>();
 
   std::cout << "Adding T_rec (WC no-trajectory-fitting neutrino cluster) spacepoints here:" << std::endl;
 
@@ -81,7 +84,7 @@ void WCPsp::WCPortedSpacePoints::produce(art::Event &e){
 
     for(int i=0; i<tin->GetEntries(); i++){
       tin->GetEntry(i);
-      std::array<float, 4> xyzq = std::array<float, 4>{x, y, z, q};
+      SimpleSpacePoint xyzq = SimpleSpacePoint{x, y, z, q};
       outputSpacePointVec->emplace_back(xyzq);
     }
 

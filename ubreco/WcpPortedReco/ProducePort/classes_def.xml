@@ -1,4 +1,5 @@
 <lcgdict>
-<class name="art::Wrapper<vector<array<float,4> > >"/>
-<class name="vector<array<float,4> >"/>
+  <class name="SimpleSpacePoint"/>
+  <class name="std::vector<SimpleSpacePoint>"/>
+  <class name="art::Wrapper<std::vector<SimpleSpacePoint> >"/>
 </lcgdict>

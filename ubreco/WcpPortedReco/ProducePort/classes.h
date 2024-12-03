@@ -11,18 +11,14 @@
 // copied from /exp/uboone/app/users/markrl/test/srcs/ubreco/ubreco/ShowerReco/ClusterMerging/classes.h
 
 #include "canvas/Persistency/Common/Wrapper.h"
+#include <vector>
 
-// data-products
-// lardataobj
-//#include "lardata/Utilities/AssociationUtil.h"
-#include "canvas/Persistency/Common/Assns.h"
-#include "lardataobj/RecoBase/PFParticle.h"
-#include "lardataobj/RecoBase/Hit.h"
-#include "nusimdata/SimulationBase/MCTruth.h"
+#include "ubreco/WcpPortedReco/ProducePort/SimpleSpacePoint.h"
 
 //
 // Only include objects that we would like to be able to put into the event.
 // Do not include the objects they contain internally.
 //
 
-template class art::Wrapper<vector<array<float,4> > >;
+// Change the template declaration
+template class art::Wrapper<std::vector<SimpleSpacePoint>>;
