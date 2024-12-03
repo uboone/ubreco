@@ -58,47 +58,39 @@ void WCPsp::WCPortedSpacePoints::produce(art::Event &e){
 
   auto outputSpacePointVec = std::make_unique<std::vector<std::array<float, 4>>>();
 
-  std::cout << "lhagaman modified, adding WC no-trajectory-fitting neutrino cluster spacepoints here:" << std::endl;
+  std::cout << "Adding T_rec (WC no-trajectory-fitting neutrino cluster) spacepoints here:" << std::endl;
 
   std::string path(fInput);
   std::string file = (path);
-  std::cout<<"INPUT FILE NAME: "<<file<<std::endl;
-  TFile *fin = new TFile(file.c_str());
-  TTree *tin = (TTree*)fin->Get(fTreeName.c_str());
- 
-  int run=-1, subrun=-1, event=-1, /*cluster_id=-1,*/ main_flag=-1, time_slice=-1, ch_u=-1, ch_v=-1, ch_w=-1;
-  double x=-1., y=-1., z=-1., q=-1., nq=-1;
-  tin->SetBranchAddress("run",&run);
-  tin->SetBranchAddress("subrun",&subrun);
-  tin->SetBranchAddress("event",&event);
-  //tin->SetBranchAddress("cluster_id",&cluster_id);
-  tin->SetBranchAddress("main_flag",&main_flag);
-  tin->SetBranchAddress("time_slice",&time_slice);
-  tin->SetBranchAddress("ch_u",&ch_u);
-  tin->SetBranchAddress("ch_v",&ch_v);
-  tin->SetBranchAddress("ch_w",&ch_w);
-  tin->SetBranchAddress("x",&x);
-  tin->SetBranchAddress("y",&y);
-  tin->SetBranchAddress("z",&z);
-  tin->SetBranchAddress("q",&q);
-  tin->SetBranchAddress("nq",&nq);
 
-  for(int i=0; i<tin->GetEntries(); i++){
-    tin->GetEntry(i);
+  // overwriting things manually here
+  // not using fhicl parameters for input file path and tree name
 
-    if(fMainCluster==true && main_flag!=1) continue;
+  file = "./WCPwork/nue_" + std::to_string((int) e.run()) + "_" + std::to_string((int) e.subRun()) + "_" + std::to_string((int) e.id().event()) + ".root";
+  std::cout << "loading file: " << file << std::endl;
 
-    if( run!=(int)e.run() || 
-        subrun!=(int)e.subRun() || 
-        event!=(int)e.id().event() ) continue;
+  try {
+    TFile *fin = new TFile(file.c_str());
+    TTree *tin = (TTree*)fin->Get("T_rec");
 
-    std::array<float, 4> xyzq = std::array<float, 4>{(float) x, (float) y, (float) z, (float) q};
+    float x, y, z, q;
+    tin->SetBranchAddress("x", &x);
+    tin->SetBranchAddress("y", &y);
+    tin->SetBranchAddress("z", &z);
+    tin->SetBranchAddress("q", &q);
 
-    outputSpacePointVec->emplace_back(xyzq);
+    for(int i=0; i<tin->GetEntries(); i++){
+      tin->GetEntry(i);
+      std::array<float, 4> xyzq = std::array<float, 4>{x, y, z, q};
+      outputSpacePointVec->emplace_back(xyzq);
+    }
+
+    fin->Close();
+    std::cout << " space point vector size: "<<outputSpacePointVec->size()<<std::endl;
+  } catch (std::exception &e) {
+    std::cout << "File " << file << " not found, adding 0 spacepoints..." << std::endl;
   }
-
-  fin->Close();
-  std::cout<<" space point vector size: "<<outputSpacePointVec->size()<<std::endl;
+  
   e.put(std::move(outputSpacePointVec));
 }
 

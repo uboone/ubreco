@@ -58,12 +58,7 @@ void psp::PortedSpacePoints::produce(art::Event &e){
 
   auto outputSpacePointVec = std::make_unique< std::vector<recob::SpacePoint> >();
 
-  std::cout << "\nlhagaman modified, adding Pandora spacepoints here:" << std::endl;
-  std::cout << "    fInput: " << fInput << std::endl;
-  std::cout << "    fTreeName: " << fTreeName << std::endl;
-  std::cout << "    fMainCluster: " << fMainCluster << std::endl;
-  std::cout << "    fSpacePointLabel: " << fSpacePointLabel << std::endl;
-  std::cout << "    fTickOffset: " << fTickOffset << std::endl;
+  std::cout << "Adding Pandora main_flag==1 spacepoints here:" << std::endl;
 
   std::string path(fInput);
   std::string file = (path);
