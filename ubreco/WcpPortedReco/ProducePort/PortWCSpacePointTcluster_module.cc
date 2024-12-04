@@ -23,39 +23,39 @@
 #include <dirent.h>
 #include <iostream>
 
-namespace WCTrecsp {
-  class WCTrecPortedSpacePoints;
+namespace WCTclustersp {
+  class WCTclusterPortedSpacePoints;
 }
 
-class WCTrecsp::WCTrecPortedSpacePoints : public art::EDProducer {
+class WCTclustersp::WCTclusterPortedSpacePoints : public art::EDProducer {
 public:
-  explicit WCTrecPortedSpacePoints(fhicl::ParameterSet const & p);
-  WCTrecPortedSpacePoints(WCTrecPortedSpacePoints const &) = delete;
-  WCTrecPortedSpacePoints(WCTrecPortedSpacePoints &&) = delete;
-  WCTrecPortedSpacePoints & operator = (WCTrecPortedSpacePoints const &) = delete;
-  WCTrecPortedSpacePoints & operator = (WCTrecPortedSpacePoints &&) = delete;
+  explicit WCTclusterPortedSpacePoints(fhicl::ParameterSet const & p);
+  WCTclusterPortedSpacePoints(WCTclusterPortedSpacePoints const &) = delete;
+  WCTclusterPortedSpacePoints(WCTclusterPortedSpacePoints &&) = delete;
+  WCTclusterPortedSpacePoints & operator = (WCTclusterPortedSpacePoints const &) = delete;
+  WCTclusterPortedSpacePoints & operator = (WCTclusterPortedSpacePoints &&) = delete;
 
 private:
   void produce(art::Event &e) override;
 };
 
-WCTrecsp::WCTrecPortedSpacePoints::WCTrecPortedSpacePoints(fhicl::ParameterSet const & p) : EDProducer{p}
+WCTclustersp::WCTclusterPortedSpacePoints::WCTclusterPortedSpacePoints(fhicl::ParameterSet const & p) : EDProducer{p}
 {
   produces<std::vector<SimpleSpacePoint>>();
 }
 
-void WCTrecsp::WCTrecPortedSpacePoints::produce(art::Event &e){
+void WCTclustersp::WCTclusterPortedSpacePoints::produce(art::Event &e){
 
   auto outputSpacePointVec = std::make_unique<std::vector<SimpleSpacePoint>>();
 
-  std::cout << "Adding T_rec (WC no-trajectory-fitting neutrino cluster) spacepoints here:" << std::endl;
+  std::cout << "Adding T_cluster (WC no-trajectory-fitting all-clusters) spacepoints here:" << std::endl;
 
   std::string file = "./WCPwork/nue_" + std::to_string((int) e.run()) + "_" + std::to_string((int) e.subRun()) + "_" + std::to_string((int) e.id().event()) + ".root";
   std::cout << "loading file: " << file << std::endl;
 
   try {
     TFile *fin = new TFile(file.c_str());
-    TTree *tin = (TTree*)fin->Get("T_rec");
+    TTree *tin = (TTree*)fin->Get("T_cluster");
 
     double x, y, z, q;
     tin->SetBranchAddress("x", &x);
@@ -80,4 +80,4 @@ void WCTrecsp::WCTrecPortedSpacePoints::produce(art::Event &e){
   e.put(std::move(outputSpacePointVec));
 }
 
-DEFINE_ART_MODULE(WCTrecsp::WCTrecPortedSpacePoints)
+DEFINE_ART_MODULE(WCTclustersp::WCTclusterPortedSpacePoints)

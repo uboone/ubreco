@@ -40,7 +40,12 @@ standard_portwcspacepointTrec: // WC no-trajectory-fitting neutrino-cluster spac
 {
  module_type:     "PortWCSpacePointTrec"
 }
-standard_WCportedspacepoints_mainOnly: @local::standard_portwcspacepointTrec
+standard_portwcspacepointTrec_mainOnly: @local::standard_portwcspacepointTrec
+standard_portwcspacepointTcluster: // WC no-trajectory-fitting all-cluster spacepoints
+{
+ module_type:     "PortWCSpacePointTcluster"
+}
+standard_portwcspacepointTcluster_mainOnly: @local::standard_portwcspacepointTcluster
 
 
 standard_nuselectionmetrics:
