@@ -25,14 +25,14 @@ physics:
     portedThresholdhit: @local::standard_portedhits
     nuselMetrics: @local::standard_nuselectionmetrics
     portedFlash: @local::standard_portedflash
-    portedSpacePointsThreshold: @local::standard_portedspacepoints         // Pandora spacepoints
+    portedSpacePointsThreshold: @local::standard_portedspacepoints
   }
 
   reco: [ 
 	  portedThresholdhit,
           nuselMetrics,
           portedFlash,
-	  portedSpacePointsThreshold,
+	  portedSpacePointsThreshold          
 	]
   trigger_paths: [ reco ]
 
