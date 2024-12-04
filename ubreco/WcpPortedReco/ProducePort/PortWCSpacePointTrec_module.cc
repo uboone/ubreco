@@ -66,14 +66,13 @@ void WCTrecsp::WCTrecPortedSpacePoints::produce(art::Event &e){
     tin->SetBranchAddress("real_cluster_id", &real_cluster_id);
     for(int i=0; i<tin->GetEntries(); i++){
       tin->GetEntry(i);
-      SimpleSpacePointID xyzq = SimpleSpacePointID{x, y, z, q, real_cluster_id};
-      outputSpacePointVec->emplace_back(xyzq);
+      SimpleSpacePointID xyzqi = SimpleSpacePointID{x, y, z, q, real_cluster_id};
+      outputSpacePointVec->emplace_back(xyzqi);
     }
 
     fin->Close();
     std::cout << " space point vector size: "<<outputSpacePointVec->size()<<std::endl;
   } catch (std::exception &e) {
-    // print exception
     std::cout << "Exception: " << e.what() << std::endl;
     std::cout << "Due to exception, adding 0 spacepoints..." << std::endl;
   }

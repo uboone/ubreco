@@ -72,7 +72,6 @@ void WCTclustersp::WCTclusterPortedSpacePoints::produce(art::Event &e){
     fin->Close();
     std::cout << " space point vector size: "<<outputSpacePointVec->size()<<std::endl;
   } catch (std::exception &e) {
-    // print exception
     std::cout << "Exception: " << e.what() << std::endl;
     std::cout << "Due to exception, adding 0 spacepoints..." << std::endl;
   }
