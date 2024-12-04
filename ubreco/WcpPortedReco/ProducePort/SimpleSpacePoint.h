@@ -1,6 +1,6 @@
 struct SimpleSpacePoint {
-  float x;
-  float y;
-  float z;
-  float q;
+  double x;
+  double y;
+  double z;
+  double q;
 };

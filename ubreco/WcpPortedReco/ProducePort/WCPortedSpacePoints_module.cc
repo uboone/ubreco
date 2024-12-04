@@ -76,7 +76,7 @@ void WCPsp::WCPortedSpacePoints::produce(art::Event &e){
     TFile *fin = new TFile(file.c_str());
     TTree *tin = (TTree*)fin->Get("T_rec");
 
-    float x, y, z, q;
+    double x, y, z, q;
     tin->SetBranchAddress("x", &x);
     tin->SetBranchAddress("y", &y);
     tin->SetBranchAddress("z", &z);
@@ -91,7 +91,9 @@ void WCPsp::WCPortedSpacePoints::produce(art::Event &e){
     fin->Close();
     std::cout << " space point vector size: "<<outputSpacePointVec->size()<<std::endl;
   } catch (std::exception &e) {
-    std::cout << "File " << file << " not found, adding 0 spacepoints..." << std::endl;
+    // print exception
+    std::cout << "Exception: " << e.what() << std::endl;
+    std::cout << "Due to exception, adding 0 spacepoints..." << std::endl;
   }
   
   e.put(std::move(outputSpacePointVec));
