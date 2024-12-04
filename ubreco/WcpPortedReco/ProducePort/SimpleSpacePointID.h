@@ -1,4 +1,4 @@
-struct SimpleSpacePointTrec {
+struct SimpleSpacePointID {
   double x;
   double y;
   double z;

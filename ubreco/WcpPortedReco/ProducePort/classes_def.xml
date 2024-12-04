@@ -2,7 +2,7 @@
   <class name="SimpleSpacePoint"/>
   <class name="std::vector<SimpleSpacePoint>"/>
   <class name="art::Wrapper<std::vector<SimpleSpacePoint> >"/>
-  <class name="SimpleSpacePointTrec"/>
-  <class name="std::vector<SimpleSpacePointTrec>"/>
-  <class name="art::Wrapper<std::vector<SimpleSpacePointTrec> >"/>
+  <class name="SimpleSpacePointID"/>
+  <class name="std::vector<SimpleSpacePointID>"/>
+  <class name="art::Wrapper<std::vector<SimpleSpacePointID> >"/>
 </lcgdict>

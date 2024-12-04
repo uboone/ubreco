@@ -33,7 +33,6 @@ physics:
           nuselMetrics,
           portedFlash,
 	  portedSpacePointsThreshold,
-    portedWC_SpacePointsThreshold          
 	]
   trigger_paths: [ reco ]
 

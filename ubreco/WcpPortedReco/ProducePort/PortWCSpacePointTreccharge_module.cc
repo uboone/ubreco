@@ -12,7 +12,7 @@
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
 
-#include "ubreco/WcpPortedReco/ProducePort/SimpleSpacePoint.h"
+#include "ubreco/WcpPortedReco/ProducePort/SimpleSpacePointID.h"
 
 #include "TTree.h"
 #include "TBranch.h"
@@ -41,12 +41,12 @@ private:
 
 WCTrecchargesp::WCTrecchargePortedSpacePoints::WCTrecchargePortedSpacePoints(fhicl::ParameterSet const & p) : EDProducer{p}
 {
-  produces<std::vector<SimpleSpacePoint>>();
+  produces<std::vector<SimpleSpacePointID>>();
 }
 
 void WCTrecchargesp::WCTrecchargePortedSpacePoints::produce(art::Event &e){
 
-  auto outputSpacePointVec = std::make_unique<std::vector<SimpleSpacePoint>>();
+  auto outputSpacePointVec = std::make_unique<std::vector<SimpleSpacePointID>>();
 
   std::cout << "Adding T_rec_charge (WC trajectory-fitted neutrino-cluster) spacepoints here:" << std::endl;
 
@@ -58,14 +58,16 @@ void WCTrecchargesp::WCTrecchargePortedSpacePoints::produce(art::Event &e){
     TTree *tin = (TTree*)fin->Get("T_rec_charge");
 
     double x, y, z, q;
+    int real_cluster_id;
     tin->SetBranchAddress("x", &x);
     tin->SetBranchAddress("y", &y);
     tin->SetBranchAddress("z", &z);
     tin->SetBranchAddress("q", &q);
+    tin->SetBranchAddress("real_cluster_id", &real_cluster_id);
 
     for(int i=0; i<tin->GetEntries(); i++){
       tin->GetEntry(i);
-      SimpleSpacePoint xyzq = SimpleSpacePoint{x, y, z, q};
+      SimpleSpacePointID xyzq = SimpleSpacePointID{x, y, z, q, real_cluster_id};
       outputSpacePointVec->emplace_back(xyzq);
     }
 
