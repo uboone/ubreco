@@ -38,22 +38,10 @@ public:
 private:
   void produce(art::Event &e) override;
 
-
-  std::string fInput;
-  std::string fTreeName;
-  bool fMainCluster;
-  std::string fSpacePointLabel;
-  short fTickOffset;
 };
 
 WCPsp::WCPortedSpacePoints::WCPortedSpacePoints(fhicl::ParameterSet const & p) : EDProducer{p}
 {
-  fInput = p.get<std::string>("PortInput");
-  fTreeName = p.get<std::string>("TreeName");
-  fMainCluster = p.get<bool>("MainCluster");
-  fSpacePointLabel = p.get<std::string>("SpacePointLabel");
-  fTickOffset = p.get<short>("TickOffset");
-
   produces<std::vector<SimpleSpacePoint>>();
 }
 
@@ -63,13 +51,7 @@ void WCPsp::WCPortedSpacePoints::produce(art::Event &e){
 
   std::cout << "Adding T_rec (WC no-trajectory-fitting neutrino cluster) spacepoints here:" << std::endl;
 
-  std::string path(fInput);
-  std::string file = (path);
-
-  // overwriting things manually here
-  // not using fhicl parameters for input file path and tree name
-
-  file = "./WCPwork/nue_" + std::to_string((int) e.run()) + "_" + std::to_string((int) e.subRun()) + "_" + std::to_string((int) e.id().event()) + ".root";
+  std::string file = "./WCPwork/nue_" + std::to_string((int) e.run()) + "_" + std::to_string((int) e.subRun()) + "_" + std::to_string((int) e.id().event()) + ".root";
   std::cout << "loading file: " << file << std::endl;
 
   try {

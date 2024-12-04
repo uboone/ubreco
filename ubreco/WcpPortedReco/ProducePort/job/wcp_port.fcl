@@ -20,7 +20,9 @@ standard_portedflash:
  TreeName:    "T_port_flash"
 }
 
-standard_portedspacepoints: // Pandora spacepoints
+
+// Pandora spacepoints
+standard_portedspacepoints: 
 {
  module_type:     "PortedSpacePoints"
  PortInput:       "./merge.root"
@@ -29,22 +31,17 @@ standard_portedspacepoints: // Pandora spacepoints
  SpacePointLabel: "portedSpacePoints"
  TickOffset:      2400
 }
-
 standard_portedspacepoints_mainOnly: @local::standard_portedspacepoints
 standard_portedspacepoints_mainOnly.MainCluster: true 
 
-standard_WCportedspacepoints: // WC no-trajectory-fitting neutrino-cluster spacepoints
-{
- module_type:     "WCPortedSpacePoints"
- PortInput:       "./merge.root"
- MainCluster:     false
- TreeName:        "T_port_3d"
- SpacePointLabel: "WCportedSpacePoints"
- TickOffset:      2400
-}
 
-standard_WCportedspacepoints_mainOnly: @local::standard_WCportedspacepoints
-standard_WCportedspacepoints_mainOnly.MainCluster: true
+// Wire-Cell spacepoints
+standard_portwcspacepointTrec: // WC no-trajectory-fitting neutrino-cluster spacepoints
+{
+ module_type:     "PortWCSpacePointTrec"
+}
+standard_WCportedspacepoints_mainOnly: @local::standard_portwcspacepointTrec
+
 
 standard_nuselectionmetrics:
 {

@@ -26,7 +26,6 @@ physics:
     nuselMetrics: @local::standard_nuselectionmetrics
     portedFlash: @local::standard_portedflash
     portedSpacePointsThreshold: @local::standard_portedspacepoints         // Pandora spacepoints
-    portedWC_SpacePointsThreshold: @local::standard_WC_portedspacepoints   // WC no-trajectory-fitting neutrino-cluster spacepoints
   }
 
   reco: [ 
