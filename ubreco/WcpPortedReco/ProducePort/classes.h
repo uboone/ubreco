@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "ubreco/WcpPortedReco/ProducePort/SimpleSpacePoint.h"
+#include "ubreco/WcpPortedReco/ProducePort/SimpleSpacePointTrec.h"
 
 //
 // Only include objects that we would like to be able to put into the event.
@@ -22,3 +23,4 @@
 
 // Change the template declaration
 template class art::Wrapper<std::vector<SimpleSpacePoint>>;
+template class art::Wrapper<std::vector<SimpleSpacePointTrec>>;

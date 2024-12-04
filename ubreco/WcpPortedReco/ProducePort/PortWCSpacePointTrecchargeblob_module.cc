@@ -12,7 +12,7 @@
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
 
-#include "ubreco/WcpPortedReco/ProducePort/SimpleSpacePointTrec.h"
+#include "ubreco/WcpPortedReco/ProducePort/SimpleSpacePoint.h"
 
 #include "TTree.h"
 #include "TBranch.h"
@@ -23,50 +23,49 @@
 #include <dirent.h>
 #include <iostream>
 
-namespace WCTrecsp {
-  class WCTrecPortedSpacePoints;
+namespace WCTrecchargeblobsp {
+  class WCTrecchargeblobPortedSpacePoints;
 }
 
-class WCTrecsp::WCTrecPortedSpacePoints : public art::EDProducer {
+class WCTrecchargeblobsp::WCTrecchargeblobPortedSpacePoints : public art::EDProducer {
 public:
-  explicit WCTrecPortedSpacePoints(fhicl::ParameterSet const & p);
-  WCTrecPortedSpacePoints(WCTrecPortedSpacePoints const &) = delete;
-  WCTrecPortedSpacePoints(WCTrecPortedSpacePoints &&) = delete;
-  WCTrecPortedSpacePoints & operator = (WCTrecPortedSpacePoints const &) = delete;
-  WCTrecPortedSpacePoints & operator = (WCTrecPortedSpacePoints &&) = delete;
+  explicit WCTrecchargeblobPortedSpacePoints(fhicl::ParameterSet const & p);
+  WCTrecchargeblobPortedSpacePoints(WCTrecchargeblobPortedSpacePoints const &) = delete;
+  WCTrecchargeblobPortedSpacePoints(WCTrecchargeblobPortedSpacePoints &&) = delete;
+  WCTrecchargeblobPortedSpacePoints & operator = (WCTrecchargeblobPortedSpacePoints const &) = delete;
+  WCTrecchargeblobPortedSpacePoints & operator = (WCTrecchargeblobPortedSpacePoints &&) = delete;
 
 private:
   void produce(art::Event &e) override;
 };
 
-WCTrecsp::WCTrecPortedSpacePoints::WCTrecPortedSpacePoints(fhicl::ParameterSet const & p) : EDProducer{p}
+WCTrecchargeblobsp::WCTrecchargeblobPortedSpacePoints::WCTrecchargeblobPortedSpacePoints(fhicl::ParameterSet const & p) : EDProducer{p}
 {
-  produces<std::vector<SimpleSpacePointTrec>>();
+  produces<std::vector<SimpleSpacePoint>>();
 }
 
-void WCTrecsp::WCTrecPortedSpacePoints::produce(art::Event &e){
+void WCTrecchargeblobsp::WCTrecchargeblobPortedSpacePoints::produce(art::Event &e){
 
-  auto outputSpacePointVec = std::make_unique<std::vector<SimpleSpacePointTrec>>();
+  auto outputSpacePointVec = std::make_unique<std::vector<SimpleSpacePoint>>();
 
-  std::cout << "Adding T_rec (WC no-trajectory-fitting neutrino cluster) spacepoints here:" << std::endl;
+  std::cout << "Adding T_rec_charge_blob (WC trajectory-fitted neutrino-cluster) spacepoints here:" << std::endl;
 
   std::string file = "./WCPwork/nue_" + std::to_string((int) e.run()) + "_" + std::to_string((int) e.subRun()) + "_" + std::to_string((int) e.id().event()) + ".root";
   std::cout << "loading file: " << file << std::endl;
 
   try {
     TFile *fin = new TFile(file.c_str());
-    TTree *tin = (TTree*)fin->Get("T_rec");
+    TTree *tin = (TTree*)fin->Get("T_rec_charge_blob");
 
     double x, y, z, q;
-    int real_cluster_id;
     tin->SetBranchAddress("x", &x);
     tin->SetBranchAddress("y", &y);
     tin->SetBranchAddress("z", &z);
     tin->SetBranchAddress("q", &q);
-    tin->SetBranchAddress("real_cluster_id", &real_cluster_id);
+
     for(int i=0; i<tin->GetEntries(); i++){
       tin->GetEntry(i);
-      SimpleSpacePointTrec xyzq = SimpleSpacePointTrec{x, y, z, q, real_cluster_id};
+      SimpleSpacePoint xyzq = SimpleSpacePoint{x, y, z, q};
       outputSpacePointVec->emplace_back(xyzq);
     }
 
@@ -81,4 +80,4 @@ void WCTrecsp::WCTrecPortedSpacePoints::produce(art::Event &e){
   e.put(std::move(outputSpacePointVec));
 }
 
-DEFINE_ART_MODULE(WCTrecsp::WCTrecPortedSpacePoints)
+DEFINE_ART_MODULE(WCTrecchargeblobsp::WCTrecchargeblobPortedSpacePoints)

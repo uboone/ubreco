@@ -47,6 +47,17 @@ standard_portwcspacepointTcluster: // WC no-trajectory-fitting all-cluster space
 }
 standard_portwcspacepointTcluster_mainOnly: @local::standard_portwcspacepointTcluster
 
+standard_portwcspacepointTreccharge: // WC trajectory-fitted neutrino-cluster spacepoints
+{
+ module_type:     "PortWCSpacePointTreccharge"
+}
+standard_portwcspacepointTreccharge_mainOnly: @local::standard_portwcspacepointTreccharge
+
+standard_portwcspacepointTrecchargeblob: // WC trajectory-fitted neutrino-cluster spacepoints
+{
+ module_type:     "PortWCSpacePointTrecchargeblob"
+}
+standard_portwcspacepointTrecchargeblob_mainOnly: @local::standard_portwcspacepointTrecchargeblob
 
 standard_nuselectionmetrics:
 {
