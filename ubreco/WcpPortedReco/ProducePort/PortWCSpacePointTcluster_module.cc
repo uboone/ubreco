@@ -12,7 +12,7 @@
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
 
-#include "ubreco/WcpPortedReco/ProducePort/SimpleSpacePoint.h"
+#include "ubreco/WcpPortedReco/ProducePort/SpacePointStructs.h"
 
 #include "TTree.h"
 #include "TBranch.h"
@@ -41,12 +41,12 @@ private:
 
 WCTclustersp::WCTclusterPortedSpacePoints::WCTclusterPortedSpacePoints(fhicl::ParameterSet const & p) : EDProducer{p}
 {
-  produces<std::vector<SimpleSpacePoint>>();
+  produces<std::vector<TclusterSpacePoint>>();
 }
 
 void WCTclustersp::WCTclusterPortedSpacePoints::produce(art::Event &e){
 
-  auto outputSpacePointVec = std::make_unique<std::vector<SimpleSpacePoint>>();
+  auto outputSpacePointVec = std::make_unique<std::vector<TclusterSpacePoint>>();
 
   std::cout << "Adding T_cluster (WC no-trajectory-fitting all-clusters) spacepoints here:" << std::endl;
 
@@ -57,15 +57,24 @@ void WCTclustersp::WCTclusterPortedSpacePoints::produce(art::Event &e){
     TFile *fin = new TFile(file.c_str());
     TTree *tin = (TTree*)fin->Get("T_cluster");
 
-    double x, y, z, q;
+    double x, y, z, q, nq;
+    int cluster_id, real_cluster_id, sub_cluster_id, time_slice, ch_u, ch_v, ch_w;
     tin->SetBranchAddress("x", &x);
     tin->SetBranchAddress("y", &y);
     tin->SetBranchAddress("z", &z);
     tin->SetBranchAddress("q", &q);
+    tin->SetBranchAddress("nq", &nq);
+    tin->SetBranchAddress("cluster_id", &cluster_id);
+    tin->SetBranchAddress("real_cluster_id", &real_cluster_id);
+    tin->SetBranchAddress("sub_cluster_id", &sub_cluster_id);
+    tin->SetBranchAddress("time_slice", &time_slice);
+    tin->SetBranchAddress("ch_u", &ch_u);
+    tin->SetBranchAddress("ch_v", &ch_v);
+    tin->SetBranchAddress("ch_w", &ch_w);
 
     for(int i=0; i<tin->GetEntries(); i++){
       tin->GetEntry(i);
-      SimpleSpacePoint xyzq = SimpleSpacePoint{x, y, z, q};
+      TclusterSpacePoint xyzq = TclusterSpacePoint{x, y, z, q, nq, cluster_id, real_cluster_id, sub_cluster_id, time_slice, ch_u, ch_v, ch_w};
       outputSpacePointVec->emplace_back(xyzq);
     }
 

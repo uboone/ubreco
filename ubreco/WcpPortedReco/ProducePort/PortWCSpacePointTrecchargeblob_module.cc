@@ -12,7 +12,7 @@
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
 
-#include "ubreco/WcpPortedReco/ProducePort/SimpleSpacePointID.h"
+#include "ubreco/WcpPortedReco/ProducePort/SpacePointStructs.h"
 
 #include "TTree.h"
 #include "TBranch.h"
@@ -41,12 +41,12 @@ private:
 
 WCTrecchargeblobsp::WCTrecchargeblobPortedSpacePoints::WCTrecchargeblobPortedSpacePoints(fhicl::ParameterSet const & p) : EDProducer{p}
 {
-  produces<std::vector<SimpleSpacePointID>>();
+  produces<std::vector<TrecchargeblobSpacePoint>>();
 }
 
 void WCTrecchargeblobsp::WCTrecchargeblobPortedSpacePoints::produce(art::Event &e){
 
-  auto outputSpacePointVec = std::make_unique<std::vector<SimpleSpacePointID>>();
+  auto outputSpacePointVec = std::make_unique<std::vector<TrecchargeblobSpacePoint>>();
 
   std::cout << "Adding T_rec_charge_blob (WC trajectory-fitted neutrino-cluster) spacepoints here:" << std::endl;
 
@@ -57,17 +57,22 @@ void WCTrecchargeblobsp::WCTrecchargeblobPortedSpacePoints::produce(art::Event &
     TFile *fin = new TFile(file.c_str());
     TTree *tin = (TTree*)fin->Get("T_rec_charge_blob");
 
-    double x, y, z, q;
-    int real_cluster_id;
+    double x, y, z, q, nq, chi2, ndf;
+    int cluster_id, real_cluster_id, sub_cluster_id;
     tin->SetBranchAddress("x", &x);
     tin->SetBranchAddress("y", &y);
     tin->SetBranchAddress("z", &z);
     tin->SetBranchAddress("q", &q);
+    tin->SetBranchAddress("nq", &nq);
+    tin->SetBranchAddress("cluster_id", &cluster_id);
     tin->SetBranchAddress("real_cluster_id", &real_cluster_id);
+    tin->SetBranchAddress("sub_cluster_id", &sub_cluster_id);
+    tin->SetBranchAddress("chi2", &chi2);
+    tin->SetBranchAddress("ndf", &ndf);
 
     for(int i=0; i<tin->GetEntries(); i++){
       tin->GetEntry(i);
-      SimpleSpacePointID xyzqi = SimpleSpacePointID{x, y, z, q, real_cluster_id};
+      TrecchargeblobSpacePoint xyzqi = TrecchargeblobSpacePoint{x, y, z, q, nq, cluster_id, real_cluster_id, sub_cluster_id, chi2, ndf};
       outputSpacePointVec->emplace_back(xyzqi);
     }
 

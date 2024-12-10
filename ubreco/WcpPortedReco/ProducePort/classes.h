@@ -13,8 +13,7 @@
 #include "canvas/Persistency/Common/Wrapper.h"
 #include <vector>
 
-#include "ubreco/WcpPortedReco/ProducePort/SimpleSpacePoint.h"
-#include "ubreco/WcpPortedReco/ProducePort/SimpleSpacePointID.h"
+#include "ubreco/WcpPortedReco/ProducePort/SpacePointStructs.h"
 
 //
 // Only include objects that we would like to be able to put into the event.
@@ -22,5 +21,7 @@
 //
 
 // Change the template declaration
-template class art::Wrapper<std::vector<SimpleSpacePoint>>;
-template class art::Wrapper<std::vector<SimpleSpacePointID>>;
+template class art::Wrapper<std::vector<TrecSpacePoint>>;
+template class art::Wrapper<std::vector<TrecchargeSpacePoint>>;
+template class art::Wrapper<std::vector<TrecchargeblobSpacePoint>>;
+template class art::Wrapper<std::vector<TclusterSpacePoint>>;
