@@ -1,7 +1,7 @@
 BEGIN_PROLOG
 
 gaushit_ng:
-{ 
+{
   module_type:   "FilteredHitsProducer"
   HitLabel:      "nuslhits"
   MatchHitLabel: ""
@@ -9,8 +9,20 @@ gaushit_ng:
   HitSemanticLabel: ["NuGraph","semantic"]
   HitTruthLabel: ""
   RMScut:        -1.
-  ScoreCut:      0.5
+  ScoreCut:      0.25
   isMC:          false
+}
+
+gaushit_ngbypfp:
+{
+  module_type:   "FilteredHitsProducerByPfp"
+  HitLabel:      "nuslhits"
+  MatchHitLabel: "gaushit"
+  PfpLabel:      "nuslhits"
+  HitScoreLabel: ["NuGraph","filter"]
+  HitSemanticLabel: ["NuGraph","semantic"]
+  ScoreCut:      0.25
+  FracCut:       0.25
 }
 
 gaushitTruth_ng:

@@ -5,7 +5,9 @@ add_subdirectory(ProximityClustering)
 add_subdirectory(ReCluster)
 add_subdirectory(Pi0Ana)
 add_subdirectory(TruthFilters)
+add_subdirectory(ShowerHitFilter)
 
+install_fhicl()
 install_headers()
 install_source()
 
