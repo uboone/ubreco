@@ -146,7 +146,8 @@ DEFINE_ART_MODULE(MicroBooNEPandora)
 
 // INFO: If we have the LibTorch optional dependency, use that instead.
 //       Strings and aliases defined here, to confine ifdefs to one place.
-#if defined __has_include && __has_include("larpandoradlcontent/LArDLContent.h")
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma message (" Building MicroBooNEPandora module with DL.")
   #include "larpandoradlcontent/LArDLContent.h"
   #include "MicroBooNEDLContent.h"
 
@@ -154,6 +155,7 @@ DEFINE_ART_MODULE(MicroBooNEPandora)
   inline const std::string UB_MASTER_ALGORITHM = "MicroBooNEDLMaster";
   using MicroBooNEContentImpl = MicroBooNEDLContent;
 #else
+  #pragma message (" Building MicroBooNEPandora module without DL.")
   #include "MicroBooNEContent.h"
 
   inline const std::string MASTER_ALGORITHM = "LArMaster";
