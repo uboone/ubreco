@@ -1,13 +1,13 @@
 #include "time_memory_tracker_microboone.fcl"
 #include "services_microboone.fcl"
-#include "wcp_port.fcl"
+#include "wcp_port_sp.fcl"
 process_name: PortRedux
 
 services:
 {
   TimeTracker:             @local::microboone_time_tracker
   MemoryTracker:           @local::microboone_memory_tracker
-  FileCatalogMetadata:     @local::art_file_catalog_data
+  FileCatalogMetadata:     @local::art_file_catalog_mc
   @table::microboone_services_reco
 }
 
@@ -36,7 +36,7 @@ physics:
 	  portedThresholdhit,
           nuselMetrics,
           portedFlash,
-	  portedSpacePointsThreshold,
+    portedSpacePointsThreshold,
     portedWCSpacePointsTrec,
     portedWCSpacePointsTcluster,
     portedWCSpacePointsTreccharge,
@@ -56,7 +56,7 @@ outputs:
    dataTier: "reconstructed"
    compressionLevel: 1
    saveMemoryObjectThreshold: 0
-   fileName: "%ifb_%tc_overlayWCP.root"
+   fileName: "%ifb_%tc_mcWCP.root"
  }
 }
 
@@ -69,18 +69,18 @@ microboone_tfile_metadata:
 }
 
 source.inputCommands: [
-		        "keep *_*_*_*"
-			#"drop sim::SimEnergyDeposits_largeant_*_*",
-			#"drop sim::SimChannels_largeant_*_*",
-			#"drop sim::AuxDetSimChannel_*_*_*",
-			#"drop raw::OpDetWaveform_pmtreadoutnonoise_*_OverlayDetsim",
-			#"drop crt::CRTSimData_crtdetsim_*_OverlayDetsim",
-			#"drop crt::CRTHit_*_*_OverlayDetsim",
-			#"drop *_*_mixer_DataOverlay",
-			#"drop *_threshold_nfspl1_OverlayStage1a",
-			#"drop recob::Wires_*nfspl1_*_*",
-			#"drop recob::OpFlash_*_*_OverlayStage1a",
-			#"drop recob::OpHit_*_*_OverlayStage1a"
+		        "keep *_*_*_*",
+			"drop sim::SimEnergyDeposits_largeant_*_*",
+			"drop sim::SimChannels_largeant_*_*",
+			"drop sim::AuxDetSimChannel_*_*_*",
+			"drop raw::OpDetWaveform_pmtreadoutnonoise_*_OverlayDetsim",
+			"drop crt::CRTSimData_crtdetsim_*_OverlayDetsim",
+			"drop crt::CRTHit_*_*_OverlayDetsim",
+			"drop *_*_mixer_DataOverlay",
+			"drop *_threshold_nfspl1_OverlayStage1a",
+			"drop recob::Wires_*nfspl1_*_*",
+			"drop recob::OpFlash_*_*_OverlayStage1a",
+			"drop recob::OpHit_*_*_OverlayStage1a"
 		      ]
 
 services.SpaceCharge.CalibrationInputFilename: "SpaceCharge/SCEoffsets_dataDriven_combined_bkwd_Jan18.root"
