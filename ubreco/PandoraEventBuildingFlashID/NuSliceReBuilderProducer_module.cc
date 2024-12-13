@@ -136,13 +136,13 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
   // original pandora slice products
   art::ValidHandle<std::vector<recob::PFParticle>> inputPndrPFParticle = e.getValidHandle<std::vector<recob::PFParticle>>("pandora");
   art::ValidHandle<std::vector<recob::Slice>> inputPndrSlice = e.getValidHandle<std::vector<recob::Slice>>("pandora");
-  art::ValidHandle<std::vector<recob::PCAxis>> inputPndrPCAxis = e.getValidHandle<std::vector<recob::PCAxis>>("pandora");
+  //art::ValidHandle<std::vector<recob::PCAxis>> inputPndrPCAxis = e.getValidHandle<std::vector<recob::PCAxis>>("pandora");
   art::ValidHandle<std::vector<recob::Cluster>> inputPndrCluster = e.getValidHandle<std::vector<recob::Cluster>>("pandora");
-  art::ValidHandle<std::vector<recob::Vertex>> inputPndrVertex = e.getValidHandle<std::vector<recob::Vertex>>("pandora");
+  //art::ValidHandle<std::vector<recob::Vertex>> inputPndrVertex = e.getValidHandle<std::vector<recob::Vertex>>("pandora");
   art::ValidHandle<std::vector<recob::SpacePoint>> inputPndrSpacePoint = e.getValidHandle<std::vector<recob::SpacePoint>>("pandora");
   art::ValidHandle<std::vector<recob::Shower>> inputPndrShower = e.getValidHandle<std::vector<recob::Shower>>("pandora");
   art::ValidHandle<std::vector<recob::Track>> inputPndrTrack = e.getValidHandle<std::vector<recob::Track>>("pandora");
-  art::ValidHandle<std::vector<larpandoraobj::PFParticleMetadata>> inputPndrPFParticleMetadata = e.getValidHandle<std::vector<larpandoraobj::PFParticleMetadata>>("pandora");
+  //art::ValidHandle<std::vector<larpandoraobj::PFParticleMetadata>> inputPndrPFParticleMetadata = e.getValidHandle<std::vector<larpandoraobj::PFParticleMetadata>>("pandora");
 
   auto inputPndrPFPPCAAssns = std::unique_ptr<art::FindOneP<recob::PCAxis>>    (new art::FindOneP<recob::PCAxis>(inputPndrPFParticle, e, "pandora"));
   auto inputPndrPFPVtxAssns = std::unique_ptr<art::FindOneP<recob::Vertex>>    (new art::FindOneP<recob::Vertex>(inputPndrPFParticle, e, "pandora"));
