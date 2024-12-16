@@ -1,6 +1,6 @@
 #include "time_memory_tracker_microboone.fcl"
 #include "services_microboone.fcl"
-#include "wcp_port.fcl"
+#include "wcp_port_sp.fcl"
 process_name: PortSTM
 
 services:

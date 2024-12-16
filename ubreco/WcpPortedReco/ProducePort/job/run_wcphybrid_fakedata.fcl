@@ -4,7 +4,7 @@
 #include "mctrutht0matching.fcl"
 #include "hitfindermodules_microboone.fcl"
 #include "pandoramodules_microboone.fcl"
-#include "wcp_port.fcl"
+#include "wcp_port_sp.fcl"
 
 #include "trackfindermodules_microboone.fcl"
 #include "showerfindermodules_microboone.fcl"
