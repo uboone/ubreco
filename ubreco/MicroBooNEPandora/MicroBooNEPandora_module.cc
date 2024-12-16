@@ -144,7 +144,24 @@ DEFINE_ART_MODULE(MicroBooNEPandora)
 
 #include "Objects/ParticleFlowObject.h"
 
-#include "MicroBooNEContent.h"
+// INFO: If we have the LibTorch optional dependency, use that instead.
+//       Strings and aliases defined here, to confine ifdefs to one place.
+#if defined(__GNUC__) && !defined(__clang__)
+  #pragma message (" Building MicroBooNEPandora module with DL.")
+  #include "larpandoradlcontent/LArDLContent.h"
+  #include "MicroBooNEDLContent.h"
+
+  inline const std::string MASTER_ALGORITHM = "LArDLMaster";
+  inline const std::string UB_MASTER_ALGORITHM = "MicroBooNEDLMaster";
+  using MicroBooNEContentImpl = MicroBooNEDLContent;
+#else
+  #pragma message (" Building MicroBooNEPandora module without DL.")
+  #include "MicroBooNEContent.h"
+
+  inline const std::string MASTER_ALGORITHM = "LArMaster";
+  inline const std::string UB_MASTER_ALGORITHM = "MicroBooNEMaster";
+  using MicroBooNEContentImpl = MicroBooNEContent;
+#endif
 
 namespace lar_pandora
 {
@@ -523,7 +540,7 @@ void MicroBooNEPandora::CreatePandoraInstances()
     PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, LArContent::RegisterBasicPlugins(*m_pPrimaryPandora));
 
     // ATTN MicroBooNE-specific bit
-    PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, MicroBooNEContent::RegisterAlgorithms(*m_pPrimaryPandora));
+    PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, MicroBooNEContentImpl::RegisterAlgorithms(*m_pPrimaryPandora));
 
     // ATTN Potentially ill defined, unless coordinate system set up to ensure that all drift volumes have same wire angles and pitches
     PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, PandoraApi::SetPseudoLayerPlugin(*m_pPrimaryPandora, new lar_content::LArPseudoLayerPlugin));
@@ -580,11 +597,11 @@ void MicroBooNEPandora::ProvideExternalSteeringParameters(const pandora::Pandora
     pEventSteeringParameters->m_shouldRunCosmicRecoOption = m_shouldRunCosmicRecoOption;
     pEventSteeringParameters->m_shouldPerformSliceId = m_shouldPerformSliceId;
     pEventSteeringParameters->m_printOverallRecoStatus = m_printOverallRecoStatus;
-    PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, pandora::ExternallyConfiguredAlgorithm::SetExternalParameters(*pPandora, "LArMaster", pEventSteeringParameters));
+    PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, pandora::ExternallyConfiguredAlgorithm::SetExternalParameters(*pPandora, MASTER_ALGORITHM, pEventSteeringParameters));
 
     // ATTN MicroBooNE-specific bit
     auto *const pEventSteeringParametersCopy = new lar_content::MasterAlgorithm::ExternalSteeringParameters(*pEventSteeringParameters);
-    PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, pandora::ExternallyConfiguredAlgorithm::SetExternalParameters(*pPandora, "MicroBooNEMaster", pEventSteeringParametersCopy));
+    PANDORA_THROW_RESULT_IF(pandora::STATUS_CODE_SUCCESS, !=, pandora::ExternallyConfiguredAlgorithm::SetExternalParameters(*pPandora, UB_MASTER_ALGORITHM, pEventSteeringParametersCopy));
 }
 
 } // namespace lar_pandora

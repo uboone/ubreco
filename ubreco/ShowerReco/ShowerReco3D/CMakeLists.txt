@@ -23,6 +23,8 @@ cet_build_plugin(
   lardataobj::AnalysisBase
   art_root_io::TFileService_service
   ROOT::Tree
+  larreco::RecoAlg
+  Eigen3::Eigen
 )
 
 add_subdirectory(ProtoShower)
