@@ -101,6 +101,8 @@ void pf::PortedFlash::produce(art::Event &e){
     double totalPE=0.;
 
     std::cout<<pe->size()<<" pe vector size"<<std::endl;
+    //Protection against empty entry
+    if(pe->size()==0){std::cout<<"Empty pe vector "<<std::endl; continue;}
 
     // may have multiple flashes in beam gate window (pe size > 32)
     // assuming incidence of 3 flashes in beam gate window is incredibly rare...

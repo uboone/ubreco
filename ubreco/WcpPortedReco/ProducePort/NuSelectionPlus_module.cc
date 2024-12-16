@@ -32,12 +32,17 @@ private:
   void produce(art::Event &e) override;
 
   std::string fInput;
+
+  bool kdar_gensel;
+  std::string fInput_kdar;
 };
 
 nsm::NuSelectionPlus::NuSelectionPlus(fhicl::ParameterSet const & p) : EDProducer{p}
 {
   fInput = p.get<std::string>("PortInput");
 
+  fInput_kdar = p.get<std::string>("PortInputKDAR","WCP_STM_KDAR.log");
+  kdar_gensel = p.get<bool>("kdar_gensel",false);
   produces<std::vector<nsm::NuSelectionSTM> >();
 }
 
@@ -50,6 +55,14 @@ void nsm::NuSelectionPlus::produce(art::Event &e){
   std::ifstream fin;
   fin.open(path.c_str(), std::ios::in);     
   if(!fin.good()) std::cout<<"INPUT FILE NOT FOUND!"<<std::endl;
+
+    std::ifstream fin_kdar;
+  if(kdar_gensel){
+    std::string path(fInput_kdar);
+    std::cout<<"KDAR INPUT FILE NAME: "<<fInput_kdar<<std::endl;
+    fin_kdar.open(path.c_str(), std::ios::in);
+    if(!fin_kdar.good()) std::cout<<"KDAR INPUT FILE NOT FOUND!"<<std::endl;
+  }
 
   std::string runno="";
   int flash_id=-1;
@@ -64,13 +77,24 @@ void nsm::NuSelectionPlus::produce(art::Event &e){
   int flag_full_detector_dead=-1; 
   float cluster_length=-1.; 
 
+  float lm_cluster_length=99999;//Default >10 to preserve behavior if file is not found
+  std::string runno_kdar="";
+
   std::string event_runinfo = std::to_string((int)e.run())+"_"+std::to_string((int)e.subRun())+"_"+std::to_string((int)e.event());
  
   while(!fin.eof()){
 	fin >> runno >> flash_id >> cluster_id >> flash_time >> event_type >> flag_low_energy >> flag_LM >> flag_TGM >> flag_FC
 		>> flag_STM >> flag_full_detector_dead >> cluster_length;
-	
+
 	if( runno != event_runinfo ) continue;
+
+        while(!fin_kdar.eof()){
+          fin_kdar >> runno_kdar >> lm_cluster_length;
+
+          if( runno_kdar != event_runinfo ) continue;
+          if(lm_cluster_length<10 && flag_low_energy==0) flag_low_energy=1;//Restores value to regular gensel when using KDAR gensel 
+        }
+
 	nsm::NuSelectionSTM nstm;
 	nstm.SetEventType( event_type );
 	nstm.SetLowEnergy( flag_low_energy );
