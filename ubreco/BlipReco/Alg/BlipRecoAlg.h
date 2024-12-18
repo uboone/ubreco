@@ -17,11 +17,11 @@
 
 // framework includes
 #include "art_root_io/TFileService.h"
-#include "art/Framework/Services/Registry/ServiceHandle.h" 
 #include "canvas/Persistency/Common/Ptr.h" 
 #include "canvas/Persistency/Common/PtrVector.h" 
 #include "canvas/Persistency/Common/FindMany.h"
 #include "canvas/Persistency/Common/FindManyP.h"
+#include "art/Framework/Services/Registry/ServiceHandle.h"
 
 // LArSoft includes
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
@@ -31,7 +31,7 @@
 #include "lardataobj/Simulation/SimEnergyDeposit.h"
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RecoBase/Track.h"
-#include "larsim/MCCheater/BackTrackerService.h"
+#include "lardataobj/Simulation/SimChannel.h"
 #include "lardataobj/AnalysisBase/BackTrackerMatchingData.h"
 #include "larsim/MCCheater/ParticleInventoryService.h"
 #include "larcore/Geometry/Geometry.h"
@@ -77,14 +77,18 @@ namespace blip {
   
     void    reconfigure(fhicl::ParameterSet const& pset );
     void    RunBlipReco(const art::Event& evt);
+    void    RunBlipTruth(const art::Event& evt);
     void    PrintConfig();
-    
+   
+    bool    ranHitProcess = false;
+    bool    ranBlipTruth = false;
+
     // TO-DO: make these private and create getters instead
-    std::vector<blip::HitInfo>      hitinfo;
-    std::vector<blip::HitClust>     hitclust;
-    std::vector<blip::Blip>         blips;  
-    std::vector<blip::TrueBlip>     trueblips;
-    std::vector<blip::ParticleInfo> pinfo;
+    std::vector<blipobj::HitInfo>      hitinfo;
+    std::vector<blipobj::HitClust>     hitclust;
+    std::vector<blipobj::Blip>         blips;  
+    std::vector<blipobj::TrueBlip>     trueblips;
+    std::vector<blipobj::ParticleInfo> pinfo;
     
     calo::CalorimetryAlg*   fCaloAlg;
     float   ModBoxRecomb(float,float);
@@ -96,16 +100,24 @@ namespace blip {
     std::vector<bool>   fBadChanMask;
     std::vector<bool>   fBadChanMaskPerEvt;
     int                 EvtBadChanCount;
+    std::map<size_t,size_t> map_trkid_index;
+    std::map<size_t,size_t> map_trkid_isMC;
+    std::map<size_t,size_t> map_trkid_g4id;
     
     TH1D*   h_recoWireEff_denom;
     TH1D*   h_recoWireEff_num;
     
     TH1D*   h_recoWireEffQ_denom;
     TH1D*   h_recoWireEffQ_num;
+    
+    std::map<int,int>                     map_g4trkid_pdg;
+    std::map<int, std::set<int>>          map_g4trkid_chan;
+    std::map<int, std::map<int,double> >  map_g4trkid_chan_energy;
+    std::map<int, std::map<int,double> >  map_g4trkid_chan_charge;
 
 
    private:
-    
+      
     const detinfo::DetectorPropertiesData detProp;
     
     float               mWion;
@@ -117,7 +129,7 @@ namespace blip {
     std::string         fSimDepProducer;
     std::string         fSimChanProducer;
     float               fSimGainFactor;
-    //bool                fDebugMode;
+    bool                fDebugMode;
     float               fTrueBlipMergeDist;
     bool                fDoHitFiltering;
     float               fMaxHitTrkLength;
@@ -137,6 +149,7 @@ namespace blip {
     //std::vector<float>  fTimeOffsets;
     float               fMatchMinOverlap;
     float               fMatchSigmaFact;
+    float               fMatchMinScore;
     float               fMatchMaxTicks;
     int                 fMaxWiresInCluster;
     float               fMinClusterCharge;
@@ -144,10 +157,12 @@ namespace blip {
     float               fMaxClusterSpan;
     int                 fMinMatchedPlanes;
     bool                fPickyBlips;
+    bool                fIgnoreDataTrks;
     bool                fApplyTrkCylinderCut;
-    float               fCylinderRadius; 
+    float               fCylinderRadius;
     
     bool                fVetoBadChannels;
+    bool                fVetoNoisyChannels;
     std::string         fBadChanProducer;
     std::string         fBadChanFile;
     int                 fMinDeadWireGap;
@@ -163,6 +178,7 @@ namespace blip {
     bool                fYZUniformityCorr;
     float               fModBoxA;
     float               fModBoxB;
+    
  
 
     // --- Histograms ---
@@ -173,21 +189,28 @@ namespace blip {
     TH1D*   h_chan_bad;
     TH1D*   h_clust_nwires;
     TH1D*   h_clust_timespan;
-    //TH1D*   h_hit_maskfrac[kNplanes];
-    //TH1D*   h_hit_maskfrac_true[kNplanes];
+    TH1D*   h_hit_maskfrac[kNplanes];
+    TH1D*   h_hit_maskfrac_true[kNplanes];
     TH1D*   h_clust_overlap[kNplanes];
     TH1D*   h_clust_dt[kNplanes];
     TH1D*   h_clust_dtfrac[kNplanes];
     TH2D*   h_clust_q[kNplanes]; 
     TH2D*   h_clust_q_cut[kNplanes]; 
+    TH1D*   h_clust_score[kNplanes]; 
     TH1D*   h_clust_picky_overlap[kNplanes];
     TH1D*   h_clust_picky_dt[kNplanes];
     TH1D*   h_clust_picky_dtfrac[kNplanes];
-    TH2D*   h_clust_picky_q[kNplanes]; 
+    TH2D*   h_clust_picky_q[kNplanes];
+    TH1D*   h_clust_picky_score[kNplanes]; 
+    TH1D*   h_clust_true_overlap[kNplanes];
+    TH1D*   h_clust_true_dt[kNplanes];
+    TH1D*   h_clust_true_dtfrac[kNplanes];
+    TH2D*   h_clust_true_q[kNplanes]; 
+    TH1D*   h_clust_true_score[kNplanes]; 
     TH1D*   h_nmatches[kNplanes];
-
     TH1D*   h_recomb;
-
+    TH1D*   h_recombSCE;
+    TH1D*   h_trkhits_mcfrac;
 
   };
 

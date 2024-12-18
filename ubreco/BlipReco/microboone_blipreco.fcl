@@ -16,6 +16,9 @@ microboone_calo_mcc9_mc:
 }
 microboone_calo_mcc9_data:
 {
+  #   Update (1/24/23): in v08_00_00_63, the collection
+  #   plane scale factor in data is 4.10e-3 (??)
+  #CalAreaConstants: [ 4.31e-3, 4.02e-3, 4.26e-3 ]
   CalAreaConstants: [ 4.31e-3, 4.02e-3, 4.10e-3 ]
   CalAmpConstants:  [ 9.2e-4, 1.062e-3, 1.08e-3 ]
   CaloDoLifeTimeCorrection: false
@@ -36,7 +39,8 @@ microboone_blipalg:
   SimGainFactor:        0.826           #// gain fudge factor applied in WireCell detsim
   MaxHitTrkLength:      5.0             #// hits in trks > this length will be vetoed [cm]
   DoHitFiltering:       true            #// filter hits based on amp, width, RMS
-  MinHitGOF:            [0, 0, 0]       #// -- exclude pulse-train hits
+  #MinHitGOF:            [0, 0, 0]       #// -- exclude pulse-train hits
+  #MinHitRMS:            [0, 0, 0]       #// -- exclude narrow noise-like hits on collection plane
   MaxWiresInCluster:    10              #// max allowable wires in a cluster
   MaxClusterSpan:       50              #// max allowable time-ticks of a cluster
   ClustMatchMinOverlap: 0.5             #// minimum fractional overlap to be eligible for matching
@@ -48,13 +52,13 @@ microboone_blipalg:
   PickyBlips:           false           #// require 3 planes that all intersect at ~same point
   ApplyTrkCylinderCut:  false           #// reject blips in track cone-cylinder regions
   CylinderRadius:       15.0            #// 3D cylinder cut radius [cm]
+  IgnoreDataTrks:       false           #// only consider MC tracks when determining blip-track distances
   CaloPlane:            2               #// plane used for calorimetry (2=collection)
   CalodEdx:             2.8             #// assumed dE/dx for MeV-scale recombination corrections
-  LifetimeCorrection:   false           #// correct blips for lifetime (assumes T0 = 0)
-  SCECorrection:        false           #// correct blips for space charge (requires known XYZ)
   CaloAlg:              @local::microboone_calo_mcc9_data
   
-  VetoBadChannels:      true            #// don't cluster hits from "bad" channels
+  VetoNoisyChannels:    false           #// don't cluster hits from "noisy" channels (from channel filter service)
+  VetoBadChannels:      false            #// don't cluster hits from "bad" channels (from channel filter service + file)
   BadChanProducer:      "nfspl1:badchannels" #// label for vector of bad channel IDs from signal processing
   #BadChanFile:          "blipreco_badchannels.txt"
   MinDeadWireGap:       0               #// min wire gap size separating cluster from a dead region
@@ -67,22 +71,26 @@ microboone_blipana:
   module_type:        "BlipAna"
   BlipAlg:            @local::microboone_blipalg
   SaveTruthInfo:      true
-  SaveTrkInfo:        true #false
+  SaveTrueParticles:  true
+  SavePrimaries:      false
+  SaveTrkInfo:        true
   SaveHitInfo:        false
   SaveClustInfo:      true
-  SaveEventTree:      true
-  #DebugMode:          true
+  #DebugMode:          true #// enables many more debug statements
 }
-
 microboone_blipana_data:                    @local::microboone_blipana
 microboone_blipana_data.BlipAlg.CaloAlg:    @local::microboone_calo_mcc9_data
 microboone_blipana_data.SaveTruthInfo:      false
-
 microboone_blipana_fullmc:                          @local::microboone_blipana
 microboone_blipana_fullmc.BlipAlg.CaloAlg:          @local::microboone_calo_mcc9_mc
 microboone_blipana_fullmc.VetoBadChannels:          false
-#microboone_blipana_fullmc.BlipAlg.SimGainFactor:    1.0
-#microboone_blipana_fullmc.SaveHitInfo:      true
+
+# ==============================================
+# BlipAnaReader (for loading blips from reco2 files)
+microboone_blipreader:
+{
+  module_type: "BlipAnaReader"
+}
 
 # ===============================================
 # TrackMasker settings
@@ -94,6 +102,14 @@ microboone_trackmasker:
   MinTrkLength:       5   # cm
   MinTrkLengthVeto:   15  # cm
   VetoRadius:         15  # cm
+}
+
+# ===============================================
+# Producer settings
+microboone_blipreco:
+{
+  module_type: "BlipRecoProducer"
+  BlipAlg:     @local::microboone_blipalg
 }
 
 END_PROLOG

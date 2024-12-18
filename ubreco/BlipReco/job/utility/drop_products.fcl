@@ -1,0 +1,61 @@
+#include "services_microboone.fcl"
+
+process_name: DropProducts
+
+services:
+{
+  scheduler:    { defaultExceptions: false }    # Make all uncaught exceptions fatal.
+  message:      @local::standard_warning
+}
+
+source:
+{
+  module_type: RootInput
+  maxEvents:  -1        # Number of events to create
+}
+
+physics:
+{
+ stream1:     [ out1 ]
+ end_paths:   [ stream1 ]  
+}
+
+outputs:
+{
+ out1:
+ {
+   module_type: RootOutput
+   fileName:    "%ifb_%p.root"
+   dataTier:    "reconstructed"
+   compressionLevel: 1
+   
+   outputCommands:  [
+    "keep *_*_*_*" 
+    ,"drop raw::RawDigits_*_*_*"
+    ,"drop raw::OpDetWaveforms_*_*_*"
+    ,"drop recob::Wires_*_*_*"
+    ,"drop recob::OpHits_*_*_*"
+    #,"drop recob::OpFlashes_*_*_*"
+    ,"drop *_opflash*_*_*"
+    ,"drop *_simpleFlash*_*_*"
+    ,"drop *_gaushit_*_*"
+    ,"drop *_trajcluster_*_*"
+    ,"drop *_dbcluster3d_*_*"
+    ,"drop *_pandoraAllOutcomes*_*_*"
+    ,"drop *_pandoraPat*_*_*"
+    ,"drop *_sps3d_*_*"
+    #,"drop *_nfspl1_*_*"
+    #,"drop *_butcher_*_*"
+    #,"drop *_gaushit_*_*"
+    #,"drop raw::RawDigitrecob::Wirevoidart::Assns_*_*_*"
+   ]
+
+   # --- Nuclear option ---
+   #outputCommands:  [
+   # "drop *_*_*_*"
+   # ,"keep *_pandora_*_*"
+   # ,"keep *_cosmicfilter_*_*"
+   #]
+
+ }
+}

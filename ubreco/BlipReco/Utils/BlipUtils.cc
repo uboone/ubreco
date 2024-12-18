@@ -1,7 +1,5 @@
 #include "BlipUtils.h"
 
-#include "larcore/Geometry/WireReadout.h"
-
 namespace BlipUtils {
 
   //============================================================================
@@ -34,8 +32,7 @@ namespace BlipUtils {
   //===========================================================================
   // Provided a MCParticle, calculate everything we'll need for later calculations
   // and save into ParticleInfo object
-  void FillParticleInfo( const simb::MCParticle& part, blip::ParticleInfo& pinfo, SEDVec_t& sedvec, int caloPlane){
-    
+  void FillParticleInfo( const simb::MCParticle& part, blipobj::ParticleInfo& pinfo, SEDVec_t& sedvec, int caloPlane){
 
     // Get important info and do conversions
     pinfo.particle    = part;
@@ -56,6 +53,10 @@ namespace BlipUtils {
 
     // Pathlength (in AV) and start/end point
     pinfo.pathLength  = PathLength( part, pinfo.startPoint, pinfo.endPoint);
+    if( pinfo.pathLength <= 0 ) {
+      pinfo.startPoint.SetXYZ(-9999,-9999,-9999);
+      pinfo.endPoint.SetXYZ(-9999,-9999,-9999);
+    }
 
     // Central position of trajectory
     pinfo.position    = 0.5*(pinfo.startPoint+pinfo.endPoint);
@@ -77,7 +78,7 @@ namespace BlipUtils {
   //===================================================================
   // Provided a vector of all particle information for event, fill a
   // vector of true blips
-  void MakeTrueBlips( std::vector<blip::ParticleInfo>& pinfo, std::vector<blip::TrueBlip>& trueblips ) {
+  void MakeTrueBlips( std::vector<blipobj::ParticleInfo>& pinfo, std::vector<blipobj::TrueBlip>& trueblips ) {
    
     for(size_t i=0; i<pinfo.size(); i++){
       auto& part = pinfo[i].particle;
@@ -91,7 +92,7 @@ namespace BlipUtils {
       if( part.PdgCode() == 11 && ( proc == "eIoni" || proc == "muIoni" || proc == "hIoni") ) continue;
 
       // Create the new blip
-      blip::TrueBlip tb;
+      blipobj::TrueBlip tb;
       GrowTrueBlip(pinfo[i],tb);
       if( !tb.Energy ) continue;  
 
@@ -120,7 +121,7 @@ namespace BlipUtils {
   
   
   //====================================================================
-  void GrowTrueBlip( blip::ParticleInfo& pinfo, blip::TrueBlip& tblip ) {
+  void GrowTrueBlip( blipobj::ParticleInfo& pinfo, blipobj::TrueBlip& tblip ) {
     
     simb::MCParticle& part = pinfo.particle;
 
@@ -159,7 +160,7 @@ namespace BlipUtils {
     tblip.DriftTime = tblip.Position.X() / driftVel;
 
     tblip.G4ChargeMap[part.TrackId()] += pinfo.depElectrons;
-    tblip.G4PDGMap[part.TrackId()]    = part.PdgCode();
+    //tblip.G4PDGMap[part.TrackId()]    = part.PdgCode();
     if(pinfo.depElectrons > tblip.LeadCharge ) {
       tblip.LeadCharge  = pinfo.depElectrons;
       tblip.LeadG4Index = pinfo.index;
@@ -171,9 +172,9 @@ namespace BlipUtils {
   
   //====================================================================
   // Merge blips that are close
-  void MergeTrueBlips(std::vector<blip::TrueBlip>& vtb, float dmin){
+  void MergeTrueBlips(std::vector<blipobj::TrueBlip>& vtb, float dmin){
     if( dmin <= 0 ) return;
-    std::vector<blip::TrueBlip> vtb_merged;
+    std::vector<blipobj::TrueBlip> vtb_merged;
     std::vector<bool> isGrouped(vtb.size(),false);
     
     for(size_t i=0; i<vtb.size(); i++){
@@ -202,7 +203,7 @@ namespace BlipUtils {
           if( blip_j.NumElectrons ) blip_i.NumElectrons += blip_j.NumElectrons;
           
           blip_i.G4ChargeMap.insert(blip_j.G4ChargeMap.begin(), blip_j.G4ChargeMap.end());
-          blip_i.G4PDGMap.insert(blip_j.G4PDGMap.begin(), blip_j.G4PDGMap.end());
+          //blip_i.G4PDGMap.insert(blip_j.G4PDGMap.begin(), blip_j.G4PDGMap.end());
           
           if( blip_j.LeadCharge > blip_i.LeadCharge ) {
             blip_i.LeadCharge   = blip_j.LeadCharge;
@@ -221,9 +222,9 @@ namespace BlipUtils {
 
   
   //=================================================================
-  blip::HitClust MakeHitClust(std::vector<blip::HitInfo> const& hitinfoVec){
+  blipobj::HitClust MakeHitClust(std::vector<blipobj::HitInfo> const& hitinfoVec){
     
-    blip::HitClust hc;
+    blipobj::HitClust hc;
     if( hitinfoVec.size() ) {
       int tpc   = hitinfoVec[0].tpc;
       int plane = hitinfoVec[0].plane;
@@ -237,7 +238,7 @@ namespace BlipUtils {
       // initialize values 
       hc.Plane            = plane;
       hc.TPC              = tpc;
-      hc.ADCs             = 0;
+      hc.SummedADC        = 0;
       hc.Charge           = 0;
       hc.SigmaCharge      = 0;
       hc.Amplitude        = 0;
@@ -245,9 +246,6 @@ namespace BlipUtils {
       float startTime     = 9e9;
       float endTime       = -9e9;
       float weightedTime  = 0;
-      float weightedGOF   = 0;
-      //float weightedRatio = 0;
-      float qGOF          = 0;
 
       // store hit times, charges, and RMS
       std::vector<float> tvec;
@@ -266,7 +264,7 @@ namespace BlipUtils {
         float sigma   = hitinfo.sigmaintegral;
         float dq      = (integral != 0 && sigma>0)? (sigma/integral)*q : 0;
         hc.Charge     += q;
-        hc.ADCs       += hitinfo.integralADC;
+        hc.SummedADC  += hitinfo.integralADC;
         hc.Amplitude  = std::max(hc.Amplitude, hitinfo.amp );
         weightedTime  += q*hitinfo.driftTime;
         startTime     = std::min(startTime, hitinfo.driftTime-hitinfo.rms);
@@ -276,23 +274,11 @@ namespace BlipUtils {
         dqvec         .push_back(dq);
         rmsvec        .push_back(hitinfo.rms);
         if( hitinfo.g4trkid > 0 ) hc.G4IDs.insert(hitinfo.g4trkid);
-        if( hitinfo.gof < 0 ) {
-          hc.NPulseTrainHits++;
-        } else { 
-          weightedGOF   += q*hitinfo.gof; 
-          //weightedRatio += q*(hitinfo.rms/hitinfo.amp);
-          qGOF          += q;
-        }
+        if( hitinfo.gof < 0 ) hc.NPulseTrainHits++;
         if( hitinfo.touchTrk ) hc.TouchTrkID   = hitinfo.touchTrkID; 
       
       }//endloop over hits
       
-      // mean goodness of fit
-      if( qGOF ) {
-        hc.GoodnessOfFit = weightedGOF/qGOF;
-        //hc.Ratio         = weightedRatio/qGOF;
-      }
-
       // calculate other quantities
       hc.NHits      = hc.HitIDs.size();
       hc.NWires     = hc.Wires.size();
@@ -328,9 +314,9 @@ namespace BlipUtils {
 
 
   //=================================================================
-  blip::Blip MakeBlip( std::vector<blip::HitClust> const& hcs){
+  blipobj::Blip MakeBlip( std::vector<blipobj::HitClust> const& hcs){
     
-    blip::Blip  newblip;
+    blipobj::Blip newblip;
     
     // ------------------------------------------------
     // Must be 1-3 clusts (no more, no less!)
@@ -380,23 +366,22 @@ namespace BlipUtils {
           newblip.TouchTrkID  = -9;
         }
       }
-
+       
       // use view with the maximal wire extent to calculate transverse (YZ) length
       if( hcs[i].NWires > newblip.MaxWireSpan ) {
         newblip.MaxWireSpan = hcs[i].NWires;
-        newblip.dYZ         = hcs[i].NWires * wireReadout.Plane(geo::TPCID(0, 0), 
+        newblip.dYZ         = hcs[i].NWires * wireReadout.Plane(geo::TPCID(0, hcs[i].TPC),
                                                                 static_cast<geo::View_t>(pli)).WirePitch();
       }
   
       for(size_t j=i+1; j<hcs.size(); j++){
         int plj = hcs[j].Plane;
-          
         std::optional<geo::WireIDIntersection> intersection = std::nullopt;
         // If this was already calculated, use that
-        if( hcs[i].IntersectLocations.count(hcs[j].ID) ) {
+        if( hcs[i].IntPts.count(hcs[j].ID) ) {
           intersection = geo::WireIDIntersection{
-                           hcs[i].IntersectLocations.find(hcs[j].ID)->second.Y(),
-                           hcs[i].IntersectLocations.find(hcs[j].ID)->second.Z()
+                           hcs[i].IntPts.find(hcs[j].ID)->second.Y(),
+                           hcs[i].IntPts.find(hcs[j].ID)->second.Z()
                          };
         } else {
           intersection = wireReadout.ChannelsIntersect(hcs[i].CenterChan, hcs[j].CenterChan); 
@@ -487,7 +472,7 @@ namespace BlipUtils {
   }
   
   //====================================================================
-  bool DoHitClustsOverlap(blip::HitClust const& hc1, blip::HitClust const& hc2){
+  bool DoHitClustsOverlap(blipobj::HitClust const& hc1, blipobj::HitClust const& hc2){
     
     // only match across different wires in same TPC
     if( hc1.TPC != hc2.TPC    ) return false;
@@ -496,8 +481,8 @@ namespace BlipUtils {
         &&  hc2.StartTime <= hc1.EndTime )  return true;
     else return false;
   }
-  bool DoHitClustsOverlap(blip::HitClust const& hc1, float t1, float t2 ){
-    blip::HitClust hc2;
+  bool DoHitClustsOverlap(blipobj::HitClust const& hc1, float t1, float t2 ){
+    blipobj::HitClust hc2;
     hc2.TPC = hc1.TPC;
     hc2.StartTime = t1;
     hc2.EndTime = t2;
@@ -506,10 +491,14 @@ namespace BlipUtils {
 
   //====================================================================
   // Calculates the level of time overlap between two clusters
-  float CalcHitClustsOverlap(blip::HitClust const& hc1, blip::HitClust const& hc2){
+  float CalcHitClustsOverlap(blipobj::HitClust const& hc1, blipobj::HitClust const& hc2){
     return CalcOverlap(hc1.StartTime,hc1.EndTime,hc2.StartTime,hc2.EndTime);
   }
 
+  // x1 = cluster A start
+  // x2 = cluster A end
+  // y1 = cluster B start
+  // y2 = cluster B end
   float CalcOverlap(const float& x1, const float& x2, const float& y1, const float& y2){
     float full_range = std::max(x2,y2) - std::min(x1,y1);
     float sum        = (x2-x1) + (y2-y1);
@@ -521,10 +510,13 @@ namespace BlipUtils {
   //====================================================================
   bool DoChannelsIntersect(int ch1, int ch2 ){
     return art::ServiceHandle<geo::WireReadout>()->Get().ChannelsIntersect(ch1,ch2).has_value();
+    //return art::ServiceHandle<geo::WireReadoutGeom>()->Get().ChannelsIntersect(ch1,ch2).has_value();
+    //double y,z;
+    //return art::ServiceHandle<geo::Geometry>()->ChannelsIntersect(ch1,ch2,y,z);
   }
   
   //====================================================================
-  bool DoHitClustsMatch(blip::HitClust const& hc1, blip::HitClust const& hc2, float minDiffTicks = 2){
+  bool DoHitClustsMatch(blipobj::HitClust const& hc1, blipobj::HitClust const& hc2, float minDiffTicks = 2){
     if( fabs(hc1.Time-hc2.Time) < minDiffTicks ) return true;
     else return false;
   }
@@ -654,17 +646,9 @@ namespace BlipUtils {
     TVector3 b      = (p-L1);
     double  projLen  = b.Dot(n);
     double d = -1;
-    /*
-    if      ( projLen < 0             ) d = (p-L1).Mag();
-    else if ( projLen > (L2-L1).Mag() ) d = (p-L2).Mag();
-    else                                d = (b-projLen*n).Mag();
-    */
-    if( projLen > 0 && projLen < (L2-L1).Mag() ) {
-      d = (b-projLen*n).Mag(); 
-    } else {
-      d = std::min( (p-L1).Mag(), (p-L2).Mag() );
-    }
-    
+    double L = (L2-L1).Mag();
+    if( projLen > 0 && projLen < L )  d = (b-projLen*n).Mag(); 
+    //else                              d = std::min( (p-L1).Mag(), (p-L2).Mag() );
     return d;
   }
   
@@ -680,9 +664,9 @@ namespace BlipUtils {
     art::ServiceHandle<geo::Geometry> geom;
     xmin = 0. + 1e-8;
     xmax = 2.0 * geom->TPC().HalfWidth() - 1e-8;
+    xmax = 2.0 * geom->TPC().HalfWidth() - 1e-8;
     ymin = - (geom->TPC().HalfHeight() + 1e-8);
     ymax = geom->TPC().HalfHeight() -  1e-8;
-    zmin = 0. + 1e-8;
     zmax = geom->TPC().Length() - 1e-8;
   }
 
