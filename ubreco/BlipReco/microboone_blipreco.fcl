@@ -41,8 +41,8 @@ microboone_blipalg:
   DoHitFiltering:       true            #// filter hits based on amp, width, RMS
   #MinHitGOF:            [0, 0, 0]       #// -- exclude pulse-train hits
   #MinHitRMS:            [0, 0, 0]       #// -- exclude narrow noise-like hits on collection plane
-  MaxWiresInCluster:    10              #// max allowable wires in a cluster
-  MaxClusterSpan:       50              #// max allowable time-ticks of a cluster
+  MaxWiresInCluster:    15              #// max allowable wires in a cluster
+  MaxClusterSpan:       75              #// max allowable time-ticks of a cluster
   ClustMatchMinOverlap: 0.5             #// minimum fractional overlap to be eligible for matching
   ClustMatchMaxTicks:   2.0             #// max extent for matching start/end time of clusters [ticks]
   ClustMatchSigmaFact:  0.8             #// max extent for matching charge-weighted time [xRMS]

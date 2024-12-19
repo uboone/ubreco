@@ -52,9 +52,9 @@ namespace blipobj {
     int       ID            = -9;     // unique blip ID
     int       TPC           = -9;     // TPC ID
     float     Time          = -999e9; // time [us]
-    float     Energy        = 0;      // energy dep [MeV]
-    int       DepElectrons  = 0;      // deposited electrons
-    int       NumElectrons  = 0;      // electrons reaching wires
+    float     Energy        = -9;      // energy dep [MeV]
+    int       DepElectrons  = -9;      // deposited electrons
+    int       NumElectrons  = -9;      // electrons reaching wires
     float     DriftTime     = -9;     // drift time [us]
     int       LeadG4ID      = -9;     // lead G4 track ID
     int       LeadG4Index   = -9;     // lead G4 track index
@@ -63,8 +63,6 @@ namespace blipobj {
     TVector3  Position;               // XYZ position
     bool      AllChansGood  = true;    
     mif_t     G4ChargeMap;          
-    //mif_t     G4PDGMap;
-    //si_t      Chans;
   };
 
   struct HitInfo {

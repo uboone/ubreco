@@ -133,9 +133,11 @@ namespace BlipUtils {
 
     // If this is a new blip, initialize
     if( !tblip.G4ChargeMap.size() ) {
-      tblip.Position    = pinfo.position;
-      tblip.Time        = pinfo.time;
-    
+      tblip.Position     = pinfo.position;
+      tblip.Time         = pinfo.time;
+      tblip.Energy       = 0;
+      tblip.DepElectrons = 0;
+      tblip.NumElectrons = 0;
     // .. otherwise, check that the new particle
     // creation time is comparable to existing blip.
     // then calculate new energy-weighted position.
@@ -160,7 +162,6 @@ namespace BlipUtils {
     tblip.DriftTime = tblip.Position.X() / driftVel;
 
     tblip.G4ChargeMap[part.TrackId()] += pinfo.depElectrons;
-    //tblip.G4PDGMap[part.TrackId()]    = part.PdgCode();
     if(pinfo.depElectrons > tblip.LeadCharge ) {
       tblip.LeadCharge  = pinfo.depElectrons;
       tblip.LeadG4Index = pinfo.index;
@@ -203,7 +204,6 @@ namespace BlipUtils {
           if( blip_j.NumElectrons ) blip_i.NumElectrons += blip_j.NumElectrons;
           
           blip_i.G4ChargeMap.insert(blip_j.G4ChargeMap.begin(), blip_j.G4ChargeMap.end());
-          //blip_i.G4PDGMap.insert(blip_j.G4PDGMap.begin(), blip_j.G4PDGMap.end());
           
           if( blip_j.LeadCharge > blip_i.LeadCharge ) {
             blip_i.LeadCharge   = blip_j.LeadCharge;

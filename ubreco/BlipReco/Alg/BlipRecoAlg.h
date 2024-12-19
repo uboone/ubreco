@@ -101,11 +101,12 @@ namespace blip {
     std::map<size_t,size_t> map_trkid_isMC;
     std::map<size_t,size_t> map_trkid_g4id;
     
-    TH1D*   h_recoWireEff_denom;
-    TH1D*   h_recoWireEff_num;
-    
-    TH1D*   h_recoWireEffQ_denom;
-    TH1D*   h_recoWireEffQ_num;
+    // these require the presense of SimChannels in the event
+    // which are removed by default in the reco workflows
+    //TH1D*   h_recoWireEff_denom;
+    //TH1D*   h_recoWireEff_num;
+    //TH1D*   h_recoWireEffQ_denom;
+    //TH1D*   h_recoWireEffQ_num;
     
     std::map<int,int>                     map_g4trkid_pdg;
     std::map<int, std::set<int>>          map_g4trkid_chan;
