@@ -7,7 +7,7 @@ services:
 {
   TimeTracker:             @local::microboone_time_tracker
   MemoryTracker:           @local::microboone_memory_tracker
-  FileCatalogMetadata:     @local::art_file_catalog_mc
+  FileCatalogMetadata:     @local::art_file_catalog_data
   @table::microboone_services_reco
 }
 
@@ -25,14 +25,22 @@ physics:
     portedThresholdhit: @local::standard_portedhits
     nuselMetrics: @local::standard_nuselectionmetrics
     portedFlash: @local::standard_portedflash
-    portedSpacePointsThreshold: @local::standard_portedspacepoints
+    portedSpacePointsThreshold: @local::standard_portedspacepoints                      // main_flag==1 spacepoints
+    portedWCSpacePointsTrec: @local::standard_portwcspacepointTrec                      // WC no-trajectory-fitting neutrino-cluster spacepoints
+    portedWCSpacePointsTcluster: @local::standard_portwcspacepointTcluster              // WC no-trajectory-fitting all-cluster spacepoints
+    portedWCSpacePointsTreccharge: @local::standard_portwcspacepointTreccharge          // WC trajectory-fitted neutrino-cluster spacepoints
+    portedWCSpacePointsTrecchargeblob: @local::standard_portwcspacepointTrecchargeblob  // WC trajectory-fitted neutrino-cluster spacepoints
   }
 
   reco: [ 
 	  portedThresholdhit,
           nuselMetrics,
           portedFlash,
-	  portedSpacePointsThreshold          
+	  portedSpacePointsThreshold,
+    portedWCSpacePointsTrec,
+    portedWCSpacePointsTcluster,
+    portedWCSpacePointsTreccharge,
+    portedWCSpacePointsTrecchargeblob
 	]
   trigger_paths: [ reco ]
 
@@ -48,7 +56,7 @@ outputs:
    dataTier: "reconstructed"
    compressionLevel: 1
    saveMemoryObjectThreshold: 0
-   fileName: "%ifb_%tc_mcWCP.root"
+   fileName: "%ifb_%tc_overlayWCP.root"
  }
 }
 
@@ -61,18 +69,18 @@ microboone_tfile_metadata:
 }
 
 source.inputCommands: [
-		        "keep *_*_*_*",
-			"drop sim::SimEnergyDeposits_largeant_*_*",
-			"drop sim::SimChannels_largeant_*_*",
-			"drop sim::AuxDetSimChannel_*_*_*",
-			"drop raw::OpDetWaveform_pmtreadoutnonoise_*_OverlayDetsim",
-			"drop crt::CRTSimData_crtdetsim_*_OverlayDetsim",
-			"drop crt::CRTHit_*_*_OverlayDetsim",
-			"drop *_*_mixer_DataOverlay",
-			"drop *_threshold_nfspl1_OverlayStage1a",
-			"drop recob::Wires_*nfspl1_*_*",
-			"drop recob::OpFlash_*_*_OverlayStage1a",
-			"drop recob::OpHit_*_*_OverlayStage1a"
+		        "keep *_*_*_*"
+			#"drop sim::SimEnergyDeposits_largeant_*_*",
+			#"drop sim::SimChannels_largeant_*_*",
+			#"drop sim::AuxDetSimChannel_*_*_*",
+			#"drop raw::OpDetWaveform_pmtreadoutnonoise_*_OverlayDetsim",
+			#"drop crt::CRTSimData_crtdetsim_*_OverlayDetsim",
+			#"drop crt::CRTHit_*_*_OverlayDetsim",
+			#"drop *_*_mixer_DataOverlay",
+			#"drop *_threshold_nfspl1_OverlayStage1a",
+			#"drop recob::Wires_*nfspl1_*_*",
+			#"drop recob::OpFlash_*_*_OverlayStage1a",
+			#"drop recob::OpHit_*_*_OverlayStage1a"
 		      ]
 
 services.SpaceCharge.CalibrationInputFilename: "SpaceCharge/SCEoffsets_dataDriven_combined_bkwd_Jan18.root"

@@ -7,7 +7,7 @@ services:
 {
   TimeTracker:             @local::microboone_time_tracker
   MemoryTracker:           @local::microboone_memory_tracker
-  FileCatalogMetadata:     @local::art_file_catalog_mc
+  FileCatalogMetadata:     @local::art_file_catalog_data
   @table::microboone_services_reco
 }
 
@@ -23,16 +23,24 @@ physics:
   producers:
   {
     portedThresholdhit: @local::standard_portedhits
-    nuselMetrics: @local::standard_nuselectionmetrics
+    nuselMetrics: @local::standard_nuselectionmetrics_data
     portedFlash: @local::standard_portedflash
-    portedSpacePointsThreshold: @local::standard_portedspacepoints
+    portedSpacePointsThreshold: @local::standard_portedspacepoints                      // main_flag==1 spacepoints
+    portedWCSpacePointsTrec: @local::standard_portwcspacepointTrec                      // WC no-trajectory-fitting neutrino-cluster spacepoints
+    portedWCSpacePointsTcluster: @local::standard_portwcspacepointTcluster              // WC no-trajectory-fitting all-cluster spacepoints
+    portedWCSpacePointsTreccharge: @local::standard_portwcspacepointTreccharge          // WC trajectory-fitted neutrino-cluster spacepoints
+    portedWCSpacePointsTrecchargeblob: @local::standard_portwcspacepointTrecchargeblob  // WC trajectory-fitted neutrino-cluster spacepoints
   }
 
   reco: [ 
 	  portedThresholdhit,
           nuselMetrics,
           portedFlash,
-	  portedSpacePointsThreshold          
+    portedSpacePointsThreshold,
+    portedWCSpacePointsTrec,
+    portedWCSpacePointsTcluster,
+    portedWCSpacePointsTreccharge,
+    portedWCSpacePointsTrecchargeblob      
 	]
   trigger_paths: [ reco ]
 
@@ -48,7 +56,7 @@ outputs:
    dataTier: "reconstructed"
    compressionLevel: 1
    saveMemoryObjectThreshold: 0
-   fileName: "%ifb_%tc_mcWCP.root"
+   fileName: "%ifb_%tc_dataWCP.root"
  }
 }
 
