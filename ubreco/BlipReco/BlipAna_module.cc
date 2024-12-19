@@ -163,7 +163,6 @@ class BlipAnaTreeDataStruct
   int   edep_g4trkid[kMaxEDeps];  // leading G4 track ID ("part_trackID")
   bool  edep_allchansgood[kMaxEDeps]; // charge hits all good channels
   float edep_g4qfrac[kMaxEDeps];  // fraction of total charge from lead particle
-  bool  edep_isPrimary[kMaxEDeps];// matched to a primary generated particle?
   int   edep_pdg[kMaxEDeps];      // leading G4 track PDG
   int   edep_blipid[kMaxEDeps];   // reconstructed blip ID
   float edep_energy[kMaxEDeps];   // total energy deposited [MeV]
@@ -366,7 +365,6 @@ class BlipAnaTreeDataStruct
     FillWith(edep_g4qfrac,  -9);
     FillWith(edep_pdg,   -999);
     FillWith(edep_proc,   -9);
-    FillWith(edep_isPrimary, false);
     //FillWith(edep_madeHitCol,  false);
     FillWith(edep_madeClustCol,  false);
     FillWith(edep_blipid, -9);
@@ -632,7 +630,6 @@ class BlipAnaTreeDataStruct
       evtTree->Branch("edep_g4id",edep_g4id,"edep_g4id[nedeps]/I"); 
       evtTree->Branch("edep_g4trkid",edep_g4trkid,"edep_g4trkid[nedeps]/I"); 
       evtTree->Branch("edep_g4qfrac",edep_g4qfrac,"edep_g4qfrac[nedeps]/F"); 
-      evtTree->Branch("edep_isPrimary",edep_isPrimary,"edep_isPrimary[nedeps]/O"); 
       evtTree->Branch("edep_allchansgood",edep_allchansgood,"edep_allchansgood[nedeps]/O"); 
       //evtTree->Branch("edep_madeHitCol",edep_madeHitCol,"edep_madeHitCol[nedeps]/O"); 
       evtTree->Branch("edep_madeClustCol",edep_madeClustCol,"edep_madeClustCol[nedeps]/O"); 
@@ -1254,7 +1251,7 @@ void BlipAna::analyze(const art::Event& evt)
     std::vector<blipobj::ParticleInfo>& pinfo = fBlipAlg->pinfo;
     
     // Loop through the MCParticles
-    if( fDebugMode ) std::cout<<"\nLooping over G4 MCParticles: \n";
+    if( fDebugMode ) std::cout<<"\nLooping over "<< plist.size()<<" G4 MCParticles: \n";
     int printed = 0;
     for(size_t i = 0; i<plist.size(); i++){
       auto& pPart = plist[i];
@@ -1311,7 +1308,7 @@ void BlipAna::analyze(const art::Event& evt)
         fData->part_depElectrons[i]    = pinfo[i].depElectrons;
         fData->part_isPrimary[i]       = pinfo[i].isPrimary;
         if( fDebugMode ) {
-          if( printed < 200 && pPart->Process() != "muIoni" ) {
+          if( pPart->Process() != "muIoni" ) {
             PrintParticleInfo(i);
             printed++;
           }
@@ -1330,8 +1327,9 @@ void BlipAna::analyze(const art::Event& evt)
   std::vector<blipobj::TrueBlip>& trueblips = fBlipAlg->trueblips;
   fData->nedeps = (int)trueblips.size();
   if( trueblips.size() ) {
-    if( fDebugMode ) std::cout<<"\nLooping over true blips:\n";
+    if( fDebugMode ) std::cout<<"\nLooping over "<<trueblips.size()<<" true blips:\n";
     for(auto& trueblip : trueblips ) {
+      if( fDebugMode ) PrintTrueBlipInfo(trueblip);
       int i     = trueblip.ID;
       int ig4   = trueblip.LeadG4Index;
       auto& pPart = plist[ig4];
@@ -1347,7 +1345,6 @@ void BlipAna::analyze(const art::Event& evt)
       fData->edep_g4trkid[i]  = trueblip.LeadG4ID;
       fData->edep_g4id[i]     = trueblip.LeadG4Index;
       fData->edep_g4qfrac[i]  = trueblip.G4ChargeMap[trueblip.LeadG4ID] / trueblip.DepElectrons;
-      fData->edep_isPrimary[i]= (pPart->Process() == "primary");
       fData->edep_dz[i]       = fabs(pPart->EndPosition()[2]-pPart->Vz());
       fData->edep_dx[i]       = fabs(pPart->EndPosition()[0]-pPart->Vx());
       fData->edep_allchansgood[i] = trueblip.AllChansGood; 
@@ -1363,7 +1360,6 @@ void BlipAna::analyze(const art::Event& evt)
       //float ne_dep  = trueblip.DepElectrons;
       float ne      = trueblip.NumElectrons;
       total_numElectrons += ne;
-      if( fDebugMode ) PrintTrueBlipInfo(trueblip);
       // calculate simulated lifetime
       //if( ne>10000 && ne<ne_dep && trueblip.DriftTime > 1000. ) {
       //  float tau = trueblip.DriftTime / log(ne_dep/ne);
@@ -1372,13 +1368,12 @@ void BlipAna::analyze(const art::Event& evt)
     }
   }//endif trueblips were made
   
-
   float driftVelocity = detProp.DriftVelocity(detProp.Efield(),detProp.Temperature());
   
   //====================================
   // Save track information
   //====================================
-  if( fDebugMode ) std::cout<<"Looping over tracks...\n";
+  if( fDebugMode ) std::cout<<"Looping over "<<tracklist.size()<<" tracks...\n";
   std::map<int,bool> map_trkid_isMIP;
   std::map<int,float> map_trkid_length;
   int trks_100cm[2] = {0, 0};
@@ -2144,6 +2139,7 @@ void BlipAna::PrintParticleInfo(size_t i){
 }
 
 void BlipAna::PrintTrueBlipInfo(const blipobj::TrueBlip& tb){
+  std::cout<<"Here we are trueblip "<<tb.ID<<"\n";
   printf("  edepID: %5i  G4ID: %-6i PDG: %-10i XYZ: %7.2f, %7.2f, %7.2f, %8.3f MeV, %8i e- deposited, %8i e- @anode,  %12s\n",
    tb.ID,
    tb.LeadG4ID,

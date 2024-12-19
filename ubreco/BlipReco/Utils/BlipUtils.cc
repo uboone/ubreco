@@ -33,7 +33,7 @@ namespace BlipUtils {
   // Provided a MCParticle, calculate everything we'll need for later calculations
   // and save into ParticleInfo object
   void FillParticleInfo( const simb::MCParticle& part, blipobj::ParticleInfo& pinfo, SEDVec_t& sedvec, int caloPlane){
-
+    
     // Get important info and do conversions
     pinfo.particle    = part;
     pinfo.trackId     = part.TrackId();

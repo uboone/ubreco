@@ -80,9 +80,6 @@ namespace blip {
     void    RunBlipTruth(const art::Event& evt);
     void    PrintConfig();
    
-    bool    ranHitProcess = false;
-    bool    ranBlipTruth = false;
-
     // TO-DO: make these private and create getters instead
     std::vector<blipobj::HitInfo>      hitinfo;
     std::vector<blipobj::HitClust>     hitclust;

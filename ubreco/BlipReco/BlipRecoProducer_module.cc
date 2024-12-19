@@ -199,9 +199,9 @@ void BlipReco3D::produce(art::Event & evt)
   evt.put(std::move(Blip_v));
   evt.put(std::move(assn_hit_blip_v));
   
-  std::cout<<"\n"
+  std::cout
   <<"Added "<<blipCount<<" 3D blips to the event.\n"
-  <<"------- BlipRecoProducer --------------\n";
+  <<"---------------------------------------\n";
 
 }//END EVENT LOOP
 

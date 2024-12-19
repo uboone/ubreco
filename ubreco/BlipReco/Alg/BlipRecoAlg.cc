@@ -227,7 +227,6 @@ namespace blip {
     //=======================================
     pinfo.clear();
     trueblips.clear(); 
-    ranBlipTruth = true; 
     
     auto const& wireReadout = art::ServiceHandle<geo::WireReadout>()->Get();
     auto const& chanFilt  = art::ServiceHandle<lariov::ChannelStatusService>()->GetProvider();
@@ -372,6 +371,11 @@ namespace blip {
     //std::cout<<"\n"
     //<<"=========== BlipRecoAlg =========================\n"
     //<<"Event "<<evt.id().event()<<" / run "<<evt.id().run()<<"\n";
+    
+    //=======================================
+    // Extract truth info if applicable
+    //=======================================
+    RunBlipTruth(evt);
   
     //=======================================
     // Reset things
@@ -380,6 +384,7 @@ namespace blip {
     hitclust.clear();
     hitinfo.clear();
     EvtBadChanCount = 0;
+    
   
     //=======================================
     // Get data products for this event
@@ -409,8 +414,6 @@ namespace blip {
       }
     }
     
-    
-    if( !ranBlipTruth ) RunBlipTruth(evt);
   
     // -- geometry
     auto const& wireReadout = art::ServiceHandle<geo::WireReadout>()->Get();
@@ -1244,7 +1247,7 @@ namespace blip {
       // taken from CalibrationdEdx_module).
       blip.Charge = blip.clusters[fCaloPlane].Charge;
       if( fYZUniformityCorr ) blip.Charge *= tpcCalib_provider.YZdqdxCorrection(fCaloPlane,blip.Position.Y(),blip.Position.Z());
-      
+
       // ================================================================================
       // Calculate blip energy assuming T = T_beam (eventually can do more complex stuff
       // like associating blip with some nearby track/shower and using its tagged T0)
@@ -1265,7 +1268,7 @@ namespace blip {
       // --- SCE corrections ---
       geo::Point_t point( blip.Position.X(),blip.Position.Y(),blip.Position.Z() );
       if( fSCECorr ) {
-
+        
         // 1) Spatial correction
         //      TODO: Deal with cases where X falls outside AV (diffuse out-of-time signal)
         //            For example, maybe re-assign to center of drift volume?
@@ -1287,23 +1290,22 @@ namespace blip {
         //     the SCE map will return (0,0,0) for these points. Beware!
         if( SCE_provider->EnableCalEfieldSCE() ) {
           auto const field_offset = SCE_provider->GetCalEfieldOffsets(point, 0); 
-          EfieldSCE = Efield*std::hypot(1+field_offset.X(),field_offset.Y(),field_offset.Z());;
+          EfieldSCE = Efield*std::hypot(1+field_offset.X(),field_offset.Y(),field_offset.Z());
         }
 
       }
       
       // METHOD 1 - assume a recombination
-      
-      // nominal case
       float recomb    = ModBoxRecomb(fCalodEdx,Efield);
-      blip.Energy     = blip.Charge * (1./recomb) * mWion;
-      h_recomb        ->Fill(recomb);
-      
-      // SCE and lifetime corrections
       float recombSCE = ModBoxRecomb(fCalodEdx,EfieldSCE);
+      
+      // nominal case + SCE/lifetime corrected
+      blip.Energy     = blip.Charge     * (1./recomb)    * mWion;
       blip.EnergyCorr = blip.ChargeCorr * (1./recombSCE) * mWion;
-      h_recombSCE     ->Fill(recomb);
-
+      
+      h_recomb        ->Fill(recomb);
+      h_recombSCE     ->Fill(recombSCE);
+      
       // METHOD 2 (TODO)
       //std::cout<<"Calculating ESTAR energy dep...  "<<depEl<<", "<<Efield<<"\n";
       //blips[i].EnergyESTAR = ESTAR->Interpolate(depEl, Efield); 
@@ -1313,14 +1315,14 @@ namespace blip {
       // each cluster must match to the same energy dep
       // ================================================
       std::set<int> set_edepids;
-      bool badmatch = false;
       for(auto& hc : blip.clusters ) {
         if( !hc.isValid ) continue; 
         if( hc.EdepID < 0 ) break;
         set_edepids.insert( hc.EdepID );
       }
-      if( !badmatch && set_edepids.size() == 1 ) 
+      if( set_edepids.size() == 1 )
         blip.truth = trueblips[*set_edepids.begin()];
+      
     
     }//endloop over blip vector
 

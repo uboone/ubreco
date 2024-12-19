@@ -266,7 +266,7 @@ class BlipAnaReader : public art::EDAnalyzer
     h_blip_reszy      = tfs->make<TH2D>("blip_res_zy","Blip position resolution;Z_{reco} - Z_{true} [cm];Y_{reco} - Y_{true} [cm]",150,-15,15,150,-15,15);
     h_blip_resx       = tfs->make<TH1D>("blip_res_x","Blip position resolution;X_{reco} - X_{true} [cm]",150,-15,15);
     h_blip_E_tvr      = tfs->make<TH2D>("blip_E_true_vs_reco","Truth-matched 3D blips;True energy deposited [MeV];Reconstructed energy [MeVee]",200,0,10,200,0,10);
-    h_blip_resE       = tfs->make<TH2D>("blip_res_energy","Energy resolution of 3D blips;Energy [MeV];#deltaE/E_{true}",100,0,5,300,-1.5,1.5);
+    h_blip_resE       = tfs->make<TH2D>("blip_res_energy","Energy resolution of 3D blips;Energy [MeV];#deltaE/E_{true}",200,0,5,200,-1.5,2.5);
       h_blip_E_tvr    ->SetOption("colz");
       h_blip_reszy    ->SetOption("colz");
       h_blip_resE     ->SetOption("colz");
@@ -397,7 +397,6 @@ void BlipAnaReader::analyze(const art::Event& evt)
         float true_y = blip->truth.Position.Y();
         float true_z = blip->truth.Position.Z();
         float true_E = blip->truth.Energy;
-        std::cout<<"Truth-matched blip: "<<i<<"   "<<E<<" ("<<true_E<<")\n";
         h_blip_reszy->Fill( z - true_z, y - true_y);
         h_blip_resx->Fill( x - true_x );
         h_blip_E_tvr->Fill( true_E, E );
