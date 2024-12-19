@@ -1,7 +1,5 @@
-#include <fstream>
 #include "ubreco/BlipReco/Alg/BlipRecoAlg.h"
-
-#include "larcore/Geometry/WireReadout.h"
+#include <fstream>
 
 namespace blip {
 
@@ -71,10 +69,12 @@ namespace blip {
     h_hit_chanstatus     ->GetXaxis()->SetBinLabel(5, "good");
     */
 
+    h_trkhits_mcfrac  = hdir.make<TH1D>("trkhits_mcfrac","Fraction of track hits matched to MC",101,0,1.01);
     h_chan_nhits      = hdir.make<TH1D>("chan_nhits","Untracked hits;TPC readout channel;Total hits",8256,0,8256);
     h_chan_nclusts    = hdir.make<TH1D>("chan_nclusts","Untracked isolated hits;TPC readout channel;Total clusts",8256,0,8256);
     h_chan_bad        = hdir.make<TH1D>("chan_bad","Channels marked as bad;TPC readout channel",8256,0,8256);
-    h_recomb          = hdir.make<TH1D>("recomb","Applied recombination factor",150,0.40,0.70);
+    h_recomb          = hdir.make<TH1D>("recomb","Applied recomb factor (nominal field)",150,0.40,0.70);
+    h_recombSCE       = hdir.make<TH1D>("recombSCE","Applied recomb factor (SCE-corrected local field)",150,0.40,0.70);
     h_clust_nwires    = hdir.make<TH1D>("clust_nwires","Clusters (pre-cut);Wires in cluster",100,0,100);
     h_clust_timespan  = hdir.make<TH1D>("clust_timespan","Clusters (pre-cut);Time span [ticks]",300,0,300);
 
@@ -98,6 +98,7 @@ namespace blip {
         Form("Post-cut;Plane %i cluster charge [#times10^{3} e-];Plane %i cluster charge [#times10^{3}]",fCaloPlane,i),
         qbins,0,qmax,qbins,0,qmax);
       h_clust_q_cut[i]    ->SetOption("colz");
+      h_clust_score[i]    = hdir.make<TH1D>(Form("pl%i_clust_score",i),   Form("Plane %i clusters;Match score",i),101,0,1.01);
       h_clust_picky_overlap[i]   = hdir.make<TH1D>(Form("pl%i_clust_picky_overlap",i),  Form("Plane %i clusters (3 planes, intersect #Delta cut);Overlap fraction",i),101,0,1.01);
       h_clust_picky_dt[i]        = hdir.make<TH1D>(Form("pl%i_clust_picky_dt",i),       Form("Plane %i clusters (3 planes, intersect #Delta cut);dT [ticks]",i),200,-10,10);
       h_clust_picky_dtfrac[i]      = hdir.make<TH1D>(Form("pl%i_clust_picky_dtfrac",i),Form("Plane %i clusters (3 planes, intersect #Delta cut);Charge-weighted mean dT/RMS",i),120,-3,3);
@@ -105,15 +106,25 @@ namespace blip {
         Form("3 planes, intersect #Delta < 0.5 cm;Plane %i cluster charge [#times 10^{3} e-];Plane %i cluster charge [#times 10^{3} e-]",fCaloPlane,i),
         qbins,0,qmax,qbins,0,qmax);
       h_clust_picky_q[i]     ->SetOption("colz");
+      h_clust_picky_score[i]    = hdir.make<TH1D>(Form("pl%i_clust_picky_score",i),   Form("Plane %i clusters;Match score",i),101,0,1.01);
+      
+      h_clust_true_overlap[i]   = hdir.make<TH1D>(Form("pl%i_clust_true_overlap",i),  Form("Plane %i clusters (MC true matches);Overlap fraction",i),101,0,1.01);
+      h_clust_true_dt[i]        = hdir.make<TH1D>(Form("pl%i_clust_true_dt",i),       Form("Plane %i clusters (MC true matches);dT [ticks]",i),200,-10,10);
+      h_clust_true_dtfrac[i]      = hdir.make<TH1D>(Form("pl%i_clust_true_dtfrac",i),Form("Plane %i clusters (MC true matches);Charge-weighted mean dT/RMS",i),120,-3,3);
+      h_clust_true_q[i]  = hdir.make<TH2D>(Form("pl%i_clust_true_charge",i),  
+        Form("MC true matches;Plane %i cluster charge [#times 10^{3} e-];Plane %i cluster charge [#times 10^{3} e-]",fCaloPlane,i),
+        qbins,0,qmax,qbins,0,qmax);
+      h_clust_true_q[i]     ->SetOption("colz");
+      h_clust_true_score[i]    = hdir.make<TH1D>(Form("pl%i_clust_true_score",i),   Form("Plane %i clusters;Match score",i),101,0,1.01);
+      
       h_nmatches[i]         = hdir.make<TH1D>(Form("pl%i_nmatches",i),Form("number of plane%i matches to single collection cluster",i),20,0,20);
     }
   
     // Efficiency as a function of energy deposited on a wire
-    h_recoWireEff_denom = hdir.make<TH1D>("recoWireEff_trueCount","Collection plane;Electron energy deposited on wire [MeV];Count",40,0,2.0);
-    h_recoWireEff_num   = hdir.make<TH1D>("recoWireEff","Collection plane;Electron energy deposited on wire [MeV];Hit reco efficiency",40,0,2.0);
-    
-    h_recoWireEffQ_denom = hdir.make<TH1D>("recoWireEffQ_trueCount","Collection plane;Charge deposited on wire [e-];Count",50,0,100000);
-    h_recoWireEffQ_num   = hdir.make<TH1D>("recoWireEffQ","Collection plane;Charge deposited on wire [e-];Hit reco efficiency",50,0,100000);
+    //h_recoWireEff_denom = hdir.make<TH1D>("recoWireEff_trueCount","Collection plane;Electron energy deposited on wire [MeV];Count",40,0,2.0);
+    //h_recoWireEff_num   = hdir.make<TH1D>("recoWireEff","Collection plane;Electron energy deposited on wire [MeV];Hit reco efficiency",40,0,2.0);
+    //h_recoWireEffQ_denom = hdir.make<TH1D>("recoWireEffQ_trueCount","Collection plane;Charge deposited on wire [e-];Count",50,0,100000);
+    //h_recoWireEffQ_num   = hdir.make<TH1D>("recoWireEffQ","Collection plane;Charge deposited on wire [e-];Hit reco efficiency",50,0,100000);
 
   }
   
@@ -167,78 +178,60 @@ namespace blip {
     fMatchMaxTicks      = pset.get<float>         ("ClustMatchMaxTicks",    5.0 );
     fMatchQDiffLimit    = pset.get<float>         ("ClustMatchQDiffLimit",  15e3);
     fMatchMaxQRatio     = pset.get<float>         ("ClustMatchMaxQRatio",   4);
+    fMatchMinScore      = pset.get<float>         ("ClustMatchMinScore",    -9);
     
     fMinMatchedPlanes   = pset.get<int>           ("MinMatchedPlanes",    2);
     fPickyBlips         = pset.get<bool>          ("PickyBlips",          false);
     fApplyTrkCylinderCut= pset.get<bool>          ("ApplyTrkCylinderCut", false);
     fCylinderRadius     = pset.get<float>         ("CylinderRadius",      15);
-    
+    fIgnoreDataTrks     = pset.get<bool>          ("IgnoreDataTrks",      false);
+
     fCaloAlg            = new calo::CalorimetryAlg( pset.get<fhicl::ParameterSet>("CaloAlg") );
     fCaloPlane          = pset.get<int>           ("CaloPlane",           2);
     fCalodEdx           = pset.get<float>         ("CalodEdx",            2.8);
-    fLifetimeCorr       = pset.get<bool>          ("LifetimeCorrection",  false);
-    fSCECorr            = pset.get<bool>          ("SCECorrection",       false);
+    fLifetimeCorr       = pset.get<bool>          ("LifetimeCorrection",  true);
+    fSCECorr            = pset.get<bool>          ("SCECorrection",       true);
     fYZUniformityCorr   = pset.get<bool>          ("YZUniformityCorrection",true);
     fModBoxA            = pset.get<float>         ("ModBoxA",             0.93);
     fModBoxB            = pset.get<float>         ("ModBoxB",             0.212);
     
     fVetoBadChannels    = pset.get<bool>          ("VetoBadChannels",     true);
+    fVetoNoisyChannels  = pset.get<bool>          ("VetoNoisyChannels",   false);
     fBadChanProducer    = pset.get<std::string>   ("BadChanProducer",     "nfspl1:badchannels");
     fBadChanFile        = pset.get<std::string>   ("BadChanFile",         "");
     fMinDeadWireGap     = pset.get<int>           ("MinDeadWireGap",      1);
     
-    fKeepAllClusts[0] = pset.get<bool>          ("KeepAllClustersInd", false);
-    fKeepAllClusts[1] = pset.get<bool>          ("KeepAllClustersInd", false);
-    fKeepAllClusts[2] = pset.get<bool>          ("KeepAllClustersCol", true);
+    //fKeepAllClusts[0] = pset.get<bool>          ("KeepAllClustersInd", false);
+    //fKeepAllClusts[1] = pset.get<bool>          ("KeepAllClustersInd", false);
+    //fKeepAllClusts[2] = pset.get<bool>          ("KeepAllClustersCol", true);
     
-    keepAllClusts = true;
-    for(auto& config : fKeepAllClusts ) {
-      if( config == false ) {
-        keepAllClusts = false; 
-        break;
-      }
-    }
+    //keepAllClusts = true;
+    //for(auto& config : fKeepAllClusts ) {
+    //  if( config == false ) {
+    //    keepAllClusts = false; 
+    //    break;
+    //  }
+    //}
   }
-
-
-
-  //###########################################################
-  // Main reconstruction procedure.
-  //
-  // This function does EVERYTHING. The resulting collections of 
-  // blip::HitClusts and blip::Blips can then be retrieved after
-  // this function is run.
-  //###########################################################
-  void BlipRecoAlg::RunBlipReco( const art::Event& evt ) {
   
-    //std::cout<<"\n"
-    //<<"=========== BlipRecoAlg =========================\n"
-    //<<"Event "<<evt.id().event()<<" / run "<<evt.id().run()<<"\n";
   
-    //=======================================
+  
+  //###########################################################
+  // Extract all the truth-level information from the event
+  //###########################################################
+  void BlipRecoAlg::RunBlipTruth( const art::Event& evt ) {
+    
+    //========================================
     // Reset things
     //=======================================
-    blips.clear();
-    hitclust.clear();
-    hitinfo.clear();
     pinfo.clear();
-    trueblips.clear();
-    EvtBadChanCount = 0;
-   
-
-  
-    //=======================================
-    // Get data products for this event
-    //========================================
+    trueblips.clear(); 
     
-    // --- detector properties
-    auto const& SCE_provider        = lar::providerFrom<spacecharge::SpaceChargeService>();
-    auto const& lifetime_provider   = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
-    auto const& tpcCalib_provider   = art::ServiceHandle<lariov::TPCEnergyCalibService>()->GetProvider();
-    auto const& chanFilt            = art::ServiceHandle<lariov::ChannelStatusService>()->GetProvider();
-  
-    // -- geometry
     auto const& wireReadout = art::ServiceHandle<geo::WireReadout>()->Get();
+    auto const& chanFilt  = art::ServiceHandle<lariov::ChannelStatusService>()->GetProvider();
+
+    // -- geometry
+    art::ServiceHandle<geo::Geometry> geom;
 
     // -- G4 particles
     art::Handle< std::vector<simb::MCParticle> > pHandle;
@@ -258,47 +251,6 @@ namespace blip {
     if (evt.getByLabel(fSimChanProducer,simchanHandle)) 
       art::fill_ptr_vector(simchanlist, simchanHandle);
     
-    // -- hits (from input module, usually track-masked subset of gaushit)
-    art::Handle< std::vector<recob::Hit> > hitHandle;
-    std::vector<art::Ptr<recob::Hit> > hitlist;
-    if (evt.getByLabel(fHitProducer,hitHandle))
-      art::fill_ptr_vector(hitlist, hitHandle);
-    
-    // -- hits (from gaushit), these are used in truth-matching of hits
-    art::Handle< std::vector<recob::Hit> > hitHandleGH;
-    std::vector<art::Ptr<recob::Hit> > hitlistGH;
-    if (evt.getByLabel("gaushit",hitHandleGH))
-      art::fill_ptr_vector(hitlistGH, hitHandleGH);
-    
-    // -- tracks
-    art::Handle< std::vector<recob::Track> > tracklistHandle;
-    std::vector<art::Ptr<recob::Track> > tracklist;
-    if (evt.getByLabel(fTrkProducer,tracklistHandle))
-      art::fill_ptr_vector(tracklist, tracklistHandle);
-  
-    // -- associations
-    art::FindManyP<recob::Track> fmtrk(hitHandle,evt,fTrkProducer);
-    art::FindManyP<recob::Track> fmtrkGH(hitHandleGH,evt,fTrkProducer);
-    art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> fmhh(hitHandleGH,evt,"gaushitTruthMatch");
-    
-    //====================================================
-    // Update map of bad channels for this event
-    //====================================================
-    if( fVetoBadChannels ) {
-      fBadChanMaskPerEvt = fBadChanMask;
-      if( fBadChanProducer != "" ) { 
-        std::vector<int> badChans;
-        art::Handle< std::vector<int>> badChanHandle;
-        if( evt.getByLabel(fBadChanProducer, badChanHandle))
-          badChans = *(badChanHandle);
-        for(auto& ch : badChans ) {
-          EvtBadChanCount++;
-          fBadChanMaskPerEvt[ch] = true;
-          h_chan_bad->Fill(ch);
-        }
-      }
-    }
-    
     //====================================================
     // Prep the particle inventory service for MC+overlay
     //====================================================
@@ -307,39 +259,19 @@ namespace blip {
       pi_serv->Rebuild(evt);
       pi_serv->provider()->PrepParticleList(evt);
     }
-   
-    //===============================================================
-    // Map of each hit to its gaushit index (needed if the provided
-    // hit collection is some filtered subset of gaushit, in order to
-    // use gaushitTruthMatch later on)
-    //===============================================================
-    std::map< int, int > map_gh;
-    std::map< int, int > map_tm;
-    // if input collection is already gaushit, this is trivial
-    if( fHitProducer == "gaushit" ) {
-      for(auto& h : hitlist ) map_gh[h.key()] = h.key(); 
-    // ... but if not, find the matching gaushit. There's no convenient
-    // hit ID, so we must loop through and compare channel/time (ugh)
-    } else {
-      std::map<int,std::vector<int>> map_chan_ghid;
-      for(auto& gh : hitlistGH ) map_chan_ghid[gh->Channel()].push_back(gh.key());
-      for(auto& h : hitlist ) {
-        for(auto& igh : map_chan_ghid[h->Channel()]){
-          if( hitlistGH[igh]->PeakTime() != h->PeakTime() ) continue;
-          map_gh[h.key()] = igh;
-          break;
-        }
-      }
-    }
-   
+    
     //=====================================================
     // Record PDG for every G4 Track ID
     //=====================================================
-    std::map<int,int> map_g4trkid_pdg;
+    //std::map<int,int> map_g4trkid_pdg;
+    map_g4trkid_pdg.clear();
+    map_g4trkid_chan.clear();
+    map_g4trkid_chan_energy.clear();
+    map_g4trkid_chan_charge.clear();
     for(size_t i = 0; i<plist.size(); i++) map_g4trkid_pdg[plist[i]->TrackId()] = plist[i]->PdgCode();
-  
-    std::map<int, std::map<int,double> > map_g4trkid_chan_energy;
-    std::map<int, std::map<int,double> > map_g4trkid_chan_charge;
+    //std::map<int, std::set<int>>         map_g4trkid_chan;
+    //std::map<int, std::map<int,double> > map_g4trkid_chan_energy;
+    //std::map<int, std::map<int,double> > map_g4trkid_chan_charge;
 
     //======================================================
     // Use SimChannels to make a map of the collected charge
@@ -348,11 +280,13 @@ namespace blip {
     //======================================================
     std::map<int,double> map_g4trkid_charge;
     for(auto const &chan : simchanlist ) {
-      if( wireReadout.View(chan->Channel()) != geo::kW ) continue;
+      int pl = (int)wireReadout.View(chan->Channel());
       for(auto const& tdcide : chan->TDCIDEMap() ) {
         for(auto const& ide : tdcide.second) {
           if( ide.trackID < 0 ) continue;
           double ne = ide.numElectrons;
+          map_g4trkid_chan[ide.trackID].insert(chan->Channel());
+          if( pl != fCaloPlane ) continue;
           
           // ####################################################
           // ###         behavior as of Nov 2022              ###
@@ -378,17 +312,18 @@ namespace blip {
     
     }
 
+    /*
     for(auto& m : map_g4trkid_chan_energy ) {
       for(auto& mm : m.second ) {
         if( mm.second > 0 ) h_recoWireEff_denom->Fill(mm.second);
       }
     }
-    
     for(auto& m : map_g4trkid_chan_charge ) {
       for(auto& mm : m.second ) {
         if( mm.second > 0 ) h_recoWireEffQ_denom->Fill(mm.second);
       }
     }
+    */
    
 
     //==================================================
@@ -404,15 +339,152 @@ namespace blip {
       BlipUtils::MakeTrueBlips(pinfo, trueblips);
       BlipUtils::MergeTrueBlips(trueblips, fTrueBlipMergeDist);
     }
+    
 
+    for(size_t i=0; i<trueblips.size(); i++){
+      int g4id = trueblips[i].LeadG4ID;
+      // loop over the channels and look for bad
+      for(auto ch : map_g4trkid_chan[g4id] ) {
+        if( chanFilt.IsBad(ch) ) {
+          trueblips[i].AllChansGood = false;
+          break;
+        }
+      }
+    }
+
+    
+
+
+  }
+  
+  
+
+  //###########################################################
+  // Main reconstruction procedure.
+  //
+  // This function does EVERYTHING. The resulting collections of 
+  // blipobj::HitClusts and blipobj::Blips can then be retrieved after
+  // this function is run.
+  //###########################################################
+  void BlipRecoAlg::RunBlipReco( const art::Event& evt ) {
+  
+    //std::cout<<"\n"
+    //<<"=========== BlipRecoAlg =========================\n"
+    //<<"Event "<<evt.id().event()<<" / run "<<evt.id().run()<<"\n";
+    
+    //=======================================
+    // Extract truth info if applicable
+    //=======================================
+    RunBlipTruth(evt);
+  
+    //=======================================
+    // Reset things
+    //=======================================
+    blips.clear();
+    hitclust.clear();
+    hitinfo.clear();
+    EvtBadChanCount = 0;
+    
+  
+    //=======================================
+    // Get data products for this event
+    //========================================
+    
+    // --- detector properties
+    auto const& SCE_provider        = lar::providerFrom<spacecharge::SpaceChargeService>();
+    auto const& lifetime_provider   = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
+    auto const& tpcCalib_provider   = art::ServiceHandle<lariov::TPCEnergyCalibService>()->GetProvider();
+    auto const& chanFilt            = art::ServiceHandle<lariov::ChannelStatusService>()->GetProvider();
+    
+    //====================================================
+    // Update map of bad channels for this event
+    //====================================================
+    if( fVetoBadChannels ) {
+      fBadChanMaskPerEvt = fBadChanMask;
+      if( fBadChanProducer != "" ) { 
+        std::vector<int> badChans;
+        art::Handle< std::vector<int>> badChanHandle;
+        if( evt.getByLabel(fBadChanProducer, badChanHandle))
+          badChans = *(badChanHandle);
+        for(auto& ch : badChans ) {
+          EvtBadChanCount++;
+          fBadChanMaskPerEvt[ch] = true;
+          h_chan_bad->Fill(ch);
+        }
+      }
+    }
+  
+    // -- geometry
+    auto const& wireReadout = art::ServiceHandle<geo::WireReadout>()->Get();
+    art::ServiceHandle<geo::Geometry> geom;
+    
+    // -- hits (from input module, usually track-masked subset of gaushit)
+    art::Handle< std::vector<recob::Hit> > hitHandle;
+    std::vector<art::Ptr<recob::Hit> > hitlist;
+    if (evt.getByLabel(fHitProducer,hitHandle))
+      art::fill_ptr_vector(hitlist, hitHandle);
+    
+    // -- hits (from gaushit), these are used in truth-matching of hits
+    art::Handle< std::vector<recob::Hit> > hitHandleGH;
+    std::vector<art::Ptr<recob::Hit> > hitlistGH;
+    if (evt.getByLabel("gaushit",hitHandleGH))
+      art::fill_ptr_vector(hitlistGH, hitHandleGH);
+
+    // -- tracks
+    art::Handle< std::vector<recob::Track> > tracklistHandle;
+    std::vector<art::Ptr<recob::Track> > tracklist;
+    if (evt.getByLabel(fTrkProducer,tracklistHandle))
+      art::fill_ptr_vector(tracklist, tracklistHandle);
+  
+    // -- associations
+    art::FindManyP<recob::Track> fmtrk(hitHandle,evt,fTrkProducer);
+    art::FindManyP<recob::Track> fmtrkGH(hitHandleGH,evt,fTrkProducer);
+    art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> fmhh(hitHandleGH,evt,"gaushitTruthMatch");
+    
+   
+    //===============================================================
+    // Map of each hit to its gaushit index (needed if the provided
+    // hit collection is some filtered subset of gaushit, in order to
+    // use gaushitTruthMatch later on)
+    //===============================================================
+    std::map< int, int > map_gh;
+    std::map< int, int > map_tm;
+    // if input collection is already gaushit, this is trivial
+    if( fHitProducer == "gaushit" ) {
+      for(auto& h : hitlist ) map_gh[h.key()] = h.key(); 
+    // ... but if not, find the matching gaushit. There's no convenient
+    // hit ID, so we must loop through and compare channel/time (ugh)
+    } else {
+      std::map<int,std::vector<int>> map_chan_ghid;
+      for(auto& gh : hitlistGH ) map_chan_ghid[gh->Channel()].push_back(gh.key());
+      for(auto& h : hitlist ) {
+        for(auto& igh : map_chan_ghid[h->Channel()]){
+          if( hitlistGH[igh]->PeakTime() != h->PeakTime() ) continue;
+          map_gh[h.key()] = igh;
+          break;
+        }
+      }
+    }
+   
 
     //=======================================
     // Map track IDs to the index in the vector
     //=======================================
     //std::cout<<"Looping over tracks...\n";
-    std::map<size_t,size_t> map_trkid_index;
-    for(size_t i=0; i<tracklist.size(); i++) 
-      map_trkid_index[tracklist.at(i)->ID()] = i;
+    //std::map<size_t,size_t> map_trkid_isMC;
+    map_trkid_isMC.clear();
+    map_trkid_index.clear();
+    std::map<size_t,size_t> map_trkid_nhits;
+    std::map<size_t,size_t> map_trkid_nhitsMC;
+    std::map<size_t,std::vector<int>> map_trkid_g4ids;
+    for(size_t i=0; i<tracklist.size(); i++){ 
+      map_trkid_index[tracklist.at(i)->ID()]    = i;
+      map_trkid_isMC[tracklist.at(i)->ID()]     = false;
+      map_trkid_nhits[tracklist.at(i)->ID()]    = 0;
+      map_trkid_nhitsMC[tracklist.at(i)->ID()]  = 0;
+      map_trkid_g4id[tracklist.at(i)->ID()]     = -9;
+      map_trkid_g4ids[tracklist.at(i)->ID()]    .clear();
+    }
 
     //=======================================
     // Fill vector of hit info
@@ -442,9 +514,12 @@ namespace blip {
       hitinfo[i].peakTime     = thisHit->PeakTime();
       hitinfo[i].driftTime    = thisHit->PeakTime() - detProp.GetXTicksOffset(plane,0,0); // - fTimeOffsets[plane];
       hitinfo[i].gof          = thisHit->GoodnessOfFit() / thisHit->DegreesOfFreedom();
-      //h_hit_chanstatus->Fill( chanFilt.Status(chan) );
-
-      if( plist.size() ) {
+      if( thisHit->DegreesOfFreedom() ) hitinfo[i].gof = -9;
+      if( pinfo.size() ) {
+        
+        //int truthid;
+        //float truthidfrac, numElectrons, energy;
+        //BlipUtils::HitTruth( thisHit, truthid, truthidfrac, energy, numElectrons);
 
         //--------------------------------------------------
         // MicroBooNE-specific truth-matching: since SimChannels aren't
@@ -475,12 +550,18 @@ namespace blip {
           // response. So we need to correct for this effect to get 
           // accurate count of 'true' electrons collected on channel.
           if( fSimGainFactor > 0 ) hitinfo[i].g4charge /= fSimGainFactor;
+         
+          /*
+          if( map_g4trkid_chan_energy[hitinfo[i].g4trkid][chan] > 0 ) {
+            double trueEnergyDep = map_g4trkid_chan_energy[hitinfo[i].g4trkid][chan];
+            h_recoWireEff_num->Fill(trueEnergyDep);
+          }
+          if( map_g4trkid_chan_charge[hitinfo[i].g4trkid][chan] > 0 ) {
+            double trueChargeDep = map_g4trkid_chan_charge[hitinfo[i].g4trkid][chan];
+            h_recoWireEffQ_num->Fill(trueChargeDep);
+          }
+          */
           
-          if( map_g4trkid_chan_energy[hitinfo[i].g4trkid][chan] > 0 ) 
-            h_recoWireEff_num->Fill( map_g4trkid_chan_energy[hitinfo[i].g4trkid][chan] );
-          if( map_g4trkid_chan_charge[hitinfo[i].g4trkid][chan] > 0 ) 
-            h_recoWireEffQ_num->Fill(map_g4trkid_chan_charge[hitinfo[i].g4trkid][chan] );
-
         }
 
 
@@ -498,11 +579,61 @@ namespace blip {
         if (fmtrkGH.at(gi).size()) hitinfo[i].trkid= fmtrkGH.at(gi)[0]->ID(); 
       }
 
+      // IF this hit was (a) matched to a track, and (b) matched to a truth
+      // energy deposit, then keep the tally
+      if( hitinfo[i].trkid > 0 ) {
+        map_trkid_nhits[hitinfo[i].trkid]++;
+        if( hitinfo[i].g4energy > 0 ){
+          map_trkid_g4ids[hitinfo[i].trkid].push_back(hitinfo[i].g4trkid);
+          map_trkid_nhitsMC[hitinfo[i].trkid]++;
+        }
+      }
+
       // add to the map
       planehitsMap[plane].push_back(i);
       if( hitinfo[i].trkid < 0 ) nhits_untracked++;
+      //printf("  %lu   plane: %i,  wire: %i, time: %i\n",i,hitinfo[i].plane,hitinfo[i].wire,int(hitinfo[i].driftTime));
 
     }//endloop over hits
+
+    //================================================================
+    // Mark tracks as MC if a considerable fraction of the total hits
+    // were matched to truth depositions
+    //===============================================================
+    for(auto mtrk : map_trkid_index ){
+      //std::cout<<"TrackID "<<mtrk.first<<" has index "<<mtrk.second<<" and length "<<tracklist[mtrk.second]->Length()<<"\n";
+      int nhitstrk = map_trkid_nhits[mtrk.first];
+      int nhitstrkmc = map_trkid_nhitsMC[mtrk.first];
+      float mcfrac = float(nhitstrkmc)/nhitstrk;
+
+      std::map<int,int> counters;
+      for(auto g4id : map_trkid_g4ids[mtrk.first] ) {
+        counters[g4id]++;
+      }
+      int bestID = -9;
+      int bestIDcount = 0;
+      for(auto counts : counters ) {
+        if( counts.second > bestIDcount ) {
+          bestID = counts.first;
+          bestIDcount = counts.second;
+        }
+      }
+
+      //std::cout<<"  nhits: "<<nhitstrk<<", mcfrac = "<< mcfrac<<"\n";
+      if( nhitstrk > 0 ) {
+        h_trkhits_mcfrac->Fill(mcfrac);
+        // Classify a track as "MC" if >50% of its hits
+        // are matched to MC particle
+        if( mcfrac > 0.50 ) {
+          map_trkid_isMC[mtrk.first] = true;
+          map_trkid_g4id[mtrk.first] = bestID;
+        }
+      }
+    }
+   
+    //for(auto mtrk : map_trkid_index ){
+      //std::cout<<"  Track ID "<<mtrk.first<<", L = "<<tracklist[mtrk.second]->Length()<<", isMC "<<map_trkid_isMC[mtrk.first]<<"\n";
+    //}
 
 
     //=================================================================
@@ -543,8 +674,8 @@ namespace blip {
         hitIsBad[i] = true;
         auto& hit = hitlist[i];
         int plane = hit->WireID().Plane;
-        if( hitinfo[i].gof        <= fMinHitGOF[plane] ) continue;
-        if( hitinfo[i].gof        >= fMaxHitGOF[plane] ) continue;
+        if( hitinfo[i].gof  <= fMinHitGOF[plane] && fMinHitGOF[plane] > 0) continue;
+        if( hitinfo[i].gof  >= fMaxHitGOF[plane] && fMaxHitGOF[plane] > 0) continue;
         if( hit->RMS()            <= fMinHitRMS[plane] ) continue;
         if( hit->RMS()            >= fMaxHitRMS[plane] ) continue;
         if( hit->PeakAmplitude()  <= fMinHitAmp[plane] ) continue;
@@ -632,10 +763,10 @@ namespace blip {
         
         if( !clustIsValid ) continue;
 
-        std::vector<blip::HitInfo> hitinfoVec;
+        std::vector<blipobj::HitInfo> hitinfoVec;
         for(auto hitID : hitIDs ) hitinfoVec.push_back(hitinfo[hitID]);
 
-        blip::HitClust hc = BlipUtils::MakeHitClust(hitinfoVec);
+        blipobj::HitClust hc = BlipUtils::MakeHitClust(hitinfoVec);
         float span = hc.EndTime - hc.StartTime;
         h_clust_nwires->Fill(hc.NWires);
         h_clust_timespan->Fill(span);
@@ -646,17 +777,19 @@ namespace blip {
         if( hc.Charge < fMinClusterCharge )   continue;
         if( hc.Charge > fMaxClusterCharge )   continue;
        
-        // Exclude cluster if it is *entirely* on bad channels
-        if( fVetoBadChannels ) {
-          int nbadchanhits = 0;
-          for(auto const& hitID : hc.HitIDs ) {
-            int chan = hitinfo[hitID].chan;
-            if( chanFilt.Status(chan) < 4 ||
-              fBadChanMaskPerEvt[chan] ) nbadchanhits++;
-          }
-          if( nbadchanhits == hc.NHits ) continue;
+        // Exclude cluster if it is *entirely* on bad or noisy chans
+        hc.NWiresNoisy  = 0;
+        hc.NWiresBad    = 0;
+        //for(auto const& hitID : hc.HitIDs ) {
+        for(auto const& chan : hc.Chans ) {
+          bool isBad  = ( chanFilt.IsBad(chan) || fBadChanMaskPerEvt[chan] );
+          bool isNoisy= chanFilt.IsNoisy(chan);
+          if( isBad   ) hc.NWiresBad++;
+          if( isNoisy ) hc.NWiresNoisy++;
         }
-        
+        if( fVetoBadChannels    && hc.NWiresBad   == hc.NWires ) continue;
+        if( fVetoNoisyChannels  && hc.NWiresNoisy == hc.NWires ) continue;
+
         // measure wire separation to nearest dead region
         // (0 = directly adjacent)
         for(size_t dw=1; dw<=5; dw++){
@@ -664,12 +797,12 @@ namespace blip {
           int  w2   = hc.EndWire+dw;
           bool flag = false;
           // treat edges of wireplane as "dead"
-          if( w1 < 0 || w2 >= (int)wireReadout.Nwires(geo::PlaneID(0, 0, hc.Plane)) )
+          if( w1 < 0 || w2 >= (int)wireReadout.Nwires(geo::PlaneID(0, hc.TPC, hc.Plane)) )
             flag=true;
           //otherwise, use channel filter service
           else {
-            int ch1 = wireReadout.PlaneWireToChannel(geo::WireID(0, 0, hc.Plane, w1));
-            int ch2 = wireReadout.PlaneWireToChannel(geo::WireID(0, 0, hc.Plane, w2));
+            int ch1 = wireReadout.PlaneWireToChannel(geo::WireID(0, hc.TPC, hc.Plane, w1));
+            int ch2 = wireReadout.PlaneWireToChannel(geo::WireID(0, hc.TPC, hc.Plane, w2));
             if( chanFilt.Status(ch1)<2 ) flag=true;
             if( chanFilt.Status(ch2)<2 ) flag=true;
           }
@@ -719,19 +852,23 @@ namespace blip {
     
     float _matchQDiffLimit= (fMatchQDiffLimit <= 0 ) ? std::numeric_limits<float>::max() : fMatchQDiffLimit;
     float _matchMaxQRatio = (fMatchMaxQRatio  <= 0 ) ? std::numeric_limits<float>::max() : fMatchMaxQRatio;
-     
+    float _matchTicks     = (fMatchMaxTicks   <= 0 ) ? std::numeric_limits<float>::max() : fMatchMaxTicks;
+    float _matchSigmaFact = (fMatchSigmaFact  <= 0 ) ? std::numeric_limits<float>::max() : fMatchSigmaFact;
+
     for(auto& tpcMap : tpc_planeclustsMap ) { // loop on TPCs
      
+      //std::cout
+      //<<"Performing cluster matching in TPC "<<tpcMap.first<<", which has "<<tpcMap.second.size()<<" planes\n";
       auto& planeMap = tpcMap.second;
       if( planeMap.find(fCaloPlane) != planeMap.end() ){
         int   planeA              = fCaloPlane;
         auto&  hitclusts_planeA   = planeMap[planeA];
-        
+        //std::cout<<"using plane "<<fCaloPlane<<" as reference/calo plane ("<<planeMap[planeA].size()<<" clusts)\n";
         for(auto& i : hitclusts_planeA ) {
           auto& hcA = hitclust[i];
           
           // initiate hit-cluster group
-          std::vector<blip::HitClust> hcGroup;
+          std::vector<blipobj::HitClust> hcGroup;
           hcGroup.push_back(hcA);
 
           // for each of the other planes, make a map of potential matches
@@ -754,13 +891,6 @@ namespace blip {
               auto& hcB = hitclust[j];
               if( hcB.isMatched ) continue;
               
-              // ***********************************
-              // Calculate the cluster overlap
-              // ***********************************
-              float overlapFrac = BlipUtils::CalcHitClustsOverlap(hcA,hcB);
-              h_clust_overlap[planeB]->Fill(overlapFrac);
-              if( overlapFrac < fMatchMinOverlap ) continue;
-              
               // *******************************************
               // Check that the two central wires intersect
               // *******************************************
@@ -769,8 +899,13 @@ namespace blip {
               // Save intersect location, so we don't have to
               // make another call to the Geometry service later
               TVector3 xloc(0,intersection->y,intersection->z);
-              hcA.IntersectLocations[hcB.ID] = xloc;
-              hcB.IntersectLocations[hcA.ID] = xloc;
+              hcA.IntPts[hcB.ID] = xloc;
+              hcB.IntPts[hcA.ID] = xloc;
+                            
+              // ***********************************
+              // Calculate the cluster overlap
+              // ***********************************
+              float overlapFrac = BlipUtils::CalcHitClustsOverlap(hcA,hcB);
               
               // *******************************************
               // Calculate time difference for start/end, and
@@ -779,30 +914,51 @@ namespace blip {
               float dt_start  = (hcB.StartTime - hcA.StartTime);
               float dt_end    = (hcB.EndTime   - hcA.EndTime);
               float dt        = ( fabs(dt_start) < fabs(dt_end) ) ? dt_start : dt_end;
-              h_clust_dt[planeB]->Fill(dt);
-              if( fabs(dt) > fMatchMaxTicks ) continue;
-              
+              if( dt > _matchTicks * 20.) continue;
+
               // Charge-weighted mean:
               float sigmaT = std::sqrt(pow(hcA.RMS,2)+pow(hcB.RMS,2));
               float dtfrac = (hcB.Time - hcA.Time) / sigmaT;
-              h_clust_dtfrac[planeB]->Fill(dtfrac);
-              if( fabs(dtfrac) > fMatchSigmaFact ) continue;
 
               // *******************************************
               // Check relative charge between clusters
               // *******************************************
               float qdiff     = fabs(hcB.Charge-hcA.Charge);
               float ratio     = std::max(hcA.Charge,hcB.Charge)/std::min(hcA.Charge,hcB.Charge);
-              h_clust_q[planeB]->Fill(0.001*hcA.Charge,0.001*hcB.Charge);
-              if( qdiff > _matchQDiffLimit && ratio > _matchMaxQRatio ) continue;
-              h_clust_q_cut[planeB]->Fill(0.001*hcA.Charge,0.001*hcB.Charge);
-              
+
               // **************************************************
               // We made it through the cuts -- the match is good!
               // Combine metrics into a consolidated "score" that 
               // we can use later in the case of degenerate matches.
               // **************************************************
-              float score = overlapFrac * exp(-fabs(ratio-1.)) * exp(-fabs(dt)/float(fMatchMaxTicks));
+              float score = (1./3) * (overlapFrac + exp(-fabs(ratio-1.)) + exp(-fabs(dtfrac) ) );
+              
+              // If both clusters are matched to the same MC truth particle,
+              // set flag to fill special diagnostic histograms...
+              bool trueFlag = (hcA.EdepID > 0 && (hcA.EdepID == hcB.EdepID)) ? true : false; 
+              
+              h_clust_overlap[planeB]->Fill(overlapFrac);
+              h_clust_dt[planeB]->Fill(dt);
+              h_clust_dtfrac[planeB]->Fill(dtfrac);
+              h_clust_score[planeB]->Fill(score);
+              if( trueFlag ) {
+                h_clust_true_overlap[planeB]->Fill(overlapFrac);
+                h_clust_true_dt[planeB]->Fill(dt);
+                h_clust_true_dtfrac[planeB]->Fill(dtfrac);
+                h_clust_true_score[planeB]->Fill(score);
+              }
+              
+              if( overlapFrac   < fMatchMinOverlap )    continue;
+              if( fabs(dt)      > _matchTicks )         continue;
+              if( fabs(dtfrac)  > _matchSigmaFact )     continue;
+              
+                             h_clust_q[planeB]      ->Fill(0.001*hcA.Charge,0.001*hcB.Charge);
+              if( trueFlag ) h_clust_true_q[planeB] ->Fill(0.001*hcA.Charge,0.001*hcB.Charge);
+
+              if( qdiff         > _matchQDiffLimit && ratio > _matchMaxQRatio ) continue;
+              
+              if( score         < fMatchMinScore )      continue;
+
               map_clust_dt[j]       = dt;
               map_clust_dtfrac[j]   = dtfrac;
               map_clust_overlap[j]  = overlapFrac;
@@ -833,7 +989,7 @@ namespace blip {
             
             // ----------------------------------------
             // make our new blip, but if it isn't valid, forget it and move on
-            blip::Blip newBlip = BlipUtils::MakeBlip(hcGroup);
+            blipobj::Blip newBlip = BlipUtils::MakeBlip(hcGroup);
             if( !newBlip.isValid ) continue;
             if( newBlip.NPlanes < fMinMatchedPlanes ) continue;
             
@@ -856,7 +1012,8 @@ namespace blip {
                 h_clust_picky_overlap[ipl]->Fill(map_clust_overlap[hc.ID]);
                 h_clust_picky_dtfrac[ipl] ->Fill(map_clust_dtfrac[hc.ID]);
                 h_clust_picky_dt[ipl]     ->Fill(map_clust_dt[hc.ID]);
-                h_clust_picky_q[ipl]  ->Fill(0.001*q1,0.001*q2);
+                h_clust_picky_q[ipl]      ->Fill(0.001*q1,0.001*q2);
+                h_clust_picky_score[ipl]  ->Fill(map_clust_score[hc.ID]);
               }
             }
 
@@ -867,6 +1024,7 @@ namespace blip {
             // apply cylinder cut 
             for(auto& trk : tracklist ){
               if( trk->Length() < fMaxHitTrkLength ) continue;
+              if( fIgnoreDataTrks && !map_trkid_isMC[trk->ID()] ) continue;
               auto& a = trk->Vertex();
               auto& b = trk->End();
               TVector3 p1(a.X(), a.Y(), a.Z() );
@@ -874,16 +1032,19 @@ namespace blip {
               // TO-DO: if this track starts or ends at a TPC boundary, 
               // we should extend p1 or p2 to outside the AV to avoid blind spots
               TVector3 bp = newBlip.Position;
-              float d = BlipUtils::DistToLine(p1,p2,bp);
+              float dToLine = BlipUtils::DistToLine(p1,p2,bp);
+              float d = dToLine;
+              if( dToLine < 0 ) d = std::min( (bp-p1).Mag(), (bp-p2).Mag() );
               if( d > 0 ) {
+                
                 // update closest trkdist
                 if( newBlip.ProxTrkDist < 0 || d < newBlip.ProxTrkDist ) {
                   newBlip.ProxTrkDist = d;
                   newBlip.ProxTrkID = trk->ID();
                 }
                 // need to do some math to figure out if this is in
-                // the 45 degreee "cone" relative to the start/end 
-                if( !newBlip.inCylinder && d < fCylinderRadius ) {
+                // the 45 degreee "cone" relative to the start/end
+                if( dToLine > 0 && !newBlip.inCylinder && d < fCylinderRadius ) {
                   float angle1 = asin( d / (p1-bp).Mag() ) * 180./3.14159;
                   float angle2 = asin( d / (p2-bp).Mag() ) * 180./3.14159;
                   if( angle1 < 45. && angle2 < 45. ) newBlip.inCylinder = true;
@@ -920,21 +1081,21 @@ namespace blip {
     }//endloop over TPCs
 
     // Re-index the clusters after removing unmatched
-    if( !keepAllClusts ) {
-      std::vector<blip::HitClust> hitclust_filt;
-      for(size_t i=0; i<hitclust.size(); i++){
-        auto& hc = hitclust[i];
-        int blipID = hc.BlipID;
-        if( fKeepAllClusts[hc.Plane] || blipID >= 0 ) {
-          int idx = (int)hitclust_filt.size();
-          hc.ID = idx;
-          for( auto& h : hc.HitIDs ) hitinfo[h].clustid = hc.ID;
-          if( blipID >= 0 ) blips[blipID].clusters[hc.Plane] = hc;
-          hitclust_filt.push_back(hc);
-        }
-      }
-      hitclust = hitclust_filt;
-    }
+    //if( !keepAllClusts ) {
+    //  std::vector<blipobj::HitClust> hitclust_filt;
+    //  for(size_t i=0; i<hitclust.size(); i++){
+    //    auto& hc = hitclust[i];
+    //    int blipID = hc.BlipID;
+    //    if( fKeepAllClusts[hc.Plane] || blipID >= 0 ) {
+    //      int idx = (int)hitclust_filt.size();
+    //      hc.ID = idx;
+    //      for( auto& h : hc.HitIDs ) hitinfo[h].clustid = hc.ID;
+    //      if( blipID >= 0 ) blips[blipID].clusters[hc.Plane] = hc;
+    //      hitclust_filt.push_back(hc);
+    //    }
+    //  }
+    //  hitclust = hitclust_filt;
+    //}
 
 
     for(size_t i=0; i<hitlist.size(); i++){
@@ -953,67 +1114,84 @@ namespace blip {
 
     
     //*************************************************************************
-    // Loop over the vector of blips and perform calorimetry calculations
+    // Loop over the vector of blips and perform calorimetry calculation.
+    // Here we fill:
+    //   blip.Charge
+    //   blip.ChargeCorr (lifetime correction)
+    //   blip.PositionSCE (SCE corrections)
+    //   blip.Energy
+    //   blip.EnergyCorr (lifetime + SCE corrections)
     //*************************************************************************
     for(size_t i=0; i<blips.size(); i++){
       auto& blip = blips[i];
       
+      float Efield    = detProp.Efield();
+      float EfieldSCE = detProp.Efield();
+
+      // ----------------------------------------------------
+      // Use designated calorimetry plane - defaults to collection. Here we also correct
+      // for YZ non-uniformity across the wireplane, which is pretty standard (procedure 
+      // taken from CalibrationdEdx_module).
       blip.Charge = blip.clusters[fCaloPlane].Charge;
-      
-      // --- YZ uniformity correction ---
-      // Correct for charge-collection non-uniformity based on Y/Z position
-      // (taken from CalibrationdEdx_module)
       if( fYZUniformityCorr ) blip.Charge *= tpcCalib_provider.YZdqdxCorrection(fCaloPlane,blip.Position.Y(),blip.Position.Z());
 
       // ================================================================================
       // Calculate blip energy assuming T = T_beam (eventually can do more complex stuff
       // like associating blip with some nearby track/shower and using its tagged T0)
-      //    Method 1: Assume a dE/dx = 2 MeV/cm for electrons, use that + local E-field
-      //              calculate recombination.
-      //    Method 2: ESTAR lookup table method ala ArgoNeuT
+      //    Method 1: Assume a dE/dx ~ 2.8 MeV/cm for electrons, use that + local E-field
+      //              to calculate recombination.
+      //    Method 2: ESTAR lookup table method ala ArgoNeuT (TODO)
       // ================================================================================
-      float depEl   = std::max(0.0,(double)blip.Charge);
-      float Efield  = detProp.Efield();
 
       // --- Lifetime correction ---
-      // Ddisabled by default. Without knowing real T0 of a blip, attempting to 
-      // apply this correction can do more harm than good! Note lifetime is in
-      // units of 'ms', not microseconds, hence the 1E-3 conversion factor.
-      if( fLifetimeCorr && blip.Time>0 ) depEl *= exp( 1e-3*blip.Time/lifetime_provider.Lifetime() ); 
-
+      // Note: Without knowing real T0 of a blip, this correction is meaningless.
+      //       Units of 'ms', not microseconds, hence the 1E-3 conversion factor.
+      if( fLifetimeCorr && blip.Time>0 ) {
+        float t = blip.Time*1e-3;
+        float tau = lifetime_provider.Lifetime();
+        blip.ChargeCorr = std::max(0.,(double)blip.Charge) * exp( t / tau ); 
+      }
+      
       // --- SCE corrections ---
       geo::Point_t point( blip.Position.X(),blip.Position.Y(),blip.Position.Z() );
       if( fSCECorr ) {
-
+        
         // 1) Spatial correction
+        //      TODO: Deal with cases where X falls outside AV (diffuse out-of-time signal)
+        //            For example, maybe re-assign to center of drift volume?
         if( SCE_provider->EnableCalSpatialSCE() ) {
-          // TODO: Deal with cases where X falls outside AV (diffuse out-of-time signal)
-          //       For example, maybe re-assign to center of drift volume?
           geo::Vector_t loc_offset = SCE_provider->GetCalPosOffsets(point, 0);
           point.SetXYZ(point.X()-loc_offset.X(),point.Y()+loc_offset.Y(),point.Z()+loc_offset.Z());
+          blip.PositionSCE.SetXYZ(point.X(),point.Y(),point.Z());
         }
       
         // 2) E-field correction
         //
-        // notes:
+        //   notes:
         //   - GetEfieldOffsets(xyz) and GetCalEfieldOffsets(xyz) return the exact
         //     same underlying E-field offset map; the only difference is the former
         //     is used in the simulation, and the latter in reconstruction (??).
         //   - The SpaceCharge service must have 'EnableCorSCE' and 'EnableCalEfieldSCE'
         //     enabled in order to use GetCalEfieldOffsets
         //   - Blips can have negative 'X' if the T0 correction isn't applied. Obviously 
-        //     the SCE map will return (0,0,0) for these points.
+        //     the SCE map will return (0,0,0) for these points. Beware!
         if( SCE_provider->EnableCalEfieldSCE() ) {
           auto const field_offset = SCE_provider->GetCalEfieldOffsets(point, 0); 
-          Efield = detProp.Efield()*std::hypot(1+field_offset.X(),field_offset.Y(),field_offset.Z());;
+          EfieldSCE = Efield*std::hypot(1+field_offset.X(),field_offset.Y(),field_offset.Z());
         }
 
       }
       
-      // METHOD 1
-      float recomb  = ModBoxRecomb(fCalodEdx,Efield);
-      blip.Energy   = depEl * (1./recomb) * mWion;
-      h_recomb      ->Fill(recomb);
+      // METHOD 1 - assume a recombination
+      float recomb    = ModBoxRecomb(fCalodEdx,Efield);
+      float recombSCE = ModBoxRecomb(fCalodEdx,EfieldSCE);
+      
+      // nominal case + SCE/lifetime corrected
+      blip.Energy     = blip.Charge     * (1./recomb)    * mWion;
+      blip.EnergyCorr = blip.ChargeCorr * (1./recombSCE) * mWion;
+      
+      h_recomb        ->Fill(recomb);
+      h_recombSCE     ->Fill(recombSCE);
       
       // METHOD 2 (TODO)
       //std::cout<<"Calculating ESTAR energy dep...  "<<depEl<<", "<<Efield<<"\n";
@@ -1024,14 +1202,14 @@ namespace blip {
       // each cluster must match to the same energy dep
       // ================================================
       std::set<int> set_edepids;
-      bool badmatch = false;
       for(auto& hc : blip.clusters ) {
         if( !hc.isValid ) continue; 
         if( hc.EdepID < 0 ) break;
         set_edepids.insert( hc.EdepID );
       }
-      if( !badmatch && set_edepids.size() == 1 ) 
+      if( set_edepids.size() == 1 )
         blip.truth = trueblips[*set_edepids.begin()];
+      
     
     }//endloop over blip vector
 
@@ -1041,14 +1219,12 @@ namespace blip {
   
   //###########################################################
   float BlipRecoAlg::ModBoxRecomb(float dEdx, float Efield) {
-    float rho = detProp.Density();
-    float Xi = fModBoxB * dEdx / ( Efield * rho );
+    float Xi = fModBoxB * dEdx / ( Efield * detProp.Density() );
     return log(fModBoxA+Xi)/Xi;
   }
 
   float BlipRecoAlg::dQdx_to_dEdx(float dQdx_e, float Efield){
-    float rho = detProp.Density();
-    float beta  = fModBoxB / (rho * Efield);
+    float beta  = fModBoxB / (detProp.Density() * Efield);
     float alpha = fModBoxA;
     return ( exp( beta * mWion * dQdx_e ) - alpha ) / beta;
   }
@@ -1073,8 +1249,12 @@ namespace blip {
     printf("  Min cluster overlap       : %4.1f\n",       fMatchMinOverlap);
     printf("  Clust match sigma-factor  : %4.1f\n",       fMatchSigmaFact);
     printf("  Clust match max dT        : %4.1f ticks\n", fMatchMaxTicks);
-    printf("  Charge diff limit         : %.1fe3\n",fMatchQDiffLimit/1000);
-    printf("  Charge ratio maximum      : %.1f\n",fMatchMaxQRatio);      
+    printf("  Charge diff limit         : %.1fe3\n",      fMatchQDiffLimit/1000);
+    printf("  Charge ratio maximum      : %.1f\n",        fMatchMaxQRatio);    
+    printf("  Minimum match score       : %.2f\n",        fMatchMinScore);
+    printf("  Ignoring data tracks?     : %i\n",          fIgnoreDataTrks);
+    printf("  Track-cylinder radius     : %.1f cm\n",     fCylinderRadius);
+    printf("  Applying cylinder cut?    : %i\n",          fApplyTrkCylinderCut);
     
     /*
     printf("  Min cluster overlap       : ");
@@ -1090,8 +1270,6 @@ namespace blip {
     printf("  pl%i matches per cand      : %4.2f\n",       i,h_nmatches[i]->GetMean());
     }
     
-    //printf("  Track-cylinder radius     : %.1f cm\n",       fCylinderRadius);
-    //printf("  Applying cylinder cut?    : %i\n",          fApplyTrkCylinderCut);
     //printf("  Picky blip mode?          : %i\n",        fPickyBlips);
     printf("\n");
     
