@@ -1,0 +1,15 @@
+#include "wirecell_detsim_overlay_uboone.fcl"
+
+# Don't retrieve lifetime from DB; this should only be enabled for Runs 4 and 5
+#services.UBElectronLifetimeService.ElectronLifetimeProvider.UseDB:            false
+#services.UBElectronLifetimeService.ElectronLifetimeProvider.DefaultLifetime:  1000 # ms
+#physics.producers.driftWC.wcls_main.structs.ElectronLifetime:                 1000
+
+# Diffusion central values from arxiv:2104.06551
+#   D_L = 3.74 +0.28 / -0.29 cm2/s
+#   D_T* = 5.85 + 0.62 / -0.33 cm2/s (predicted)
+#   For D_T, we use a +/-30% variation to reflect uncertainties
+#   involved in the calculation of D_T using D_L
+physics.producers.driftWC.wcls_main.structs.DiffusionLongitudinal:  3.45
+physics.producers.driftWC.wcls_main.structs.DiffusionTransverse:    4.10
+

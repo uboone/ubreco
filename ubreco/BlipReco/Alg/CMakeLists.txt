@@ -8,9 +8,9 @@ cet_make_library(
   ubreco::BlipReco_Utils
   larevt::CalibrationDBI_IOVData
   larreco::Calorimetry
+  lardata::DetectorClocksService
   larsim::MCCheater_BackTrackerService_service
   larsim::MCCheater_ParticleInventoryService_service
-  lardata::DetectorClocksService
   nusimdata::SimulationBase
   art_root_io::TFileService_service
 )

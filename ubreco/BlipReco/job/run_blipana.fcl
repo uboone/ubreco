@@ -3,7 +3,7 @@
 #include "services_microboone.fcl"
 #include "calorimetry_microboone.fcl"
 #include "time_memory_tracker_microboone.fcl"
-#include "blipreco_configs.fcl"
+#include "microboone_blipreco.fcl"
 
 process_name: BlipAna
 
@@ -19,10 +19,11 @@ services:
 }
 
 # Enable BackTracker to work on overlay MC
-services.BackTrackerService: @local::microboone_backtrackerservice
-services.BackTrackerService.BackTracker.OverrideRealData:             true
+#services.BackTrackerService: @local::microboone_backtrackerservice
+#services.BackTrackerService.BackTracker.OverrideRealData:             true
 services.ParticleInventoryService: @local::standard_particleinventoryservice
-services.ParticleInventoryService.ParticleInventory.OverrideRealData: true
+#services.ParticleInventoryService.ParticleInventory.OverrideRealData: true
+
 # (note: in uboonecode v08_00_00_64 and earlier, 'OverrideRealData' does not
 # work for ParticleInventoryService; instead the service must be initialized
 # per event:
@@ -46,6 +47,7 @@ services.message.destinations.STDCOUT: {
     SIOVChannelStatusProvider: { limit: 0 reportEvery: 0 }
     DetPedestalRetrievalAlg: { limit: 0 reportEvery: 0 }
     BackTrackerService: { limit: 0 reportEvery: 0 }
+    #ParticleInventory: { limit: 0 reportEvery: 0 }
   }
   threshold: "WARNING"
   type: "cout"

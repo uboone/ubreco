@@ -4,15 +4,35 @@ cet_build_plugin(
   PRIVATE
   ubreco::BlipReco_Alg
   larreco::Calorimetry
-  larsim::MCCheater_BackTrackerService_service
   larevt::SpaceChargeService
   lardata::DetectorClocksService  
   larcore::ServiceUtil
   lardataobj::RecoBase
   lardataobj::AnalysisBase
+  larsim::MCCheater_ParticleInventoryService_service
   art_root_io::TFileService_service
   ROOT::Tree
+  ROOT::Hist
 )
+
+
+cet_build_plugin(
+  BlipAnaReader art::EDAnalyzer
+  LIBRARIES
+  PRIVATE
+  ubreco::BlipReco_Alg
+  larreco::Calorimetry
+  larevt::SpaceChargeService
+  lardata::DetectorClocksService  
+  larcore::ServiceUtil
+  lardataobj::RecoBase
+  lardataobj::AnalysisBase
+  larsim::MCCheater_ParticleInventoryService_service
+  art_root_io::TFileService_service
+  ROOT::Tree
+  ROOT::Hist
+)
+
 
 cet_build_plugin(
   BlipRecoProducer art::EDProducer
@@ -20,7 +40,6 @@ cet_build_plugin(
   PRIVATE
   ubreco::BlipReco_Alg
   larreco::Calorimetry
-  larsim::MCCheater_BackTrackerService_service
   larevt::CalibrationDBI_IOVData
   lardata::Utilities
   lardata::LArPropertiesService
@@ -38,19 +57,18 @@ cet_build_plugin(
   LIBRARIES
   PRIVATE
   ubreco::BlipReco_Alg
-  larsim::MCCheater_BackTrackerService_service
   lardata::DetectorPropertiesService
   lardata::DetectorClocksService
   larcore::Geometry_Geometry_service
   nusimdata::SimulationBase
   art_root_io::TFileService_service
+  ROOT::Hist
 )
 
 cet_build_plugin(
   TrackMasker art::EDProducer
   LIBRARIES
   PRIVATE
-  larsim::MCCheater_BackTrackerService_service
   lardata::Utilities
   lardata::DetectorPropertiesService
   larcore::Geometry_Geometry_service

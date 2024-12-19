@@ -1,0 +1,4 @@
+#include "wirecell_g4_uboone_hadronhp.fcl"
+process_name: G4
+physics.simulate: [ rns, largeant ] 
+outputs.out1.fileName: "%ifb_g4.root"
