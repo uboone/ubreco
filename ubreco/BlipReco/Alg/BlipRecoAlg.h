@@ -127,7 +127,7 @@ namespace blip {
     std::string         fSimDepProducer;
     std::string         fSimChanProducer;
     float               fSimGainFactor;
-    bool                fDebugMode;
+    //bool                fDebugMode;
     float               fTrueBlipMergeDist;
     bool                fDoHitFiltering;
     float               fMaxHitTrkLength;
@@ -165,8 +165,8 @@ namespace blip {
     std::string         fBadChanFile;
     int                 fMinDeadWireGap;
     
-    bool                keepAllClusts;
-    bool                fKeepAllClusts[kNplanes];
+    //bool                keepAllClusts;
+    //bool                fKeepAllClusts[kNplanes];
 
     // --- Calorimetry configs ---
     int                 fCaloPlane;
@@ -187,8 +187,8 @@ namespace blip {
     TH1D*   h_chan_bad;
     TH1D*   h_clust_nwires;
     TH1D*   h_clust_timespan;
-    TH1D*   h_hit_maskfrac[kNplanes];
-    TH1D*   h_hit_maskfrac_true[kNplanes];
+    //TH1D*   h_hit_maskfrac[kNplanes];
+    //TH1D*   h_hit_maskfrac_true[kNplanes];
     TH1D*   h_clust_overlap[kNplanes];
     TH1D*   h_clust_dt[kNplanes];
     TH1D*   h_clust_dtfrac[kNplanes];
