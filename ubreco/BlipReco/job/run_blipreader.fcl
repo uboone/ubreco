@@ -1,0 +1,57 @@
+#include "services_microboone.fcl"
+#include "calorimetry_microboone.fcl"
+#include "time_memory_tracker_microboone.fcl"
+#include "microboone_blipreco.fcl"
+
+process_name: BlipReader
+
+services: 
+{
+  scheduler:               { defaultExceptions: false }
+  TFileService:            { fileName: "hist_%p_%tc.root" }
+  DetectorClocksService:    @local::microboone_detectorclocks
+  Geometry:                 @local::microboone_geo
+  LArProperties:            @local::microboone_properties
+  TimeTracker:              @local::microboone_time_tracker
+                            @table::microboone_services_reco
+}
+
+# Suppress common warning messages
+services.message.destinations.STDCOUT: {
+  categories: {
+    SIOVChannelStatusProvider: { limit: 0 reportEvery: 0 }
+    DetPedestalRetrievalAlg: { limit: 0 reportEvery: 0 }
+    BackTrackerService: { limit: 0 reportEvery: 0 }
+    #ParticleInventory: { limit: 0 reportEvery: 0 }
+  }
+  threshold: "WARNING"
+  type: "cout"
+}
+
+# The following overrides are necessary to handle the truncation of 
+# RawDigits from 9600 ticks to 6400 ticks (which happens at reco1).
+services.DetectorPropertiesService.NumberTimeSamples:        6400
+services.DetectorPropertiesService.ReadOutWindowSize:        6400
+services.DetectorPropertiesService.InheritNumberTimeSamples: false
+services.DetectorClocksService.InheritClockConfig:           false
+services.DetectorClocksService.TriggerOffsetTPC:             -400
+
+# Source is an art-ROOT file containing hits and tracks
+source: {
+  module_type: RootInput
+}
+
+# Define and schedule filter/producer/analyzers
+physics:
+{
+  
+  analyzers:{
+    blipreader:       @local::microboone_blipreader 
+  }
+  
+  ana:            [ blipreader ]
+  trigger_paths:  [ ] 
+  end_paths:      [ ana ] 
+
+} # physics
+

@@ -9,10 +9,11 @@ typedef std::vector<bool>       vbool_t;
 typedef std::vector<float>      vfloat_t;
 typedef std::set<int>           si_t;
 typedef std::map<int,float>     mif_t;
+typedef std::map<int,TVector3>  mitv3_t;
 
 const int kNplanes  = 3;  
 
-namespace blip {
+namespace blipobj {
   
   //###################################################
   //  Data structures
@@ -43,23 +44,25 @@ namespace blip {
     TVector3 endPoint;
     TVector3 position;
   };
+
   
+
   // True energy depositions
   struct TrueBlip {
     int       ID            = -9;     // unique blip ID
     int       TPC           = -9;     // TPC ID
     float     Time          = -999e9; // time [us]
-    float     Energy        = 0;      // energy dep [MeV]
-    int       DepElectrons  = 0;      // deposited electrons
-    int       NumElectrons  = 0;      // electrons reaching wires
+    float     Energy        = -9;      // energy dep [MeV]
+    int       DepElectrons  = -9;      // deposited electrons
+    int       NumElectrons  = -9;      // electrons reaching wires
     float     DriftTime     = -9;     // drift time [us]
     int       LeadG4ID      = -9;     // lead G4 track ID
     int       LeadG4Index   = -9;     // lead G4 track index
     int       LeadG4PDG     = -9;     // lead G4 PDG
     float     LeadCharge    = -9;     // lead G4 charge dep
     TVector3  Position;               // XYZ position
+    bool      AllChansGood  = true;    
     mif_t     G4ChargeMap;          
-    mif_t     G4PDGMap;
   };
 
   struct HitInfo {
@@ -90,7 +93,7 @@ namespace blip {
     float g4frac        = -99;      
     float g4energy      = -999;     // [MeV]
   };
-  
+
   struct HitClust {
     int     ID              = -9;
     bool    isValid         = false;
@@ -104,31 +107,29 @@ namespace blip {
     int     Plane           = -9;
     int     NHits           = -9;
     int     NWires          = -9;
-    float   ADCs            = -999;
+    int     NWiresNoisy     = -9;
+    int     NWiresBad       = -9;
+    float   SummedADC       = -999;
     float   Amplitude       = -999;
     float   Charge          = -999;
     float   SigmaCharge     = -999;
     float   Time            = -999;
     float   RMS             = -999;
-    float   StartHitTime    = -999;
-    float   EndHitTime      = -999;
     float   StartTime       = -999;
     float   EndTime         = -999;
     float   Timespan        = -999;
     int     StartWire       = -999;
     int     EndWire         = -999;
     int     NPulseTrainHits = -9;
-    float   GoodnessOfFit   = -999;
     int     BlipID          = -9;
     int     EdepID          = -9;
     si_t    HitIDs;
     si_t    Wires;
     si_t    Chans;
     si_t    G4IDs;
-    
-    std::map<int,TVector3> IntersectLocations;
+    mitv3_t IntPts;
   };
-
+  
   struct Blip {
     
     int       ID              = -9;         // Blip ID / index
@@ -137,24 +138,26 @@ namespace blip {
     int       NPlanes         = -9;         // Num. matched planes
     int       MaxWireSpan     = -9;         // Maximum span of wires on any plane cluster
     float     Charge          = -9;         // Charge on calorimetry plane
+    float     ChargeCorr      = -9;         // Charge on calorimetry plane (lifetime corrected)
     float     Energy          = -999;       // Energy (const dE/dx, fcl-configurable)
-    float     EnergyESTAR     = -999;       // Energy (ESTAR method from ArgoNeuT)
+    float     EnergyCorr      = -999;       // Energy following SCE + lifetime correction
     float     Time            = -999;       // Drift time [ticks]
-    float     ProxTrkDist     = -9;         // Distance to cloest track
+    TVector3  Position;                     // 3D position
+    TVector3  PositionSCE;                  // 3D position following SCE spatial correction
+    float     SigmaYZ         = -9.;        // Uncertainty in YZ intersect [cm]
+    float     dX              = -9;         // Equivalent length along drift direction [cm] 
+    float     dYZ             = -9;         // Approximate length scale in YZ space [cm]
+                                            // (also referred to as 'dW')
+    float     ProxTrkDist     = -9;         // Distance to closest track
     int       ProxTrkID       = -9;         // ID of closest track
     bool      inCylinder      = false;      // Is it in a cone/cylinder region? 
     int       TouchTrkID      = -9;         // Track ID of track that is touched
 
-    TVector3  Position;                     // 3D position TVector3
-    float     SigmaYZ         = -9.;        // Uncertainty in YZ intersect [cm]
-    float     dX              = -9;         // Equivalent length along drift direction [cm] 
-    float     dYZ             = -9;         // Approximate length scale in YZ space [cm]
-
     // Plane/cluster-specific information
-    blip::HitClust clusters[kNplanes];
+    blipobj::HitClust clusters[kNplanes];
 
     // Truth-matched energy deposition
-    blip::TrueBlip truth;
+    blipobj::TrueBlip truth;
     
     // Prototype getter functions
     double X() { return Position.X(); }
@@ -165,4 +168,40 @@ namespace blip {
   
 }
 
+// Prototype data product that can serve as a "lighter"
+// blip object to store in artROOT events if we run into
+// file size issues using the default object above.
+/*
+namespace blpobj {
+  
+  struct Blip {
+    int       ID            = -9;   // Blip ID / index
+    int       TPC           = -9;   // TPC
+    int       NPlanes       = -9;   // Num. matched planes
+    TVector3  Location;             // Reconstructed XYZ
+    TVector3  LocationSCE;          // Reconstructed XYZ w/SCE offset corrections applied
+    float     Charge        = -9;   // Charge on calorimetry plane
+    float     ChargeCorr    = -9;   // Charge w/SCE and lifetime corrections
+    float     Energy        = -999; // Energy (const dE/dx, fcl-configurable)
+    float     EnergyCorr    = -999;
+    float     ProxTrkDist   = -9;   // Distance to closest track
+    int       ProxTrkID     = -9;   // ID of closest track
+    int       TouchTrkID    = -9;   // Track ID of track that is touched
+ 
+    blipobj::HitClust hitcluster2D[kNplanes];
+    
+    float     trueEnergy    = 0;    // Truth-matched energy dep [MeV]
+    int       trueCharge    = 0;    // Truth-matched deposited electrons
+    int       trueG4ID      = -9;   // Truth-matched lead G4 track ID
+    int       truePDG       = -9;   // Truth-matched lead G4 PDG
+
+    // To add:
+    //  x nwires per plane
+    //  x location w/SCE corrections
+    //  x energy w/lifetime+SCE corrections
+    //  x flag for dead wire adjacency --> possible thru 'cluster'
+    //  x flag for "noisy" wire adjacency --> possible thru 'cluster'
+  };
+}
+*/
 
