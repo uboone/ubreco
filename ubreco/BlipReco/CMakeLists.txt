@@ -62,6 +62,7 @@ cet_build_plugin(
   larcore::Geometry_Geometry_service
   nusimdata::SimulationBase
   art_root_io::TFileService_service
+  ROOT::Hist
 )
 
 cet_build_plugin(

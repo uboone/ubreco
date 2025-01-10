@@ -13,7 +13,6 @@ cet_make_library(
   larsim::MCCheater_ParticleInventoryService_service
   nusimdata::SimulationBase
   art_root_io::TFileService_service
-  ROOT::Hist
 )
 
 install_headers()
