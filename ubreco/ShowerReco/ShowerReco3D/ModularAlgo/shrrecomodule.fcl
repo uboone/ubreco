@@ -41,6 +41,11 @@ startpointfromy2d:
     tool_type: StartPointfromY2D
 }
 
+startpoint3dbest2planes:
+{
+    tool_type: StartPoint3DModule
+}
+
 filllength:
 {
     tool_type: FillLength

@@ -78,7 +78,9 @@ namespace clusmtool {
 		<< "Angle 2 : " << cluster2._angle << std::endl
 		<< "Length 1 : " << cluster1.Length() << std::endl
 		<< "Length 2 : " << cluster2.Length() << std::endl
-		<< "cluster distance = " << clusDistance << std::endl << std::endl;
+		<< "cluster distance = " << clusDistance << std::endl
+		<< "plane = " << cluster1._plane << std::endl
+		<< std::endl;
     }
 
     if (clusDistance < 0) {
