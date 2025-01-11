@@ -4,13 +4,21 @@
 
 find $MRB_BUILDDIR/ubreco/job -name \*.fcl -print | while read fcl
 do
+  fclbase=`basename ${fcl}`
+
+  # Skip non-prolog include files.
+
+  if [ $fclbase = select_reco2_modules.fcl ]; then
+    continue
+  fi
+
   echo "Testing fcl file $fcl"
 
   # Parse this fcl file.
 
-  fclout=`basename ${fcl}`.out
-  larout=`basename ${fcl}`.lar.out
-  larerr=`basename ${fcl}`.lar.err
+  fclout=$fclbase.out
+  larout=$fclbase.lar.out
+  larerr=$fclbase.lar.err
   lar -c $fcl --debug-config $fclout > $larout 2> $larerr
 
   # Exit status 1 counts as success.

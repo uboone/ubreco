@@ -8,13 +8,13 @@
 ////////////////////////////////////////////////////////////////////////
 
 // Framework includes
+#include "art_root_io/TFileService.h"
 #include "art/Framework/Core/EDProducer.h"
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
 #include "art/Framework/Principal/Handle.h"
 #include "art/Framework/Principal/Run.h"
 #include "art/Framework/Principal/SubRun.h"
-#include "art_root_io/TFileService.h"
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
@@ -45,9 +45,13 @@
 #include "lardataobj/RecoBase/Cluster.h"
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardata/Utilities/AssociationUtil.h"
+#include "nusimdata/SimulationBase/MCParticle.h"
+#include "nusimdata/SimulationBase/MCTruth.h"
+#include "lardataobj/Simulation/SimEnergyDeposit.h"
+#include "lardataobj/AnalysisBase/BackTrackerMatchingData.h"
 
 // BlipReco-specific utility includes
-#include "ubreco/BlipReco/Utils/BlipUtils.h"
+//#include "ubreco/BlipReco/Utils/BlipUtils.h"
 
 class TrackMasker;
 
@@ -164,7 +168,6 @@ void TrackMasker::produce(art::Event & evt)
   
   // boolean designating each hit as tracked
   std::vector<bool> hitIsVetoed( hitlist.size(), false);
-  std::vector<bool> hitIsReal( hitlist.size(), false);
 
   //******************************************************* 
   // Assuming input collection is original 'gaushit', we can 
@@ -173,17 +176,7 @@ void TrackMasker::produce(art::Event & evt)
   if( fIgnoreDataOverlay ) { 
     art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> fmhh(hit_h,evt,"gaushitTruthMatch");
     for (size_t h=0; h < hitlist.size(); h++) {
-      if( !fmhh.at(h).size() ) hitIsReal[h] = true;
-    }
-  }
-
-
-  //***********************************************************************
-  // If we are ignoring ALL overlay, simply veto every real hit in the event
-  //*********************************************************************
-  if( fIgnoreDataOverlay ) {
-    for (size_t h=0; h < hitlist.size(); h++) {
-      if( hitIsReal[h] ) {
+      if( !fmhh.at(h).size() ) {
         hitIsVetoed[h] = true;
         _vetohits.push_back(h);
       }
@@ -191,7 +184,6 @@ void TrackMasker::produce(art::Event & evt)
     std::cout <<"\n*** TRACKMASKER WARNING: ignoring all non-MC hits and tracks!\n"
               <<"*** "<<_vetohits.size()<<" out of "<<hitlist.size()<<" hits ignored.\n";
   }
-  
   
   //***************************************************
   // First go through tracks and designate which ones
@@ -224,10 +216,13 @@ void TrackMasker::produce(art::Event & evt)
   // 2D wire-time coordinates for each hit
   std::vector<TVector2> wtpoint( hitlist.size());
 
-  auto const detProp  = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob();
+  auto const detProp  = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob(); 
   auto const detClock = art::ServiceHandle<detinfo::DetectorClocksService>()->DataForJob();
   double samplePeriod = detClock.TPCClock().TickPeriod();
   double driftVel     = detProp.DriftVelocity(detProp.Efield(0),detProp.Temperature()); 
+  //auto const* detProp = lar::providerFrom<detinfo::DetectorPropertiesService>();
+  //double samplePeriod = lar::providerFrom<detinfo::DetectorClocksService>()->TPCClock().TickPeriod();
+  //double driftVel     = detProp->DriftVelocity(detProp->Efield(0),detProp->Temperature()); 
 
   for (size_t h=0; h < hitlist.size(); h++) {
 

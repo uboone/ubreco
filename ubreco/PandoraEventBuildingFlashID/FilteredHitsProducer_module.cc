@@ -112,6 +112,7 @@ void FilteredHitsProducer::produce(art::Event& e)
   }
 
   for (size_t ihit=0; ihit<hitListHandle->size();ihit++) {
+    if (fScoreCut>=0 && ngFiltOutputHandle->size()==0) break;
     art::Ptr<recob::Hit> hit(hitListHandle,ihit);
 
     bool keepHit = false;
@@ -137,6 +138,7 @@ void FilteredHitsProducer::produce(art::Event& e)
 
   }
 
+  std::cout << "FilteredHitProducer nhits=" << outputHits->size() << std::endl;
   e.put(std::move(outputHits));
   if (fIsMC) e.put(std::move(outputHitPartAssns));
   if (fScoreCut>=0) e.put(std::move(semtcol), "semantic");

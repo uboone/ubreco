@@ -22,6 +22,20 @@ ShrReco3D: {
      }
  recombination : 0.6
  ADCtoE : [1.,1.,1.] # these values purposely incorrect
+ SpacePointAlg: {
+	MaxDT: 2.0
+	MaxS: 0.3
+	MinViews: 2
+	EnableU: true
+	EnableV: true
+	EnableW: true
+	Filter: true
+	Merge: false
+	PreferColl: false
+	TickOffsetU: 0.
+	TickOffsetV: 0.
+	TickOffsetW: 0.
+ }
 }
 
 ShrReco3Ddata: @local::ShrReco3D

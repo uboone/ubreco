@@ -1,4 +1,0 @@
-#include "run_blipreco_producer.fcl"
-
-# This is a legacy fcl file that points to the new version
-# of the producer module.
