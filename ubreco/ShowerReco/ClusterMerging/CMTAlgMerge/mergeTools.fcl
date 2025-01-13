@@ -17,7 +17,7 @@ merge_cbalgovtxalign:
  tool_type: CBAlgoVtxAlign
  max_angle_diff_merge: 12
  min_gammagamma_oangle: 15
- min_nhits: 10
+ min_nhits: 4
  max_merge_dist: 3
  mergetillconverge: true
  pair_wise: false
