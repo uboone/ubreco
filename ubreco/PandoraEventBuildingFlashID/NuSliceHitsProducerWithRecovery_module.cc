@@ -175,11 +175,14 @@ void NuSliceHitsProducerWithRecovery::produce(art::Event& e)
 	outPFPVtxAssns->addSingle(pfp_ptr,vtx_ptr);
 	//
       } else {
+	//std::cout << "ipfp self=" << pfp->Self() << " primary=" << pfp->IsPrimary() << " pdg=" << pfp->PdgCode() << " nvtx=" << assocPfpVertex.at(pfp.key()).size() << " nclu=" << assocPfpCluster.at(pfp.key()).size() << std::endl;
 	outputPFP->push_back(*pfp);
 	art::Ptr<recob::PFParticle> pfp_ptr = pfpPtrMaker(outputPFP->size()-1);
-	outputVertex->push_back(*assocPfpVertex.at(pfp.key()).at(0));
-	auto vtx_ptr = vtxPtrMaker(outputVertex->size()-1);
-	outPFPVtxAssns->addSingle(pfp_ptr,vtx_ptr);
+	if (assocPfpVertex.at(pfp.key()).size() > 0) {
+	  outputVertex->push_back(*assocPfpVertex.at(pfp.key()).at(0));
+	  auto vtx_ptr = vtxPtrMaker(outputVertex->size()-1);
+	  outPFPVtxAssns->addSingle(pfp_ptr,vtx_ptr);
+	}
 	auto clusters = assocPfpCluster.at(pfp.key());	  
 	for (auto clu : clusters) {
 	  outputCluster->push_back(*clu);

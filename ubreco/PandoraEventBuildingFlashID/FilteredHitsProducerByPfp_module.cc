@@ -112,7 +112,8 @@ void FilteredHitsProducerByPfp::produce(art::Event& e)
       nuvtx = this_vertex_ptr_v[0]->position();
       continue;
     } else {
-      vtx_pfp_v.push_back(this_vertex_ptr_v[0]);
+      if (this_vertex_ptr_v.size()>0) vtx_pfp_v.push_back(this_vertex_ptr_v[0]);
+      else vtx_pfp_v.push_back(art::Ptr<recob::Vertex>());
     }
     std::vector<art::Ptr<recob::Hit>> hit_pfp_v;
     const std::vector< art::Ptr<recob::Cluster> > this_cluster_ptr_v = pfp_cluster_assn_v.at( pfp_ptr.key() );
@@ -166,7 +167,7 @@ void FilteredHitsProducerByPfp::produce(art::Event& e)
     // 	      << " vtx=" << vtx_pfp_v[j]->position()
     // 	      << std::endl;
     // keep if pass is above cut. Include also a protection to keep protons at vertex
-    if ( pass < ((pass+fail)*fFracCut) && (hips < ((pass+fail)*fFracCut) || (vtx_pfp_v[j]->position()-nuvtx).Mag2()>1.0) ) continue;
+    if ( pass < ((pass+fail)*fFracCut) && (vtx_pfp_v[j].isNull() || (hips < ((pass+fail)*fFracCut) || (vtx_pfp_v[j]->position()-nuvtx).Mag2()>1.0)) ) continue;
     for (auto hit_ptr : hit_pfp_v) {
       outputHits->emplace_back(*hit_ptr);
       semtcol->emplace_back(ngSemtOutputHandle->at(hit_ptr.key()));
