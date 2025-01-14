@@ -267,9 +267,11 @@ void NuSliceHitsProducerWithRecovery::produce(art::Event& e)
     for (auto pfp : bestSlicePFPs_AO) {
       outputPFP->push_back(*pfp);
       art::Ptr<recob::PFParticle> pfp_ptr = pfpPtrMaker(outputPFP->size()-1);
-      outputVertex->push_back(*pfp_vertex_ao_assn_v.at(pfp.key()).at(0));
-      auto vtx_ptr = vtxPtrMaker(outputVertex->size()-1);
-      outPFPVtxAssns->addSingle(pfp_ptr,vtx_ptr);
+      if (pfp_vertex_ao_assn_v.at(pfp.key()).size() > 0) {
+	outputVertex->push_back(*pfp_vertex_ao_assn_v.at(pfp.key()).at(0));
+	auto vtx_ptr = vtxPtrMaker(outputVertex->size()-1);
+	outPFPVtxAssns->addSingle(pfp_ptr,vtx_ptr);
+      }
       auto clusters = pfp_cluster_ao_assn_v.at(pfp.key());	  
       for (auto clu : clusters) {
 	outputCluster->push_back(*clu);
@@ -296,7 +298,7 @@ void NuSliceHitsProducerWithRecovery::produce(art::Event& e)
     //
   }
 
-  // std::cout << "slice_hit_ptr_v size=" << slice_hit_ptr_v.size() << std::endl;
+ // std::cout << "slice_hit_ptr_v size=" << slice_hit_ptr_v.size() << std::endl;
   // std::cout << "hit_cluster_v size=" << hit_cluster_v.size() << std::endl;
   // std::cout << "output hits at before=" << outputHits->size() << std::endl;
 
@@ -382,6 +384,7 @@ void NuSliceHitsProducerWithRecovery::produce(art::Event& e)
 	}
       }
     }
+    //
   }
 
   std::cout << "NuSliceHitProducer nhits=" << outputHits->size() << " nAssocHits=" << nAssocHits << " assns=" << outputHitPartAssns->size() << " foundNuSlice=" << foundNuSlice << std::endl;
