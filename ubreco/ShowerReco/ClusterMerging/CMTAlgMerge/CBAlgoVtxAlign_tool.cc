@@ -131,10 +131,11 @@ namespace clusmtool {
 	  std::cout << "New cluster @ Plane " << pl
 		    << "\t Nhits = " << nhits
 		    << "\t angle = " << cluster._angle << std::endl
+		    << "\t radius start / end = " << cluster._start_pt._r << " / " << cluster._end_pt._r << std::endl
 		    << "Current gamma00 angle : " << gamma_00.second.second << "\t gamma01 angle : " << gamma_01.second.second << std::endl;
 	}
 
-	if ( nhits > gamma_00.second.first ) {
+	if ( nhits > gamma_00.second.first && nhits > _min_nhits ) {
 	  if (_verbose) std::cout << "\t updating gamma00" << std::endl;
 	  gamma_00.second.first  = nhits; // update # of hits for largest cluster in plane
 	  gamma_00.second.second = angle; // update direction from PCA for largest cluster in plane
@@ -142,6 +143,7 @@ namespace clusmtool {
 	}
 	
 	if ( ( nhits > gamma_01.second.first ) &&
+	     ( nhits > _min_nhits ) &&
 	     ( fabs(angle-gamma_00.second.second ) > _min_gammagamma_oangle) &&
 	     ( gamma_00.second.second != 0 ) ) {
 	  if (_verbose) std::cout << "\t updating gamma01" << std::endl;
@@ -201,6 +203,7 @@ namespace clusmtool {
 	  std::cout << "new cluster with " << cluster.size()
 		    << " hits and angle " << clus_angle << std::endl
 		    << "\t angle small : " << angle_small << "\t angle large : " << angle_large
+		    << "\t merge with=" << merge_with
 		    << std::endl;
 	
 	// NOTE

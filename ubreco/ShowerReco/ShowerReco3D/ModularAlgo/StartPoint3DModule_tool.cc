@@ -56,7 +56,6 @@ namespace showerreco {
     */
     float minClusDist      =  999999 ;
     int worstPlane  = -1      ;
-    int planeTemp   =  0      ;
 
     if ( clusters.size() > 2 ) {
         for ( auto const & c : clusters ) {
@@ -64,10 +63,8 @@ namespace showerreco {
 
             if ( distTemp < minClusDist ) {
                 minClusDist = distTemp ;
-                worstPlane = planeTemp;
+                worstPlane = c._plane;
             }
-
-            planeTemp ++ ;
         }
     }
 
