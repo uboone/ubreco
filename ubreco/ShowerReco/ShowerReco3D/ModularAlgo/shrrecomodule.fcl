@@ -31,6 +31,11 @@ yplanestartpoint3d:
     tool_type: YPlaneStartPoint3D
 }
 
+bestplanestartpoint3d:
+{
+    tool_type: BestPlaneStartPoint3D
+}
+
 startpoint3dfromvtx:
 {
     tool_type: StartPoint3DfromVtx
@@ -68,7 +73,7 @@ dedxmodule:
 filtershowers:
 {
     tool_type: FilterShowers
-    anglecut: 25.
+    anglecut: 35.
 }
 
 
