@@ -64,7 +64,8 @@ private:
   bool fRecoverHighestNuScoreSlice;
   bool fRecover2ndShower;
   float fVtxDistCut2;
-  int fMaxHitCut;
+  size_t fMaxHitCutRecovery;
+  size_t fMaxHitCutTotal;
 };
 
 NuSliceHitsProducerWithRecovery::NuSliceHitsProducerWithRecovery(fhicl::ParameterSet const& p)
@@ -77,7 +78,8 @@ NuSliceHitsProducerWithRecovery::NuSliceHitsProducerWithRecovery(fhicl::Paramete
   , fRecoverHighestNuScoreSlice(p.get<bool>("RecoverHighestNuScoreSlice"))
   , fRecover2ndShower(p.get<bool>("Recover2ndShower"))
   , fVtxDistCut2(p.get<float>("VtxDistCut"))
-  , fMaxHitCut(p.get<int>("MaxHitCut"))
+  , fMaxHitCutRecovery(p.get<int>("MaxHitCutRecovery"))
+  , fMaxHitCutTotal(p.get<int>("MaxHitCutTotal"))
 // More initializers here.
 {
   fVtxDistCut2 *= fVtxDistCut2;
@@ -346,11 +348,11 @@ void NuSliceHitsProducerWithRecovery::produce(art::Event& e)
 	//
 	const std::vector< art::Ptr<recob::Cluster> > this_cluster_ptr_v = pfp_cluster_ao_assn_v.at( pfp_AO.key() );
 	//
-	int nhits = 0;
+	size_t nhits = 0;
 	for (auto cluster_ptr : this_cluster_ptr_v) nhits += cluster_hit_ao_assn_v.at( cluster_ptr.key() ).size();
 	//
 	//consider only showers, or tracks with a limited number of hits consistent with a pi0 shower
-	if (pfp_AO->PdgCode()==13 && nhits>fMaxHitCut) continue;
+	if (pfp_AO->PdgCode()==13 && nhits>fMaxHitCutRecovery) continue;
 	//
 	std::cout << "out-of-slice recovery: adding hits from this pfp pdg=" << pfp_AO->PdgCode() << " nhits=" << nhits
 		  << " vtx dist=" << std::sqrt( (nuvtx-pfvtx).Mag2() ) << std::endl;
@@ -385,6 +387,17 @@ void NuSliceHitsProducerWithRecovery::produce(art::Event& e)
       }
     }
     //
+  }
+
+  if (outputHits->size()>fMaxHitCutTotal) {
+    outputHits->clear();
+    outputPFP->clear();
+    outputVertex->clear();
+    outputCluster->clear();
+    outputHitPartAssns = std::make_unique<HitParticleAssociations>();
+    outPFPVtxAssns = std::make_unique<art::Assns<recob::PFParticle,recob::Vertex,void>>();
+    outPFPCluAssns = std::make_unique<art::Assns<recob::PFParticle,recob::Cluster,void>>();
+    outCluHitAssns = std::make_unique<art::Assns<recob::Cluster,recob::Hit,void>>();
   }
 
   std::cout << "NuSliceHitProducer nhits=" << outputHits->size() << " nAssocHits=" << nAssocHits << " assns=" << outputHitPartAssns->size() << " foundNuSlice=" << foundNuSlice << std::endl;
