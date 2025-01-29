@@ -1,7 +1,7 @@
 #include "services_microboone.fcl"
 #include "triggeralgo_service.fcl"
 #include "gaushitproximity.fcl"
-#include "blipreco_configs.fcl"
+#include "microboone_blipreco.fcl"
 
 process_name: TrackMasker
 
