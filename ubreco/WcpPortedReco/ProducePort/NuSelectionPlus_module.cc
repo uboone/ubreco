@@ -61,7 +61,7 @@ void nsm::NuSelectionPlus::produce(art::Event &e){
     std::string path(fInput_kdar);
     std::cout<<"KDAR INPUT FILE NAME: "<<fInput_kdar<<std::endl;
     fin_kdar.open(path.c_str(), std::ios::in);
-    if(!fin_kdar.good()) std::cout<<"KDAR INPUT FILE NOT FOUND!"<<std::endl;
+    if(!fin_kdar.good()){ std::cout<<"KDAR INPUT FILE NOT FOUND!"<<std::endl; kdar_gensel=false;}
   }
 
   std::string runno="";
@@ -88,11 +88,13 @@ void nsm::NuSelectionPlus::produce(art::Event &e){
 
 	if( runno != event_runinfo ) continue;
 
-        while(!fin_kdar.eof()){
-          fin_kdar >> runno_kdar >> lm_cluster_length;
+        if(kdar_gensel){
+          while(!fin_kdar.eof()){
+            fin_kdar >> runno_kdar >> lm_cluster_length;
 
-          if( runno_kdar != event_runinfo ) continue;
-          if(lm_cluster_length<10 && flag_low_energy==0) flag_low_energy=1;//Restores value to regular gensel when using KDAR gensel 
+            if( runno_kdar != event_runinfo ) continue;
+            if(lm_cluster_length<10 && flag_low_energy==0) flag_low_energy=1;//Restores value to regular gensel when using KDAR gensel 
+          }
         }
 
 	nsm::NuSelectionSTM nstm;
