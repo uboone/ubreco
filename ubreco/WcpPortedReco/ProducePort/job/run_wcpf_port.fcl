@@ -60,7 +60,8 @@ microboone_tfile_metadata:
 #physics.producers.wirecellPF.PFport: false #default: true
 source.inputCommands: [
 		        "keep *_*_*_*",
-			"drop sim::SimEnergyDeposits_largeant_*_*",
+                        "drop *_mixer_*_DataOverlay",
+			#"drop sim::SimEnergyDeposits_largeant_*_*",
 			"drop sim::SimChannels_largeant_*_*",
 			"drop sim::AuxDetSimChannel_*_*_*",
 			"drop raw::OpDetWaveform_pmtreadoutnonoise_*_OverlayDetsim",
