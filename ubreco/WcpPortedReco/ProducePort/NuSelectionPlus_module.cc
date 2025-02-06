@@ -77,7 +77,7 @@ void nsm::NuSelectionPlus::produce(art::Event &e){
   int flag_full_detector_dead=-1; 
   float cluster_length=-1.; 
 
-  float lm_cluster_length=99999;//Default >10 to preserve behavior if file is not found
+  float lm_cluster_length=-99999;//Default >10 to preserve behavior if file is not found
   std::string runno_kdar="";
 
   std::string event_runinfo = std::to_string((int)e.run())+"_"+std::to_string((int)e.subRun())+"_"+std::to_string((int)e.event());
