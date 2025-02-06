@@ -25,6 +25,9 @@ cet_report_compiler_flags(REPORT_THRESHOLD VERBOSE)
 find_package( ubevt REQUIRED EXPORT )
 find_package( ubcore REQUIRED EXPORT )
 find_package( larpandora REQUIRED EXPORT )
+find_package(larreco REQUIRED)
+find_package(nugen REQUIRED)
+find_package(nutools REQUIRED)
 
 cet_cmake_module_directories(Modules BINARY)
 
