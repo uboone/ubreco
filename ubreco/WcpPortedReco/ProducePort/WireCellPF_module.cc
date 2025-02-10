@@ -212,6 +212,7 @@ if(f_PFport){
   }
 }
 
+float numu_cc_flag;
 if(f_BDTport){
   auto outputBDTvars = std::make_unique< std::vector<nsm::NuSelectionBDT> >();
   if(badinput){
@@ -621,6 +622,25 @@ if(f_BDTport){
   std::vector<float> *ssmsp_containing_shower_id= new std::vector<float>;
   std::vector<float> *ssmsp_containing_shower_ke= new std::vector<float>;
   std::vector<float> *ssmsp_containing_shower_flag= new std::vector<float>;
+    //Kine vars
+  float ssm_kine_reco_Enu = 0.; // ssm_kinetic energy  + additional energy ...
+  float ssm_kine_reco_add_energy = 0.;  // mass, binding energy ...
+  std::vector<float> *ssm_kine_energy_particle = new std::vector<float>;  // energy of each particle
+  std::vector<int> *ssm_kine_energy_info = new std::vector<int>; // what kind of energy reconstruction?
+  std::vector<int> *ssm_kine_particle_type = new std::vector<int>;
+  std::vector<int> *ssm_kine_energy_included = new std::vector<int>; // included in the neutrino energy calculation?
+  float ssm_kine_pio_mass = 0.; // mass
+  int ssm_kine_pio_flag = 0; // 0 not filled, 1, with vertex: CCpio, 2 without vertex: NCpi0
+  float ssm_kine_pio_vtx_dis = 0.;
+  float ssm_kine_pio_energy_1 = 0.;
+  float ssm_kine_pio_theta_1 = 0.;
+  float ssm_kine_pio_phi_1 = 0.;
+  float ssm_kine_pio_dis_1 = 0.;
+  float ssm_kine_pio_energy_2 = 0.;
+  float ssm_kine_pio_theta_2 = 0.;
+  float ssm_kine_pio_phi_2 = 0.;
+  float ssm_kine_pio_dis_2 = 0.;
+  float ssm_kine_pio_angle = 0.;
 
   if(f_ssmBDT){
 
@@ -1022,7 +1042,28 @@ if(f_BDTport){
       tree3->SetBranchAddress("ssmsp_containing_shower_id", &ssmsp_containing_shower_id);
       tree3->SetBranchAddress("ssmsp_containing_shower_ke", &ssmsp_containing_shower_ke);
       tree3->SetBranchAddress("ssmsp_containing_shower_flag", &ssmsp_containing_shower_flag);
-  }
+    // Kine vars
+      if(f_KINEport){
+        tree3->SetBranchAddress("ssm_kine_reco_Enu", &ssm_kine_reco_Enu); // ssm_kinetic energy  + additional energy ...
+        tree3->SetBranchAddress("ssm_kine_reco_add_energy", &ssm_kine_reco_add_energy);  // mass, binding energy ...
+        tree3->SetBranchAddress("ssm_kine_energy_particle", &ssm_kine_energy_particle);  // energy of each particle
+        tree3->SetBranchAddress("ssm_kine_energy_info", &ssm_kine_energy_info); // what kind of energy reconstruction?
+        tree3->SetBranchAddress("ssm_kine_particle_type", &ssm_kine_particle_type);
+        tree3->SetBranchAddress("ssm_kine_energy_included", &ssm_kine_energy_included); // included in the neutrino energy calculation?
+        tree3->SetBranchAddress("ssm_kine_pio_mass", &ssm_kine_pio_mass); // mass
+        tree3->SetBranchAddress("ssm_kine_pio_flag", &ssm_kine_pio_flag); // 0 not filled, 1, with vertex: CCpio, 2 without vertex: NCpi0
+        tree3->SetBranchAddress("ssm_kine_pio_vtx_dis", &ssm_kine_pio_vtx_dis);
+        tree3->SetBranchAddress("ssm_kine_pio_energy_1", &ssm_kine_pio_energy_1);
+        tree3->SetBranchAddress("ssm_kine_pio_theta_1", &ssm_kine_pio_theta_1);
+        tree3->SetBranchAddress("ssm_kine_pio_phi_1", &ssm_kine_pio_phi_1);
+        tree3->SetBranchAddress("ssm_kine_pio_dis_1", &ssm_kine_pio_dis_1);
+        tree3->SetBranchAddress("ssm_kine_pio_energy_2", &ssm_kine_pio_energy_2);
+        tree3->SetBranchAddress("ssm_kine_pio_theta_2", &ssm_kine_pio_theta_2);
+        tree3->SetBranchAddress("ssm_kine_pio_phi_2", &ssm_kine_pio_phi_2);
+        tree3->SetBranchAddress("ssm_kine_pio_dis_2", &ssm_kine_pio_dis_2);
+        tree3->SetBranchAddress("ssm_kine_pio_angle", &ssm_kine_pio_angle);
+      }
+    }
 
   // single photon
   float shw_sp_num_mip_tracks;
@@ -2603,7 +2644,7 @@ if(f_BDTport){
 	  tree3->SetBranchAddress("cosmict_10_length",&cosmict_10_length);
 
 	  // numu tagger
-	  float numu_cc_flag;
+	  //float numu_cc_flag;
 	  std::vector<float> *numu_cc_flag_1= new std::vector<float>;
 	  std::vector<float> *numu_cc_1_particle_type= new std::vector<float>;
 	  std::vector<float> *numu_cc_1_length= new std::vector<float>;
@@ -3119,7 +3160,37 @@ if(f_BDTport){
           ssmsp_KE,
           ssmsp_containing_shower_id,
 	  ssmsp_containing_shower_ke,
-	  ssmsp_containing_shower_flag
+	  ssmsp_containing_shower_flag,
+          ssm_kine_reco_Enu,
+          ssm_kine_reco_add_energy,
+          ssm_kine_energy_particle,
+          ssm_kine_energy_info,
+          ssm_kine_particle_type,
+          ssm_kine_energy_included,
+          ssm_kine_pio_mass,
+          ssm_kine_pio_flag,
+          ssm_kine_pio_vtx_dis,
+          ssm_kine_pio_energy_1,
+          ssm_kine_pio_theta_1,
+          ssm_kine_pio_phi_1,
+          ssm_kine_pio_dis_1,
+          ssm_kine_pio_energy_2,
+          ssm_kine_pio_theta_2,
+          ssm_kine_pio_phi_2,
+          ssm_kine_pio_dis_2,
+          ssm_kine_pio_angle,
+          numu_cc_flag,
+	  cosmict_flag_1, // fiducial volume vertex
+          cosmict_flag_2,  // single muon
+          cosmict_flag_3,  // single muon (long)
+          cosmict_flag_4,  // kinematics muon
+          cosmict_flag_5, // kinematics muon (long)
+          cosmict_flag_6, // special ...
+          cosmict_flag_7,  // muon+ michel
+          cosmict_flag_8,  // muon + michel + special
+          cosmict_flag_9,  // this tagger is relevant for nueCC, see "cosmic tagger ones, one case of cosmics ..." (frist one ...)
+          cosmict_flag_10,  // front upstream (dirt)
+          cosmict_flag
   };
 
   nsm::NuSelectionBDT::SPID _SPID_init = {
@@ -4034,52 +4105,62 @@ if(f_BDTport){
 	  nue_score
   };
 
-  // set
-  nsmbdt.Setstkdar(_stkdar_init);
-  nsmbdt.SetSPID(_SPID_init);
-  nsmbdt.SetSPSHWID1(_SPSHWID1_init);
-  nsmbdt.SetSPSHWID2(_SPSHWID2_init);
-  nsmbdt.SetSPPi0Tagger1(_SPPi0Tagger1_init);
-  nsmbdt.SetSPLowEMichel(_SPLowEMichel_init);
-  nsmbdt.SetSPBadReco1(_SPBadReco1_init);
-  nsmbdt.SetSPBadReco2(_SPBadReco2_init);
-  nsmbdt.SetSPBadReco3(_SPBadReco3_init);
-  nsmbdt.SetSPBadReco4(_SPBadReco4_init);
-  nsmbdt.SetSPHighEoverlap(_SPHighEoverlap_init);
-  nsmbdt.SetSPLowEoverlap(_SPLowEoverlap_init);
-  nsmbdt.SetCosmicTagger(_CosmicTagger_init);
-  nsmbdt.SetGapID(_GapID_init);
-  nsmbdt.SetMipCheck(_MipCheck_init);
-  nsmbdt.SetMipID1(_MipID1_init);
-  nsmbdt.SetMipID2(_MipID2_init);
-  nsmbdt.SetPi0Tagger1(_Pi0Tagger1_init);
-  nsmbdt.SetPi0Tagger2(_Pi0Tagger2_init);
-  nsmbdt.SetMultiGamma1(_MultiGamma1_init);
-  nsmbdt.SetMultiGamma2(_MultiGamma2_init);
-  nsmbdt.SetSingleGamma1(_SingleGamma1_init);
-  nsmbdt.SetSingleGamma2(_SingleGamma2_init);
-  nsmbdt.SetStemLen(_StemLen_init);
-  nsmbdt.SetLowEMichel(_LowEMichel_init);
-  nsmbdt.SetBrokenMuon(_BrokenMuon_init);
-  nsmbdt.SetMuEnergy(_MuEnergy_init);
-  nsmbdt.SetShowerAngle(_ShowerAngle_init);
-  nsmbdt.SetBadStem(_BadStem_init);
-  nsmbdt.SetVtxInShw(_VtxInShw_init);
-  nsmbdt.SetBadReco1(_BadReco1_init);
-  nsmbdt.SetBadReco2(_BadReco2_init);
-  nsmbdt.SetBadReco3(_BadReco3_init);
-  nsmbdt.SetBadReco4(_BadReco4_init);
-  nsmbdt.SetTrackOverCluster(_TrackOverCluster_init);
-  nsmbdt.SetHighEoverlap(_HighEoverlap_init);
-  nsmbdt.SetLowEoverlap(_LowEoverlap_init);
-  nsmbdt.SetMajorCosmicTagger(_MajorCosmicTagger_init);
-  nsmbdt.SetNumuCCTagger(_NumuCCTagger_init);
-  nsmbdt.SetBDTscores(_BDTscores_init);
+  std::cout<<"T_tagger size: "<<tree3->GetEntries()<<std::endl;
+  if(tree3->GetEntries()==0){ std::cout<<"Empty T_tagger"<<std::endl;}
+  else{
 
+    // set
+    if(f_ssmBDT){ 
+      nsmbdt.Setstkdar(_stkdar_init); 
+    }
+    std::cout<<"numu_cc_flag "<<numu_cc_flag<<std::endl;
+    bool flag_fill_bdt = true;
+    if(numu_cc_flag<0){ flag_fill_bdt = false; }
+    if (flag_fill_bdt) {
+      nsmbdt.SetSPID(_SPID_init);
+      nsmbdt.SetSPSHWID1(_SPSHWID1_init);
+      nsmbdt.SetSPSHWID2(_SPSHWID2_init);
+      nsmbdt.SetSPPi0Tagger1(_SPPi0Tagger1_init);
+      nsmbdt.SetSPLowEMichel(_SPLowEMichel_init);
+      nsmbdt.SetSPBadReco1(_SPBadReco1_init);
+      nsmbdt.SetSPBadReco2(_SPBadReco2_init);
+      nsmbdt.SetSPBadReco3(_SPBadReco3_init);
+      nsmbdt.SetSPBadReco4(_SPBadReco4_init);
+      nsmbdt.SetSPHighEoverlap(_SPHighEoverlap_init);
+      nsmbdt.SetSPLowEoverlap(_SPLowEoverlap_init);
+      nsmbdt.SetCosmicTagger(_CosmicTagger_init);
+      nsmbdt.SetGapID(_GapID_init);
+      nsmbdt.SetMipCheck(_MipCheck_init);
+      nsmbdt.SetMipID1(_MipID1_init);
+      nsmbdt.SetMipID2(_MipID2_init);
+      nsmbdt.SetPi0Tagger1(_Pi0Tagger1_init);
+      nsmbdt.SetPi0Tagger2(_Pi0Tagger2_init);
+      nsmbdt.SetMultiGamma1(_MultiGamma1_init);
+      nsmbdt.SetMultiGamma2(_MultiGamma2_init);
+      nsmbdt.SetSingleGamma1(_SingleGamma1_init);
+      nsmbdt.SetSingleGamma2(_SingleGamma2_init);
+      nsmbdt.SetStemLen(_StemLen_init);
+      nsmbdt.SetLowEMichel(_LowEMichel_init);
+      nsmbdt.SetBrokenMuon(_BrokenMuon_init);
+      nsmbdt.SetMuEnergy(_MuEnergy_init);
+      nsmbdt.SetShowerAngle(_ShowerAngle_init);
+      nsmbdt.SetBadStem(_BadStem_init);
+      nsmbdt.SetVtxInShw(_VtxInShw_init);
+      nsmbdt.SetBadReco1(_BadReco1_init);
+      nsmbdt.SetBadReco2(_BadReco2_init);
+      nsmbdt.SetBadReco3(_BadReco3_init);
+      nsmbdt.SetBadReco4(_BadReco4_init);
+      nsmbdt.SetTrackOverCluster(_TrackOverCluster_init);
+      nsmbdt.SetHighEoverlap(_HighEoverlap_init);
+      nsmbdt.SetLowEoverlap(_LowEoverlap_init);
+      nsmbdt.SetMajorCosmicTagger(_MajorCosmicTagger_init);
+      nsmbdt.SetNumuCCTagger(_NumuCCTagger_init);
+      nsmbdt.SetBDTscores(_BDTscores_init);
+    }
 
-  outputBDTvars->push_back(nsmbdt);
-
+    outputBDTvars->push_back(nsmbdt);
   }
+  }//end if(tree3)
   else {
     mf::LogError("WireCellPF") <<"TTree "<< fInput_tree3 <<" not found in file " << fInput <<"\n";
   }
@@ -4161,8 +4242,9 @@ if(f_KINEport){
 		  kine_pio_dis_2,
 		  kine_pio_angle
 	  };
-
-	  nsmkine.SetKineInfo(_KineInfo_init);
+          bool flag_fill_kine = true;
+          if(numu_cc_flag<0 && f_BDTport){ flag_fill_kine = false; }
+          if (flag_fill_kine) { nsmkine.SetKineInfo(_KineInfo_init); }
 	  outputKINEvars->push_back(nsmkine);
 
   }
