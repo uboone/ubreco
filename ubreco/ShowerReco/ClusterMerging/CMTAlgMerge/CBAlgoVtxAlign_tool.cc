@@ -4,6 +4,9 @@
 #include <iostream>
 #include "ubreco/ShowerReco/ClusterMerging/CMToolBase/CBoolAlgoBase.h"
 
+#include <Eigen/Dense>
+#include <cmath>
+
 namespace clusmtool {
 
   /**
@@ -38,12 +41,14 @@ namespace clusmtool {
   protected:
 
     float ClusterDistance(const ::cluster::Cluster& c1, const ::cluster::Cluster& c2);
+    float ComputeClusterPCA(const ::cluster::Cluster& c);
 
     float _max_angle_diff_merge;
     float _min_gammagamma_oangle;
     float _max_merge_dist; // fraction of length of larger shower
     size_t _min_nhits;
 
+    bool _run_shower_merge_algo;
   };
 
   //----------------------------------------
@@ -52,6 +57,7 @@ namespace clusmtool {
   {
     _name = "CBAlgoVtxAlgin";
     configure(pset);
+
   }
 
   void CBAlgoVtxAlign::configure(const fhicl::ParameterSet& pset)
@@ -63,6 +69,7 @@ namespace clusmtool {
     _pair_wise             = pset.get<bool >("pair_wise");
     _merge_till_converge   = pset.get<bool >("mergetillconverge");
     _verbose               = pset.get<bool> ("verbose",false);
+    _run_shower_merge_algo = pset.get<bool> ("run_shower_merge_algo",true);
 
     std::cout << "DD \t MIN NHITS "  << _min_nhits << std::endl;
     std::cout << "DD \t verbose is " << _verbose   << std::endl;
@@ -186,7 +193,7 @@ namespace clusmtool {
 	if (cluster.size() < _min_nhits) continue;
 	
 	// don't merge cluster with itself!
-	if ( (clus.first == gamma_00.first) || (clus.first == gamma_01.first) ) continue;
+	if ( (clus.first == gamma_00.first) || ((clus.first == gamma_01.first) && (gammaangle_01 != 0)) ) continue;
 	
 	// find cluster with respect to which angle is smaller
 	double angle_small = fabs(clus_angle - gammaangle_00);
@@ -211,10 +218,11 @@ namespace clusmtool {
 	// when gammaangle_01 is undefined the angle_large requirement may cause
 	// merging not to happen when it really should
 	
+	// Now the IF statements are fixed!
 	if (merge_with == 0) {
 	  if ( (angle_small < _max_angle_diff_merge) and
 	       (gammaangle_00 != 0) and
-	       (angle_large > _min_gammagamma_oangle) ){
+	       ((angle_large > _min_gammagamma_oangle) || (gammaangle_01 == 0)) ){
 	    if ( ClusterDistance(cluster, gammacluster_00) > _max_merge_dist * gammacluster_00.Length() ) continue;
 	    indices_to_merge_00.push_back( clus_idx );
 	    if (_verbose) std::cout << "MERGE WITH 00" << std::endl;
@@ -249,7 +257,97 @@ namespace clusmtool {
 	for (auto const& idx : indices_to_merge_01) indices_to_merge_v.push_back( idx );
 	merge_result.push_back( indices_to_merge_v );
       }
-	
+
+      // merging the start of the shower with its trunk
+      if (_verbose) std::cout << "merge_result size: " << merge_result.size() << std::endl;
+      if ( (gamma_00.second.second == 0) || (gamma_01.second.second == 0) ) continue;
+      size_t gamma00_idx = gamma_00.first;
+      size_t gamma01_idx = gamma_01.first;
+
+      size_t gammastart_idx = gamma00_idx;
+      size_t gammatrunk_idx = gamma01_idx;
+      if (clus_v.at(gamma00_idx)._start_pt._r > clus_v.at(gamma01_idx)._start_pt._r){
+        gammastart_idx = gamma01_idx;
+        gammatrunk_idx = gamma00_idx;
+      }
+      bool gamma00isstart = (gammastart_idx == gamma00_idx);
+      bool gamma01isstart = (gammastart_idx == gamma01_idx);
+      bool gamma00istrunk = (gammatrunk_idx == gamma00_idx);
+      bool gamma01istrunk = (gammatrunk_idx == gamma01_idx);
+      float starttrunk_dist = std::sqrt(
+        pow((clus_v.at(gammastart_idx)._end_pt._w - clus_v.at(gammatrunk_idx)._start_pt._w), 2) +
+        pow((clus_v.at(gammastart_idx)._end_pt._t - clus_v.at(gammatrunk_idx)._start_pt._t), 2));
+
+      // compute cluster PCA angle
+      float anglePCA_gamma00 = ComputeClusterPCA(clus_v.at(gamma00_idx));
+      float anglePCA_gamma01 = ComputeClusterPCA(clus_v.at(gamma01_idx));
+      float diff_anglePCA = fabs(anglePCA_gamma00 - anglePCA_gamma01);
+
+      if (_verbose) {
+        std::cout<<std::endl;
+        std::cout<<"****************************************"<<std::endl;
+        std::cout<<"Plane:\t"<<pl<<std::endl;
+        std::cout<<"\t\tgamma00\t\t"<<"gamma01"<<std::endl;
+        std::cout<<"n hits:\t\t"<<clus_v.at(gamma00_idx).size()<<"\t\t"
+                                <<clus_v.at(gamma01_idx).size()<<std::endl;
+        std::cout<<"start w:\t" <<clus_v.at(gamma00_idx)._start_pt._w<<"\t\t"
+                                <<clus_v.at(gamma01_idx)._start_pt._w<<std::endl;
+        std::cout<<"start t:\t" <<clus_v.at(gamma00_idx)._start_pt._t<<"\t\t"
+                                <<clus_v.at(gamma01_idx)._start_pt._t<<std::endl;
+        std::cout<<"end w:\t\t" <<clus_v.at(gamma00_idx)._end_pt._w<<"\t\t"
+                                <<clus_v.at(gamma01_idx)._end_pt._w<<std::endl;
+        std::cout<<"end t:\t\t" <<clus_v.at(gamma00_idx)._end_pt._t<<"\t\t"
+                                <<clus_v.at(gamma01_idx)._end_pt._t<<std::endl;
+        std::cout<<"start r:\t" <<clus_v.at(gamma00_idx)._start_pt._r<<"\t\t"
+                                <<clus_v.at(gamma01_idx)._start_pt._r<<std::endl;
+        std::cout<<"end r:\t\t" <<clus_v.at(gamma00_idx)._end_pt._r<<"\t\t"
+                                <<clus_v.at(gamma01_idx)._end_pt._r<<std::endl;
+        std::cout<<"is start:\t"<<gamma00isstart<<"\t\t"<<gamma01isstart<<std::endl;
+        std::cout<<"is trunk:\t"<<gamma00istrunk<<"\t\t"<<gamma01istrunk<<std::endl;
+        std::cout<<"start to trunk dist:\t" << starttrunk_dist << std::endl;
+        std::cout<<"angle:\t\t" <<clus_v.at(gamma00_idx)._angle<<"\t\t"
+                                <<clus_v.at(gamma01_idx)._angle<<std::endl;
+        std::cout<<"anglePCA:\t"<<anglePCA_gamma00<<"\t\t"
+                                <<anglePCA_gamma01<<std::endl;
+        std::cout<<"angle span min:\t"<<clus_v.at(gamma00_idx)._angle_span._amin<<"\t\t"
+                                      <<clus_v.at(gamma01_idx)._angle_span._amin<<std::endl;
+        std::cout<<"angle span max:\t"<<clus_v.at(gamma00_idx)._angle_span._amax<<"\t\t"
+                                      <<clus_v.at(gamma01_idx)._angle_span._amax<<std::endl;
+        std::cout<<"****************************************"<<std::endl;
+        std::cout<<std::endl;
+      }
+
+      if (_run_shower_merge_algo) {
+        //if ( (clus_v.at(gamma00_idx)._start_pt._r < 5) || (clus_v.at(gamma01_idx)._start_pt._r < 5) )
+        if ((starttrunk_dist < 10 && diff_anglePCA < 15) or (starttrunk_dist < 20 && diff_anglePCA < 10)) {
+
+          if(_verbose) std::cout << "need to merge gamma00 and gamma01: starttrunk_dist = " << starttrunk_dist << std::endl;
+          if ( (indices_to_merge_00.size() == 0) && (indices_to_merge_01.size() == 0) ) {
+            merge_result.push_back( std::vector<size_t> {gamma00_idx, gamma01_idx} );
+          }
+          else {
+            std::vector<size_t> indices_to_merge {gamma_00.first, gamma_01.first};
+            indices_to_merge.insert(indices_to_merge.end(), indices_to_merge_00.begin(), indices_to_merge_00.end());
+            indices_to_merge.insert(indices_to_merge.end(), indices_to_merge_01.begin(), indices_to_merge_01.end());
+            if ( (indices_to_merge_00.size() != 0) ^ (indices_to_merge_01.size() != 0) ) {
+              merge_result.pop_back();
+            }
+            else if ( (indices_to_merge_00.size() != 0) && (indices_to_merge_01.size() != 0) ) {
+              merge_result.pop_back();
+              merge_result.pop_back();
+            }
+            merge_result.push_back(indices_to_merge);
+          }
+          if(_verbose){
+            std::cout << "merge_result size: " << merge_result.size() << std::endl;
+            std::cout << "identified " << merge_result.back().size() <<
+            " clusters (including gamma00 and gamma01) to merge together " << std::endl;
+          }
+
+        }
+      }
+
+
     }// for all 3 planes
 
 
@@ -274,6 +372,75 @@ namespace clusmtool {
     if (c2._start_pt._r > c1._end_pt._r) return c2._start_pt._r - c1._end_pt._r;
 
     return -1;
+  }
+
+  // compute cluster PCA angle
+  float CBAlgoVtxAlign::ComputeClusterPCA(const ::cluster::Cluster& c) {
+
+    auto hits = c.GetHits();
+
+    float sumWeights = 0;
+    float xx = 0;
+    float yy = 0;
+    float xy = 0;
+
+    float sum_charge = 0;
+
+    float ShowerCentre_c[2] = {0,0};
+    for (auto const& ht : hits) {
+      ShowerCentre_c[0] += ht._w*ht._q;
+      ShowerCentre_c[1] += ht._t*ht._q;
+      sum_charge += ht._q;
+    }
+    for (int i=0; i<2; i++) ShowerCentre_c[i] *= (1. / sum_charge);
+    Eigen::Vector2f ShowerCenter(ShowerCentre_c[0], ShowerCentre_c[1]);
+
+    for (auto const& ht : hits) {
+      float wht = 1;
+      wht *= std::sqrt(ht._q / sum_charge);
+
+      // Normalise the hit point position.
+      Eigen::Vector2f ht_pos(ht._w, ht._t);
+      auto const ht_pos_norm = ht_pos - ShowerCenter;
+
+      xx += ht_pos_norm.x() * ht_pos_norm.x() * wht;
+      yy += ht_pos_norm.y() * ht_pos_norm.y() * wht;
+      xy += ht_pos_norm.x() * ht_pos_norm.y() * wht;
+      sumWeights += wht;
+    }
+
+    // Using Eigen package
+    Eigen::Matrix2f matrix;
+
+    // Construct covariance matrix
+    matrix << xx, xy, xy, yy;
+
+    // Normalise from the sum of weights
+    matrix /= sumWeights;
+
+    // Run the PCA
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix2f> eigenMatrix(matrix);
+
+    // Eigen::Vector2f eigenValuesVector = eigenMatrix.eigenvalues();
+    Eigen::Matrix2f eigenVectorsMatrix = eigenMatrix.eigenvectors();
+    Eigen::Vector2f primaryEigenVector = eigenVectorsMatrix.col(1);
+
+    Eigen::Vector2f StartToEnd(c._end_pt._w-c._start_pt._w, c._end_pt._t-c._start_pt._t);
+    float dotProd = primaryEigenVector.dot(StartToEnd);
+    float mag_vec_A = primaryEigenVector.norm();
+    float mag_vec_B = StartToEnd.norm();
+    float cos_dir = dotProd / (mag_vec_A * mag_vec_B);
+
+    float PCA = 0;
+    //If the PCA axis is opposite to the shower cluster direction, flip the PCA axis.
+    if (cos_dir >= 0) {PCA = std::atan2(primaryEigenVector.y(), primaryEigenVector.x());}
+    else {PCA = std::atan2(-primaryEigenVector.y(), -primaryEigenVector.x());}
+    float PCAdegrees = PCA * 180.0 / M_PI;
+
+    float anglePCA = PCAdegrees + 180.0;
+
+    return anglePCA;
+
   }
 
 DEFINE_ART_CLASS_TOOL(CBAlgoVtxAlign)  

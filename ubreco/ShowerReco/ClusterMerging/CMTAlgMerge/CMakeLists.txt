@@ -22,6 +22,7 @@ cet_build_plugin(
   CBAlgoVtxAlign uboone_tool::CBoolAlgoBase
   LIBRARIES
   PRIVATE
+  Eigen3::Eigen
 )
 
 install_fhicl()
