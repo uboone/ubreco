@@ -623,24 +623,24 @@ if(f_BDTport){
   std::vector<float> *ssmsp_containing_shower_ke= new std::vector<float>;
   std::vector<float> *ssmsp_containing_shower_flag= new std::vector<float>;
     //Kine vars
-  float ssm_kine_reco_Enu; // ssm_kinetic energy  + additional energy ...
-  float ssm_kine_reco_add_energy;  // mass, binding energy ...
+  float ssm_kine_reco_Enu = 0.; // ssm_kinetic energy  + additional energy ...
+  float ssm_kine_reco_add_energy = 0.;  // mass, binding energy ...
   std::vector<float> *ssm_kine_energy_particle = new std::vector<float>;  // energy of each particle
   std::vector<int> *ssm_kine_energy_info = new std::vector<int>; // what kind of energy reconstruction?
   std::vector<int> *ssm_kine_particle_type = new std::vector<int>;
   std::vector<int> *ssm_kine_energy_included = new std::vector<int>; // included in the neutrino energy calculation?
-  float ssm_kine_pio_mass; // mass
-  int ssm_kine_pio_flag; // 0 not filled, 1, with vertex: CCpio, 2 without vertex: NCpi0
-  float ssm_kine_pio_vtx_dis;
-  float ssm_kine_pio_energy_1;
-  float ssm_kine_pio_theta_1;
-  float ssm_kine_pio_phi_1;
-  float ssm_kine_pio_dis_1;
-  float ssm_kine_pio_energy_2;
-  float ssm_kine_pio_theta_2;
-  float ssm_kine_pio_phi_2;
-  float ssm_kine_pio_dis_2;
-  float ssm_kine_pio_angle;
+  float ssm_kine_pio_mass = 0.; // mass
+  int ssm_kine_pio_flag = 0; // 0 not filled, 1, with vertex: CCpio, 2 without vertex: NCpi0
+  float ssm_kine_pio_vtx_dis = 0.;
+  float ssm_kine_pio_energy_1 = 0.;
+  float ssm_kine_pio_theta_1 = 0.;
+  float ssm_kine_pio_phi_1 = 0.;
+  float ssm_kine_pio_dis_1 = 0.;
+  float ssm_kine_pio_energy_2 = 0.;
+  float ssm_kine_pio_theta_2 = 0.;
+  float ssm_kine_pio_phi_2 = 0.;
+  float ssm_kine_pio_dis_2 = 0.;
+  float ssm_kine_pio_angle = 0.;
 
   if(f_ssmBDT){
 
