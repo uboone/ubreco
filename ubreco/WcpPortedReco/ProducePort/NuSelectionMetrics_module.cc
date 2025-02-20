@@ -87,6 +87,8 @@ void nsm::NuSelectionMetrics::produce(art::Event &e){
   float match_completeness=-1., match_completeness_energy=-1., match_purity=-1., match_purity_xy=-1., match_purity_xz=-1., match_charge=-1., match_energy=-1.;
   unsigned int match_type=0;
   bool match_isFC=false, match_isTgm=false, match_notFC_FV=false, match_notFC_SP=false, match_notFC_DC=false;
+  float lm_cluster_length=-999;
+  bool image_fail=false;
 
   tin->SetBranchAddress("run",&run);
   tin->SetBranchAddress("subrun",&subrun);
@@ -104,7 +106,10 @@ void nsm::NuSelectionMetrics::produce(art::Event &e){
   tin->SetBranchAddress("match_notFC_DC",&match_notFC_DC);
   tin->SetBranchAddress("match_charge",&match_charge);
   tin->SetBranchAddress("match_energy",&match_energy);
-
+  if(tin->GetBranch("lm_cluster_length")){
+    tin->SetBranchAddress("lm_cluster_length",&lm_cluster_length);
+    tin->SetBranchAddress("image_fail",&image_fail);
+  }
   if(fMC==true){
     tin->SetBranchAddress("truth_nuEnergy",&truth_nuEnergy);
     tin->SetBranchAddress("truth_energyInside",&truth_energyInside);
@@ -147,6 +152,8 @@ void nsm::NuSelectionMetrics::produce(art::Event &e){
     nsc.SetNotFCDC( match_notFC_DC );
     nsc.SetCharge( match_charge );
     nsc.SetEnergy( match_energy );
+    nsc.SetLength( lm_cluster_length );
+    nsc.SetImageFail( image_fail );
     outputNscontainmentVec->push_back( nsc );
 
     if(fMC==true){

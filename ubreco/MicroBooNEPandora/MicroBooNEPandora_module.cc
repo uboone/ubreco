@@ -6,6 +6,8 @@
 
 #include "art/Framework/Core/ModuleMacros.h"
 #include "art/Framework/Principal/Event.h"
+#include "canvas/Persistency/Common/FindManyP.h"
+#include "messagefacility/MessageLogger/MessageLogger.h"
 
 #include "Api/PandoraApi.h"
 
