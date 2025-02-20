@@ -14,8 +14,8 @@ ShrReco3D: {
         Algo0: @local::filterpfpart
         Algo1: @local::angle3dfromvtxqweighted
         #Algo2: @local::startpointfromy2d
-        #Algo2: @local::yplanestartpoint3d
-        Algo2: @local::bestplanestartpoint3d
+        Algo2: @local::yplanestartpoint3d
+        #Algo2: @local::bestplanestartpoint3d
         Algo3: @local::linearenergy
         Algo4: @local::dedxmodule
         Algo5: @local::filllength
