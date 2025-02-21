@@ -190,7 +190,7 @@ void StoreFlashMatchChi2::produce(art::Event& e)
   float elifetime  = elifetimeCalibProvider.Lifetime(); // [ms]
   float driftvelocity = detprop.DriftVelocity(); // [cm/us] 
   
-  std::cout << "LIFETIMECORRECTION [StoreFlashMatchChi2] lifetime is : " << elifetime << " [ms] and drift velocity is " << driftvelocity << " [cm/us]" << std::endl;
+  //std::cout << "LIFETIMECORRECTION [StoreFlashMatchChi2] lifetime is : " << elifetime << " [ms] and drift velocity is " << driftvelocity << " [cm/us]" << std::endl;
   // implementing electron lifetime correction [D. Caratelli 08/12/2022]
   //--------------------------------------------------------------------
   
@@ -324,7 +324,7 @@ void StoreFlashMatchChi2::produce(art::Event& e)
 	  //------------------------------------------------------
 	  // implement lifetime correction [D. Caratelli 08/12/22]
 	  float lifetimecorrection = exp( (position[0]) / (elifetime * driftvelocity * 1000.0));
-	  std::cout << "LIFETIMECORRECTION [StoreFlashMatchChi2] : " << lifetimecorrection << std::endl;
+	  //std::cout << "LIFETIMECORRECTION [StoreFlashMatchChi2] : " << lifetimecorrection << std::endl;
 	  // implement lifetime correction [D. Caratelli 08/12/22]
 	  //------------------------------------------------------	    
 
