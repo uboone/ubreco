@@ -477,11 +477,13 @@ void ShrReco3D::SaveShower(detinfo::DetectorClocksData const& detClocks,
   for (auto h : hit_v) hit_ptr_v.push_back(h);
   spsalg->makeSpacePoints(detClocks, detProperties, hit_ptr_v, spts);
   for (auto sp : spts) {
-    SpacePoint_v->push_back(sp);
-    art::Ptr<recob::SpacePoint> const SpsPtr = SpacePointPtrMaker(SpacePoint_v->size()-1);
-    Shower_Sps_assn_v->addSingle( ShrPtr, SpsPtr );
     art::PtrVector<recob::Hit> hits = spsalg->getAssociatedHits(sp);
     for (auto hp : hits) {
+      //make sure we have one sps for each hit, as that is what Pandora does
+      SpacePoint_v->push_back(sp);
+      art::Ptr<recob::SpacePoint> const SpsPtr = SpacePointPtrMaker(SpacePoint_v->size()-1);
+      Shower_Sps_assn_v->addSingle( ShrPtr, SpsPtr );
+      //
       Sps_Hit_assn_v->addSingle( SpsPtr, hp );
     }
   }
