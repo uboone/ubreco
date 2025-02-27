@@ -95,6 +95,7 @@
         <InputClusterListNameV>ClustersV</InputClusterListNameV>
         <InputClusterListNameW>ClustersW</InputClusterListNameW>
         <OutputPfoListName>MuonParticles3D</OutputPfoListName>
+        <NMaxTensorToolRepeats>100</NMaxTensorToolRepeats>
         <TrackTools>
             <tool type = "LArClearTracks"/>
             <tool type = "LArLongTracks"/>
@@ -114,6 +115,7 @@
         <InputClusterListNameV>ClustersV</InputClusterListNameV>
         <InputClusterListNameW>ClustersW</InputClusterListNameW>
         <OutputPfoListName>MuonParticles3D</OutputPfoListName>
+        <NMaxTensorToolRepeats>100</NMaxTensorToolRepeats>
         <TrackTools>
             <tool type = "LArClearLongitudinalTracks"/>
             <tool type = "LArMatchedEndPoints"/>
@@ -125,6 +127,7 @@
         <InputClusterListNameV>ClustersV</InputClusterListNameV>
         <InputClusterListNameW>ClustersW</InputClusterListNameW>
         <OutputPfoListName>MuonParticles3D</OutputPfoListName>
+        <NMaxTensorToolRepeats>100</NMaxTensorToolRepeats>
         <TrackTools>
             <tool type = "LArClearTrackFragments"/>
         </TrackTools>
@@ -322,3 +325,4 @@
         <CurrentPfoListReplacement>MuonParticles3D</CurrentPfoListReplacement>
     </algorithm>
 </pandora>
+

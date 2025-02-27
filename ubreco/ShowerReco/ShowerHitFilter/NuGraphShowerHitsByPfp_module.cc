@@ -189,7 +189,7 @@ void NuGraphShowerHitsByPfp::produce(art::Event & e)
   for (size_t j=0; j<hit_pfp_v_v.size(); j++) {
     auto hit_pfp_v = hit_pfp_v_v[j];
     unsigned int lbl[5] = {0,0,0,0,0};
-    //std::cout << "pfp pdg=" << pfp_ptr_v[j]->PdgCode() << " primary=" << pfp_ptr_v[j]->IsPrimary() << " nhits="<< hit_pfp_v.size()<< std::endl;
+    std::cout << "pfp pdg=" << pfp_ptr_v[j]->PdgCode() << " primary=" << pfp_ptr_v[j]->IsPrimary() << " nhits="<< hit_pfp_v.size()<< std::endl;
     if (hit_pfp_v.size()==0) continue;
     for (auto hit_ptr : hit_pfp_v) {
       auto scores = hitsWithScores[hit_ptr.key()].get<anab::FeatureVector<5>>();    
@@ -198,11 +198,12 @@ void NuGraphShowerHitsByPfp::produce(art::Event & e)
       unsigned int sem_label = arg_max(ng2semscores);
       lbl[sem_label]++;
     }
+    std::cout << "label counts=" << lbl[0] << " " << lbl[1] << " " << lbl[2] << " " << lbl[3] << " " << lbl[4] << std::endl;
     if (lbl[2]<lbl[0] || lbl[2]<lbl[1] || lbl[2]<lbl[3] || lbl[2]<lbl[4]) continue;
     for (auto hit_ptr : hit_pfp_v) {
       Hit_v->emplace_back(*hit_ptr);
     }
-    //std::cout << "to be removed" << std::endl;
+    std::cout << "to be removed" << std::endl;
     outputPFP->push_back(*pfp_ptr_v[j]);
   }
 

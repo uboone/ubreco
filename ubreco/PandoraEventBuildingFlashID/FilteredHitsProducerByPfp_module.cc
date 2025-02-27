@@ -26,6 +26,7 @@
 #include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RecoBase/Slice.h"
 #include "lardataobj/RecoBase/Cluster.h"
+#include "lardataobj/RecoBase/Vertex.h"
 #include "lardataobj/RecoBase/PFParticle.h"
 #include "lardataobj/AnalysisBase/MVAOutput.h"
 
@@ -91,6 +92,7 @@ void FilteredHitsProducerByPfp::produce(art::Event& e)
 
   auto const& pfp_h = e.getValidHandle<std::vector<recob::PFParticle> >(fPfpLabel);
   art::FindManyP<recob::Cluster> pfp_cluster_assn_v(pfp_h, e, fPfpLabel);
+  art::FindManyP<recob::Vertex> pfp_vertex_assn_v(pfp_h, e, fPfpLabel);
   auto const& cluster_h = e.getValidHandle<std::vector<recob::Cluster> >(fPfpLabel);
   art::FindManyP<recob::Hit> cluster_hit_assn_v(cluster_h, e, fPfpLabel);
 
@@ -101,8 +103,18 @@ void FilteredHitsProducerByPfp::produce(art::Event& e)
   // Step 2: Fill vector of clustered slice hits
   std::vector<std::vector<art::Ptr<recob::Hit>>> hit_pfp_v_v;
   std::vector<art::Ptr<recob::Hit>> hit_cluster_v;
+  recob::tracking::Point_t nuvtx;
+  std::vector<art::Ptr<recob::Vertex>> vtx_pfp_v;
   for (unsigned int p=0; p < pfp_h->size(); p++){
     const art::Ptr<recob::PFParticle> pfp_ptr(pfp_h, p);
+    const std::vector< art::Ptr<recob::Vertex> > this_vertex_ptr_v = pfp_vertex_assn_v.at( pfp_ptr.key() );
+    if (pfp_ptr->PdgCode()==12 || pfp_ptr->PdgCode()==14) {
+      nuvtx = this_vertex_ptr_v[0]->position();
+      continue;
+    } else {
+      if (this_vertex_ptr_v.size()>0) vtx_pfp_v.push_back(this_vertex_ptr_v[0]);
+      else vtx_pfp_v.push_back(art::Ptr<recob::Vertex>());
+    }
     std::vector<art::Ptr<recob::Hit>> hit_pfp_v;
     const std::vector< art::Ptr<recob::Cluster> > this_cluster_ptr_v = pfp_cluster_assn_v.at( pfp_ptr.key() );
     for (auto cluster_ptr : this_cluster_ptr_v) {
@@ -139,6 +151,7 @@ void FilteredHitsProducerByPfp::produce(art::Event& e)
   for (size_t j=0; j<hit_pfp_v_v.size(); j++) {
     auto hit_pfp_v = hit_pfp_v_v[j];
     unsigned int pass = 0, fail = 0;
+    unsigned int hips = 0;
     if (hit_pfp_v.size()==0) continue;
     for (auto hit_ptr : hit_pfp_v) {
       if (ngFiltOutputHandle->at(hit_ptr.key()).at(0)>=fScoreCut) {
@@ -146,8 +159,15 @@ void FilteredHitsProducerByPfp::produce(art::Event& e)
       } else {
 	fail++;
       }
+      if (ngSemtOutputHandle->at(hit_ptr.key()).at(1)>0.5) hips++;//fixme
     }
-    if ( pass < ((pass+fail)*fFracCut) ) continue;
+    // std::cout << "pass=" << pass << " fail=" << fail << " hips=" << hips
+    // 	      << " dr=" << std::sqrt((vtx_pfp_v[j]->position()-nuvtx).Mag2())
+    // 	      << " nuvtx=" << nuvtx
+    // 	      << " vtx=" << vtx_pfp_v[j]->position()
+    // 	      << std::endl;
+    // keep if pass is above cut. Include also a protection to keep protons at vertex
+    if ( pass < ((pass+fail)*fFracCut) && (vtx_pfp_v[j].isNull() || (hips < ((pass+fail)*fFracCut) || (vtx_pfp_v[j]->position()-nuvtx).Mag2()>1.0)) ) continue;
     for (auto hit_ptr : hit_pfp_v) {
       outputHits->emplace_back(*hit_ptr);
       semtcol->emplace_back(ngSemtOutputHandle->at(hit_ptr.key()));
