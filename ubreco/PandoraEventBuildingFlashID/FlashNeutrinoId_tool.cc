@@ -1262,7 +1262,7 @@ bool FlashNeutrinoId::SliceCandidate::IsInUpperDet(double y_up)
 {
 
     const art::ServiceHandle<geo::Geometry> geometry;
-    if (y_up > geometry->TPC().HalfHeight() - mm_UP)
+    if (y_up > geometry->TPC().ActiveHalfHeight() - mm_UP)
     {
         return true;
     }
@@ -1276,7 +1276,7 @@ bool FlashNeutrinoId::SliceCandidate::IsInLowerDet(double y_down)
 {
 
     const art::ServiceHandle<geo::Geometry> geometry;
-    if (y_down < -geometry->TPC().HalfHeight() + mm_DOWN)
+    if (y_down < -geometry->TPC().ActiveHalfHeight() + mm_DOWN)
     {
         return true;
     }
@@ -1694,9 +1694,9 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByDirMCS(const PFParticleVecto
             {
                 const art::Ptr<recob::Track> this_track = particlesToTracks.at(pfp).front();
 
-                auto InFV = [&tpc, bnd](recob::tracking::Point_t p) -> bool { return (p.X() > bnd && p.X() < (2. * tpc.HalfWidth() - bnd) &&
-                                                                                      p.Y() > (-tpc.HalfHeight() + bnd) && p.Y() < (tpc.HalfHeight() - bnd) &&
-                                                                                      p.Z() > bnd && p.Z() < (tpc.Length() - bnd)); };
+                auto InFV = [&tpc, bnd](recob::tracking::Point_t p) -> bool { return (p.X() > bnd && p.X() < (2. * tpc.ActiveHalfWidth() - bnd) &&
+                                                                                      p.Y() > (-tpc.ActiveHalfHeight() + bnd) && p.Y() < (tpc.ActiveHalfHeight() - bnd) &&
+                                                                                      p.Z() > bnd && p.Z() < (tpc.ActiveLength() - bnd)); };
 
                 bool vtx_contained = InFV(this_track->Vertex());
                 bool end_contained = InFV(this_track->End());
@@ -1755,9 +1755,9 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
 
     // Declare fiducial volume - need this for later (copied from RejectStopMuByDirMCS above)
     auto InFV = [&tpc, bnd](geo::Point_t const& p) -> bool {
-                  return p.X() > bnd && p.X() < (2. * tpc.HalfWidth() - bnd) and
-                         p.Y() > (-tpc.HalfHeight() + bnd) && p.Y() < (tpc.HalfHeight() - bnd) and
-                         p.Z() > bnd && p.Z() < (tpc.Length() - bnd);
+                  return p.X() > bnd && p.X() < (2. * tpc.ActiveHalfWidth() - bnd) and
+                         p.Y() > (-tpc.ActiveHalfHeight() + bnd) && p.Y() < (tpc.ActiveHalfHeight() - bnd) and
+                         p.Z() > bnd && p.Z() < (tpc.ActiveLength() - bnd);
                 };
 
     // Configure cosmic tag manager
@@ -1888,9 +1888,9 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
     // First exclude spacepoints outside the tpc
     //
     std::vector<art::Ptr<recob::SpacePoint>> temp;
-    ::geoalgo::AABox tpcvol(0., (-1.) * tpc.HalfHeight(),
-                            0., tpc.HalfWidth() * 2,
-                            tpc.HalfHeight(), tpc.Length());
+    ::geoalgo::AABox tpcvol(0., (-1.) * tpc.ActiveHalfHeight(),
+                            0., tpc.ActiveHalfWidth() * 2,
+                            tpc.ActiveHalfHeight(), tpc.ActiveLength());
 
     for (auto s : sp_v)
     {
@@ -1928,9 +1928,9 @@ void FlashNeutrinoId::SliceCandidate::RejectStopMuByCalo(const PFParticleVector 
     double z = highest_point.Z();
     constexpr double e = std::numeric_limits<double>::epsilon();
 
-    highest_point.SetX(std::clamp(x, e, 2. * tpc.HalfWidth() - e));
-    highest_point.SetY(std::clamp(y, -tpc.HalfWidth() + e, tpc.HalfWidth() - e));
-    highest_point.SetZ(std::clamp(z, e, tpc.Length() - e));
+    highest_point.SetX(std::clamp(x, e, 2. * tpc.ActiveHalfWidth() - e));
+    highest_point.SetY(std::clamp(y, -tpc.ActiveHalfWidth() + e, tpc.ActiveHalfWidth() - e));
+    highest_point.SetZ(std::clamp(z, e, tpc.ActiveLength() - e));
 
     // Create an approximate start hit on plane 0
     auto const& channelMapAlg = art::ServiceHandle<geo::WireReadout const>()->Get();
