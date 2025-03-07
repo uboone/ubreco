@@ -90,7 +90,7 @@ physics:
 
  #trigger_paths is a keyword and contains the paths that modify the art::event, 
  #ie filters and producers
- #trigger_paths: [reco] 
+ trigger_paths: [reco]
 
  #end_paths is a keyword and contains the paths that do not modify the art::Event, 
  #ie analyzers and output streams.  these all run simultaneously
@@ -134,8 +134,8 @@ outputs:
  out1:
  {
    module_type: RootOutput
-   fileName:    "showerreco_full.root"
-   dataTier:    "reco"
+   fileName:    "%ifb_showerreco.root"
+   dataTier:    "reconstructed"
    compressionLevel: 1
    }
 }

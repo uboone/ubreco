@@ -161,10 +161,10 @@ void FilteredHitsProducerByPfp::produce(art::Event& e)
       }
       if (ngSemtOutputHandle->at(hit_ptr.key()).at(1)>0.5) hips++;//fixme
     }
-    // std::cout << "pass=" << pass << " fail=" << fail << " hips=" << hips
+    // if (vtx_pfp_v[j].isNull()) std::cout << "pass=" << pass << " fail=" << fail << " hips=" << hips << std::endl;
+    // else std::cout << "pass=" << pass << " fail=" << fail << " hips=" << hips
     // 	      << " dr=" << std::sqrt((vtx_pfp_v[j]->position()-nuvtx).Mag2())
-    // 	      << " nuvtx=" << nuvtx
-    // 	      << " vtx=" << vtx_pfp_v[j]->position()
+    // 	      << " nuvtx=" << nuvtx << " vtx=" << vtx_pfp_v[j]->position()
     // 	      << std::endl;
     // keep if pass is above cut. Include also a protection to keep protons at vertex
     if ( pass < ((pass+fail)*fFracCut) && (vtx_pfp_v[j].isNull() || (hips < ((pass+fail)*fFracCut) || (vtx_pfp_v[j]->position()-nuvtx).Mag2()>1.0)) ) continue;
