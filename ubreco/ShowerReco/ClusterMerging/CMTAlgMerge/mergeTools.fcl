@@ -22,7 +22,7 @@ merge_cbalgovtxalign:
  mergetillconverge: true
  pair_wise: false
  verbose: false
- run_shower_merge_algo: false
+ run_shower_merge_algo: true
 }
 
 merge_cbalgopolar:

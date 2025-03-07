@@ -476,6 +476,7 @@ void ShrReco3D::SaveShower(detinfo::DetectorClocksData const& detClocks,
   art::PtrVector<recob::Hit> hit_ptr_v;
   for (auto h : hit_v) hit_ptr_v.push_back(h);
   spsalg->makeSpacePoints(detClocks, detProperties, hit_ptr_v, spts);
+  if (spts.size()==0) std::cout << "ERROR - ZERO SPS" << std::endl;
   for (auto sp : spts) {
     art::PtrVector<recob::Hit> hits = spsalg->getAssociatedHits(sp);
     for (auto hp : hits) {
