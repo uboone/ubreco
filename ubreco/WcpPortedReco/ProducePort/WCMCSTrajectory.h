@@ -353,7 +353,7 @@ Track get_seg (Track track, std::vector<double> axis, double seg_length) {
 //segFitVector will store the value of the pca fit for the seg
 //segCOM will store the center of mass for the seg
 //PointProj variables store info on where to start and end the segments
-void fitSegPCA(Track &track, std::vector<double> aAxis, Track &seg, std::vector<std::vector<double>> &segFitVector, std::vector<double> &segCOM,
+bool fitSegPCA(Track &track, std::vector<double> aAxis, Track &seg, std::vector<std::vector<double>> &segFitVector, std::vector<double> &segCOM,
                double seg_length, double &currentFirstPointProj, double &currentLastPointProj){
   //setup
   seg.points.clear();
@@ -372,6 +372,7 @@ void fitSegPCA(Track &track, std::vector<double> aAxis, Track &seg, std::vector<
 
   //fill seg with points
   seg = get_seg(track_buffer, aAxis, seg_length);
+  if (seg.N<=1) { return false; }
 
   //run PCA on the segment and orient along aAxis
   std::vector<double> eigenvalues;
@@ -388,6 +389,7 @@ void fitSegPCA(Track &track, std::vector<double> aAxis, Track &seg, std::vector<
 
   //re-determine what points belong in the segment based on new u-vector
   seg = get_seg(track_buffer, segFitVector[0], seg_length);
+  if (seg.N<=1) { return false; }
 
   //refit and orient along aAxis
   segFitVector = fitPCA(seg, segCOM, eigenvalues);
@@ -404,7 +406,7 @@ void fitSegPCA(Track &track, std::vector<double> aAxis, Track &seg, std::vector<
   //remove points from original track
   comparator.sort_points(seg.points, aAxis);
   track.remove_seg(seg.points.front(),seg.N);
-	
+  return true;
 }
 
 //Helper function to track the largest and smallest track positions along the b and c axis for setting up graph bounds
@@ -535,20 +537,14 @@ std::tuple< std::vector<Track>, std::vector<std::vector<double>>, std::vector<st
     seg_vec.push_back(Track());
 
     //Form and fit 14 cm seg with pcafit, update currentFirstPointProj, currentLastPointProj
-    fitSegPCA(track_remainder, aAxis, seg_vec.back(), segPCAFit_vec.back(), segCOM_vec.back(), seg_length, currentFirstPointProj, currentLastPointProj);
+    bool can_fit = fitSegPCA(track_remainder, aAxis, seg_vec.back(), segPCAFit_vec.back(), segCOM_vec.back(), seg_length, currentFirstPointProj, currentLastPointProj);
+    if (!can_fit) { break; } 
     segs_aAxis_vec.push_back(segPCAFit_vec.back()[0]);
     distance_vec.push_back((currentFirstPointProj+currentLastPointProj)/2 - dot(muon_start,aAxis));
 
     //get 3D angle between tracks and 2D projection angles
-    if(iseg==0){
-      angle_vec.push_back(-1);
-      angleProjB_vec.push_back(-1);
-      angleProjC_vec.push_back(-1);
-    } else{ setSegAngles(segPCAFit_vec[iseg-1], segs_aAxis_vec.back(), angle_vec, angleProjB_vec, angleProjC_vec); }
-
-    //Get RMS value for points along a fit segment
-    //double rms = getSegRMS(seg_vec.back(),segs_aAxis_vec.back(),segCOM_vec.back());
-    //displacement_vec.push_back(rms);
+    if (iseg==0) { angle_vec.push_back(-1); angleProjB_vec.push_back(-1); angleProjC_vec.push_back(-1); }
+    else         { setSegAngles(segPCAFit_vec[iseg-1], segs_aAxis_vec.back(), angle_vec, angleProjB_vec, angleProjC_vec); }
 
     iseg++;
   }

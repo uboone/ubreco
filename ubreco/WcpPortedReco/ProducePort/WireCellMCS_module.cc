@@ -97,8 +97,6 @@ WireCellMCS::WireCellMCS(fhicl::ParameterSet const & p) : EDProducer{p}
   produces<std::vector<double>>();
 
   reconfigure(p);
-  setUKEfromRR();
-  setUKEfromEX(uKEfromRR, uRRfromKE);
   std::cout << "Done WireCellMCS constructor" << std::endl;
 }
 
@@ -126,14 +124,19 @@ void WireCellMCS::writeOutput(art::Event &e) {
 //clean up allocated memory
 void WireCellMCS::cleanUp()
 {
-  delete uKEfromRR;
-  delete uRRfromKE;
-  delete uKEfromEX;
+  uKEfromRR = nullptr;
+  uRRfromKE = nullptr;
+  uKEfromEX = nullptr;
 }
 
 void WireCellMCS::produce(art::Event &e){
 
   std::cout << "Begin WireCellMCS::produce" << std::endl;
+
+  //Create graphs mapping between residual range and energy
+  setUKEfromRR();
+  setUKEfromEX(uKEfromRR, uRRfromKE);
+
   //prepare outputs
   mu_tracklen   = -1;
   emu_tracklen  = -1;
@@ -162,6 +165,7 @@ void WireCellMCS::produce(art::Event &e){
       }
     }
   }
+  std::cout << "here 1" << std::endl;
 
   //skip events without a reco muon
   if (reco_emu==-1) {
@@ -180,6 +184,7 @@ void WireCellMCS::produce(art::Event &e){
   bool bad_path                                            = std::get<0>(trajectory_tuple);
   std::vector<std::vector<double>> trajectory_points_final = std::get<1>(trajectory_tuple);
   int npoints_trajectory_final = trajectory_points_final.size();
+  std::cout << "here 2" << std::endl;
 
   //compute residual range and emu_rr
   double rr_path = 0;
@@ -195,6 +200,7 @@ void WireCellMCS::produce(art::Event &e){
     writeOutput(e);
     return;
   }
+  std::cout << "here 3" << std::endl;
 
   //segment path
   std::cout << "Segmenting muon path" << std::endl;
@@ -216,6 +222,7 @@ void WireCellMCS::produce(art::Event &e){
     cleanUp();
     return;
   }
+  std::cout << "here 4" << std::endl;
 
   //Get the x-component of each segment fit vector
   std::vector<double> vx_components;
