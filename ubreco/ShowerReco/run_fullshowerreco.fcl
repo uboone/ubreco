@@ -5,6 +5,9 @@
 #include "shrreco3d.fcl"
 #include "proximityclustering.fcl"
 #include "cosmicfilter.fcl"
+#include "acpttrig.fcl"
+#include "calorimetry_microboone.fcl"
+#include "flash_neutrino_id.fcl"
 
 process_name: ShowerReco3D
 
@@ -12,12 +15,13 @@ services:
 {
   scheduler:               { defaultExceptions: false }    # Make all uncaught exceptions fatal.
   # Load the service that manages root files for histograms.
-  TFileService:            { fileName: "showerreco_ana.root" }
+  TFileService:            { fileName: "showerreco_hist_ana.root" }
   TimeTracker:             {}
   #MemoryTracker:           { ignoreTotal: 1 } # default is one
   RandomNumberGenerator:   {} #ART native random number generator
   message:                 @local::microboone_message_services_prod_debug
   FileCatalogMetadata:     @local::art_file_catalog_mc
+  PhotonVisibilityService:    @local::microboone_photonvisibilityservice
   @table::microboone_services_reco
 }
 
@@ -69,13 +73,16 @@ physics:
   cmatcher     : @local::ClusterMatcher
   showerreco3d : @local::ShrReco3D
   pandora : { module_type: NuSliceReBuilderProducer }
+  pandoracaloSCE: @local::microboone_calodata
+  acpttrigtagger: @local::ACPTtrig
+  flashmatch: @local::FlashMatch
  }
  analyzers:
  { 
 }
 
  #reco: [ rns, ophit, opflash, simpleFlash, opflashfilter ]
- reco: [ nugraphshowerhits, neutrinovertex, proximity, cmerger, cmatcher, showerreco3d, pandora ]
+ reco: [ nugraphshowerhits, neutrinovertex, proximity, cmerger, cmatcher, showerreco3d, pandora, pandoracaloSCE, acpttrigtagger, flashmatch ]
  ana: [ ]
 
  #define the output stream, there could be more than one if using filters 
@@ -109,6 +116,11 @@ Vtxproducer: "neutrinovertex"
 }
 
 physics.producers.showerreco3d.ADCtoE: [245.,252.,237.6] # e-/ADC
+
+physics.producers.pandoracaloSCE.TrackModuleLabel:         "pandora"
+physics.producers.pandoracaloSCE.SpacePointModuleLabel:    "pandora"
+physics.producers.pandoracaloSCE.CorrectSCE:               true
+physics.producers.pandoracaloSCE.CaloAlg.CalAreaConstants: [4.31e-3, 4.02e-3, 4.10e-3]
 
 #physics.producers.cosmicfilter.VtxProducer: "ccvertex"
 #physics.producers.proximity.VtxProducer:    "ccvertex"

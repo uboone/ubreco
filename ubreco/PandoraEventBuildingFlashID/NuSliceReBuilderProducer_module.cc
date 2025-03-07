@@ -208,6 +208,16 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
       recob::PFParticle pfp_copy = recob::PFParticle(pfp->PdgCode(),0,std::numeric_limits<size_t>::max(),std::vector< size_t >());
       nu_pfp_idx = outputPFP->size();
       outputPFP->push_back(pfp_copy);
+      //
+      art::Ptr<recob::PFParticle> pfp_ptr = pfpPtrMaker(outputPFP->size()-1);
+      auto pfmetas = inputPndrPFPMetAssns->at(pfp.key());
+      for (auto pfm : pfmetas) {
+	// for (auto pfmm : pfm->GetPropertiesMap()) std::cout << " nu slice " << pfmm.first << " " << pfmm.second << std::endl;
+	outputPFMeta->push_back(*pfm);
+	auto pfm_ptr = pfmetaPtrMaker(outputPFMeta->size()-1);
+	outPFPMetAssns->addSingle(pfp_ptr,pfm_ptr);
+      }
+      //
     } else {
       //skip pfparticles with no space points, they will have invalid track pointers
       if (inputPndrPFPSpsAssns->at(pfp.key()).size()==0 || inputPndrPFPTrkAssns->at(pfp.key()).isAvailable()==0) continue;
@@ -373,13 +383,12 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
   }
 
   //now we need to update the neutrino pfp
-  if (nu_pfp_idx<std::numeric_limits<size_t>::max()) {
+  if (nu_pfp_idx < std::numeric_limits<size_t>::max()) {
     std::vector<size_t> daughters;
     for (size_t d=1;d<outputPFP->size();d++) daughters.push_back(d);
     outputPFP->at(nu_pfp_idx) = recob::PFParticle(outputPFP->at(nu_pfp_idx).PdgCode(),0,std::numeric_limits<size_t>::max(),daughters);
   } else {
-    std::cout << "something is wrong here" << std::endl;
-    assert(0);
+    std::cout << "no neutrino slice found" << std::endl;
   }
 
   //review pfps

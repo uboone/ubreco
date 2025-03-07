@@ -9,7 +9,7 @@
 cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 
 find_package(cetmodules REQUIRED)
-project(ubreco VERSION 10.04.00 LANGUAGES CXX)
+project(ubreco VERSION 10.04.04 LANGUAGES CXX)
 
 include(CetCMakeEnv)
 cet_cmake_env()
@@ -28,6 +28,7 @@ find_package( larpandora REQUIRED EXPORT )
 find_package(larreco REQUIRED)
 find_package(nugen REQUIRED)
 find_package(nutools REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 cet_cmake_module_directories(Modules BINARY)
 

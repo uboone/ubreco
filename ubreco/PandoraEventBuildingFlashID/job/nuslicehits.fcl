@@ -11,7 +11,8 @@ nuslhits_mc:
   RecoverHighestNuScoreSlice: false
   Recover2ndShower: false
   VtxDistCut: 100.
-  MaxHitCut: 200
+  MaxHitCutRecovery: 200
+  MaxHitCutTotal: 20000
 }
 
 nuslhits_data: @local::nuslhits_mc

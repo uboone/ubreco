@@ -64,7 +64,8 @@ private:
   bool fRecoverHighestNuScoreSlice;
   bool fRecover2ndShower;
   float fVtxDistCut2;
-  int fMaxHitCut;
+  size_t fMaxHitCutRecovery;
+  size_t fMaxHitCutTotal;
 };
 
 NuSliceHitsProducerWithRecovery::NuSliceHitsProducerWithRecovery(fhicl::ParameterSet const& p)
@@ -77,7 +78,8 @@ NuSliceHitsProducerWithRecovery::NuSliceHitsProducerWithRecovery(fhicl::Paramete
   , fRecoverHighestNuScoreSlice(p.get<bool>("RecoverHighestNuScoreSlice"))
   , fRecover2ndShower(p.get<bool>("Recover2ndShower"))
   , fVtxDistCut2(p.get<float>("VtxDistCut"))
-  , fMaxHitCut(p.get<int>("MaxHitCut"))
+  , fMaxHitCutRecovery(p.get<int>("MaxHitCutRecovery"))
+  , fMaxHitCutTotal(p.get<int>("MaxHitCutTotal"))
 // More initializers here.
 {
   fVtxDistCut2 *= fVtxDistCut2;
@@ -86,7 +88,9 @@ NuSliceHitsProducerWithRecovery::NuSliceHitsProducerWithRecovery(fhicl::Paramete
   produces<std::vector<recob::Hit>>();
   if (!fHitTruthLabel.empty()) produces<HitParticleAssociations>();
   produces<std::vector<recob::PFParticle>>();
+  produces<std::vector<recob::Vertex>>();
   produces<std::vector<recob::Cluster>>();
+  produces<art::Assns<recob::PFParticle,recob::Vertex,void>>();
   produces<art::Assns<recob::PFParticle,recob::Cluster,void>>();
   produces<art::Assns<recob::Cluster,recob::Hit,void>>();
 
@@ -102,12 +106,15 @@ void NuSliceHitsProducerWithRecovery::produce(art::Event& e)
   auto outputHits = std::make_unique<std::vector<recob::Hit>>();
   auto outputHitPartAssns = std::make_unique<HitParticleAssociations>();
   auto outputPFP        = std::make_unique<std::vector<recob::PFParticle>>();
+  auto outputVertex    = std::make_unique<std::vector<recob::Vertex>>();
+  auto outPFPVtxAssns = std::make_unique<art::Assns<recob::PFParticle,recob::Vertex,void>>();
   auto outputCluster    = std::make_unique<std::vector<recob::Cluster>>();
   auto outPFPCluAssns = std::make_unique<art::Assns<recob::PFParticle,recob::Cluster,void>>();
   auto outCluHitAssns = std::make_unique<art::Assns<recob::Cluster,recob::Hit,void>>();
 
   art::PtrMaker<recob::Hit> hitPtrMaker(e);
   art::PtrMaker<recob::Cluster> cluPtrMaker(e);
+  art::PtrMaker<recob::Vertex> vtxPtrMaker(e);
   art::PtrMaker<recob::PFParticle> pfpPtrMaker(e);
 
   auto const& inputSlice = e.getValidHandle<std::vector<recob::Slice>>(fSliceLabel);
@@ -163,9 +170,21 @@ void NuSliceHitsProducerWithRecovery::produce(art::Event& e)
 	  }
 	}
 	//
-      } else {
 	outputPFP->push_back(*pfp);
 	art::Ptr<recob::PFParticle> pfp_ptr = pfpPtrMaker(outputPFP->size()-1);
+	outputVertex->push_back(*assocPfpVertex.at(pfp.key()).at(0));
+	auto vtx_ptr = vtxPtrMaker(outputVertex->size()-1);
+	outPFPVtxAssns->addSingle(pfp_ptr,vtx_ptr);
+	//
+      } else {
+	//std::cout << "ipfp self=" << pfp->Self() << " primary=" << pfp->IsPrimary() << " pdg=" << pfp->PdgCode() << " nvtx=" << assocPfpVertex.at(pfp.key()).size() << " nclu=" << assocPfpCluster.at(pfp.key()).size() << std::endl;
+	outputPFP->push_back(*pfp);
+	art::Ptr<recob::PFParticle> pfp_ptr = pfpPtrMaker(outputPFP->size()-1);
+	if (assocPfpVertex.at(pfp.key()).size() > 0) {
+	  outputVertex->push_back(*assocPfpVertex.at(pfp.key()).at(0));
+	  auto vtx_ptr = vtxPtrMaker(outputVertex->size()-1);
+	  outPFPVtxAssns->addSingle(pfp_ptr,vtx_ptr);
+	}
 	auto clusters = assocPfpCluster.at(pfp.key());	  
 	for (auto clu : clusters) {
 	  outputCluster->push_back(*clu);
@@ -250,6 +269,11 @@ void NuSliceHitsProducerWithRecovery::produce(art::Event& e)
     for (auto pfp : bestSlicePFPs_AO) {
       outputPFP->push_back(*pfp);
       art::Ptr<recob::PFParticle> pfp_ptr = pfpPtrMaker(outputPFP->size()-1);
+      if (pfp_vertex_ao_assn_v.at(pfp.key()).size() > 0) {
+	outputVertex->push_back(*pfp_vertex_ao_assn_v.at(pfp.key()).at(0));
+	auto vtx_ptr = vtxPtrMaker(outputVertex->size()-1);
+	outPFPVtxAssns->addSingle(pfp_ptr,vtx_ptr);
+      }
       auto clusters = pfp_cluster_ao_assn_v.at(pfp.key());	  
       for (auto clu : clusters) {
 	outputCluster->push_back(*clu);
@@ -276,7 +300,7 @@ void NuSliceHitsProducerWithRecovery::produce(art::Event& e)
     //
   }
 
-  // std::cout << "slice_hit_ptr_v size=" << slice_hit_ptr_v.size() << std::endl;
+ // std::cout << "slice_hit_ptr_v size=" << slice_hit_ptr_v.size() << std::endl;
   // std::cout << "hit_cluster_v size=" << hit_cluster_v.size() << std::endl;
   // std::cout << "output hits at before=" << outputHits->size() << std::endl;
 
@@ -324,17 +348,20 @@ void NuSliceHitsProducerWithRecovery::produce(art::Event& e)
 	//
 	const std::vector< art::Ptr<recob::Cluster> > this_cluster_ptr_v = pfp_cluster_ao_assn_v.at( pfp_AO.key() );
 	//
-	int nhits = 0;
+	size_t nhits = 0;
 	for (auto cluster_ptr : this_cluster_ptr_v) nhits += cluster_hit_ao_assn_v.at( cluster_ptr.key() ).size();
 	//
 	//consider only showers, or tracks with a limited number of hits consistent with a pi0 shower
-	if (pfp_AO->PdgCode()==13 && nhits>fMaxHitCut) continue;
+	if (pfp_AO->PdgCode()==13 && nhits>fMaxHitCutRecovery) continue;
 	//
 	std::cout << "out-of-slice recovery: adding hits from this pfp pdg=" << pfp_AO->PdgCode() << " nhits=" << nhits
 		  << " vtx dist=" << std::sqrt( (nuvtx-pfvtx).Mag2() ) << std::endl;
 	//
 	outputPFP->push_back(*pfp_AO);
 	art::Ptr<recob::PFParticle> pfp_ptr = pfpPtrMaker(outputPFP->size()-1);
+	outputVertex->push_back(*pfp_vertex_ao_assn_v.at(pfp_AO.key()).at(0));
+	auto vtx_ptr = vtxPtrMaker(outputVertex->size()-1);
+	outPFPVtxAssns->addSingle(pfp_ptr,vtx_ptr);
 	//
 	for (auto cluster_ptr : this_cluster_ptr_v) {
 	  outputCluster->push_back(*cluster_ptr);
@@ -359,12 +386,26 @@ void NuSliceHitsProducerWithRecovery::produce(art::Event& e)
 	}
       }
     }
+    //
+  }
+
+  if (outputHits->size()>fMaxHitCutTotal) {
+    outputHits->clear();
+    outputPFP->clear();
+    outputVertex->clear();
+    outputCluster->clear();
+    outputHitPartAssns = std::make_unique<HitParticleAssociations>();
+    outPFPVtxAssns = std::make_unique<art::Assns<recob::PFParticle,recob::Vertex,void>>();
+    outPFPCluAssns = std::make_unique<art::Assns<recob::PFParticle,recob::Cluster,void>>();
+    outCluHitAssns = std::make_unique<art::Assns<recob::Cluster,recob::Hit,void>>();
   }
 
   std::cout << "NuSliceHitProducer nhits=" << outputHits->size() << " nAssocHits=" << nAssocHits << " assns=" << outputHitPartAssns->size() << " foundNuSlice=" << foundNuSlice << std::endl;
   e.put(std::move(outputHits));
   if (!fHitTruthLabel.empty()) e.put(std::move(outputHitPartAssns));
   e.put(std::move(outputPFP));
+  e.put(std::move(outputVertex));
+  e.put(std::move(outPFPVtxAssns));
   e.put(std::move(outputCluster));
   e.put(std::move(outPFPCluAssns));
   e.put(std::move(outCluHitAssns));

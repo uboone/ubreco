@@ -76,6 +76,12 @@ cet_build_plugin(
 )
 
 cet_build_plugin(
+  BestPlaneStartPoint3D uboone_tool::ShowerRecoModuleBase
+  LIBRARIES
+  PRIVATE
+)
+
+cet_build_plugin(
   dEdxModule uboone_tool::ShowerRecoModuleBase
   LIBRARIES
   PRIVATE

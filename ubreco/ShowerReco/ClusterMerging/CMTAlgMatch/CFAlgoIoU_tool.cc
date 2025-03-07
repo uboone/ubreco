@@ -66,11 +66,25 @@ namespace clusmtool {
 
 
 
-    // if 3 clusters -> skip
-    if (clusters.size() != 2) return -1;
+    // // if 3 clusters -> skip
+    // if (clusters.size() != 2) return -1;
 
-    // require collection plane
-    if ( (clusters[0]->_plane != 2) && (clusters[1]->_plane != 2) ) return -1;
+    if (clusters.size()==3) {
+      std::vector<const cluster::Cluster*> vec01 = {clusters[0],clusters[1]};
+      float score01 = this->Float(vec01);
+      if (score01<0.) return -1.;
+      std::vector<const cluster::Cluster*> vec02 = {clusters[0],clusters[2]};
+      float score02 = this->Float(vec02);
+      if (score02<0.) return -1.;
+      std::vector<const cluster::Cluster*> vec12 = {clusters[1],clusters[2]};
+      float score12 = this->Float(vec12);
+      if (score12<0.) return -1.;
+
+      return score01+score02+score12;
+    }
+
+    // // require collection plane
+    // if ( (clusters[0]->_plane != 2) && (clusters[1]->_plane != 2) ) return -1;
 
     if ( (clusters[0]->size() < 10) || (clusters[1]->size() < 10) ) return -1;
 

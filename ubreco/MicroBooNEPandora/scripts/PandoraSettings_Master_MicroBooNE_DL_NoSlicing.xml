@@ -18,10 +18,10 @@
         <ShowDetector>true</ShowDetector>
     </algorithm>
 
-    <algorithm type = "MicroBooNEMaster">
+    <algorithm type = "MicroBooNEDLMaster">
         <CRSettingsFile>PandoraSettings_Cosmic_MicroBooNE.xml</CRSettingsFile>
-        <NuSettingsFile>PandoraSettings_Neutrino_MicroBooNE.xml</NuSettingsFile>
-        <SlicingSettingsFile>PandoraSettings_Slicing_MicroBooNE.xml</SlicingSettingsFile>
+        <NuSettingsFile>PandoraSettings_Neutrino_MicroBooNE_DL.xml</NuSettingsFile>
+        <SlicingSettingsFile>PandoraSettings_Slicing_MicroBooNE_NoSlicing.xml</SlicingSettingsFile>
         <StitchingTools>
             <tool type = "LArStitchingCosmicRayMerging"><ThreeDStitchingMode>true</ThreeDStitchingMode></tool>
             <tool type = "LArStitchingCosmicRayMerging"><ThreeDStitchingMode>false</ThreeDStitchingMode></tool>
@@ -47,5 +47,4 @@
         <ShowCurrentPfos>true</ShowCurrentPfos>
         <ShowDetector>true</ShowDetector>
     </algorithm>
-
 </pandora>

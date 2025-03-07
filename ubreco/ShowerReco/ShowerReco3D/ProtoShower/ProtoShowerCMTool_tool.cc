@@ -84,6 +84,7 @@ namespace protoshower {
       ::protoshower::ProtoShower proto_shower;
       proto_shower.Reset();
 
+      proto_shower._index = p;
       const recob::PFParticle pfp = pfp_h->at(p);
 
       // associated clusters
