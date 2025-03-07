@@ -1,9 +1,0 @@
-BEGIN_PROLOG
-
-wirecellmcs: {
-  module_type: "WireCellMCS"
-  wirecellPF:  true
-  PF_inputtag: "wirecellPF"
-}
-
-END_PROLOG

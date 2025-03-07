@@ -79,6 +79,9 @@ private:
   bool f_wirecellPF;
   std::string fPFInputTag;
   std::string fportedWCSpacePointsTrecchargeblobLabel;
+  double res_sigma1_xz, res_sigma2_xz;
+  std::vector<double> res_sigma1_yz, res_sigma2_yz, par_sigma1_xz, par_sigma2_xz, par_ratio_xz;
+  std::vector<std::vector<double>> par_sigma1_yz, par_sigma2_yz, par_ratio_yz;
 
   //internal variables
   TGraph* uKEfromRR;
@@ -108,11 +111,47 @@ void WireCellMCS::reconfigure(fhicl::ParameterSet const& pset)
   //TODO: include this info in a fhicl file
   //fportedWCSpacePointsTrecchargeblobLabel = pset.get<std::string>("portedWCSpacePointsTrecchargeblob");
   fportedWCSpacePointsTrecchargeblobLabel = "portedWCSpacePointsTrecchargeblob";
+
+  //Double Gaussian tune parameters
+  res_sigma1_xz = pset.get<double>("MCS_res_sigma1_xz");
+  res_sigma2_xz = pset.get<double>("MCS_res_sigma2_xz");
+  par_sigma1_xz = pset.get<std::vector<double>>("MCS_par_sigma1_xz");
+  par_sigma2_xz = pset.get<std::vector<double>>("MCS_par_sigma2_xz");
+  par_ratio_xz  = pset.get<std::vector<double>>("MCS_par_ratio_xz");
+  res_sigma1_yz = pset.get<std::vector<double>>("MCS_res_sigma1_yz");
+  res_sigma2_yz = pset.get<std::vector<double>>("MCS_res_sigma2_yz");
+  par_sigma1_yz = pset.get<std::vector<std::vector<double>>>("MCS_par_sigma1_yz");
+  par_sigma2_yz = pset.get<std::vector<std::vector<double>>>("MCS_par_sigma2_yz");
+  par_ratio_yz  = pset.get<std::vector<std::vector<double>>>("MCS_par_ratio_yz");
+  /*
+  res_sigma1_xz = 0.005776;
+  res_sigma2_xz = 0.01821;
+  par_sigma1_xz = { -0.449144931, 0.793132642, -1.291292240, 0.536765147, -0.084910516, 0.146304242 };
+  par_sigma2_xz = {  0.562850793, 0.118940108,  0.000625509, 0,           -0.000000100, 1.217639251 };
+  par_ratio_xz  = {  0.839684805, 0.839684805,  0, 0 };
+  res_sigma1_yz = { 0.0449, 0.0206,  0.01403, 0.0131,  0.0114  };
+  res_sigma2_yz = { 0.1506, 0.06154, 0.03965, 0.04179, 0.07347 };
+  par_sigma1_yz = {{ -1.0,         -0.084325217,  0.487240052,  0.395496655, -0.187184874, 0.166128734 },
+                   {  0.0,         -0.575280374,  0.070151974,  0.187260875, -0.099717108, 0.160128002 },
+                   { -0.153367057, -0.583042532,  0.983374136, -0.712652874,  0.134743902, 0.465439107 },
+                   { -0.268993212,  0.103899779, -0.588953942,  0.282356661, -0.067930741, 0.176282668 },
+                   { -0.2,         -0.724028910,  0.660065851, -0.327141529,  0.038426745, 0.094357571 }};
+  par_sigma2_yz = {{  0.193250363,  3.046073125,  15.0,        -7.519451962, -1.0,         0.5         },
+                   {  2.226214634, -5.407245785,  7.227026554, -2.411882646, -0.000001517, 0.224728907 },
+                   {  0.25,         1.670060693, -2.086639043,  1.122640876,  0.000000440, 0.268340031 },
+                   {  0.430965414, -0.079204912,  0.220949488, -0.000010000, -0.000010000, 0.3         },
+                   {  1.635001641, -2.414781711,  1.669221724, -0.320484259,  0.0,         0.157018001 }};
+  par_ratio_yz  = {{  0.519230936,  1.0,          1.663982350,  0.084218766 },
+                   {  0.7,          0.788705752,  5.0,          2.045055158 },
+                   {  0.822433461,  0.701381849,  5.0,          0.0         },
+                   {  0.897408009,  0.7,          2.182533745,  0.297834161 },
+                   {  0.9,          0.9,          0.0,          0.0         }};
+  */
 }
 
 //save output variables
 void WireCellMCS::writeOutput(art::Event &e) {
-  std::cout << "E_RR, E_MCS = " << emu_tracklen << ",  " << emu_MCS << std::endl;
+  //std::cout << "E_RR, E_MCS = " << emu_tracklen << ",  " << emu_MCS << std::endl;
   auto outputs = std::make_unique<std::vector<double>>();
   outputs->push_back( mu_tracklen);
   outputs->push_back(emu_tracklen);
@@ -165,7 +204,6 @@ void WireCellMCS::produce(art::Event &e){
       }
     }
   }
-  std::cout << "here 1" << std::endl;
 
   //skip events without a reco muon
   if (reco_emu==-1) {
@@ -184,7 +222,6 @@ void WireCellMCS::produce(art::Event &e){
   bool bad_path                                            = std::get<0>(trajectory_tuple);
   std::vector<std::vector<double>> trajectory_points_final = std::get<1>(trajectory_tuple);
   int npoints_trajectory_final = trajectory_points_final.size();
-  std::cout << "here 2" << std::endl;
 
   //compute residual range and emu_rr
   double rr_path = 0;
@@ -200,7 +237,6 @@ void WireCellMCS::produce(art::Event &e){
     writeOutput(e);
     return;
   }
-  std::cout << "here 3" << std::endl;
 
   //segment path
   std::cout << "Segmenting muon path" << std::endl;
@@ -222,7 +258,6 @@ void WireCellMCS::produce(art::Event &e){
     cleanUp();
     return;
   }
-  std::cout << "here 4" << std::endl;
 
   //Get the x-component of each segment fit vector
   std::vector<double> vx_components;
@@ -315,39 +350,17 @@ double WireCellMCS::quartic_decay(double x, std::vector<double> par) {
 
 //function to calculate theta_xz PDF parameters
 std::vector<double> WireCellMCS::pred_theta_xz_pars(double T) {
-  const double res_sigma1 = 0.005776;
-  const double res_sigma2 = 0.01821;
-  std::vector<double> par_sigma1 = { -0.449144931, 0.793132642, -1.291292240, 0.536765147, -0.084910516, 0.146304242 };
-  std::vector<double> par_sigma2 = {  0.562850793, 0.118940108,  0.000625509, 0,           -0.000000100, 1.217639251 };
-  std::vector<double> par_ratio  = {  0.839684805, 0.839684805,  0, 0 };
-  double sigma1     = std::sqrt(std::pow(sigmaH(T) * quartic_decay(T,par_sigma1), 2) + std::pow(res_sigma1, 2));
-  double sigma2     = std::sqrt(std::pow(sigmaH(T) * quartic_decay(T,par_sigma2), 2) + std::pow(res_sigma2, 2));
-  double area_ratio = sigmoid(T, par_ratio);
+  double sigma1     = std::sqrt(std::pow(sigmaH(T) * quartic_decay(T,par_sigma1_xz), 2) + std::pow(res_sigma1_xz, 2));
+  double sigma2     = std::sqrt(std::pow(sigmaH(T) * quartic_decay(T,par_sigma2_xz), 2) + std::pow(res_sigma2_xz, 2));
+  double area_ratio = sigmoid(T, par_ratio_xz);
   return {sigma1, sigma2, area_ratio};
 }
 
 //function to calculate theta_yz PDF parameters
 std::vector<double> WireCellMCS::pred_theta_yz_pars(double T, int vx_index) {
-  std::vector<double> res_sigma1 = { 0.0449, 0.0206,  0.01403, 0.0131,  0.0114  };
-  std::vector<double> res_sigma2 = { 0.1506, 0.06154, 0.03965, 0.04179, 0.07347 };
-  std::vector<std::vector<double>> par_sigma1 = {{ -1.0,         -0.084325217,  0.487240052,  0.395496655, -0.187184874, 0.166128734 },
-                                                 {  0.0,         -0.575280374,  0.070151974,  0.187260875, -0.099717108, 0.160128002 },
-                                                 { -0.153367057, -0.583042532,  0.983374136, -0.712652874,  0.134743902, 0.465439107 },
-                                                 { -0.268993212,  0.103899779, -0.588953942,  0.282356661, -0.067930741, 0.176282668 },
-                                                 { -0.2,         -0.724028910,  0.660065851, -0.327141529,  0.038426745, 0.094357571 }};
-  std::vector<std::vector<double>> par_sigma2 = {{  0.193250363,  3.046073125,  15.0,        -7.519451962, -1.0,         0.5         },
-                                                 {  2.226214634, -5.407245785,  7.227026554, -2.411882646, -0.000001517, 0.224728907 },
-                                                 {  0.25,         1.670060693, -2.086639043,  1.122640876,  0.000000440, 0.268340031 },
-                                                 {  0.430965414, -0.079204912,  0.220949488, -0.000010000, -0.000010000, 0.3         },
-                                                 {  1.635001641, -2.414781711,  1.669221724, -0.320484259,  0.0,         0.157018001 }};
-  std::vector<std::vector<double>> par_ratio  = {{  0.519230936,  1.0,          1.663982350,  0.084218766 },
-                                                 {  0.7,          0.788705752,  5.0,          2.045055158 },
-                                                 {  0.822433461,  0.701381849,  5.0,          0.0         },
-                                                 {  0.897408009,  0.7,          2.182533745,  0.297834161 },
-                                                 {  0.9,          0.9,          0.0,          0.0         }};
-  double sigma1 = std::sqrt(std::pow(sigmaH(T) * quartic_decay(T,par_sigma1[vx_index]), 2) + std::pow(res_sigma1[vx_index], 2));
-  double sigma2 = std::sqrt(std::pow(sigmaH(T) * quartic_decay(T,par_sigma2[vx_index]), 2) + std::pow(res_sigma2[vx_index], 2));
-  double area_ratio = sigmoid(T, par_ratio[vx_index]);
+  double sigma1 = std::sqrt(std::pow(sigmaH(T) * quartic_decay(T,par_sigma1_yz[vx_index]), 2) + std::pow(res_sigma1_yz[vx_index], 2));
+  double sigma2 = std::sqrt(std::pow(sigmaH(T) * quartic_decay(T,par_sigma2_yz[vx_index]), 2) + std::pow(res_sigma2_yz[vx_index], 2));
+  double area_ratio = sigmoid(T, par_ratio_yz[vx_index]);
   return {sigma1, sigma2, area_ratio};
 }
 
