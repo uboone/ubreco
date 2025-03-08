@@ -6,6 +6,7 @@
 
 #include <Eigen/Dense>
 #include <cmath>
+#include <array>
 
 namespace clusmtool {
 
@@ -41,7 +42,7 @@ namespace clusmtool {
   protected:
 
     float ClusterDistance(const ::cluster::Cluster& c1, const ::cluster::Cluster& c2);
-    float ComputeClusterPCA(const ::cluster::Cluster& c);
+    std::array<float,3> ComputeClusterPCA(const ::cluster::Cluster& c);
 
     float _max_angle_diff_merge;
     float _min_gammagamma_oangle;
@@ -259,67 +260,94 @@ namespace clusmtool {
       }
 
       // merging the start of the shower with its trunk
-      if (_verbose) std::cout << "merge_result size: " << merge_result.size() << std::endl;
-      if ( (gamma_00.second.second == 0) || (gamma_01.second.second == 0) ) continue;
-      size_t gamma00_idx = gamma_00.first;
-      size_t gamma01_idx = gamma_01.first;
-
-      size_t gammastart_idx = gamma00_idx;
-      size_t gammatrunk_idx = gamma01_idx;
-      if (clus_v.at(gamma00_idx)._start_pt._r > clus_v.at(gamma01_idx)._start_pt._r){
-        gammastart_idx = gamma01_idx;
-        gammatrunk_idx = gamma00_idx;
-      }
-      bool gamma00isstart = (gammastart_idx == gamma00_idx);
-      bool gamma01isstart = (gammastart_idx == gamma01_idx);
-      bool gamma00istrunk = (gammatrunk_idx == gamma00_idx);
-      bool gamma01istrunk = (gammatrunk_idx == gamma01_idx);
-      float starttrunk_dist = std::sqrt(
-        pow((clus_v.at(gammastart_idx)._end_pt._w - clus_v.at(gammatrunk_idx)._start_pt._w), 2) +
-        pow((clus_v.at(gammastart_idx)._end_pt._t - clus_v.at(gammatrunk_idx)._start_pt._t), 2));
-
-      // compute cluster PCA angle
-      float anglePCA_gamma00 = ComputeClusterPCA(clus_v.at(gamma00_idx));
-      float anglePCA_gamma01 = ComputeClusterPCA(clus_v.at(gamma01_idx));
-      float diff_anglePCA = fabs(anglePCA_gamma00 - anglePCA_gamma01);
-
-      if (_verbose) {
-        std::cout<<std::endl;
-        std::cout<<"****************************************"<<std::endl;
-        std::cout<<"Plane:\t"<<pl<<std::endl;
-        std::cout<<"\t\tgamma00\t\t"<<"gamma01"<<std::endl;
-        std::cout<<"n hits:\t\t"<<clus_v.at(gamma00_idx).size()<<"\t\t"
-                                <<clus_v.at(gamma01_idx).size()<<std::endl;
-        std::cout<<"start w:\t" <<clus_v.at(gamma00_idx)._start_pt._w<<"\t\t"
-                                <<clus_v.at(gamma01_idx)._start_pt._w<<std::endl;
-        std::cout<<"start t:\t" <<clus_v.at(gamma00_idx)._start_pt._t<<"\t\t"
-                                <<clus_v.at(gamma01_idx)._start_pt._t<<std::endl;
-        std::cout<<"end w:\t\t" <<clus_v.at(gamma00_idx)._end_pt._w<<"\t\t"
-                                <<clus_v.at(gamma01_idx)._end_pt._w<<std::endl;
-        std::cout<<"end t:\t\t" <<clus_v.at(gamma00_idx)._end_pt._t<<"\t\t"
-                                <<clus_v.at(gamma01_idx)._end_pt._t<<std::endl;
-        std::cout<<"start r:\t" <<clus_v.at(gamma00_idx)._start_pt._r<<"\t\t"
-                                <<clus_v.at(gamma01_idx)._start_pt._r<<std::endl;
-        std::cout<<"end r:\t\t" <<clus_v.at(gamma00_idx)._end_pt._r<<"\t\t"
-                                <<clus_v.at(gamma01_idx)._end_pt._r<<std::endl;
-        std::cout<<"is start:\t"<<gamma00isstart<<"\t\t"<<gamma01isstart<<std::endl;
-        std::cout<<"is trunk:\t"<<gamma00istrunk<<"\t\t"<<gamma01istrunk<<std::endl;
-        std::cout<<"start to trunk dist:\t" << starttrunk_dist << std::endl;
-        std::cout<<"angle:\t\t" <<clus_v.at(gamma00_idx)._angle<<"\t\t"
-                                <<clus_v.at(gamma01_idx)._angle<<std::endl;
-        std::cout<<"anglePCA:\t"<<anglePCA_gamma00<<"\t\t"
-                                <<anglePCA_gamma01<<std::endl;
-        std::cout<<"angle span min:\t"<<clus_v.at(gamma00_idx)._angle_span._amin<<"\t\t"
-                                      <<clus_v.at(gamma01_idx)._angle_span._amin<<std::endl;
-        std::cout<<"angle span max:\t"<<clus_v.at(gamma00_idx)._angle_span._amax<<"\t\t"
-                                      <<clus_v.at(gamma01_idx)._angle_span._amax<<std::endl;
-        std::cout<<"****************************************"<<std::endl;
-        std::cout<<std::endl;
-      }
-
       if (_run_shower_merge_algo) {
-        //if ( (clus_v.at(gamma00_idx)._start_pt._r < 5) || (clus_v.at(gamma01_idx)._start_pt._r < 5) )
-        if ((starttrunk_dist < 10 && diff_anglePCA < 15) or (starttrunk_dist < 20 && diff_anglePCA < 10)) {
+        if (_verbose) std::cout << "merge_result size: " << merge_result.size() << std::endl;
+        if ( (gamma_00.second.second == 0) || (gamma_01.second.second == 0) ) continue;
+        size_t gamma00_idx = gamma_00.first;
+        size_t gamma01_idx = gamma_01.first;
+
+        size_t gammastart_idx = gamma00_idx;
+        size_t gammatrunk_idx = gamma01_idx;
+        if (clus_v.at(gamma00_idx)._start_pt._r > clus_v.at(gamma01_idx)._start_pt._r){
+          gammastart_idx = gamma01_idx;
+          gammatrunk_idx = gamma00_idx;
+        }
+        bool gamma00isstart = (gammastart_idx == gamma00_idx);
+        bool gamma01isstart = (gammastart_idx == gamma01_idx);
+        bool gamma00istrunk = (gammatrunk_idx == gamma00_idx);
+        bool gamma01istrunk = (gammatrunk_idx == gamma01_idx);
+        float starttrunk_dist = std::sqrt(
+          pow((clus_v.at(gammastart_idx)._end_pt._w - clus_v.at(gammatrunk_idx)._start_pt._w), 2) +
+          pow((clus_v.at(gammastart_idx)._end_pt._t - clus_v.at(gammatrunk_idx)._start_pt._t), 2));
+
+        // compute cluster PCA eigenvalues and angle
+        float anglePCA_gamma00 = ComputeClusterPCA(clus_v.at(gamma00_idx))[2];
+        float anglePCA_gamma01 = ComputeClusterPCA(clus_v.at(gamma01_idx))[2];
+        float diff_anglePCA = fabs(anglePCA_gamma00 - anglePCA_gamma01);
+        float PCAeigenval0_gamma00 = ComputeClusterPCA(clus_v.at(gamma00_idx))[0];
+        float PCAeigenval0_gamma01 = ComputeClusterPCA(clus_v.at(gamma01_idx))[0];
+        float PCAeigenval1_gamma00 = ComputeClusterPCA(clus_v.at(gamma00_idx))[1];
+        float PCAeigenval1_gamma01 = ComputeClusterPCA(clus_v.at(gamma01_idx))[1];
+        float PCAeigenratio_gamma00 = PCAeigenval0_gamma00/PCAeigenval1_gamma00;
+        float PCAeigenratio_gamma01 = PCAeigenval0_gamma01/PCAeigenval1_gamma01;
+
+        auto cluster_start = clus_v.at(gammastart_idx);
+        auto cluster_trunk = clus_v.at(gammatrunk_idx);
+        Eigen::Vector2f StartToStart(cluster_trunk._start_pt._w-cluster_start._start_pt._w,
+                                     cluster_trunk._start_pt._t-cluster_start._start_pt._t);
+        float two_clus_start_angle = std::atan2(StartToStart(1), StartToStart(0));
+        two_clus_start_angle = two_clus_start_angle * 180.0 / M_PI + 180.0;
+        float anglePCA_start = ComputeClusterPCA(clus_v.at(gammastart_idx))[2];
+        float diff_2clusstart_anglePCAstart = fabs(two_clus_start_angle - anglePCA_start);
+        if (diff_2clusstart_anglePCAstart > 300.0) diff_2clusstart_anglePCAstart = 360.0 - diff_2clusstart_anglePCAstart;
+
+        if (_verbose) {
+          std::cout<<std::endl;
+          std::cout<<"****************************************"<<std::endl;
+          std::cout<<"Plane:\t"<<pl<<std::endl;
+          std::cout<<"\t\tgamma00\t\t"<<"gamma01"<<std::endl;
+          std::cout<<"n hits:\t\t"<<clus_v.at(gamma00_idx).size()<<"\t\t"
+                                  <<clus_v.at(gamma01_idx).size()<<std::endl;
+          std::cout<<"start w:\t" <<clus_v.at(gamma00_idx)._start_pt._w<<"\t\t"
+                                  <<clus_v.at(gamma01_idx)._start_pt._w<<std::endl;
+          std::cout<<"start t:\t" <<clus_v.at(gamma00_idx)._start_pt._t<<"\t\t"
+                                  <<clus_v.at(gamma01_idx)._start_pt._t<<std::endl;
+          std::cout<<"end w:\t\t" <<clus_v.at(gamma00_idx)._end_pt._w<<"\t\t"
+                                  <<clus_v.at(gamma01_idx)._end_pt._w<<std::endl;
+          std::cout<<"end t:\t\t" <<clus_v.at(gamma00_idx)._end_pt._t<<"\t\t"
+                                  <<clus_v.at(gamma01_idx)._end_pt._t<<std::endl;
+          std::cout<<"start r:\t" <<clus_v.at(gamma00_idx)._start_pt._r<<"\t\t"
+                                  <<clus_v.at(gamma01_idx)._start_pt._r<<std::endl;
+          std::cout<<"end r:\t\t" <<clus_v.at(gamma00_idx)._end_pt._r<<"\t\t"
+                                  <<clus_v.at(gamma01_idx)._end_pt._r<<std::endl;
+          std::cout<<"start dir:\t"<<clus_v.at(gamma00_idx)._start_pt._a<<"\t\t"
+                                   <<clus_v.at(gamma01_idx)._start_pt._a<<std::endl;
+          std::cout<<"end dir:\t" <<clus_v.at(gamma00_idx)._end_pt._a<<"\t\t"
+                                  <<clus_v.at(gamma01_idx)._end_pt._a<<std::endl;
+          std::cout<<"is start:\t"<<gamma00isstart<<"\t\t"<<gamma01isstart<<std::endl;
+          std::cout<<"is trunk:\t"<<gamma00istrunk<<"\t\t"<<gamma01istrunk<<std::endl;
+          std::cout<<"start to trunk dist:\t" << starttrunk_dist << std::endl;
+          std::cout<<"angle:\t\t" <<clus_v.at(gamma00_idx)._angle<<"\t\t"
+                                  <<clus_v.at(gamma01_idx)._angle<<std::endl;
+          std::cout<<"anglePCA:\t"<<anglePCA_gamma00<<"\t\t"
+                                  <<anglePCA_gamma01<<std::endl;
+          std::cout<<"two shr start angle:\t" << two_clus_start_angle << std::endl;
+          std::cout<<"anglePCA diff:\t" << diff_anglePCA << std::endl;
+          std::cout<<"PCA eigenval0:\t"<<PCAeigenval0_gamma00<<"\t\t"<<PCAeigenval0_gamma01<<std::endl;
+          std::cout<<"PCA eigenval1:\t"<<PCAeigenval1_gamma00<<"\t\t"<<PCAeigenval1_gamma01<<std::endl;
+          std::cout<<"PCA eigenratio:\t"<<PCAeigenratio_gamma00<<"\t"<<PCAeigenratio_gamma01<<std::endl;
+          std::cout<<"angle span min:\t"<<clus_v.at(gamma00_idx)._angle_span._amin<<"\t\t"
+                                        <<clus_v.at(gamma01_idx)._angle_span._amin<<std::endl;
+          std::cout<<"angle span max:\t"<<clus_v.at(gamma00_idx)._angle_span._amax<<"\t\t"
+                                        <<clus_v.at(gamma01_idx)._angle_span._amax<<std::endl;
+          std::cout<<"****************************************"<<std::endl;
+          std::cout<<std::endl;
+        }
+
+        //if ((starttrunk_dist < 10 && diff_anglePCA < 15) or (starttrunk_dist < 20 && diff_anglePCA < 10)) {
+        if (((starttrunk_dist < 10 && diff_anglePCA < 15) or (starttrunk_dist < 20 && diff_anglePCA < 10)) &&
+            (diff_2clusstart_anglePCAstart < 15))
+        {
 
           if(_verbose) std::cout << "need to merge gamma00 and gamma01: starttrunk_dist = " << starttrunk_dist << std::endl;
           if ( (indices_to_merge_00.size() == 0) && (indices_to_merge_01.size() == 0) ) {
@@ -375,7 +403,7 @@ namespace clusmtool {
   }
 
   // compute cluster PCA angle
-  float CBAlgoVtxAlign::ComputeClusterPCA(const ::cluster::Cluster& c) {
+  std::array<float,3> CBAlgoVtxAlign::ComputeClusterPCA(const ::cluster::Cluster& c) {
 
     auto hits = c.GetHits();
 
@@ -421,7 +449,7 @@ namespace clusmtool {
     // Run the PCA
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix2f> eigenMatrix(matrix);
 
-    // Eigen::Vector2f eigenValuesVector = eigenMatrix.eigenvalues();
+    Eigen::Vector2f eigenValuesVector = eigenMatrix.eigenvalues();
     Eigen::Matrix2f eigenVectorsMatrix = eigenMatrix.eigenvectors();
     Eigen::Vector2f primaryEigenVector = eigenVectorsMatrix.col(1);
 
@@ -439,7 +467,9 @@ namespace clusmtool {
 
     float anglePCA = PCAdegrees + 180.0;
 
-    return anglePCA;
+    std::array<float,3> pcaValues = {eigenValuesVector(0), eigenValuesVector(1), anglePCA};
+
+    return pcaValues;
 
   }
 

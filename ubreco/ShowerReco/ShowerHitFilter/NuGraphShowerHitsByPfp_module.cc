@@ -97,7 +97,7 @@ NuGraphShowerHitsByPfp::NuGraphShowerHitsByPfp(fhicl::ParameterSet const & p)
 
 void NuGraphShowerHitsByPfp::produce(art::Event & e)
 {
-
+  std::cout << "NuGraphShowerHitsByPfp -- run: " << e.run() << " sub: " << e.subRun() << " event: " << e.event() << std::endl;
   std::unique_ptr< std::vector<recob::Hit> > Hit_v(new std::vector<recob::Hit>);
   auto outputPFP = std::make_unique<std::vector<recob::PFParticle>>();
 
@@ -185,21 +185,30 @@ void NuGraphShowerHitsByPfp::produce(art::Event & e)
       Hit_v->emplace_back(*hit_ptr);
     }
   }
+  std::cout << "unclustered hits=" << hit_unclustered_v.size() << " selected as shower hits=" << Hit_v->size() << std::endl;
 
   for (size_t j=0; j<hit_pfp_v_v.size(); j++) {
     auto hit_pfp_v = hit_pfp_v_v[j];
     unsigned int lbl[5] = {0,0,0,0,0};
     std::cout << "pfp pdg=" << pfp_ptr_v[j]->PdgCode() << " primary=" << pfp_ptr_v[j]->IsPrimary() << " nhits="<< hit_pfp_v.size()<< std::endl;
     if (hit_pfp_v.size()==0) continue;
+    float avgshrscore = 0.;
+    float avghipscore = 0.;
     for (auto hit_ptr : hit_pfp_v) {
       auto scores = hitsWithScores[hit_ptr.key()].get<anab::FeatureVector<5>>();    
       std::vector<float> ng2semscores;
       for (size_t i=0;i<scores.size();i++) ng2semscores.push_back(scores[i]);
+      //std::cout << "hit semscores=" << ng2semscores[0] << " " << ng2semscores[1] << " " << ng2semscores[2] << " " << ng2semscores[3] << " " << ng2semscores[4] << std::endl;
+      avgshrscore += ng2semscores[2];
+      avghipscore += ng2semscores[1];
       unsigned int sem_label = arg_max(ng2semscores);
       lbl[sem_label]++;
     }
-    std::cout << "label counts=" << lbl[0] << " " << lbl[1] << " " << lbl[2] << " " << lbl[3] << " " << lbl[4] << std::endl;
-    if (lbl[2]<lbl[0] || lbl[2]<lbl[1] || lbl[2]<lbl[3] || lbl[2]<lbl[4]) continue;
+    avgshrscore /= hit_pfp_v.size();
+    avghipscore /= hit_pfp_v.size();
+    std::cout << "label counts=" << lbl[0] << " " << lbl[1] << " " << lbl[2] << " " << lbl[3] << " " << lbl[4]  << " avgshrscore=" << avgshrscore << std::endl;
+    if ( (lbl[2]<lbl[0] || lbl[2]<lbl[1] || lbl[2]<lbl[3] || lbl[2]<lbl[4]) && !(pfp_ptr_v[j]->PdgCode()==11 && avgshrscore>0.25) ) continue;
+    if ( pfp_ptr_v[j]->PdgCode()==13 && avghipscore>0.25 ) continue;
     for (auto hit_ptr : hit_pfp_v) {
       Hit_v->emplace_back(*hit_ptr);
     }

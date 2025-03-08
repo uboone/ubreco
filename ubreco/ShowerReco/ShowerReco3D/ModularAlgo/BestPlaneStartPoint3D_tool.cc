@@ -67,36 +67,31 @@ namespace showerreco {
     auto const& vtx3D = proto_shower.vertex();
     auto const vtx3D_pt = geo::vect::toPoint(vtx3D);
     auto const& dir3D = resultShower.fDCosStart;
+    float maxClusDist =  0. ;
     float d2D = -1;
     int bestPlane = -1;
 
     auto & clusters = proto_shower.clusters();
 
     auto const& channelMap = art::ServiceHandle<geo::WireReadout>()->Get();
-    for (size_t i=0; i < clusters.size(); i++) {
+    for ( auto const & clus : clusters ) {
+      float distTemp = abs ( clus._start.w - clus._end.w );
+      if ( distTemp > maxClusDist ) {
+	maxClusDist = distTemp ;
+	bestPlane = clus._plane;
 
-      auto const& clus = clusters.at(i);
+	// project vertex onto this plane
+	auto wire = channelMap.Plane(geo::PlaneID(0,0,bestPlane)).WireCoordinate(vtx3D_pt) * _wire2cm;
+	auto time = vtx3D.X();
+	auto const& start = clus._start;
 
-      // plane
-      int pl = clus._plane;
-
-      // project vertex onto this plane
-      auto wire = channelMap.Plane(geo::PlaneID(0,0,pl)).WireCoordinate(vtx3D_pt) * _wire2cm;
-      auto time = vtx3D.X();
-      auto const& start = clus._start;
-
-      util::PxPoint vtx2D(pl,wire,time);
+	util::PxPoint vtx2D(bestPlane,wire,time);
       
-      // calculate 2D distance between vertex and cluster start point on plane
-      float tmpd2D = sqrt( (start.w - vtx2D.w) * (start.w - vtx2D.w) + (start.t - vtx2D.t) * (start.t - vtx2D.t) );
-      std::cout << "plane=" << pl << " d2D=" << tmpd2D << " cldist=" << abs(clus._start.w - clus._end.w) << std::endl;
-
-      if (tmpd2D<d2D || d2D<0.) {//do we need a more sophisticated way to choose the best plane?
-	d2D = tmpd2D;
-	bestPlane = pl;
+	// calculate 2D distance between vertex and cluster start point on plane
+	d2D = sqrt( (start.w - vtx2D.w) * (start.w - vtx2D.w) + (start.t - vtx2D.t) * (start.t - vtx2D.t) );
+	//std::cout << "plane=" << bestPlane << " d2D=" << d2D << " cldist=" << abs(clus._start.w - clus._end.w) << std::endl;
       }
-
-    }// for all clusters
+    }
 
     if (d2D<0) {
       std::stringstream ss;
