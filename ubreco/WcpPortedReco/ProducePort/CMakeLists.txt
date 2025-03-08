@@ -89,6 +89,15 @@ cet_build_plugin(
 )
 
 cet_build_plugin(
+  WireCellMCS art::EDProducer
+  LIBRARIES
+  PRIVATE
+  nusimdata::SimulationBase
+  lardata::Utilities
+  lardataobj::RecoBase
+)
+
+cet_build_plugin(
   SelectWires art::EDProducer
   LIBRARIES
   PRIVATE
