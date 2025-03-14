@@ -63,17 +63,17 @@ private:
   std::vector<double> estimate_energy(std::vector<double> segs_distance, std::vector<double> segs_angle_x, std::vector<double> segs_angle_y,  std::vector<double> vx_comps);
 
   //constants
-  const int MAX_TRACKS = 1e4;
+  //const int MAX_TRACKS = 1e4;
   const double seg_length = 14; //cm
-  const int Z = 18;					//Atomic number of argon
-  const double A = 39.948;				//Atomic weight of Argon in amu
+  //const int Z = 18;					//Atomic number of argon
+  //const double A = 39.948;				//Atomic weight of Argon in amu
   const double I = 188.0*pow(10,-6); 			//eV
-  const double K = 0.307;				// MeV * cm^2 / mol
-  const double Mp = 938.28; 				// MeV for proton
+  //const double K = 0.307;				// MeV * cm^2 / mol
+  //const double Mp = 938.28; 				// MeV for proton
   const double Mmu = 105.658;				// MeV for muon
-  const double Me  = 0.51;				// MeV for electron
+  //const double Me  = 0.51;				// MeV for electron
   const double rho = 1.396;				// LAr density [g/cm3]
-  const double x = 0.5;					//setp size in cm
+  //const double x = 0.5;					//setp size in cm
 
   //variables set in fhicl file
   bool f_wirecellPF;
