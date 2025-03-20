@@ -69,7 +69,7 @@ microboone_tfile_metadata:
 }
 
 source.inputCommands: [
-		        "keep *_*_*_*",
+		        "keep *_*_*_*"
 			#"drop sim::SimEnergyDeposits_largeant_*_*",
 			#"drop sim::SimChannels_largeant_*_*",
 			#"drop sim::AuxDetSimChannel_*_*_*",
