@@ -70,17 +70,17 @@ microboone_tfile_metadata:
 
 source.inputCommands: [
 		        "keep *_*_*_*",
-			"drop sim::SimEnergyDeposits_largeant_*_*",
-			"drop sim::SimChannels_largeant_*_*",
-			"drop sim::AuxDetSimChannel_*_*_*",
-			"drop raw::OpDetWaveform_pmtreadoutnonoise_*_OverlayDetsim",
-			"drop crt::CRTSimData_crtdetsim_*_OverlayDetsim",
-			"drop crt::CRTHit_*_*_OverlayDetsim",
-			"drop *_*_mixer_DataOverlay",
-			"drop *_threshold_nfspl1_OverlayStage1a",
-			"drop recob::Wires_*nfspl1_*_*",
-			"drop recob::OpFlash_*_*_OverlayStage1a",
-			"drop recob::OpHit_*_*_OverlayStage1a"
+			#"drop sim::SimEnergyDeposits_largeant_*_*",
+			#"drop sim::SimChannels_largeant_*_*",
+			#"drop sim::AuxDetSimChannel_*_*_*",
+			#"drop raw::OpDetWaveform_pmtreadoutnonoise_*_OverlayDetsim",
+			#"drop crt::CRTSimData_crtdetsim_*_OverlayDetsim",
+			#"drop crt::CRTHit_*_*_OverlayDetsim",
+			#"drop *_*_mixer_DataOverlay",
+			#"drop *_threshold_nfspl1_OverlayStage1a",
+			#"drop recob::Wires_*nfspl1_*_*",
+			#"drop recob::OpFlash_*_*_OverlayStage1a",
+			#"drop recob::OpHit_*_*_OverlayStage1a"
 		      ]
 
 services.SpaceCharge.CalibrationInputFilename: "SpaceCharge/SCEoffsets_dataDriven_combined_bkwd_Jan18.root"
