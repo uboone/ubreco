@@ -22,8 +22,8 @@ flash_neutrino_id_tool :
     PMTChannelCorrection: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 
     # Beam flash conditions
-    BeamWindowStartTime:      3.2
-    BeamWindowEndTime:        4.8
+    BeamWindowStartTime:      3.195
+    BeamWindowEndTime:        4.875
     BeamFlashPEThreshold:     50.0
 
 
