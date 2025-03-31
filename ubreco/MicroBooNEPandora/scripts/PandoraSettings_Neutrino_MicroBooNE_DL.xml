@@ -121,6 +121,7 @@
     <algorithm type = "LArSvmVertexSelection">
         <InputCaloHitListNames>CaloHitListU CaloHitListV CaloHitListW</InputCaloHitListNames>
         <InputClusterListNames>ClustersU ClustersV ClustersW</InputClusterListNames>
+        <InputVertexListName>CandidateVertices3D</InputVertexListName>
         <OutputVertexListName>NeutrinoVertices3D</OutputVertexListName>
         <ReplaceCurrentVertexList>true</ReplaceCurrentVertexList>
         <MvaFileName>PandoraSvm_v03_11_00.xml</MvaFileName>
