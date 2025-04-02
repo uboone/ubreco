@@ -399,17 +399,18 @@ double WireCellMCS::lnlikelihood_theta_yz(double angle, double T, double vx) {
   double scale1 = (T-emu_edges[1]) / (emu_edges[2]-emu_edges[1]);
   double scale2 = (T-emu_edges[3]) / (emu_edges[4]-emu_edges[3]);
   if      (ivx == 4) {
-    if      (T <  emu_edges[1])                     { probability = pvx[ivx]; }
+    if                           (T < emu_edges[1]) { probability = pvx[ivx]; }
     else if (T >= emu_edges[1] && T < emu_edges[2]) { probability = (1-scale1)*pvx[ivx] + scale1*pvx[ivx-1]; }
     else if (T >= emu_edges[2] && T < emu_edges[3]) { probability = pvx[ivx-1]; }
     else if (T >= emu_edges[3] && T < emu_edges[4]) { probability = (1-scale2)*pvx[ivx-1] + scale2*pvx[ivx-2]; }
-    else if (T >  emu_edges[4])                     { probability = pvx[ivx-2]; }
+    else if (T >= emu_edges[4])                     { probability = pvx[ivx-2]; }
   } else if (ivx == 3) {
-    if      (T <  emu_edges[3])                     { probability = pvx[ivx]; }
-    else if (T <= emu_edges[3] && T < emu_edges[4]) { probability = (1-scale2)*pvx[ivx] + scale2*pvx[ivx-1]; }
-    else if (T >  emu_edges[4])                     { probability = pvx[ivx-1]; }
+    if                           (T < emu_edges[3]) { probability = pvx[ivx]; }
+    else if (T >= emu_edges[3] && T < emu_edges[4]) { probability = (1-scale2)*pvx[ivx] + scale2*pvx[ivx-1]; }
+    else if (T >= emu_edges[4])                     { probability = pvx[ivx-1]; }
   } else if (ivx <= 2)                              { probability = pvx[ivx]; }
 
+  if (probability==0) { std::cout << "error, probability = 0" << std::endl; }
   return -std::log(probability);
 }
 
