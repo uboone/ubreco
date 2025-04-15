@@ -12,7 +12,7 @@
 #include "nusimdata/SimulationBase/MCParticle.h"
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
-#include "ubreco/WcpPortedReco/ProducePort/SpacePointStructs.h"
+#include "ubobj/WcpPort/SpacePointStructs.h"
 #include "ubreco/WcpPortedReco/ProducePort/WCMCSTrajectory.h"
 
 #include "TTree.h"
