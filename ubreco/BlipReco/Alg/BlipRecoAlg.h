@@ -87,7 +87,7 @@ namespace blip {
     std::vector<blipobj::TrueBlip>     trueblips;
     std::vector<blipobj::ParticleInfo> pinfo;
     
-    calo::CalorimetryAlg*   fCaloAlg;
+    calo::CalorimetryAlg   fCaloAlg;
     float   ModBoxRecomb(float,float);
     float   dQdx_to_dEdx(float,float);
     float   Q_to_E(float,float);
@@ -112,14 +112,20 @@ namespace blip {
     std::map<int, std::set<int>>          map_g4trkid_chan;
     std::map<int, std::map<int,double> >  map_g4trkid_chan_energy;
     std::map<int, std::map<int,double> >  map_g4trkid_chan_charge;
+    
+    float   kWion;
+    float   kNominalRecombFactor;
+    float   kLArDensity;
+    float   kNominalEfield;
+    float   kDriftVelocity;
+    float   kTickPeriod;
+    int     kNumChannels;
+    float   kLifetime;
+
 
 
    private:
       
-    const detinfo::DetectorPropertiesData detProp;
-    
-    float               mWion;
-
     // --- FCL configs ---
     std::string         fHitProducer;
     std::string         fTrkProducer;

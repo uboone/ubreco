@@ -9,6 +9,7 @@ cet_build_plugin(
   larcore::ServiceUtil
   lardataobj::RecoBase
   lardataobj::AnalysisBase
+  lardataobj::MCBase
   larsim::MCCheater_ParticleInventoryService_service
   art_root_io::TFileService_service
   ROOT::Tree

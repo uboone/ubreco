@@ -7,12 +7,18 @@ namespace blip {
   // Constructor
   //###########################################################
   BlipRecoAlg::BlipRecoAlg( fhicl::ParameterSet const& pset ) :
-    detProp(art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob())
+    fCaloAlg ( pset.get<fhicl::ParameterSet>("CaloAlg") )
   {
     this->reconfigure(pset);
-    
-    fNominalRecombFactor  = ModBoxRecomb(fCalodEdx,detProp.Efield());
-    mWion                 = 1000./util::kGeVToElectrons;
+   
+    auto const& detProp   = art::ServiceHandle<detinfo::DetectorPropertiesService const>()->DataForJob();
+    auto const& clockData = art::ServiceHandle<detinfo::DetectorClocksService const>()->DataForJob();
+    kLArDensity           = detProp.Density();
+    kNominalEfield        = detProp.Efield();
+    kDriftVelocity        = detProp.DriftVelocity(detProp.Efield(0),detProp.Temperature());
+    kTickPeriod           = clockData.TPCClock().TickPeriod();
+    kNominalRecombFactor  = ModBoxRecomb(fCalodEdx,kNominalEfield);
+    kWion                 = 1000./util::kGeVToElectrons;
     
     // initialize channel list
     fBadChanMask       .resize(8256,false);
@@ -128,11 +134,6 @@ namespace blip {
 
   }
   
-  //--------------------------------------------------------------
-  BlipRecoAlg::BlipRecoAlg( ) :
-    detProp(art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob())
-  {
-  }
   
   //--------------------------------------------------------------  
   //Destructor
@@ -186,7 +187,6 @@ namespace blip {
     fCylinderRadius     = pset.get<float>         ("CylinderRadius",      15);
     fIgnoreDataTrks     = pset.get<bool>          ("IgnoreDataTrks",      false);
 
-    fCaloAlg            = new calo::CalorimetryAlg( pset.get<fhicl::ParameterSet>("CaloAlg") );
     fCaloPlane          = pset.get<int>           ("CaloPlane",           2);
     fCalodEdx           = pset.get<float>         ("CalodEdx",            2.8);
     fLifetimeCorr       = pset.get<bool>          ("LifetimeCorrection",  true);
@@ -391,6 +391,7 @@ namespace blip {
     //========================================
     
     // --- detector properties
+    auto const& detProp             = art::ServiceHandle<detinfo::DetectorPropertiesService const>()->DataForJob();
     auto const& SCE_provider        = lar::providerFrom<spacecharge::SpaceChargeService>();
     auto const& lifetime_provider   = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
     auto const& tpcCalib_provider   = art::ServiceHandle<lariov::TPCEnergyCalibService>()->GetProvider();
@@ -510,7 +511,7 @@ namespace blip {
       hitinfo[i].integralADC  = thisHit->Integral();
       hitinfo[i].sigmaintegral = thisHit->SigmaIntegral();
       hitinfo[i].sumADC       = thisHit->ROISummedADC();
-      hitinfo[i].charge       = fCaloAlg->ElectronsFromADCArea(thisHit->Integral(),plane);
+      hitinfo[i].charge       = fCaloAlg.ElectronsFromADCArea(thisHit->Integral(),plane);
       hitinfo[i].peakTime     = thisHit->PeakTime();
       hitinfo[i].driftTime    = thisHit->PeakTime() - detProp.GetXTicksOffset(plane,0,0); // - fTimeOffsets[plane];
       hitinfo[i].gof          = thisHit->GoodnessOfFit() / thisHit->DegreesOfFreedom();
@@ -1187,8 +1188,8 @@ namespace blip {
       float recombSCE = ModBoxRecomb(fCalodEdx,EfieldSCE);
       
       // nominal case + SCE/lifetime corrected
-      blip.Energy     = blip.Charge     * (1./recomb)    * mWion;
-      blip.EnergyCorr = blip.ChargeCorr * (1./recombSCE) * mWion;
+      blip.Energy     = blip.Charge     * (1./recomb)    * kWion;
+      blip.EnergyCorr = blip.ChargeCorr * (1./recombSCE) * kWion;
       
       h_recomb        ->Fill(recomb);
       h_recombSCE     ->Fill(recombSCE);
@@ -1219,19 +1220,19 @@ namespace blip {
   
   //###########################################################
   float BlipRecoAlg::ModBoxRecomb(float dEdx, float Efield) {
-    float Xi = fModBoxB * dEdx / ( Efield * detProp.Density() );
+    float Xi = fModBoxB * dEdx / ( Efield * kLArDensity );
     return log(fModBoxA+Xi)/Xi;
   }
 
   float BlipRecoAlg::dQdx_to_dEdx(float dQdx_e, float Efield){
-    float beta  = fModBoxB / (detProp.Density() * Efield);
+    float beta  = fModBoxB / (kLArDensity * Efield);
     float alpha = fModBoxA;
-    return ( exp( beta * mWion * dQdx_e ) - alpha ) / beta;
+    return ( exp( beta * kWion * dQdx_e ) - alpha ) / beta;
   }
   
   float BlipRecoAlg::Q_to_E(float Q, float Efield){
-    if( Efield != detProp.Efield() ) return mWion * (Q/ModBoxRecomb(fCalodEdx,Efield));
-    else                              return mWion * (Q/fNominalRecombFactor);
+    if( Efield != kNominalEfield )  return kWion * (Q/ModBoxRecomb(fCalodEdx,Efield));
+    else                            return kWion * (Q/fNominalRecombFactor);
   }
   
   //###########################################################
