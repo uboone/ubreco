@@ -51,7 +51,7 @@ namespace blip {
     printf("  - Efield: %.4f kV/cm\n",detProp.Efield());
     printf("  - Drift velocity: %.4f\n",detProp.DriftVelocity(detProp.Efield(),detProp.Temperature()));
     printf("  - using dE/dx: %.2f MeV/cm\n",fCalodEdx);
-    printf("  - equiv. recomb: %.4f\n",fNominalRecombFactor);
+    printf("  - equiv. recomb: %.4f\n",kNominalRecombFactor);
     printf("  - custom bad chans: %i\n",NBadChansFromFile);
     printf("*******************************************\n");
 
@@ -147,8 +147,18 @@ namespace blip {
   //###########################################################
   void BlipRecoAlg::reconfigure( fhicl::ParameterSet const& pset ){
     
-    fHitProducer        = pset.get<std::string>   ("HitProducer",       "pandora");
-    fTrkProducer        = pset.get<std::string>   ("TrkProducer",       "gaushit");
+    // initialize MC flags (will be determined automatically
+    // later after the first event is processed)
+    isMC        = false;
+    isMCOverlay = false;
+  
+    fHitProducer        = pset.get<art::InputTag> ("HitProducer","");
+    fHitProducerData    = pset.get<art::InputTag> ("HitProducerData",    "gaushit::DataRecoStage1Test");
+    fHitProducerOverlay = pset.get<art::InputTag> ("HitProducerOverlay", "gaushit::OverlayStage1a");
+    fHitProducerOG      = fHitProducerData;
+    if( fHitProducer=="" ) fHitProducer = fHitProducerData;
+    fHitTruthMatch      = pset.get<art::InputTag> ("HitTruthMatch",     "gaushitTruthMatch::OverlayRecoStage1b");
+    fTrkProducer        = pset.get<std::string>   ("TrkProducer",       "pandoraInit");
     fGeantProducer      = pset.get<std::string>   ("GeantProducer",     "largeant");
     fSimDepProducer     = pset.get<std::string>   ("SimEDepProducer",   "ionization");
     fSimChanProducer    = pset.get<std::string>   ("SimChanProducer",   "driftWC:simpleSC");
@@ -250,11 +260,14 @@ namespace blip {
     std::vector<art::Ptr<sim::SimChannel> > simchanlist;
     if (evt.getByLabel(fSimChanProducer,simchanHandle)) 
       art::fill_ptr_vector(simchanlist, simchanHandle);
-    
+   
+    if( plist.size() ) isMC = true;
+
     //====================================================
     // Prep the particle inventory service for MC+overlay
     //====================================================
     if( evt.isRealData() && plist.size() ) {
+      isMCOverlay = true;
       art::ServiceHandle<cheat::ParticleInventoryService> pi_serv;
       pi_serv->Rebuild(evt);
       pi_serv->provider()->PrepParticleList(evt);
@@ -376,7 +389,13 @@ namespace blip {
     // Extract truth info if applicable
     //=======================================
     RunBlipTruth(evt);
-  
+    
+    // Update hit collection for overlay (MCC10 changes)
+    if( isMCOverlay && fHitProducer == fHitProducerData ) {
+      fHitProducer    = fHitProducerOverlay;
+      fHitProducerOG  = fHitProducerOverlay;
+    }
+
     //=======================================
     // Reset things
     //=======================================
@@ -400,67 +419,62 @@ namespace blip {
     //====================================================
     // Update map of bad channels for this event
     //====================================================
-    //if( fVetoBadChannels ) {
-      fBadChanMaskPerEvt = fBadChanMask;
-      if( fBadChanProducer != "" ) { 
-        std::vector<int> badChans;
-        art::Handle< std::vector<int>> badChanHandle;
-        if( evt.getByLabel(fBadChanProducer, badChanHandle))
-          badChans = *(badChanHandle);
-        for(auto& ch : badChans ) {
-          EvtBadChanCount++;
-          fBadChanMaskPerEvt[ch] = true;
-          h_chan_bad->Fill(ch);
-        }
+    fBadChanMaskPerEvt = fBadChanMask;
+    if( fBadChanProducer != "" ) { 
+      std::vector<int> badChans;
+      art::Handle< std::vector<int>> badChanHandle;
+      if( evt.getByLabel(fBadChanProducer, badChanHandle))
+        badChans = *(badChanHandle);
+      for(auto& ch : badChans ) {
+        EvtBadChanCount++;
+        fBadChanMaskPerEvt[ch] = true;
+        h_chan_bad->Fill(ch);
       }
-    //}
+    }
   
     // -- geometry
     auto const& wireReadout = art::ServiceHandle<geo::WireReadout>()->Get();
     art::ServiceHandle<geo::Geometry> geom;
     
-    // -- hits (from input module, usually track-masked subset of gaushit)
+    // -- hits (from input module; can be track-masked subset of gaushit)
     art::Handle< std::vector<recob::Hit> > hitHandle;
     std::vector<art::Ptr<recob::Hit> > hitlist;
     if (evt.getByLabel(fHitProducer,hitHandle))
       art::fill_ptr_vector(hitlist, hitHandle);
     
-    // -- hits (from gaushit), these are used in truth-matching of hits
-    art::Handle< std::vector<recob::Hit> > hitHandleGH;
-    std::vector<art::Ptr<recob::Hit> > hitlistGH;
-    if (evt.getByLabel("gaushit",hitHandleGH))
-      art::fill_ptr_vector(hitlistGH, hitHandleGH);
+    // -- hits (original), used for truth-matching
+    art::Handle< std::vector<recob::Hit> > hitHandleOG;
+    std::vector<art::Ptr<recob::Hit> > hitlistOG;
+    if (evt.getByLabel(fHitProducerOG,hitHandleOG))
+        art::fill_ptr_vector(hitlistOG, hitHandleOG);
 
     // -- tracks
     art::Handle< std::vector<recob::Track> > tracklistHandle;
     std::vector<art::Ptr<recob::Track> > tracklist;
     if (evt.getByLabel(fTrkProducer,tracklistHandle))
       art::fill_ptr_vector(tracklist, tracklistHandle);
-  
+    
     // -- associations
     art::FindManyP<recob::Track> fmtrk(hitHandle,evt,fTrkProducer);
-    art::FindManyP<recob::Track> fmtrkGH(hitHandleGH,evt,fTrkProducer);
-    art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> fmhh(hitHandleGH,evt,"gaushitTruthMatch");
+    art::FindManyP<recob::Track> fmtrkOG(hitHandleOG,evt,fTrkProducer);
     
-   
     //===============================================================
     // Map of each hit to its gaushit index (needed if the provided
     // hit collection is some filtered subset of gaushit, in order to
     // use gaushitTruthMatch later on)
     //===============================================================
     std::map< int, int > map_gh;
-    std::map< int, int > map_tm;
     // if input collection is already gaushit, this is trivial
-    if( fHitProducer == "gaushit" ) {
+    if( fHitProducer == fHitProducerOG ) {
       for(auto& h : hitlist ) map_gh[h.key()] = h.key(); 
-    // ... but if not, find the matching gaushit. There's no convenient
+    // ... but if not, find the matching origina hit. There's no convenient
     // hit ID, so we must loop through and compare channel/time (ugh)
     } else {
       std::map<int,std::vector<int>> map_chan_ghid;
-      for(auto& gh : hitlistGH ) map_chan_ghid[gh->Channel()].push_back(gh.key());
+      for(auto& gh : hitlistOG ) map_chan_ghid[gh->Channel()].push_back(gh.key());
       for(auto& h : hitlist ) {
         for(auto& igh : map_chan_ghid[h->Channel()]){
-          if( hitlistGH[igh]->PeakTime() != h->PeakTime() ) continue;
+          if( hitlistOG[igh]->PeakTime() != h->PeakTime() ) continue;
           map_gh[h.key()] = igh;
           break;
         }
@@ -494,7 +508,7 @@ namespace blip {
     std::map<int,std::vector<int>> planehitsMap;
     int nhits_untracked = 0;
 
-    //std::cout<<"Looping over the hits...\n";
+    //std::cout<<"Looping over the hits... "<<hitlist.size()<<"\n";
     for(size_t i=0; i<hitlist.size(); i++){
       auto const& thisHit = hitlist[i];
       int   chan    = thisHit->Channel();
@@ -516,12 +530,40 @@ namespace blip {
       hitinfo[i].driftTime    = thisHit->PeakTime() - detProp.GetXTicksOffset(plane,0,0); // - fTimeOffsets[plane];
       hitinfo[i].gof          = thisHit->GoodnessOfFit() / thisHit->DegreesOfFreedom();
       if( thisHit->DegreesOfFreedom() ) hitinfo[i].gof = -9;
-      if( pinfo.size() ) {
-        
-        //int truthid;
-        //float truthidfrac, numElectrons, energy;
-        //BlipUtils::HitTruth( thisHit, truthid, truthidfrac, energy, numElectrons);
 
+      // find associated track
+      if( fmtrk.isValid() ) {
+        if(fmtrk.at(i).size()) hitinfo[i].trkid = fmtrk.at(i)[0]->ID();
+      } // if we didn't find an associated track, maybe this is a custom 
+      //   masked hit collection or something, so let's try the OG hits
+      if( hitinfo[i].trkid<0 && fHitProducer != fHitProducerOG ) {
+        if( fmtrkOG.isValid() && map_gh.size() ) {
+          if (fmtrkOG.at(map_gh[i]).size()) hitinfo[i].trkid = fmtrkOG.at(map_gh[i])[0]->ID(); 
+        }
+      }
+      
+      // add to the map
+      planehitsMap[plane].push_back(i);
+      if( hitinfo[i].trkid < 0  ) nhits_untracked++;
+      if( hitinfo[i].trkid >= 0 ) map_trkid_nhits[hitinfo[i].trkid]++;
+      //printf("  %lu   plane: %i,  wire: %i, time: %i\n",i,hitinfo[i].plane,hitinfo[i].wire,int(hitinfo[i].driftTime));
+
+    }//endloop over hits
+
+
+
+
+    //=======================================
+    // Do hit truth-matching
+    //========================================
+    if( pinfo.size() ) {
+      
+      // Get backtracker associations
+      art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> fmhh(hitHandleOG,evt,fHitTruthMatch);
+    
+      // Loop the hits
+      for(size_t i=0; i<hitlist.size(); i++){
+        
         //--------------------------------------------------
         // MicroBooNE-specific truth-matching: since SimChannels aren't
         // saved by default, the normal backtracker won't work, so instead
@@ -552,60 +594,39 @@ namespace blip {
           // accurate count of 'true' electrons collected on channel.
           if( fSimGainFactor > 0 ) hitinfo[i].g4charge /= fSimGainFactor;
          
-          /*
+          /* 
+          // Some old code to measure wire-by-wire thresholds
           if( map_g4trkid_chan_energy[hitinfo[i].g4trkid][chan] > 0 ) {
             double trueEnergyDep = map_g4trkid_chan_energy[hitinfo[i].g4trkid][chan];
-            h_recoWireEff_num->Fill(trueEnergyDep);
-          }
+            h_recoWireEff_num->Fill(trueEnergyDep);}
           if( map_g4trkid_chan_charge[hitinfo[i].g4trkid][chan] > 0 ) {
             double trueChargeDep = map_g4trkid_chan_charge[hitinfo[i].g4trkid][chan];
-            h_recoWireEffQ_num->Fill(trueChargeDep);
-          }
+            h_recoWireEffQ_num->Fill(trueChargeDep);}
           */
-          
         }
-
-
-      }//endif MC
-      
-
-      // find associated track
-      if( fHitProducer == "gaushit" && fmtrk.isValid() ) {
-        if(fmtrk.at(i).size()) hitinfo[i].trkid = fmtrk.at(i)[0]->ID();
-      
-      // if the hit collection didn't have associations made
-      // to the tracks, try gaushit instead
-      } else if ( fmtrkGH.isValid() && map_gh.size() ) {
-        int gi = map_gh[i];
-        if (fmtrkGH.at(gi).size()) hitinfo[i].trkid= fmtrkGH.at(gi)[0]->ID(); 
-      }
-
-      // IF this hit was (a) matched to a track, and (b) matched to a truth
-      // energy deposit, then keep the tally
-      if( hitinfo[i].trkid > 0 ) {
-        map_trkid_nhits[hitinfo[i].trkid]++;
-        if( hitinfo[i].g4energy > 0 ){
+        
+        // IF this hit was (a) matched to a track, and (b) matched to a truth
+        // energy deposit, then keep the tally
+        if( hitinfo[i].trkid >= 0 && hitinfo[i].g4energy > 0 ) {
           map_trkid_g4ids[hitinfo[i].trkid].push_back(hitinfo[i].g4trkid);
           map_trkid_nhitsMC[hitinfo[i].trkid]++;
         }
-      }
+    
+      }//endloop hits for truth-matching
+    }//endif MC
 
-      // add to the map
-      planehitsMap[plane].push_back(i);
-      if( hitinfo[i].trkid < 0 ) nhits_untracked++;
-      //printf("  %lu   plane: %i,  wire: %i, time: %i\n",i,hitinfo[i].plane,hitinfo[i].wire,int(hitinfo[i].driftTime));
 
-    }//endloop over hits
+
 
     //================================================================
     // Mark tracks as MC if a considerable fraction of the total hits
     // were matched to truth depositions
     //===============================================================
     for(auto mtrk : map_trkid_index ){
-      //std::cout<<"TrackID "<<mtrk.first<<" has index "<<mtrk.second<<" and length "<<tracklist[mtrk.second]->Length()<<"\n";
       int nhitstrk = map_trkid_nhits[mtrk.first];
       int nhitstrkmc = map_trkid_nhitsMC[mtrk.first];
-      float mcfrac = float(nhitstrkmc)/nhitstrk;
+
+      float mcfrac = (nhitstrk>0) ? float(nhitstrkmc)/nhitstrk : 0;
 
       std::map<int,int> counters;
       for(auto g4id : map_trkid_g4ids[mtrk.first] ) {
@@ -620,7 +641,6 @@ namespace blip {
         }
       }
 
-      //std::cout<<"  nhits: "<<nhitstrk<<", mcfrac = "<< mcfrac<<"\n";
       if( nhitstrk > 0 ) {
         h_trkhits_mcfrac->Fill(mcfrac);
         // Classify a track as "MC" if >50% of its hits
@@ -635,7 +655,6 @@ namespace blip {
     //for(auto mtrk : map_trkid_index ){
       //std::cout<<"  Track ID "<<mtrk.first<<", L = "<<tracklist[mtrk.second]->Length()<<", isMC "<<map_trkid_isMC[mtrk.first]<<"\n";
     //}
-
 
     //=================================================================
     // Blip Reconstruction
@@ -1232,7 +1251,7 @@ namespace blip {
   
   float BlipRecoAlg::Q_to_E(float Q, float Efield){
     if( Efield != kNominalEfield )  return kWion * (Q/ModBoxRecomb(fCalodEdx,Efield));
-    else                            return kWion * (Q/fNominalRecombFactor);
+    else                            return kWion * (Q/kNominalRecombFactor);
   }
   
   //###########################################################
@@ -1243,7 +1262,8 @@ namespace blip {
   void BlipRecoAlg::PrintConfig() {
   
     printf("BlipRecoAlg Configurations\n\n");
-    printf("  Input hit collection      : %s\n",          fHitProducer.c_str());
+    printf("  Input hit collection      : %s\n",          fHitProducer.label().c_str());
+    printf("  Input hit process         : %s\n",          fHitProducer.process().c_str());
     printf("  Input trk collection      : %s\n",          fTrkProducer.c_str());
     printf("  Max wires per cluster     : %i\n",          fMaxWiresInCluster);
     printf("  Max cluster timespan      : %.1f ticks\n",    fMaxClusterSpan);

@@ -9,7 +9,7 @@
 //    BlipRecoAlg fBlipAlg;
 //    
 //  W. Foreman, May 2022
-//  wforeman @ iit.edu
+//  wforeman.phys @ gmail.com
 //
 /////////////////////////////////////////////////////////////////////
 #ifndef BLIPRECOALG_H
@@ -87,13 +87,14 @@ namespace blip {
     std::vector<blipobj::TrueBlip>     trueblips;
     std::vector<blipobj::ParticleInfo> pinfo;
     
+    bool isMC;
+    bool isMCOverlay;
+
     calo::CalorimetryAlg   fCaloAlg;
     float   ModBoxRecomb(float,float);
     float   dQdx_to_dEdx(float,float);
     float   Q_to_E(float,float);
 
-    float   fNominalRecombFactor;
-   
     std::vector<bool>   fBadChanMask;
     std::vector<bool>   fBadChanMaskPerEvt;
     int                 EvtBadChanCount;
@@ -122,12 +123,15 @@ namespace blip {
     int     kNumChannels;
     float   kLifetime;
 
-
+    art::InputTag     fHitProducer;
 
    private:
       
     // --- FCL configs ---
-    std::string         fHitProducer;
+    art::InputTag       fHitProducerData;
+    art::InputTag       fHitProducerOverlay;
+    art::InputTag       fHitProducerOG;
+    art::InputTag       fHitTruthMatch;
     std::string         fTrkProducer;
     std::string         fGeantProducer;
     std::string         fSimDepProducer;

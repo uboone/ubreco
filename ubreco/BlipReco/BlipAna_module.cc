@@ -36,10 +36,9 @@
 #include "ubevt/Database/UbooneElectronLifetimeService.h"
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
 #include "ubreco/BlipReco/Alg/BlipRecoAlg.h"
-#include "ubana/searchingfornues/Selection/SelectionTools/SelectionToolBase.h"
-#include "ubana/searchingfornues/Selection/AnalysisTools/AnalysisToolBase.h"
-#include "ubana/searchingfornues/Selection/CommonDefs/TrackShowerScoreFuncs.h"
-#include "ubana/searchingfornues/Selection/CommonDefs/SCECorrections.h"
+#include "ubreco/BlipReco/Utils/NuSelectionToolBase.h"
+#include "ubreco/BlipReco/Utils/NuSelectionSCECorrections.h"
+#include "ubreco/BlipReco/Utils/NuSelectionTrackShowerScoreFuncs.h"
 
 // C++ includes
 #include <cstring>
@@ -306,8 +305,6 @@ class BlipAnaTreeDataStruct
   vint_t    nu_trk_id;        // trackIDs for tracks in this PFP
   vfloat_t  nu_trk_score;     // track scores for tracks in this PFP
   vfloat_t  nu_shwr_score;    // shower scores in this PFP
-
- 
  
   TTree*  calibTree;
   int     acptrk_npts;
@@ -767,13 +764,14 @@ class BlipAna : public art::EDAnalyzer
 
   // --- FCL configs ---
   bool                fDebugMode;
-  std::string         fHitProducer;
+  art::InputTag       fHitProducer;
   std::string         fTrkProducer;
   std::string         fGeantProducer;
   std::string         fSimDepProducer;
   int                 fCaloPlane;
   std::vector<bool>   fSavePlaneInfo;
   bool                fDoACPTrkCalib;
+  art::InputTag       fACPTCaliProducer;
 
   // --- Counters and such ---
   bool  fIsRealData         = false;
@@ -811,7 +809,7 @@ class BlipAna : public art::EDAnalyzer
   std::map<unsigned int, unsigned int> _pfpmap;
 
   // selection tool
-  std::vector<std::unique_ptr<::analysis::AnalysisToolBase>> _analysisToolsVec;
+  //std::vector<std::unique_ptr<::analysis::AnalysisToolBase>> _analysisToolsVec;
 
   // --- Histograms ---
   TH1D*   h_part_process;
@@ -1114,7 +1112,7 @@ BlipAna::BlipAna(fhicl::ParameterSet const& pset) :
 {
   // blip reconstruction algorithm class
   fhicl::ParameterSet pset_blipalg = pset.get<fhicl::ParameterSet>("BlipAlg");
-  fHitProducer    = pset_blipalg.get<std::string>   ("HitProducer",     "gaushit");
+  fHitProducer    = pset_blipalg.get<art::InputTag> ("HitProducer","");
   fTrkProducer    = pset_blipalg.get<std::string>   ("TrkProducer",     "pandora");
   fGeantProducer  = pset_blipalg.get<std::string>   ("GeantProducer",   "largeant");
   fSimDepProducer = pset_blipalg.get<std::string>   ("SimEDepProducer", "ionization");
@@ -1122,6 +1120,7 @@ BlipAna::BlipAna(fhicl::ParameterSet const& pset) :
   fSavePlaneInfo  = pset.get<std::vector<bool>>     ("SavePlaneInfo",   {true,true,true});
   fDebugMode      = pset.get<bool>                  ("DebugMode",       false);
   fDoACPTrkCalib  = pset.get<bool>                  ("DoACPTrkCalib",   true);
+  fACPTCaliProducer = pset.get<art::InputTag>       ("ACPTCaliProducer","pandoracaliInit");
 
   fPFPproducer = pset.get<art::InputTag>("PFPproducer","pandora");
   fSHRproducer = pset.get<art::InputTag>("SHRproducer","shrreco3d");
@@ -1199,7 +1198,10 @@ BlipAna::BlipAna(fhicl::ParameterSet const& pset) :
   */
   
 }
-BlipAna::~BlipAna(){}
+
+BlipAna::~BlipAna(){
+  delete fData;
+}
 
 
 
@@ -1233,12 +1235,6 @@ void BlipAna::analyze(const art::Event& evt)
   auto const& SCE       = lar::providerFrom<spacecharge::SpaceChargeService>();
   auto const& tpcCalib  = art::ServiceHandle<lariov::TPCEnergyCalibService>()->GetProvider();
   
-  // Tell us what's going on!
-  if( fNumEvents < 200 || (fNumEvents % 100) == 0 ) {
-  std::cout<<"\n"
-  <<"=========== BlipAna =========================\n"
-  <<"Event "<<evt.id().event()<<" / run "<<evt.id().run()<<"; total: "<<fNumEvents<<"\n";
-  }
 
   //============================================
   // Run blip reconstruction: 
@@ -1284,6 +1280,7 @@ void BlipAna::analyze(const art::Event& evt)
     art::fill_ptr_vector(plist, pHandle);
   
   // -- hits (from input module)
+  fHitProducer = fBlipAlg.fHitProducer;
   art::Handle< std::vector<recob::Hit> > hitHandle;
   std::vector<art::Ptr<recob::Hit> > hitlist;
   if (evt.getByLabel(fHitProducer,hitHandle))
@@ -1305,10 +1302,6 @@ void BlipAna::analyze(const art::Event& evt)
   // flag this data as MC
   fIsMC = ( plist.size()>0 );
  
-  if( fDebugMode ) {
-    std::cout<<"Retrieved "<<hitlist.size()<<" hits from "<<fHitProducer<<"\n";
-    std::cout<<"Retrieved "<<tracklist.size()<<" tracks from "<<fTrkProducer<<"\n";
-  }
 
 
   //=======================================================
@@ -1323,7 +1316,6 @@ void BlipAna::analyze(const art::Event& evt)
 
   // -- associated tracks/vertex
   art::FindManyP<recob::Track> fmtrk_from_pfp(pfpHandle,evt,fTrkProducer);
-  std::cout<<"Found "<<pfplist.size()<<" PFPs\n";
   if( pfplist.size() ) {
     // grab PFParticles in event
     ProxyPfpColl_t const &pfp_proxy = proxy::getCollection<std::vector<recob::PFParticle>>(evt, fPFPproducer,
@@ -1348,7 +1340,7 @@ void BlipAna::analyze(const art::Event& evt)
       fData->nu_pfp_pdg=PDG;
       if ( (PDG == 12) || (PDG == 14) )
       {
-        std::cout<<"Found a neutrino PFP\n";
+        //std::cout<<"Found a neutrino PFP\n";
         if (pfParticleMetadataList.size() != 0)
         {
           for (unsigned int j = 0; j < pfParticleMetadataList.size(); ++j)
@@ -1360,9 +1352,7 @@ void BlipAna::analyze(const art::Event& evt)
               for (std::map<std::string, float>::const_iterator it = pfParticlePropertiesMap.begin(); it != pfParticlePropertiesMap.end(); ++it)
               {
                 if( it->first == "IsNeutrino" ) fData->nu_isNeutrino  = it->second;
-                //if( it->first == "NuScore"    ) fData->nu_nuscore     = it->second;
                 if( it->first == "NuScore"    ) fData->nu_nuscore.push_back(it->second);
-                //if( it->first == "SliceIndex" ) fData->nu_sliceindex  = it->second;
               }
             }
           }
@@ -1377,11 +1367,8 @@ void BlipAna::analyze(const art::Event& evt)
           // save vertex to array
           vtx.at(0)->XYZ(xyz);
           auto nuvtx = TVector3(xyz[0], xyz[1], xyz[2]);
-          //fData->nu_reco_vtx_x = nuvtx.X();
-          //fData->nu_reco_vtx_y = nuvtx.Y();
-          //fData->nu_reco_vtx_z = nuvtx.Z();
           float _reco_nu_vtx_sce[3];
-          searchingfornues::ApplySCECorrectionXYZ(nuvtx.X(),nuvtx.Y(),nuvtx.Z(), _reco_nu_vtx_sce);
+          nuselection::ApplySCECorrectionXYZ(nuvtx.X(),nuvtx.Y(),nuvtx.Z(), _reco_nu_vtx_sce);
           fData->nu_reco_vtx_x = _reco_nu_vtx_sce[0];
           fData->nu_reco_vtx_y = _reco_nu_vtx_sce[1];
           fData->nu_reco_vtx_z = _reco_nu_vtx_sce[2];
@@ -1396,10 +1383,7 @@ void BlipAna::analyze(const art::Event& evt)
         std::vector<ProxyPfpElem_t> slice_pfp_v;
         AddDaughters(pfp_pxy, pfp_proxy, slice_pfp_v);
         //std::cout << "This slice has " << slice_pfp_v.size() << " daughter PFParticles" << std::endl;
-
         // create list of tracks and showers associated to this slice
-        //std::vector<art::Ptr<recob::Track>> sliceTracks;
-        //std::vector<art::Ptr<recob::Shower>> sliceShowers;
         std::vector<float>  trkscore_v;
         std::vector<int>    trkid_v;
         std::vector<float>  shwrscore_v;
@@ -1408,7 +1392,7 @@ void BlipAna::analyze(const art::Event& evt)
         { 
           auto const &ass_trk_v = pfp.get<recob::Track>();
           auto const &ass_shr_v = pfp.get<recob::Shower>();
-          float score = searchingfornues::GetTrackShowerScore(pfp);
+          float score = nuselection::GetTrackShowerScore(pfp);
           if (ass_trk_v.size() == 1) {
             trkid_v   .push_back(ass_trk_v.at(0)->ID());
             trkscore_v.push_back(score);
@@ -1417,10 +1401,8 @@ void BlipAna::analyze(const art::Event& evt)
             shwrscore_v.push_back(score);
           }
         } // for all PFParticles in the slice
-
         //std::cout<<"  - "<<trkscore_v.size()<<" tracks\n";
         //std::cout<<"  - "<<shwrscore_v.size()<<" showers\n";
-
         for(size_t itrk = 0; itrk < trkscore_v.size(); itrk++){
           fData->nu_trk_id    .push_back(trkid_v[itrk]);
           fData->nu_trk_score .push_back(trkscore_v[itrk]);
@@ -1428,24 +1410,24 @@ void BlipAna::analyze(const art::Event& evt)
         for(size_t ishwr = 0; ishwr < shwrscore_v.size(); ishwr++){
           fData->nu_shwr_score .push_back(shwrscore_v[ishwr]);
         }
-
-
-        // run analysis on this slice
-        for (size_t i = 0; i < _analysisToolsVec.size(); i++) {
-          bool fIsData = !fIsMC;
-          _analysisToolsVec[i]->analyzeSlice(evt, slice_pfp_v, fIsData, true);
-        }
-
-        //float* fData->selTree->GetBranch( 
-
-        /*
-        float* bdtscore = (float*) _tree->GetBranch(fBDT_branch.c_str())->GetAddress();
-        std::cout << "bdtscore=" << *bdtscore << std::endl;
-        keepEvent = keepEvent && ( (*bdtscore)<fBDT_cut ); 
-        */
-
+      
       }//if PDG of neutrino
     }//end loop over PFPs
+  }
+  
+  
+  // Tell us what's going on!
+  if( fNumEvents < 200 || (fNumEvents % 100) == 0 ) {
+  std::cout<<"\n"
+  <<"=========== BlipAna =========================\n"
+  <<"Event "<<evt.id().event()<<" / run "<<evt.id().run()<<"; total: "<<fNumEvents<<"\n";
+  std::cout
+  <<"found "<<hitlist.size()<<" hits from "<<fBlipAlg.fHitProducer<<"\n"
+  <<"found "<<tracklist.size()<<" tracks from "<<fTrkProducer<<"\n"
+  <<"found "<<pfplist.size()<<" PFPs from "<<fPFPproducer<<"\n"
+  <<"reconstructed "<<fBlipAlg.hitclust.size()<<" 2D hit clusters\n"
+  <<"reconstructed "<<fBlipAlg.blips.size()<<" 3D blips\n"
+  ;
   }
 
 
@@ -1547,14 +1529,9 @@ void BlipAna::analyze(const art::Event& evt)
         fData->part_depElectrons[i]    = pinfo[i].depElectrons;
         fData->part_isPrimary[i]       = pinfo[i].isPrimary;
         // check containment
-        float x0 = pPart->Vx();
-        float y0 = pPart->Vy();
-        float z0 = pPart->Vz();
-        float xf = pPart->EndPosition()[0];
-        float yf = pPart->EndPosition()[1];
-        float zf = pPart->EndPosition()[2];
-        if( BlipUtils::IsPointInAV(x0,y0,z0) && BlipUtils::IsPointInAV(xf,yf,zf) )
-          fData->part_isContained[i] = true;
+        bool startInAV  = BlipUtils::IsPointInAV(pPart->Vx(),pPart->Vy(),pPart->Vz());
+        bool endInAV    = BlipUtils::IsPointInAV(pPart->EndPosition()[0],pPart->EndPosition()[1],pPart->EndPosition()[2]);
+        if( startInAV && endInAV ) fData->part_isContained[i] = true;
  
         if( fDebugMode && pPart->Process() != "muIoni" ) {
           PrintParticleInfo(i);
@@ -1676,10 +1653,11 @@ void BlipAna::analyze(const art::Event& evt)
     // retrieve track calo data product
     // - pandoracalo = no corrections; 
     // - pandoracali = YZ transparency corrections only
-    art::FindManyP<anab::Calorimetry> fmcal(tracklistHandle, evt, "pandoracali");
+    art::FindManyP<anab::Calorimetry> fmcal(tracklistHandle, evt, fACPTCaliProducer);
     
     if( fmcal.isValid() ) {
       
+      std::cout<<"We are doing ACPT\n";
       // set the required 'dX' that would indicate a
       // track crossed the full drift distance
       float dx_min = 250;
@@ -1694,15 +1672,15 @@ void BlipAna::analyze(const art::Event& evt)
         float dX      = fabs(startPt.X() - endPt.X());
         float dY      = fabs(startPt.Y() - endPt.Y());
         float dZ      = fabs(startPt.Z() - endPt.Z());
-        
+        std::cout<<"trk dX "<<dX<<"\n";
         // skip tracks that don't look like anode-cathode-piercing
         if( dX < dx_min || dX > dx_max ) continue;
-        
         // select only good angles (exclude 90 degree +/- 5 deg)
         float theta_xz = 180*atan(dX/dZ)/3.14159;
         float theta_yz = 180*atan(dY/dZ)/3.14159;
         h_ACPtrk_theta_xz->Fill(theta_xz);
         h_ACPtrk_theta_yz->Fill(theta_yz);
+        std::cout<<"trk angle "<<theta_xz<<"\n";
         if( theta_xz > 80 ) continue;
       
         // Make sure this isn't just a really long wiggly track
@@ -1711,16 +1689,20 @@ void BlipAna::analyze(const art::Event& evt)
         float diff = sqrt( pow(dX,2) + pow(dY,2) + pow(dZ,2) );
         float wigglyness = 1.-diff/trk->Length();
         if(wigglyness > 0.01 ) continue;
+        std::cout<<"wigglyness "<<wigglyness<<"\n";
 
         //==============================================
         // loop the calo objects and find the one for collection plane
         // also require at least 100 dE/dx points
         //==============================================
+        std::cout<<"LOOKING FOR TRACK CALO .....................................................................\n";
         std::vector<art::Ptr<anab::Calorimetry> > caloObjs = fmcal.at(i);
+        std::cout<<caloObjs.size()<<"\n";
         for(auto& caloObj : caloObjs ) {
           if( caloObj->PlaneID().Plane != 2 )       continue;
           if( caloObj->dEdx().size() < 100 )        continue;
           size_t Npts = caloObj->dEdx().size();
+          std::cout<<"calo NPts "<<Npts<<"\n";
 
           // Calculate the X-coordinate offset that we'll use to shift
           // the track so that its start/end correspond to anode and cathode
@@ -1787,9 +1769,6 @@ void BlipAna::analyze(const art::Event& evt)
             
             // Save this point!
             nSavedPts++;
-            
-            //fData         ->acptrk_dEdx[nSavedPts-1]   = dEdx;
-            //fData         ->acptrk_tdrift[nSavedPts-1] = tdrift;
             h_ACPtrk_yz   ->Fill( point.Z(), point.Y() );
             h_ACPtrk_dEdx ->Fill(dEdx);
           
