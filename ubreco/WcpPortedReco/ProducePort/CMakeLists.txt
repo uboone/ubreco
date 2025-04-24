@@ -8,10 +8,6 @@ cet_make_library(
   ROOT::Tree
 )
 
-art_dictionary(
-  DICTIONARY_LIBRARIES ubreco::ProducePort
-)
-
 cet_build_plugin(
   NuSelectionMetrics art::EDProducer
   LIBRARIES

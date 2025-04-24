@@ -13,11 +13,6 @@ cet_build_plugin(
   lardata::DetectorClocksService
 )
 
-art_dictionary(
-  DICTIONARY_LIBRARIES
-  lardataobj::RecoBase
- )
-
 add_subdirectory(CMToolBase)
 add_subdirectory(CMTAlgMerge)
 add_subdirectory(CMTAlgMatch)
