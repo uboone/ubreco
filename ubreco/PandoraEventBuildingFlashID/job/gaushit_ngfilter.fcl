@@ -21,8 +21,8 @@ gaushit_ngbypfp:
   PfpLabel:      "nuslhits"
   HitScoreLabel: ["NuGraph","filter"]
   HitSemanticLabel: ["NuGraph","semantic"]
-  ScoreCut:      0.25
-  FracCut:       0.25
+  ScoreCut:      0.0
+  FracCut:       0.0
 }
 
 gaushitTruth_ng:
