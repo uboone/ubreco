@@ -1657,7 +1657,7 @@ void BlipAna::analyze(const art::Event& evt)
     
     if( fmcal.isValid() ) {
       
-      std::cout<<"We are doing ACPT\n";
+      //std::cout<<"We are doing ACPT\n";
       // set the required 'dX' that would indicate a
       // track crossed the full drift distance
       float dx_min = 250;
@@ -1672,7 +1672,7 @@ void BlipAna::analyze(const art::Event& evt)
         float dX      = fabs(startPt.X() - endPt.X());
         float dY      = fabs(startPt.Y() - endPt.Y());
         float dZ      = fabs(startPt.Z() - endPt.Z());
-        std::cout<<"trk dX "<<dX<<"\n";
+        //std::cout<<"trk dX "<<dX<<"\n";
         // skip tracks that don't look like anode-cathode-piercing
         if( dX < dx_min || dX > dx_max ) continue;
         // select only good angles (exclude 90 degree +/- 5 deg)
@@ -1680,7 +1680,7 @@ void BlipAna::analyze(const art::Event& evt)
         float theta_yz = 180*atan(dY/dZ)/3.14159;
         h_ACPtrk_theta_xz->Fill(theta_xz);
         h_ACPtrk_theta_yz->Fill(theta_yz);
-        std::cout<<"trk angle "<<theta_xz<<"\n";
+        //std::cout<<"trk angle "<<theta_xz<<"\n";
         if( theta_xz > 80 ) continue;
       
         // Make sure this isn't just a really long wiggly track
@@ -1689,20 +1689,19 @@ void BlipAna::analyze(const art::Event& evt)
         float diff = sqrt( pow(dX,2) + pow(dY,2) + pow(dZ,2) );
         float wigglyness = 1.-diff/trk->Length();
         if(wigglyness > 0.01 ) continue;
-        std::cout<<"wigglyness "<<wigglyness<<"\n";
+        //std::cout<<"wigglyness "<<wigglyness<<"\n";
 
         //==============================================
         // loop the calo objects and find the one for collection plane
         // also require at least 100 dE/dx points
         //==============================================
-        std::cout<<"LOOKING FOR TRACK CALO .....................................................................\n";
+        //std::cout<<"LOOKING FOR TRACK CALO .....................................................................\n";
         std::vector<art::Ptr<anab::Calorimetry> > caloObjs = fmcal.at(i);
-        std::cout<<caloObjs.size()<<"\n";
         for(auto& caloObj : caloObjs ) {
           if( caloObj->PlaneID().Plane != 2 )       continue;
           if( caloObj->dEdx().size() < 100 )        continue;
           size_t Npts = caloObj->dEdx().size();
-          std::cout<<"calo NPts "<<Npts<<"\n";
+          //std::cout<<"calo NPts "<<Npts<<"\n";
 
           // Calculate the X-coordinate offset that we'll use to shift
           // the track so that its start/end correspond to anode and cathode
