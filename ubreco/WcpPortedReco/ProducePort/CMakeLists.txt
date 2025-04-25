@@ -27,6 +27,7 @@ cet_build_plugin(
   PortedFlash art::EDProducer
   LIBRARIES
   PRIVATE
+  ubobj::WcpPort
   ubcore::Geometry
   lardata::Utilities
   lardata::DetectorClocksService
@@ -56,6 +57,7 @@ cet_build_plugin(
   PortWCSpacePointTrec art::EDProducer
   LIBRARIES
   PRIVATE
+  ubobj::WcpPort
   lardata::Utilities
   lardataobj::RecoBase
 )
@@ -64,6 +66,7 @@ cet_build_plugin(
   PortWCSpacePointTcluster art::EDProducer
   LIBRARIES
   PRIVATE
+  ubobj::WcpPort
   lardata::Utilities
   lardataobj::RecoBase
 )
@@ -72,6 +75,7 @@ cet_build_plugin(
   PortWCSpacePointTreccharge art::EDProducer
   LIBRARIES
   PRIVATE
+  ubobj::WcpPort
   lardata::Utilities
   lardataobj::RecoBase
 )
@@ -80,6 +84,7 @@ cet_build_plugin(
   PortWCSpacePointTrecchargeblob art::EDProducer
   LIBRARIES
   PRIVATE
+  ubobj::WcpPort
   lardata::Utilities
   lardataobj::RecoBase
 )
@@ -89,6 +94,7 @@ cet_build_plugin(
   LIBRARIES
   PRIVATE
   nusimdata::SimulationBase
+  ubobj::WcpPort
   lardata::Utilities
   lardataobj::RecoBase
 )

@@ -7,6 +7,7 @@ cet_make_library(
   larsim::MCCheater_ParticleInventoryService_service
   lardata::Utilities
   lardata::DetectorPropertiesService
+  ubobj::DataOverlay
   nusimdata::SimulationBase
   canvas::canvas
 )
