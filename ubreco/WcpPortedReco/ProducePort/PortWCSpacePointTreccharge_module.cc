@@ -12,7 +12,7 @@
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
 
-#include "ubreco/WcpPortedReco/ProducePort/SpacePointStructs.h"
+#include "ubobj/WcpPort/SpacePointStructs.h"
 
 #include "TTree.h"
 #include "TBranch.h"

@@ -12,7 +12,7 @@
 #include "nusimdata/SimulationBase/MCParticle.h"
 #include "lardata/Utilities/AssociationUtil.h"
 #include "lardataobj/RecoBase/SpacePoint.h"
-#include "ubreco/WcpPortedReco/ProducePort/SpacePointStructs.h"
+#include "ubobj/WcpPort/SpacePointStructs.h"
 #include "ubreco/WcpPortedReco/ProducePort/WCMCSTrajectory.h"
 
 #include "TTree.h"
@@ -47,6 +47,7 @@ private:
   //helper functions
   double beta(double gamma);
   double gamma(double KE, double mass);
+  double sigmoid(double x);
   void increment_energy (double &e);
   void decrement_dist (double &x, double xmax);
   void setUKEfromRR();
@@ -59,7 +60,7 @@ private:
   double double_gaussian(double angle, std::vector<double> pars);
   double lnlikelihood_theta_xz(double angle, double T);
   double lnlikelihood_theta_yz(double angle, double T, double vx);
-  double lnlikelihood_track(double* E, double* par);
+  double lnlikelihood_track(double* KE, double* par);
   std::vector<double> estimate_energy(std::vector<double> segs_distance, std::vector<double> segs_angle_x, std::vector<double> segs_angle_y,  std::vector<double> vx_comps);
 
   //constants
@@ -86,7 +87,7 @@ private:
   //internal variables
   TGraph* uKEfromRR;
   TGraph* uRRfromKE;
-  TGraph2D* uKEfromEX;
+  //TGraph2D* uKEfromEX;
   double mu_tracklen;
   double emu_tracklen;
   double emu_MCS;
@@ -165,7 +166,7 @@ void WireCellMCS::cleanUp()
 {
   uKEfromRR = nullptr;
   uRRfromKE = nullptr;
-  uKEfromEX = nullptr;
+  //uKEfromEX = nullptr;
 }
 
 void WireCellMCS::produce(art::Event &e){
@@ -281,6 +282,8 @@ double WireCellMCS::beta(double gamma) {return sqrt(1.-(1./pow(gamma,2)));}
 
 double WireCellMCS::gamma(double KE, double mass) {return KE/mass+1;}	//KE, mass in MeV
 
+double WireCellMCS::sigmoid(double x) { return 1. / (1. + std::exp(-x)); }
+
 //This graph gives a function from muon residual range values to total kinetic energy values.
 //The data is taken from Atomic Data and Nuclear Data Tables 78: MUON STOPPING POWER AND RANGE TABLES 10 MeV–100 TeV
 // http://pdg.lbl.gov/2018/AtomicNuclearProperties/adndt.pdf
@@ -314,6 +317,7 @@ void WireCellMCS::decrement_dist (double &x, double xmax) {
 //Helper function that computes a 2D graph mapping {starting energy, distance} -> remaining energy
 void WireCellMCS::setUKEfromEX (TGraph *uKEfromRR, TGraph *uRRfromKE) {
 
+  /*
   double emin = 10.;
   double emax = 14000;
   double min_dist = uRRfromKE->Eval(emin);
@@ -330,6 +334,7 @@ void WireCellMCS::setUKEfromEX (TGraph *uKEfromRR, TGraph *uRRfromKE) {
     i++;
     uKEfromEX->SetPoint(i,e,0,e);
   }
+  */
 }
 
 
@@ -380,6 +385,7 @@ double WireCellMCS::lnlikelihood_theta_xz(double angle, double T) {
   return -std::log(double_gaussian(angle, pars));
 }
 
+/*
 //function to computethe likelihood of a given theta_yz angle measurement given a kinetic energy estimate T
 double WireCellMCS::lnlikelihood_theta_yz(double angle, double T, double vx) {
 
@@ -399,22 +405,54 @@ double WireCellMCS::lnlikelihood_theta_yz(double angle, double T, double vx) {
   double scale1 = (T-emu_edges[1]) / (emu_edges[2]-emu_edges[1]);
   double scale2 = (T-emu_edges[3]) / (emu_edges[4]-emu_edges[3]);
   if      (ivx == 4) {
-    if      (T <  emu_edges[1])                     { probability = pvx[ivx]; }
+    if                           (T < emu_edges[1]) { probability = pvx[ivx]; }
     else if (T >= emu_edges[1] && T < emu_edges[2]) { probability = (1-scale1)*pvx[ivx] + scale1*pvx[ivx-1]; }
     else if (T >= emu_edges[2] && T < emu_edges[3]) { probability = pvx[ivx-1]; }
     else if (T >= emu_edges[3] && T < emu_edges[4]) { probability = (1-scale2)*pvx[ivx-1] + scale2*pvx[ivx-2]; }
-    else if (T >  emu_edges[4])                     { probability = pvx[ivx-2]; }
+    else if (T >= emu_edges[4])                     { probability = pvx[ivx-2]; }
   } else if (ivx == 3) {
-    if      (T <  emu_edges[3])                     { probability = pvx[ivx]; }
-    else if (T <= emu_edges[3] && T < emu_edges[4]) { probability = (1-scale2)*pvx[ivx] + scale2*pvx[ivx-1]; }
-    else if (T >  emu_edges[4])                     { probability = pvx[ivx-1]; }
+    if                           (T < emu_edges[3]) { probability = pvx[ivx]; }
+    else if (T >= emu_edges[3] && T < emu_edges[4]) { probability = (1-scale2)*pvx[ivx] + scale2*pvx[ivx-1]; }
+    else if (T >= emu_edges[4])                     { probability = pvx[ivx-1]; }
   } else if (ivx <= 2)                              { probability = pvx[ivx]; }
+
+  probability = pvx[ivx]; //debugging
+  if (probability==0) { std::cout << "error, probability = 0" << std::endl; }
+  return -std::log(probability);
+}
+*/
+
+//function to computethe likelihood of a given theta_yz angle measurement given a kinetic energy estimate T
+double WireCellMCS::lnlikelihood_theta_yz(double angle, double T, double vx) {
+
+  // Define vx edges and emu edges
+  std::vector<double> vx_edges  = {0, 0.1, 0.2, 0.35, 0.75, 1};
+  std::vector<double> emu_edges = {600, 950, 1300};
+
+  // Determine the vx_index based on vx
+  double vx_abs = std::abs(vx);
+  int ivx = 0*(vx_abs>=vx_edges[0] && vx_abs<vx_edges[1]) + 1*(vx_abs>=vx_edges[1] && vx_abs<vx_edges[2]) + 2*(vx_abs>=vx_edges[2] && vx_abs<vx_edges[3]) + 3*(vx_abs>=vx_edges[3] && vx_abs<vx_edges[4]) + 4*(vx_abs>=vx_edges[4] && vx_abs<vx_edges[5]);
+
+  //probability using PDFs from each vx slice
+  std::vector<double> pvx = { double_gaussian(angle,pred_theta_yz_pars(T,0)), double_gaussian(angle,pred_theta_yz_pars(T,1)), double_gaussian(angle,pred_theta_yz_pars(T,2)), double_gaussian(angle,pred_theta_yz_pars(T,3)), double_gaussian(angle,pred_theta_yz_pars(T,4)) };
+
+  //apply a different PDF based on vx slice. For highest vx slices, drop down to lower vx slices at large energies
+  double probability = 0.0;
+  double width = 50;
+  double scale1 = sigmoid((T-emu_edges[0])/width);
+  double scale2 = sigmoid((T-emu_edges[2])/width);
+  if      (ivx == 4) {
+    if      (T <  emu_edges[1]) { probability = (1-scale1)*pvx[ivx]   + scale1*pvx[ivx-1]; }
+    else if (T >= emu_edges[1]) { probability = (1-scale2)*pvx[ivx-1] + scale2*pvx[ivx-2]; }
+  } else if (ivx == 3) {
+                                { probability = (1-scale2)*pvx[ivx]   + scale2*pvx[ivx-1]; }
+  } else if (ivx <= 2)          { probability = pvx[ivx]; }
 
   return -std::log(probability);
 }
 
 //function to computethe likelihood of a given series of theta_xz and theta_yz angle measurement given an energy estimate E
-double WireCellMCS::lnlikelihood_track(double* E, double* par){
+double WireCellMCS::lnlikelihood_track(double* KE, double* par){
   int nsegs = par[0];
   double lnlikelihood = 0;
   for (int i=2; i<nsegs+1; i++) {
@@ -422,14 +460,15 @@ double WireCellMCS::lnlikelihood_track(double* E, double* par){
     double theta_yz = par[i + 2*nsegs];   // angle in y-projection
     double vx       = par[i + 3*nsegs];   // vx slice
     
-    // Define vx edges and emu edges
-    std::vector<double> vx_edges  = {0, 0.1, 0.2, 0.35, 0.75, 1};
-    std::vector<double> emu_edges = {0, 550, 600, 1250, 1300};
-
     double distance1 = par[i-1];
     double distance2 = par[i];
-    double keguess1  = std::max(1.0, uKEfromEX->Interpolate(E[0], distance1)); // Ensure energy stays above 1 MeV
-    double keguess2  = std::max(1.0, uKEfromEX->Interpolate(E[0], distance2));
+    double rrtot_guess = uRRfromKE->Eval(KE[0]);
+    double rrguess1 = std::max(rrtot_guess - distance1, 1.); //Ensure at least 1 cm of distance
+    double rrguess2 = std::max(rrtot_guess - distance2, 1.);
+    double keguess1 = uKEfromRR->Eval(rrguess1);
+    double keguess2 = uKEfromRR->Eval(rrguess2);
+    //double keguess1  = std::max(1.0, uKEfromEX->Interpolate(KE[0], distance1)); // Ensure energy stays above 1 MeV
+    //double keguess2  = std::max(1.0, uKEfromEX->Interpolate(KE[0], distance2));
     double keguess   = (keguess1+keguess2)/2 ; // angles is matched to avg energy of the two segments 
 	
     //compute likelihood
@@ -453,27 +492,27 @@ std::vector<double> WireCellMCS::estimate_energy(std::vector<double> segs_distan
 
   // Create a TF1 object to minimize the likelihood
   //TF1* f_lnlikelihood2 = new TF1("Negative LnLikelihood of Given Track using Angle-Based MCS", lnlikelihood_track, emin, emax, segs_distance.size());
-  TF1* f_lnlikelihood2 = new TF1("Negative LnLikelihood of Given Track using Angle-Based MCS", [this](double* E, double* par){ return lnlikelihood_track(E,par); }, emin, emax, segs_distance.size());
+  TF1* f_lnlikelihood2 = new TF1("Negative LnLikelihood of Given Track using Angle-Based MCS", [this](double* KE, double* par){ return lnlikelihood_track(KE,par); }, emin, emax, segs_distance.size());
   f_lnlikelihood2->SetParameters(&segs_distance[0]);
 
   // Find the energy that minimizes the likelihood
-  double eguess = f_lnlikelihood2->GetMinimumX(emin + 1e-3, emax - 1e-3);
+  double keguess = f_lnlikelihood2->GetMinimumX(emin + 1e-3, emax - 1e-3);
 
   //define lower and upper bounds
-  double eguess_lower  = f_lnlikelihood2->GetMinimumX(emin + 1e-3, eguess*0.8);
-  double eguess_higher = f_lnlikelihood2->GetMinimumX(eguess*1.2, emax - 1e-3);
+  double keguess_lower  = f_lnlikelihood2->GetMinimumX(                      emin + 1e-3,  keguess*0.8);
+  double keguess_higher = f_lnlikelihood2->GetMinimumX(std::min(keguess*1.2, emax - 2e-3), emax - 1e-3);
 
   //get likelihood at e_guess, e_guess_lower, e_guess_higher
-  double l_eguess        = std::exp(-lnlikelihood_track(&eguess,       &segs_distance[0]));
-  double l_eguess_lower  = std::exp(-lnlikelihood_track(&eguess_lower, &segs_distance[0]));
-  double l_eguess_higher = std::exp(-lnlikelihood_track(&eguess_higher,&segs_distance[0]));
+  double l_keguess        = std::exp(-lnlikelihood_track(&keguess,       &segs_distance[0]));
+  double l_keguess_lower  = std::exp(-lnlikelihood_track(&keguess_lower, &segs_distance[0]));
+  double l_keguess_higher = std::exp(-lnlikelihood_track(&keguess_higher,&segs_distance[0]));
 
   //copmute the ambiguity score as the highest ratio
-  double ambiguity_score = std::max(l_eguess_lower/l_eguess ,l_eguess_higher/l_eguess );
+  double ambiguity_score = std::max(l_keguess_lower/l_keguess ,l_keguess_higher/l_keguess );
 
   // Clean up
   delete f_lnlikelihood2;
-  return {eguess, ambiguity_score};
+  return {keguess, ambiguity_score};
 } 
 
 

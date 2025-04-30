@@ -31,11 +31,13 @@ microboone_calo_mcc9_data:
 # Main BlipAlg settings
 microboone_blipalg:
 {
-  HitProducer:          "gaushit"       #// input recob::Hits to use for blip reconstruction
-  TrkProducer:          "pandora"       #// input recob::Tracks to use for blip reconstruction
-  GeantProducer:        "largeant"      #// input sim::MCParticles (getting true particle info)
-  SimEDepProducer:      "ionization"    #// input sim::SimEnergyDeposits (getting energy/electrons deposited)
-  SimChanProducer:      "driftWC:simpleSC" #// label for sim::SimChannels (getting drifted charge; optional)
+  #HitProducer:          ""                            #// custom hit producer; will be overwritten with below if blank
+  HitProducerData:      "gaushit::DataRecoStage1Test" #// *original* producer of reco1 hits for data (DO NOT MODIFY)
+  HitProducerOverlay:   "gaushit::OverlayStage1a"     #// *original* producer of reco1 hits for MC-overlay (DO NOT MODIFY)
+  TrkProducer:          "pandoraInit"        #// input recob::Tracks to use for blip reconstruction
+  GeantProducer:        "largeant"           #// input sim::MCParticles (getting true particle info)
+  SimEDepProducer:      "ionization"         #// input sim::SimEnergyDeposits (getting energy/electrons deposited)
+  SimChanProducer:      "driftWC:simpleSC"   #// label for sim::SimChannels (getting drifted charge; optional)
   SimGainFactor:        0.826           #// gain fudge factor applied in WireCell detsim
   MaxHitTrkLength:      5.0             #// hits in trks > this length will be vetoed [cm]
   DoHitFiltering:       true            #// filter hits based on amp, width, RMS
