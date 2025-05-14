@@ -7,14 +7,9 @@ cet_make_library(
   larsim::MCCheater_ParticleInventoryService_service
   lardata::Utilities
   lardata::DetectorPropertiesService
+  ubobj::DataOverlay
   nusimdata::SimulationBase
   canvas::canvas
-)
-
-art_dictionary(
-  DICTIONARY_LIBRARIES
-  lardataobj::RecoBase
-  nusimdata::SimulationBase
 )
 
 install_headers()

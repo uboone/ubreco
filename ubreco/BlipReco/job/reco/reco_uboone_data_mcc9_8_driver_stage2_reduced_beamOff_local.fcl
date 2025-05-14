@@ -1,4 +1,4 @@
-#include "reco_uboone_data_mcc9_8_driver_stage2_reduced_beamOff.fcl"
+#include "reco_uboone_data_mcc9_8_driver_stage2_beamOff.fcl"
 #include "select_reco2_modules.fcl"
 #include "drop_stage2_products.fcl"
 

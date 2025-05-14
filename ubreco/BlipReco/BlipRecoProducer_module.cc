@@ -67,8 +67,7 @@ class BlipReco3D : public art::EDProducer
   void produce(art::Event & e) override;
 
   private:
-  blip::BlipRecoAlg*      fBlipAlg;
-  std::string             fHitProducer;
+  blip::BlipRecoAlg       fBlipAlg;
 
 };
 
@@ -78,11 +77,10 @@ class BlipReco3D : public art::EDProducer
 //  BlipReco3D constructor and destructor
 //###################################################
 BlipReco3D::BlipReco3D(fhicl::ParameterSet const & pset) : art::EDProducer(pset)
+  , fBlipAlg ( pset.get<fhicl::ParameterSet>("BlipAlg") )
 {
   // Read in fcl parameters for blip reco alg
   fhicl::ParameterSet pset_blipalg = pset.get<fhicl::ParameterSet>("BlipAlg");
-  fBlipAlg        = new blip::BlipRecoAlg( pset_blipalg );
-  fHitProducer    = pset_blipalg.get<std::string>   ("HitProducer","gaushit");
  
   // produce spacepoints and 'hit <--> spacepoint' associations
   produces< std::vector<  recob::SpacePoint > >();
@@ -117,48 +115,31 @@ void BlipReco3D::produce(art::Event & evt)
 
   std::unique_ptr< std::vector< blipobj::Blip > > Blip_v(new std::vector<blipobj::Blip>);
   std::unique_ptr< art::Assns <recob::Hit, blipobj::Blip> >  assn_hit_blip_v(new art::Assns<recob::Hit,blipobj::Blip> );
-  
-  //============================================
-  // Get hits from input module
-  //============================================
-  art::Handle< std::vector<recob::Hit> > hitHandle;
-  std::vector<art::Ptr<recob::Hit> > hitlist;
-  if (evt.getByLabel(fHitProducer,hitHandle))
-    art::fill_ptr_vector(hitlist, hitHandle);
-  
+ 
   
   //============================================
   // Run blip reconstruction: 
   //============================================
-  fBlipAlg->RunBlipReco(evt);
-  
+  fBlipAlg.RunBlipReco(evt);
+
+  //============================================
+  // Get hits from input module
+  //============================================
+  auto hitprod = fBlipAlg.fHitProducer;
+  std::cout<<"Input hits: "<<hitprod.label()<<"::"<<hitprod.process()<<"\n";
+  art::Handle< std::vector<recob::Hit> > hitHandle;
+  std::vector<art::Ptr<recob::Hit> > hitlist;
+  if (evt.getByLabel(hitprod,hitHandle))
+    art::fill_ptr_vector(hitlist, hitHandle);
+  std::cout<<"Retrieved "<<hitlist.size()<<" hits from event\n"; 
+
   //===========================================
   // Make recob::SpacePoints and objects
   //===========================================
-  for(size_t i=0; i<fBlipAlg->blips.size(); i++){
-    auto& b = fBlipAlg->blips[i];
+  for(size_t i=0; i<fBlipAlg.blips.size(); i++){
+    auto& b = fBlipAlg.blips[i];
     
     if( !b.isValid ) continue;
-    
-
-    /*
-    // Save a custom blip object containing only the 
-    // most relevant info for this particular blip
-    blipobj::Blip nb;
-    nb.ID       = b.ID;
-    nb.TPC      = b.TPC;
-    nb.NPlanes  = b.NPlanes;
-    nb.Position = b.Position;
-    //nb.Y        = b.Position.Y();
-    //nb.Z        = b.Position.Z();
-    nb.Charge   = b.Charge;
-    nb.Energy   = b.Energy;
-    nb.trueEnergy = b.truth.Energy;
-    nb.trueCharge = b.truth.DepElectrons;
-    nb.trueG4ID   = b.truth.LeadG4ID;
-    nb.truePDG    = b.truth.LeadG4PDG;
-    Blip_v->emplace_back(nb);
-    */
     
     Blip_v->emplace_back(b);
     blipCount++;
