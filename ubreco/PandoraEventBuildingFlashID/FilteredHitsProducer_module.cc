@@ -78,6 +78,7 @@ FilteredHitsProducer::FilteredHitsProducer(fhicl::ParameterSet const& p)
   if (fIsMC) produces<HitParticleAssociations>();
 
   if (fScoreCut>=0) produces<std::vector<anab::FeatureVector<5> > >("semantic");
+  if (fScoreCut>=0) produces<std::vector<anab::FeatureVector<1> > >("filter");
 }
 
 void FilteredHitsProducer::produce(art::Event& e)
@@ -87,6 +88,7 @@ void FilteredHitsProducer::produce(art::Event& e)
   auto outputHits = std::make_unique<std::vector<recob::Hit> >();
   auto outputHitPartAssns = std::make_unique<HitParticleAssociations>();
   std::unique_ptr<std::vector<anab::FeatureVector<5>>> semtcol(new std::vector<anab::FeatureVector<5> >());
+  std::unique_ptr<std::vector<anab::FeatureVector<1>>> filtcol(new std::vector<anab::FeatureVector<1> >());
   art::PtrMaker<recob::Hit> hitPtrMaker(e);
 
   art::Handle< std::vector< recob::Hit > > hitListHandle;
@@ -126,6 +128,7 @@ void FilteredHitsProducer::produce(art::Event& e)
     //
     outputHits->emplace_back(*hit);
     if (fScoreCut>=0) semtcol->emplace_back(ngSemtOutputHandle->at(ihit));
+    if (fScoreCut>=0) filtcol->emplace_back(ngFiltOutputHandle->at(ihit));
     //
     if (fIsMC ) {
       const art::Ptr<recob::Hit> ahp = hitPtrMaker(outputHits->size() - 1);
@@ -142,6 +145,7 @@ void FilteredHitsProducer::produce(art::Event& e)
   e.put(std::move(outputHits));
   if (fIsMC) e.put(std::move(outputHitPartAssns));
   if (fScoreCut>=0) e.put(std::move(semtcol), "semantic");
+  if (fScoreCut>=0) e.put(std::move(filtcol), "filter");
 }
 
 DEFINE_ART_MODULE(FilteredHitsProducer)
