@@ -72,6 +72,7 @@ FilteredHitsProducerByPfp::FilteredHitsProducerByPfp(fhicl::ParameterSet const& 
 {
   produces<std::vector<recob::Hit>>();
   produces<std::vector<anab::FeatureVector<5> > >("semantic");
+  produces<std::vector<anab::FeatureVector<1> > >("filter");
 }
 
 void FilteredHitsProducerByPfp::produce(art::Event& e)
@@ -80,6 +81,7 @@ void FilteredHitsProducerByPfp::produce(art::Event& e)
 
   auto outputHits = std::make_unique<std::vector<recob::Hit> >();
   std::unique_ptr<std::vector<anab::FeatureVector<5>>> semtcol(new std::vector<anab::FeatureVector<5> >());
+  std::unique_ptr<std::vector<anab::FeatureVector<1>>> filtcol(new std::vector<anab::FeatureVector<1> >());
   art::PtrMaker<recob::Hit> hitPtrMaker(e);
 
   art::Handle< std::vector< anab::FeatureVector<1> > > ngFiltOutputHandle;
@@ -144,6 +146,7 @@ void FilteredHitsProducerByPfp::produce(art::Event& e)
     if (ngFiltOutputHandle->at(hit_ptr.key()).at(0)>=fScoreCut) {
       outputHits->emplace_back(*hit_ptr);
       semtcol->emplace_back(ngSemtOutputHandle->at(hit_ptr.key()));
+      filtcol->emplace_back(ngFiltOutputHandle->at(hit_ptr.key()));
     }
   }
 
@@ -171,12 +174,14 @@ void FilteredHitsProducerByPfp::produce(art::Event& e)
     for (auto hit_ptr : hit_pfp_v) {
       outputHits->emplace_back(*hit_ptr);
       semtcol->emplace_back(ngSemtOutputHandle->at(hit_ptr.key()));
+      filtcol->emplace_back(ngFiltOutputHandle->at(hit_ptr.key()));
     }
   }
 
-  std::cout << "FilteredHitProducerByPfp nhits=" << outputHits->size() << std::endl;
+  std::cout << "FilteredHitProducerByPfp nhits in=" << hitListHandle->size() << " out=" << outputHits->size() << " diff=" << hitListHandle->size()-outputHits->size() << std::endl;
   e.put(std::move(outputHits));
   e.put(std::move(semtcol), "semantic");
+  e.put(std::move(filtcol), "filter");
 }
 
 DEFINE_ART_MODULE(FilteredHitsProducerByPfp)
