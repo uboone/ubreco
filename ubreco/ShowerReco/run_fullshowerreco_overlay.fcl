@@ -1,0 +1,4 @@
+#include "run_fullshowerreco_data_beamOn.fcl"
+
+physics.producers.flashmatch.BeamWindowStart: @local::flash_neutrino_id_tool_beamOff.BeamWindowStartTime
+physics.producers.flashmatch.BeamWindowEnd:   @local::flash_neutrino_id_tool_beamOff.BeamWindowEndTime

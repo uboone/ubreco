@@ -1,0 +1,4 @@
+#include "run_fullshowerreco_data_beamOn.fcl"
+
+physics.producers.flashmatch.BeamWindowStart: 5.64
+physics.producers.flashmatch.BeamWindowEnd:   15.44
