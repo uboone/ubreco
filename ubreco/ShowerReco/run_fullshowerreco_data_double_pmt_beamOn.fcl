@@ -1,0 +1,3 @@
+#include "run_fullshowerreco_data_beamOn.fcl"
+
+physics.producers.acpttrigtagger.OpDetWfmProducer: "doublePMTFilter:OpdetBeamHighGain"
