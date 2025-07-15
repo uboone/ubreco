@@ -121,10 +121,13 @@ void nsm::WireCellPF::produce(art::Event& e)
 	}
   }
 
+std::cout << "f_PFport: " << f_PFport << "\n";
+
 if(f_PFport){
   auto outputPF = std::make_unique< std::vector<simb::MCParticle> >();
   if(badinput){
 	e.put(std::move(outputPF));
+    std::cout << "badinput, not loading from T_match tree\n";
 	//return;
   }
   else{
@@ -134,16 +137,85 @@ if(f_PFport){
   // 4th bit: NC
   // 5th bit: long muon
   // 6th bit: nue CC
-  Int_t neutrino_type = 0;
+
+  std::cout << "preparing to read T_match tree\n";
+
+  Int_t tpc_cluster_id;
+  Int_t flash_id;
+  Double_t strength;
+  Double_t pe_pred[32];
+  Double_t pe_meas[32];
+  Double_t pe_meas_err[32];
+  Int_t event_type;
+  Double_t ks_dis;
+  Double_t chi2;
+  Int_t ndf;
+  Double_t cluster_length;
+  Int_t neutrino_type;
+  Double_t flash_time;
+  
   TTree *tree2 = (TTree*)fin->Get(fInput_tree2.c_str());
   if(tree2) {
-  tree2->SetBranchStatus("*", 0);
-  tree2->SetBranchStatus("neutrino_type", 1);
-  tree2->SetBranchAddress("neutrino_type",&neutrino_type);
+    std::cout << "in WireCellPF, tree2 containing T_match found\n";
+    tree2->SetBranchStatus("*", 0);
+
+    tree2->SetBranchStatus("tpc_cluster_id", 1);
+    tree2->SetBranchAddress("tpc_cluster_id",&tpc_cluster_id);
+
+    tree2->SetBranchStatus("flash_id", 1);
+    tree2->SetBranchAddress("flash_id",&flash_id);
+
+    tree2->SetBranchStatus("strength", 1);
+    tree2->SetBranchAddress("strength",&strength);
+
+    tree2->SetBranchStatus("pe_pred", 1);
+    tree2->SetBranchAddress("pe_pred",&pe_pred);
+
+    tree2->SetBranchStatus("pe_meas", 1);
+    tree2->SetBranchAddress("pe_meas",&pe_meas);
+
+    tree2->SetBranchStatus("pe_meas_err", 1);
+    tree2->SetBranchAddress("pe_meas_err",&pe_meas_err);
+
+    tree2->SetBranchStatus("event_type", 1);
+    tree2->SetBranchAddress("event_type",&event_type);
+
+    tree2->SetBranchStatus("ks_dis", 1);
+    tree2->SetBranchAddress("ks_dis",&ks_dis);
+
+    tree2->SetBranchStatus("chi2", 1);
+    tree2->SetBranchAddress("chi2",&chi2);
+
+    tree2->SetBranchStatus("ndf", 1);
+    tree2->SetBranchAddress("ndf",&ndf);
+
+    tree2->SetBranchStatus("cluster_length", 1);
+    tree2->SetBranchAddress("cluster_length",&cluster_length);
+
+    tree2->SetBranchStatus("neutrino_type", 1);
+    tree2->SetBranchAddress("neutrino_type",&neutrino_type);
+
+    tree2->SetBranchStatus("flash_time", 1);
+    tree2->SetBranchAddress("flash_time",&flash_time);
+
     for(int i=0; i<tree2->GetEntries(); i++){
-	tree2->GetEntry(i);
-	if(neutrino_type>1) break; // this should be the in-beam flash match
+      tree2->GetEntry(i);
+      if(neutrino_type>1) break; // this should be the in-beam flash match
     }
+    std::cout << "Should be in-beam flash match, neutrino_type: " << neutrino_type << "\n";
+
+    std::cout << "T_match/pe_meas[32] values: ";
+    for(int i=0; i<32; i++){
+      std::cout << pe_meas[i] << " ";
+    }
+    std::cout << "\n";
+
+    std::cout << "T_match/pe_pred[32] values: ";
+    for(int i=0; i<32; i++){
+      std::cout << pe_pred[i] << " ";
+    }
+    std::cout << "\n";
+
   }
 
   TTree *tree = (TTree*)fin->Get(fInput_tree.c_str());
