@@ -96,6 +96,19 @@ nsm::WireCellPF::WireCellPF(fhicl::ParameterSet const& p)
   if(f_PFport) produces< std::vector<simb::MCParticle> >();
   if(f_BDTport) produces< std::vector<nsm::NuSelectionBDT> >();
   if(f_KINEport) produces< std::vector<nsm::NuSelectionKINE> >();
+  if (f_PFport) produces< std::vector<double> >("NewPMTInfoPePred");
+  if (f_PFport) produces< std::vector<double> >("NewPMTInfoPeMeas");
+  if (f_PFport) produces< std::vector<double> >("NewPMTInfoPeMeasErr");
+  if (f_PFport) produces< int >("NewPMTInfoTPCClusterID");
+  if (f_PFport) produces< int >("NewPMTInfoFlashID");
+  if (f_PFport) produces< double >("NewPMTInfoStrength");
+  if (f_PFport) produces< int >("NewPMTInfoEventType");
+  if (f_PFport) produces< double >("NewPMTInfoKSDistance");
+  if (f_PFport) produces< double >("NewPMTInfoChi2");
+  if (f_PFport) produces< int >("NewPMTInfoNDF");
+  if (f_PFport) produces< double >("NewPMTInfoClusterLength");
+  if (f_PFport) produces< int >("NewPMTInfoNeutrinoType");
+  if (f_PFport) produces< double >("NewPMTInfoFlashTime");
   MF_LOG_DEBUG("WireCellPF") << "Debug: WireCellPF() ends";
 
 }
@@ -128,6 +141,20 @@ if(f_PFport){
   if(badinput){
 	e.put(std::move(outputPF));
     std::cout << "badinput, not loading from T_match tree\n";
+    // Put empty products for all NewPMTInfo* products when input is bad
+    e.put(std::make_unique<std::vector<double>>(), "NewPMTInfoPePred");
+    e.put(std::make_unique<std::vector<double>>(), "NewPMTInfoPeMeas");
+    e.put(std::make_unique<std::vector<double>>(), "NewPMTInfoPeMeasErr");
+    e.put(std::make_unique<int>(-1), "NewPMTInfoTPCClusterID");
+    e.put(std::make_unique<int>(-1), "NewPMTInfoFlashID");
+    e.put(std::make_unique<double>(-1.0), "NewPMTInfoStrength");
+    e.put(std::make_unique<int>(-1), "NewPMTInfoEventType");
+    e.put(std::make_unique<double>(-1.0), "NewPMTInfoKSDistance");
+    e.put(std::make_unique<double>(-1.0), "NewPMTInfoChi2");
+    e.put(std::make_unique<int>(-1), "NewPMTInfoNDF");
+    e.put(std::make_unique<double>(-1.0), "NewPMTInfoClusterLength");
+    e.put(std::make_unique<int>(-1), "NewPMTInfoNeutrinoType");
+    e.put(std::make_unique<double>(-1.0), "NewPMTInfoFlashTime");
 	//return;
   }
   else{
@@ -216,6 +243,49 @@ if(f_PFport){
     }
     std::cout << "\n";
 
+    // put pred_pe and meas_pe into the resulting file with e.put(std::move( ))
+    
+    // Create vectors for pe_pred and pe_meas data
+    auto output_pe_pred = std::make_unique< std::vector<double> >();
+    auto output_pe_meas = std::make_unique< std::vector<double> >();
+    auto output_pe_meas_err = std::make_unique< std::vector<double> >();
+
+    // Copy the arrays to vectors
+    for(int i=0; i<32; i++){
+      output_pe_pred->push_back(pe_pred[i]);
+      output_pe_meas->push_back(pe_meas[i]);
+      output_pe_meas_err->push_back(pe_meas_err[i]);
+    }
+    
+    e.put(std::move(output_pe_pred), "NewPMTInfoPePred");
+    e.put(std::move(output_pe_meas), "NewPMTInfoPeMeas");
+    e.put(std::move(output_pe_meas_err), "NewPMTInfoPeMeasErr");
+    e.put(std::make_unique<int>(tpc_cluster_id), "NewPMTInfoTPCClusterID");
+    e.put(std::make_unique<int>(flash_id), "NewPMTInfoFlashID");
+    e.put(std::make_unique<double>(strength), "NewPMTInfoStrength");
+    e.put(std::make_unique<int>(event_type), "NewPMTInfoEventType");
+    e.put(std::make_unique<double>(ks_dis), "NewPMTInfoKSDistance");
+    e.put(std::make_unique<double>(chi2), "NewPMTInfoChi2");
+    e.put(std::make_unique<int>(ndf), "NewPMTInfoNDF");
+    e.put(std::make_unique<double>(cluster_length), "NewPMTInfoClusterLength");
+    e.put(std::make_unique<int>(neutrino_type), "NewPMTInfoNeutrinoType");
+    e.put(std::make_unique<double>(flash_time), "NewPMTInfoFlashTime");
+
+  } else {
+    std::cout << "T_match tree not found, filling with defaults\n";
+    e.put(std::make_unique<std::vector<double>>(), "NewPMTInfoPePred");
+    e.put(std::make_unique<std::vector<double>>(), "NewPMTInfoPeMeas");
+    e.put(std::make_unique<std::vector<double>>(), "NewPMTInfoPeMeasErr");
+    e.put(std::make_unique<int>(-1), "NewPMTInfoTPCClusterID");
+    e.put(std::make_unique<int>(-1), "NewPMTInfoFlashID");
+    e.put(std::make_unique<double>(-1.0), "NewPMTInfoStrength");
+    e.put(std::make_unique<int>(-1), "NewPMTInfoEventType");
+    e.put(std::make_unique<double>(-1.0), "NewPMTInfoKSDistance");
+    e.put(std::make_unique<double>(-1.0), "NewPMTInfoChi2");
+    e.put(std::make_unique<int>(-1), "NewPMTInfoNDF");
+    e.put(std::make_unique<double>(-1.0), "NewPMTInfoClusterLength");
+    e.put(std::make_unique<int>(-1), "NewPMTInfoNeutrinoType");
+    e.put(std::make_unique<double>(-1.0), "NewPMTInfoFlashTime");
   }
 
   TTree *tree = (TTree*)fin->Get(fInput_tree.c_str());
