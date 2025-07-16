@@ -134,8 +134,6 @@ void nsm::WireCellPF::produce(art::Event& e)
 	}
   }
 
-std::cout << "f_PFport: " << f_PFport << "\n";
-
 if(f_PFport){
   auto outputPF = std::make_unique< std::vector<simb::MCParticle> >();
   if(badinput){
