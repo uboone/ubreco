@@ -19,6 +19,7 @@
 #include "nusimdata/SimulationBase/MCParticle.h"
 #include "ubobj/WcpPort/NuSelectionBDT.h"
 #include "ubobj/WcpPort/NuSelectionKINE.h"
+#include "ubobj/WcpPort/WCPMTInfo.h"
 
 #include <memory>
 #include <string>
@@ -94,7 +95,7 @@ nsm::WireCellPF::WireCellPF(fhicl::ParameterSet const& p)
 
   MF_LOG_DEBUG("WireCellPF") << "Debug: WireCellPF() begins";
   if(f_PFport) produces< std::vector<simb::MCParticle> >();
-  if(f_PFport) produces< std::vector<nsm::NuSelectionBDT::WCPMTInfo> >("WCPMTInfo");
+  if(f_PFport) produces< std::vector<nsm::WCPMTInfo> >("WCPMTInfo");
   if(f_BDTport) produces< std::vector<nsm::NuSelectionBDT> >();
   if(f_KINEport) produces< std::vector<nsm::NuSelectionKINE> >();
   MF_LOG_DEBUG("WireCellPF") << "Debug: WireCellPF() ends";
@@ -124,7 +125,7 @@ void nsm::WireCellPF::produce(art::Event& e)
 
 if(f_PFport){
   auto outputPF = std::make_unique< std::vector<simb::MCParticle> >();
-  auto outputWCPMTInfo = std::make_unique< std::vector<nsm::NuSelectionBDT::WCPMTInfo> >();
+  auto outputWCPMTInfo = std::make_unique< std::vector<nsm::WCPMTInfo> >();
   if(badinput){
 	e.put(std::move(outputPF));
     std::cout << "badinput, not loading from T_match tree\n";
@@ -233,7 +234,7 @@ if(f_PFport){
     }
     
     // Create WCPMTInfo struct and populate it
-    nsm::NuSelectionBDT::WCPMTInfo wcpmtinfo;
+    nsm::WCPMTInfo wcpmtinfo;
     wcpmtinfo.WCPMTInfoPePred = vec_WCPMTInfo_pe_pred;
     wcpmtinfo.WCPMTInfoPeMeas = vec_WCPMTInfo_pe_meas;
     wcpmtinfo.WCPMTInfoPeMeasErr = vec_WCPMTInfo_pe_meas_err;
@@ -751,20 +752,6 @@ if(f_BDTport){
   float ssm_kine_pio_phi_2 = 0.;
   float ssm_kine_pio_dis_2 = 0.;
   float ssm_kine_pio_angle = 0.;
-
-  std::vector<double> *WCPMTInfoPePred= new std::vector<double>;
-  std::vector<double> *WCPMTInfoPeMeas= new std::vector<double>;
-  std::vector<double> *WCPMTInfoPeMeasErr= new std::vector<double>;
-  int WCPMTInfoTPCClusterID = -1;
-  int WCPMTInfoFlashID = -1;
-  double WCPMTInfoStrength = -1.;
-  int WCPMTInfoEventType = -1;
-  double WCPMTInfoKSDistance = -1.;
-  double WCPMTInfoChi2 = -1.;
-  int WCPMTInfoNDF = -1;
-  double WCPMTInfoClusterLength = -1.;
-  int WCPMTInfoNeutrinoType = -1;
-  double WCPMTInfoFlashTime = -1.;
 
   if(f_ssmBDT){
 
@@ -4228,22 +4215,6 @@ if(f_BDTport){
 	  nue_score
   };
 
-  nsm::NuSelectionBDT::WCPMTInfo _WCPMTInfo_init = {
-    WCPMTInfoPePred,
-    WCPMTInfoPeMeas,
-    WCPMTInfoPeMeasErr,
-    WCPMTInfoTPCClusterID,
-    WCPMTInfoFlashID,
-    WCPMTInfoStrength,
-    WCPMTInfoEventType,
-    WCPMTInfoKSDistance,
-    WCPMTInfoChi2,
-    WCPMTInfoNDF,
-    WCPMTInfoClusterLength,
-    WCPMTInfoNeutrinoType,
-    WCPMTInfoFlashTime
-  };
-
   std::cout<<"T_tagger size: "<<tree3->GetEntries()<<std::endl;
   if(tree3->GetEntries()==0){ std::cout<<"Empty T_tagger"<<std::endl;}
   else{
@@ -4295,7 +4266,6 @@ if(f_BDTport){
       nsmbdt.SetMajorCosmicTagger(_MajorCosmicTagger_init);
       nsmbdt.SetNumuCCTagger(_NumuCCTagger_init);
       nsmbdt.SetBDTscores(_BDTscores_init);
-      nsmbdt.SetWCPMTInfo(_WCPMTInfo_init);
     }
 
     outputBDTvars->push_back(nsmbdt);
