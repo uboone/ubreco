@@ -9,7 +9,7 @@
 cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 
 find_package(cetmodules REQUIRED)
-project(ubreco VERSION 10.04.07.09 LANGUAGES CXX)
+project(ubreco VERSION 10.04.07.11 LANGUAGES CXX)
 
 include(CetCMakeEnv)
 cet_cmake_env()
