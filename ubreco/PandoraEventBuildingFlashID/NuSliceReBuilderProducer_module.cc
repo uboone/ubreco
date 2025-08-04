@@ -178,8 +178,14 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
 
   std::cout << "input sizes=" << inputPndrPFParticle->size() << " " << inputPndrPFPTrkAssns->size() << std::endl;
 
+  struct pfphierarchy {
+    int origid;
+    int newid;
+    int parentid;
+  };
+  std::vector<pfphierarchy> pfphvec;
+
   size_t d_pfp_idx = 1;//reserve 0 for the nu pfp
-  size_t nu_pfp_idx = std::numeric_limits<size_t>::max();
   for (unsigned int ip=0; ip<inputPndrPFParticle->size(); ip++) {
     art::Ptr<recob::PFParticle> pfp(inputPndrPFParticle, ip);
     bool removed = false;
@@ -206,8 +212,8 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
     if (pfp->IsPrimary()) {
       //if this is the neutrino we need a different strategy
       recob::PFParticle pfp_copy = recob::PFParticle(pfp->PdgCode(),0,std::numeric_limits<size_t>::max(),std::vector< size_t >());
-      nu_pfp_idx = outputPFP->size();
       outputPFP->push_back(pfp_copy);
+      pfphvec.push_back( {int(pfp->Self()), 0, int(pfp->Parent())} );
       //
       art::Ptr<recob::PFParticle> pfp_ptr = pfpPtrMaker(outputPFP->size()-1);
       auto pfmetas = inputPndrPFPMetAssns->at(pfp.key());
@@ -223,8 +229,9 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
       if (inputPndrPFPSpsAssns->at(pfp.key()).size()==0 || inputPndrPFPTrkAssns->at(pfp.key()).isAvailable()==0) continue;
       //NG2 told us this is not a shower, so let's make it a track
       recob::PFParticle pfp_copy(13,d_pfp_idx,0,std::vector< size_t >());
-      d_pfp_idx++;
       outputPFP->push_back(pfp_copy);
+      pfphvec.push_back( {int(pfp->Self()), int(d_pfp_idx), int(pfp->Parent())} );
+      d_pfp_idx++;
     }
     art::Ptr<recob::PFParticle> pfp_ptr = pfpPtrMaker(outputPFP->size()-1);
     if (pfp->PdgCode()==13) {
@@ -325,8 +332,9 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
       std::cout << "pfp->PdgCode()=" << pfp->PdgCode() << " self=" << pfp->Self() << " parent=" << pfp->Parent() << " ndaughters=" << pfp->NumDaughters() << " nhits=" << assocShrHit->at(shr.key()).size() << " added" << std::endl;
     }
     recob::PFParticle pfp_copy(pfp->PdgCode(),d_pfp_idx,0,std::vector< size_t >());
-    d_pfp_idx++;
     outputPFP->push_back(pfp_copy);
+    pfphvec.push_back( {-1, int(d_pfp_idx), -1} );
+    d_pfp_idx++;
     art::Ptr<recob::PFParticle> pfp_ptr = pfpPtrMaker(outputPFP->size()-1);
     //
     // larpandoraobj::PFParticleMetadata
@@ -382,13 +390,26 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
     outPFPSlcAssns->addSingle(pfp_ptr,slc_ptr);
   }
 
-  //now we need to update the neutrino pfp
-  if (nu_pfp_idx < std::numeric_limits<size_t>::max()) {
+  //restore the PFP hierarchy, to the extent that we can
+  for (size_t idx=0;idx<outputPFP->size();idx++) {
+    pfphierarchy h = pfphvec.at(idx);
     std::vector<size_t> daughters;
-    for (size_t d=1;d<outputPFP->size();d++) daughters.push_back(d);
-    outputPFP->at(nu_pfp_idx) = recob::PFParticle(outputPFP->at(nu_pfp_idx).PdgCode(),0,std::numeric_limits<size_t>::max(),daughters);
-  } else {
-    std::cout << "no neutrino slice found" << std::endl;
+    size_t parent = 0;
+    for (size_t idx2=0;idx2<outputPFP->size();idx2++) {
+      if (idx2==idx) continue;
+      pfphierarchy h2 = pfphvec.at(idx2);
+      if (h.origid>=0 && h2.parentid==h.origid) daughters.push_back(h2.newid); // add daughters from old hierarchy
+      if (h.newid==0 && h2.origid<0) daughters.push_back(h2.newid); // add newly created pfps as daughters of the nu pfp
+      if (h2.origid>=0 && h.parentid==h2.origid) parent = h2.newid; // set the parent from the old hierarchy, otherwise use the nu pfp as default
+    }
+    outputPFP->at(idx) = recob::PFParticle(outputPFP->at(idx).PdgCode(),h.newid,parent,daughters);
+    std::cout << "output pfp idx=" << idx << " pdg=" << outputPFP->at(idx).PdgCode() << " newid=" << h.newid << " parent=" << parent << " ndaughters=" << daughters.size();
+    std::cout << " daughters=";
+    if (daughters.size()) {
+      for (auto d : daughters) std::cout << d << " ";
+      std::cout << std::endl;
+    }
+    else std::cout << "none" << std::endl;
   }
 
   //review pfps
