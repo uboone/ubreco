@@ -19,6 +19,7 @@
 #include "nusimdata/SimulationBase/MCParticle.h"
 #include "ubobj/WcpPort/NuSelectionBDT.h"
 #include "ubobj/WcpPort/NuSelectionKINE.h"
+#include "ubobj/WcpPort/WCPMTInfo.h"
 
 #include <memory>
 #include <string>
@@ -94,6 +95,7 @@ nsm::WireCellPF::WireCellPF(fhicl::ParameterSet const& p)
 
   MF_LOG_DEBUG("WireCellPF") << "Debug: WireCellPF() begins";
   if(f_PFport) produces< std::vector<simb::MCParticle> >();
+  if(f_PFport) produces< std::vector<nsm::WCPMTInfo> >("WCPMTInfo");
   if(f_BDTport) produces< std::vector<nsm::NuSelectionBDT> >();
   if(f_KINEport) produces< std::vector<nsm::NuSelectionKINE> >();
   MF_LOG_DEBUG("WireCellPF") << "Debug: WireCellPF() ends";
@@ -123,8 +125,12 @@ void nsm::WireCellPF::produce(art::Event& e)
 
 if(f_PFport){
   auto outputPF = std::make_unique< std::vector<simb::MCParticle> >();
+  auto outputWCPMTInfo = std::make_unique< std::vector<nsm::WCPMTInfo> >();
   if(badinput){
 	e.put(std::move(outputPF));
+    std::cout << "badinput, not loading from T_match tree\n";
+    // Put empty WCPMTInfo product when input is bad
+    e.put(std::move(outputWCPMTInfo), "WCPMTInfo");
 	//return;
   }
   else{
@@ -134,16 +140,121 @@ if(f_PFport){
   // 4th bit: NC
   // 5th bit: long muon
   // 6th bit: nue CC
-  Int_t neutrino_type = 0;
+
+  std::cout << "preparing to read T_match tree\n";
+
+  Int_t WCPMTInfo_tpc_cluster_id;
+  Int_t WCPMTInfo_flash_id;
+  Double_t WCPMTInfo_strength;
+  Double_t WCPMTInfo_pe_pred[32];
+  Double_t WCPMTInfo_pe_meas[32];
+  Double_t WCPMTInfo_pe_meas_err[32];
+  Int_t WCPMTInfo_event_type;
+  Double_t WCPMTInfo_ks_dis;
+  Double_t WCPMTInfo_chi2;
+  Int_t WCPMTInfo_ndf;
+  Double_t WCPMTInfo_cluster_length;
+  Int_t neutrino_type;
+  Double_t WCPMTInfo_flash_time;
+  
   TTree *tree2 = (TTree*)fin->Get(fInput_tree2.c_str());
   if(tree2) {
-  tree2->SetBranchStatus("*", 0);
-  tree2->SetBranchStatus("neutrino_type", 1);
-  tree2->SetBranchAddress("neutrino_type",&neutrino_type);
+    std::cout << "in WireCellPF, tree2 containing T_match found\n";
+    tree2->SetBranchStatus("*", 0);
+
+    tree2->SetBranchStatus("tpc_cluster_id", 1);
+    tree2->SetBranchAddress("tpc_cluster_id",&WCPMTInfo_tpc_cluster_id);
+
+    tree2->SetBranchStatus("flash_id", 1);
+    tree2->SetBranchAddress("flash_id",&WCPMTInfo_flash_id);
+
+    tree2->SetBranchStatus("strength", 1);
+    tree2->SetBranchAddress("strength",&WCPMTInfo_strength);
+
+    tree2->SetBranchStatus("pe_pred", 1);
+    tree2->SetBranchAddress("pe_pred",&WCPMTInfo_pe_pred);
+
+    tree2->SetBranchStatus("pe_meas", 1);
+    tree2->SetBranchAddress("pe_meas",&WCPMTInfo_pe_meas);
+
+    tree2->SetBranchStatus("pe_meas_err", 1);
+    tree2->SetBranchAddress("pe_meas_err",&WCPMTInfo_pe_meas_err);
+
+    tree2->SetBranchStatus("event_type", 1);
+    tree2->SetBranchAddress("event_type",&WCPMTInfo_event_type);
+
+    tree2->SetBranchStatus("ks_dis", 1);
+    tree2->SetBranchAddress("ks_dis",&WCPMTInfo_ks_dis);
+
+    tree2->SetBranchStatus("chi2", 1);
+    tree2->SetBranchAddress("chi2",&WCPMTInfo_chi2);
+
+    tree2->SetBranchStatus("ndf", 1);
+    tree2->SetBranchAddress("ndf",&WCPMTInfo_ndf);
+
+    tree2->SetBranchStatus("cluster_length", 1);
+    tree2->SetBranchAddress("cluster_length",&WCPMTInfo_cluster_length);
+
+    tree2->SetBranchStatus("neutrino_type", 1);
+    tree2->SetBranchAddress("neutrino_type",&neutrino_type);
+
+    tree2->SetBranchStatus("flash_time", 1);
+    tree2->SetBranchAddress("flash_time",&WCPMTInfo_flash_time);
+
     for(int i=0; i<tree2->GetEntries(); i++){
-	tree2->GetEntry(i);
-	if(neutrino_type>1) break; // this should be the in-beam flash match
+      tree2->GetEntry(i);
+      if(neutrino_type>1) break; // this should be the in-beam flash match
     }
+    std::cout << "Should be in-beam flash match, neutrino_type: " << neutrino_type << "\n";
+
+    std::cout << "T_match/pe_meas[32] values: ";
+    for(int i=0; i<32; i++){
+      std::cout << WCPMTInfo_pe_meas[i] << " ";
+    }
+    std::cout << "\n";
+
+    std::cout << "T_match/pe_pred[32] values: ";
+    for(int i=0; i<32; i++){
+      std::cout << WCPMTInfo_pe_pred[i] << " ";
+    }
+    std::cout << "\n";
+
+    // put pred_pe and meas_pe into the resulting file with e.put(std::move( ))
+    
+    // Create vectors for pe_pred and pe_meas data
+    std::vector<double> *vec_WCPMTInfo_pe_pred = new std::vector<double>();
+    std::vector<double> *vec_WCPMTInfo_pe_meas = new std::vector<double>();
+    std::vector<double> *vec_WCPMTInfo_pe_meas_err = new std::vector<double>();
+
+    // Copy the arrays to vectors
+    for(int i=0; i<32; i++){
+      vec_WCPMTInfo_pe_pred->push_back(WCPMTInfo_pe_pred[i]);
+      vec_WCPMTInfo_pe_meas->push_back(WCPMTInfo_pe_meas[i]);
+      vec_WCPMTInfo_pe_meas_err->push_back(WCPMTInfo_pe_meas_err[i]);
+    }
+    
+    // Create WCPMTInfo struct and populate it
+    nsm::WCPMTInfo wcpmtinfo;
+    wcpmtinfo.WCPMTInfoPePred = vec_WCPMTInfo_pe_pred;
+    wcpmtinfo.WCPMTInfoPeMeas = vec_WCPMTInfo_pe_meas;
+    wcpmtinfo.WCPMTInfoPeMeasErr = vec_WCPMTInfo_pe_meas_err;
+    wcpmtinfo.WCPMTInfoTPCClusterID = WCPMTInfo_tpc_cluster_id;
+    wcpmtinfo.WCPMTInfoFlashID = WCPMTInfo_flash_id;
+    wcpmtinfo.WCPMTInfoStrength = WCPMTInfo_strength;
+    wcpmtinfo.WCPMTInfoEventType = WCPMTInfo_event_type;
+    wcpmtinfo.WCPMTInfoKSDistance = WCPMTInfo_ks_dis;
+    wcpmtinfo.WCPMTInfoChi2 = WCPMTInfo_chi2;
+    wcpmtinfo.WCPMTInfoNDF = WCPMTInfo_ndf;
+    wcpmtinfo.WCPMTInfoClusterLength = WCPMTInfo_cluster_length;
+    wcpmtinfo.WCPMTInfoNeutrinoType = neutrino_type;
+    wcpmtinfo.WCPMTInfoFlashTime = WCPMTInfo_flash_time;
+    
+    outputWCPMTInfo->push_back(wcpmtinfo);
+    e.put(std::move(outputWCPMTInfo), "WCPMTInfo");
+
+  } else {
+    std::cout << "T_match tree not found, filling with defaults\n";
+    e.put(std::move(outputWCPMTInfo), "WCPMTInfo");
   }
 
   TTree *tree = (TTree*)fin->Get(fInput_tree.c_str());
@@ -2737,6 +2848,7 @@ if(f_BDTport){
 	  float tro_4_score;
 	  float tro_5_score;
 	  float nue_score;
+
 	  tree3->SetBranchAddress("cosmict_2_4_score",&cosmict_2_4_score);
 	  tree3->SetBranchAddress("cosmict_3_5_score",&cosmict_3_5_score);
 	  tree3->SetBranchAddress("cosmict_6_score",&cosmict_6_score);
@@ -2779,8 +2891,6 @@ if(f_BDTport){
 	  tree3->SetBranchAddress("tro_4_score",&tro_4_score);
 	  tree3->SetBranchAddress("tro_5_score",&tro_5_score);
 	  tree3->SetBranchAddress("nue_score",&nue_score);
-
-
 
   /// Read and assign values
   tree3->GetEntry(0); // rare case: multiple in-beam matched activity
