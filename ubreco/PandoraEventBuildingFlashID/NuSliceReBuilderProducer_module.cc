@@ -213,7 +213,7 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
       //if this is the neutrino we need a different strategy
       recob::PFParticle pfp_copy = recob::PFParticle(pfp->PdgCode(),0,std::numeric_limits<size_t>::max(),std::vector< size_t >());
       outputPFP->push_back(pfp_copy);
-      pfphvec.push_back( {int(pfp->Self()), 0, int(pfp->Parent())} );
+      pfphvec.push_back( {int(pfp->Self()), 0, -1} );
       //
       art::Ptr<recob::PFParticle> pfp_ptr = pfpPtrMaker(outputPFP->size()-1);
       auto pfmetas = inputPndrPFPMetAssns->at(pfp.key());
@@ -333,7 +333,7 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
     }
     recob::PFParticle pfp_copy(pfp->PdgCode(),d_pfp_idx,0,std::vector< size_t >());
     outputPFP->push_back(pfp_copy);
-    pfphvec.push_back( {-1, int(d_pfp_idx), -1} );
+    pfphvec.push_back( {-1, int(d_pfp_idx), -2} );
     d_pfp_idx++;
     art::Ptr<recob::PFParticle> pfp_ptr = pfpPtrMaker(outputPFP->size()-1);
     //
@@ -402,6 +402,7 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
       if (h.newid==0 && h2.origid<0) daughters.push_back(h2.newid); // add newly created pfps as daughters of the nu pfp
       if (h2.origid>=0 && h.parentid==h2.origid) parent = h2.newid; // set the parent from the old hierarchy, otherwise use the nu pfp as default
     }
+    if (h.origid>=0 && h.parentid==-1) parent = std::numeric_limits<size_t>::max();//restore the parent for the neutrino
     outputPFP->at(idx) = recob::PFParticle(outputPFP->at(idx).PdgCode(),h.newid,parent,daughters);
     std::cout << "output pfp idx=" << idx << " pdg=" << outputPFP->at(idx).PdgCode() << " newid=" << h.newid << " parent=" << parent << " ndaughters=" << daughters.size();
     std::cout << " daughters=";
