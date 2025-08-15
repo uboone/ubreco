@@ -248,10 +248,10 @@ fwdir	product_dir	scripts
 #
 ####################################
 product		version		qual	flags		<table_format=2>
-larpandora	v10_00_24	-
-larreco		v10_02_00	-
+larpandora	v10_00_25	-
+larreco		v10_02_01	-
 swtrigger	v02_03_00i	-
-ubsim		v10_09_00	-
+ubsim		v10_10_00	-
 cetmodules	v3_24_01	-	only_for_build
 end_product_list
 ####################################
