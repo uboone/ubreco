@@ -8,6 +8,7 @@
 #include "acpttrig.fcl"
 #include "calorimetry_microboone.fcl"
 #include "flash_neutrino_id.fcl"
+#include "pandoramodules_microboone.fcl"
 
 process_name: ShowerReco3D
 
@@ -35,7 +36,8 @@ source:
 {
   module_type: RootInput
   maxEvents:   -1        # Number of events to create
-  #inputCommands: ["keep *_*_*_*","drop *_*_*_DetSim", "drop *_*_*_G4"]#, "keep sim::MCTrack_*_*_*", "keep recob::Track_*_pandoraCosmic_*" ]
+  # drop everything downstream, in case of reprocessing
+  inputCommands: [ "keep *_*_*_*", "drop *_*_*_ShowerReco3D", "drop *_*_*_CombinedRecoAnaTree" ]
   saveMemoryObjectThreshold: 0
 }
 
@@ -52,6 +54,7 @@ physics:
 
   ### random number saver
   rns:                 { module_type: RandomNumberSaver }
+  pandoraTrack: @local::microboone_pandoraTrackCreation
   nugraphshowerhits: {
       module_type: "NuGraphShowerHitsByPfp"
       HitProducer: "gaushit"
@@ -82,7 +85,7 @@ physics:
 }
 
  #reco: [ rns, ophit, opflash, simpleFlash, opflashfilter ]
- reco: [ nugraphshowerhits, neutrinovertex, proximity, cmerger, cmatcher, showerreco3d, pandora, pandoracaloSCE, acpttrigtagger, flashmatch ]
+ reco: [ pandoraTrack, nugraphshowerhits, neutrinovertex, proximity, cmerger, cmatcher, showerreco3d, pandora, pandoracaloSCE, acpttrigtagger, flashmatch ]
  ana: [ ]
 
  #define the output stream, there could be more than one if using filters 
@@ -97,6 +100,9 @@ physics:
  end_paths:     [stream1]
  #end_paths:     [ana]
 }
+
+physics.producers.pandoraTrack.PFParticleLabel: "pandora"
+physics.producers.pandoraTrack.UseAllParticles: true
 
 physics.producers.proximity.HitProducer: "nugraphshowerhits"
 physics.producers.proximity.VtxProducer: "neutrinovertex"

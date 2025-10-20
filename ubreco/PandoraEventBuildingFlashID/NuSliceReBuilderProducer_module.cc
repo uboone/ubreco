@@ -141,13 +141,13 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
   //art::ValidHandle<std::vector<recob::Vertex>> inputPndrVertex = e.getValidHandle<std::vector<recob::Vertex>>("pandora");
   art::ValidHandle<std::vector<recob::SpacePoint>> inputPndrSpacePoint = e.getValidHandle<std::vector<recob::SpacePoint>>("pandora");
   art::ValidHandle<std::vector<recob::Shower>> inputPndrShower = e.getValidHandle<std::vector<recob::Shower>>("pandora");
-  art::ValidHandle<std::vector<recob::Track>> inputPndrTrack = e.getValidHandle<std::vector<recob::Track>>("pandora");
+  art::ValidHandle<std::vector<recob::Track>> inputPndrTrack = e.getValidHandle<std::vector<recob::Track>>("pandoraTrack");
   //art::ValidHandle<std::vector<larpandoraobj::PFParticleMetadata>> inputPndrPFParticleMetadata = e.getValidHandle<std::vector<larpandoraobj::PFParticleMetadata>>("pandora");
 
   auto inputPndrPFPPCAAssns = std::unique_ptr<art::FindOneP<recob::PCAxis>>    (new art::FindOneP<recob::PCAxis>(inputPndrPFParticle, e, "pandora"));
   auto inputPndrPFPVtxAssns = std::unique_ptr<art::FindOneP<recob::Vertex>>    (new art::FindOneP<recob::Vertex>(inputPndrPFParticle, e, "pandora"));
   auto inputPndrPFPSlcAssns = std::unique_ptr<art::FindOneP<recob::Slice>>     (new art::FindOneP<recob::Slice>(inputPndrPFParticle, e, "pandora"));
-  auto inputPndrPFPTrkAssns = std::unique_ptr<art::FindOneP<recob::Track>>     (new art::FindOneP<recob::Track>(inputPndrPFParticle, e, "pandora"));
+  auto inputPndrPFPTrkAssns = std::unique_ptr<art::FindOneP<recob::Track>>     (new art::FindOneP<recob::Track>(inputPndrPFParticle, e, "pandoraTrack"));
   auto inputPndrPFPShrAssns = std::unique_ptr<art::FindOneP<recob::Shower>>    (new art::FindOneP<recob::Shower>(inputPndrPFParticle, e, "pandora"));
   auto inputPndrPFPCluAssns = std::unique_ptr<art::FindManyP<recob::Cluster>>   (new art::FindManyP<recob::Cluster>(inputPndrPFParticle, e, "pandora"));
   auto inputPndrPFPSpsAssns = std::unique_ptr<art::FindManyP<recob::SpacePoint>>(new art::FindManyP<recob::SpacePoint>(inputPndrPFParticle, e, "pandora"));
@@ -156,7 +156,7 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
   auto inputPndrCluHitAssns = std::unique_ptr<art::FindManyP<recob::Hit>>       (new art::FindManyP<recob::Hit>(inputPndrCluster, e, "pandora"));
   auto inputPndrSpsHitAssns = std::unique_ptr<art::FindManyP<recob::Hit>>       (new art::FindManyP<recob::Hit>(inputPndrSpacePoint, e, "pandora"));
   auto inputPndrShrHitAssns = std::unique_ptr<art::FindManyP<recob::Hit>>       (new art::FindManyP<recob::Hit>(inputPndrShower, e, "pandora"));
-  auto inputPndrTrkHitAssns = std::unique_ptr<art::FindManyP<recob::Hit,recob::TrackHitMeta>>(new art::FindManyP<recob::Hit,recob::TrackHitMeta>(inputPndrTrack, e, "pandora"));
+  auto inputPndrTrkHitAssns = std::unique_ptr<art::FindManyP<recob::Hit,recob::TrackHitMeta>>(new art::FindManyP<recob::Hit,recob::TrackHitMeta>(inputPndrTrack, e, "pandoraTrack"));
 
   // keep track of what pfps were removed
   art::ValidHandle<std::vector<recob::PFParticle>> removedPFParticle = e.getValidHandle<std::vector<recob::PFParticle>>("nugraphshowerhits");
@@ -177,6 +177,18 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
   auto assocCluHit = std::unique_ptr<art::FindManyP<recob::Hit>>(new art::FindManyP<recob::Hit>(inputShowerClusters, e, "cmerger"));
 
   std::cout << "input sizes=" << inputPndrPFParticle->size() << " " << inputPndrPFPTrkAssns->size() << std::endl;
+
+  art::ValidHandle<std::vector<recob::Hit>> inputHits = e.getValidHandle<std::vector<recob::Hit>>("gaushit");
+  //need to map the hits to the correct index
+  struct hitprops {unsigned int p, w; float t;};
+  std::vector<hitprops> hmap;
+  for (auto& h : *inputHits) {
+    hitprops hp;
+    hp.p = h.WireID().Plane;
+    hp.w = h.WireID().Wire;
+    hp.t = h.PeakTime();
+    hmap.push_back(hp);
+  }
 
   struct pfphierarchy {
     int origid;
@@ -232,15 +244,10 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
       outputPFP->push_back(pfp_copy);
       pfphvec.push_back( {int(pfp->Self()), int(d_pfp_idx), int(pfp->Parent())} );
       d_pfp_idx++;
-    }
-    art::Ptr<recob::PFParticle> pfp_ptr = pfpPtrMaker(outputPFP->size()-1);
-    if (pfp->PdgCode()==13) {
-      //track
-      //std::cout << "key=" << pfp.key() << " size=" << inputPndrPFPTrkAssns->size() << std::endl;
-      //auto tp = inputPndrPFPTrkAssns->at(pfp.key());
-      //std::cout << "tp valid=" << tp.isAvailable() << " key=" << tp.key() << " sps=" << inputPndrPFPSpsAssns->at(pfp.key()).size() << " cls=" << inputPndrPFPCluAssns->at(pfp.key()).size() << std::endl;
+      //
       recob::Track track = *inputPndrPFPTrkAssns->at(pfp.key());
       outputTrack->push_back(track);
+      art::Ptr<recob::PFParticle> pfp_ptr = pfpPtrMaker(outputPFP->size()-1);
       auto trk_ptr = trkPtrMaker(outputTrack->size()-1);
       outPFPTrkAssns->addSingle(pfp_ptr,trk_ptr);
       auto hits = inputPndrTrkHitAssns->at(inputPndrPFPTrkAssns->at(pfp.key()).key());
@@ -248,37 +255,20 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
       for (size_t ih=0; ih<hits.size(); ih++) {
 	outTrkHitAssns->addSingle(trk_ptr,hits[ih],*meta[ih]);
       }
-      //
-      auto pfmetas = inputPndrPFPMetAssns->at(pfp.key());
-      for (auto pfm : pfmetas) {
-	//for (auto pfmm : pfm->GetPropertiesMap()) std::cout << pfmm.first << " " << pfmm.second << std::endl;
+    }
+    art::Ptr<recob::PFParticle> pfp_ptr = pfpPtrMaker(outputPFP->size()-1);
+    auto pfmetas = inputPndrPFPMetAssns->at(pfp.key());
+    for (auto pfm : pfmetas) {
+      //for (auto pfmm : pfm->GetPropertiesMap()) std::cout << pfmm.first << " " << pfmm.second << std::endl;
+      if (pfp->PdgCode()==11 && pfm->GetPropertiesMap().size()>0 && pfm->GetPropertiesMap().begin()->first=="TrackScore") {
+	// force it to have track-like score, but with little confidence (picking 0.51 arbitrarily)
+	std::map<std::string,float> mmap;
+	mmap.emplace("TrackScore",0.51);
+	larpandoraobj::PFParticleMetadata pfm(mmap);
+	outputPFMeta->push_back(pfm);
+      } else {
 	outputPFMeta->push_back(*pfm);
-	auto pfm_ptr = pfmetaPtrMaker(outputPFMeta->size()-1);
-	outPFPMetAssns->addSingle(pfp_ptr,pfm_ptr);
       }
-    } else if (pfp->PdgCode()==11) {
-      /*
-      //shower -- DO WE WANT TO DO THIS??? NG2 told us this is not a shower
-      recob::Shower shower = *inputPndrPFPShrAssns->at(pfp.key());
-      outputShower->push_back(shower);
-      auto shr_ptr = shrPtrMaker(outputShower->size()-1);
-      outPFPShrAssns->addSingle(pfp_ptr,shr_ptr);
-      //
-      auto pca = inputPndrPFPPCAAssns->at(pfp.key());
-      outputPCAxis->push_back(*pca);
-      auto pca_ptr = pcaPtrMaker(outputPCAxis->size()-1);
-      outPFPPCAAssns->addSingle(pfp_ptr,pca_ptr);
-      outShrPCAAssns->addSingle(shr_ptr,pca_ptr);
-      auto hits = inputPndrShrHitAssns->at(inputPndrPFPShrAssns->at(pfp.key()).key());
-      for (auto h : hits) {
-	outShrHitAssns->addSingle(shr_ptr,h);	
-      }
-      */
-      // force it to have track-like score
-      std::map<std::string,float> mmap;
-      mmap.emplace("TrackScore",1.);
-      larpandoraobj::PFParticleMetadata pfm(mmap);
-      outputPFMeta->push_back(pfm);
       auto pfm_ptr = pfmetaPtrMaker(outputPFMeta->size()-1);
       outPFPMetAssns->addSingle(pfp_ptr,pfm_ptr);
     }
@@ -366,7 +356,12 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
       outPFPCluAssns->addSingle(pfp_ptr,clu_ptr);
       auto hits = assocCluHit->at(clu.key());
       for (auto h : hits) {
-	outCluHitAssns->addSingle(clu_ptr,h);	
+	auto it = std::find_if(hmap.begin(), hmap.end(),
+			       [&h](hitprops hp){
+				 return (hp.p==h->WireID().Plane && hp.w==h->WireID().Wire && std::abs(hp.t-h->PeakTime())<0.0001);
+			       });
+	size_t index = std::distance(hmap.begin(), it);
+	outCluHitAssns->addSingle(clu_ptr,art::Ptr<recob::Hit>(inputHits,index));
       }
     }
     //
