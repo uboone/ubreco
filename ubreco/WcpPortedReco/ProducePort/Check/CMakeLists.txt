@@ -4,6 +4,7 @@ cet_build_plugin(
   PRIVATE
   lardataobj::RecoBase
   art_root_io::TFileService_service
+  ROOT::Hist
 )
 
 cet_build_plugin(
@@ -12,6 +13,7 @@ cet_build_plugin(
   PRIVATE
   lardataobj::RecoBase
   art_root_io::TFileService_service
+  ROOT::Hist
 )
 
 cet_build_plugin(
@@ -36,6 +38,7 @@ cet_build_plugin(
   PRIVATE
   lardataobj::RecoBase
   art_root_io::TFileService_service
+  ROOT::Hist
 )
 
 cet_build_plugin(
@@ -62,6 +65,7 @@ cet_build_plugin(
   art_root_io::TFileService_service
   nusimdata::SimulationBase
   ROOT::Tree
+  ROOT::Hist
 )
 
 install_fhicl()
