@@ -197,16 +197,23 @@ void NuSliceReBuilderProducer::produce(art::Event& e)
   };
   std::vector<pfphierarchy> pfphvec;
 
+  std::vector<unsigned int> removed_pfps;
+  std::vector<unsigned int> primary_pfps;
+  for (unsigned int ir=0; ir<removedPFParticle->size(); ir++) {
+    art::Ptr<recob::PFParticle> rpfp(removedPFParticle, ir);
+    std::cout << "removed pfp key=" << rpfp.key() << " self=" << rpfp->Self() << " primary=" << rpfp->IsPrimary() << std::endl;
+    removed_pfps.push_back(rpfp->Self());
+    if (rpfp->IsPrimary()) primary_pfps.push_back(rpfp->Self());
+  }
+
   size_t d_pfp_idx = 1;//reserve 0 for the nu pfp
   for (unsigned int ip=0; ip<inputPndrPFParticle->size(); ip++) {
     art::Ptr<recob::PFParticle> pfp(inputPndrPFParticle, ip);
-    bool removed = false;
-    for (unsigned int ir=0; ir<removedPFParticle->size(); ir++) {
-      art::Ptr<recob::PFParticle> rpfp(removedPFParticle, ir);
-      if (pfp->Self()==rpfp->Self()) {
-	removed = true;
-	break;
-      }      
+    bool removed = std::find(removed_pfps.begin(), removed_pfps.end(), pfp->Self()) != removed_pfps.end();
+    if (!removed) {
+      bool parent_removed = std::find(removed_pfps.begin(), removed_pfps.end(), pfp->Parent()) != removed_pfps.end();
+      bool parent_is_primary = std::find(primary_pfps.begin(), primary_pfps.end(), pfp->Parent()) != primary_pfps.end();
+      if (parent_removed && parent_is_primary) removed = true;
     }
     /////////
     {
