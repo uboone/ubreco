@@ -251,7 +251,7 @@ product		version		qual	flags		<table_format=2>
 larpandora	v10_02_00	-
 larreco		v10_06_00	-
 swtrigger	v02_03_00i	-
-ubsim		v10_17_02	-
+ubsim		v10_20_00	-
 cetmodules	v3_24_01	-	only_for_build
 end_product_list
 ####################################
