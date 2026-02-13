@@ -1,4 +1,4 @@
-add_subdirectory(g4)
+#add_subdirectory(g4)
 add_subdirectory(reco)
 add_subdirectory(detsim)
 add_subdirectory(utility)
