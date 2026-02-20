@@ -434,6 +434,36 @@ namespace BlipUtils {
     return newblip;
     
   }
+ 
+  MCP_t ReturnMCParticle(int particleID){
+    art::ServiceHandle<cheat::ParticleInventoryService> pi_serv;
+    return pi_serv->TrackIdToParticle(particleID);
+  }
+
+  MCPVec_t ReturnAllAncestors(int particleID) {
+    MCPVec_t out;
+    art::ServiceHandle<cheat::ParticleInventoryService> pi_serv;
+    const sim::ParticleList& plist = pi_serv->ParticleList();
+    if( !plist.HasParticle(particleID) )  return out;
+    auto p = pi_serv->TrackIdToParticle(particleID);
+    while( particleID > 0 ){
+      if( !plist.HasParticle(p.Mother() ) ) { return out; }
+      p = pi_serv->TrackIdToParticle(p.Mother());
+      out.push_back(p);
+    }
+    return out;
+  }
+ 
+  /*
+  MCPVec_t ReturnAllDaughters(int particleID) {
+    MCPVec_t out;
+    art::ServiceHandle<cheat::ParticleInventoryService> pi_serv;
+    const sim::ParticleList& plist = pi_serv->ParticleList();
+    // under construction
+    for(
+    return out; 
+  }
+  */
 
 
   //====================================================================
