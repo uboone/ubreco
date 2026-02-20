@@ -30,11 +30,16 @@
 #include <vector>
 #include <map>
 
-#include "ubobj/Blip/DataTypes.h"
+// BlipReco data types
+#include "ubreco/BlipReco/Utils/BlipCore.h"
+
+// ROOT
 #include "TH1D.h"
 
 
 typedef std::vector<art::Ptr<sim::SimEnergyDeposit>> SEDVec_t;
+typedef std::vector<simb::MCParticle> MCPVec_t;
+typedef simb::MCParticle MCP_t;
 
 namespace BlipUtils {
  
@@ -80,7 +85,10 @@ namespace BlipUtils {
   void    NormalizeHist(TH1D*);
   float   FindMedian(std::vector<float>&);
   float   FindMean(std::vector<float>&);
-  
+  MCP_t   ReturnMCParticle(int);
+
+  MCPVec_t ReturnAllAncestors(int);
+  //MCPVec_t ReturnAllDaughters(int); 
 }
 
 #endif

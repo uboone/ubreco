@@ -45,6 +45,15 @@ namespace blip {
     int NBadChansFromFile     = std::count(fBadChanMask.begin(),fBadChanMask.end(),true);
     
     EvtBadChanCount = 0;
+   
+    // RNN configuration
+    //if( fEnableRNNDirection ) {
+    //  std::cout << "Initializing blip RNN model... \n";
+      // make new instance
+    //  fRNNAlg = new blip::BlipRNNAlg( pset.get<fhicl::ParameterSet>("RNN") );
+    //  fRNNAlg->loadModel();
+    //}
+
 
     printf("******************************************\n");
     printf("Initializing BlipRecoAlg...\n");
@@ -147,6 +156,8 @@ namespace blip {
   //###########################################################
   void BlipRecoAlg::reconfigure( fhicl::ParameterSet const& pset ){
     
+    fDebugMode  = pset.get<bool> ("DebugMode",false);
+
     // initialize MC flags (will be determined automatically
     // later after the first event is processed)
     isMC        = false;
@@ -211,7 +222,7 @@ namespace blip {
     fBadChanProducer    = pset.get<std::string>   ("BadChanProducer",     "nfspl1:badchannels");
     fBadChanFile        = pset.get<std::string>   ("BadChanFile",         "");
     fMinDeadWireGap     = pset.get<int>           ("MinDeadWireGap",      1);
-    
+   
     //fKeepAllClusts[0] = pset.get<bool>          ("KeepAllClustersInd", false);
     //fKeepAllClusts[1] = pset.get<bool>          ("KeepAllClustersInd", false);
     //fKeepAllClusts[2] = pset.get<bool>          ("KeepAllClustersCol", true);
@@ -277,12 +288,15 @@ namespace blip {
     //=====================================================
     // Record PDG for every G4 Track ID
     //=====================================================
-    //std::map<int,int> map_g4trkid_pdg;
+    map_g4trkid_index.clear();
     map_g4trkid_pdg.clear();
     map_g4trkid_chan.clear();
     map_g4trkid_chan_energy.clear();
     map_g4trkid_chan_charge.clear();
-    for(size_t i = 0; i<plist.size(); i++) map_g4trkid_pdg[plist[i]->TrackId()] = plist[i]->PdgCode();
+    for(size_t i = 0; i<plist.size(); i++) {
+      map_g4trkid_pdg[plist[i]->TrackId()] = plist[i]->PdgCode();
+      map_g4trkid_index[plist[i]->TrackId()] = i;
+    }
     //std::map<int, std::set<int>>         map_g4trkid_chan;
     //std::map<int, std::map<int,double> > map_g4trkid_chan_energy;
     //std::map<int, std::map<int,double> > map_g4trkid_chan_charge;
@@ -381,10 +395,12 @@ namespace blip {
   // this function is run.
   //###########################################################
   void BlipRecoAlg::RunBlipReco( const art::Event& evt ) {
-  
-    //std::cout<<"\n"
-    //<<"=========== BlipRecoAlg =========================\n"
-    //<<"Event "<<evt.id().event()<<" / run "<<evt.id().run()<<"\n";
+    
+    if( fDebugMode ) {
+      std::cout<<"\n"
+      <<"=========== BlipRecoAlg =========================\n"
+      <<"Event "<<evt.id().event()<<" / run "<<evt.id().run()<<"\n";
+    }
     
     //=======================================
     // Extract truth info if applicable
@@ -404,8 +420,14 @@ namespace blip {
     hitclust.clear();
     hitinfo.clear();
     EvtBadChanCount = 0;
-    
   
+    map_blip_hitids.clear();
+    map_blip_trkID.clear();
+    map_blip_trkIDfrac.clear();
+    map_blip_primaryPDG.clear();
+    map_blip_primaryG4ID.clear();
+    map_blip_ncategory.clear();
+
     //=======================================
     // Get data products for this event
     //========================================
@@ -486,7 +508,7 @@ namespace blip {
     //=======================================
     // Map track IDs to the index in the vector
     //=======================================
-    //std::cout<<"Looping over tracks...\n";
+    if( fDebugMode ) std::cout<<"Looping over "<<tracklist.size()<<" tracks...\n";
     //std::map<size_t,size_t> map_trkid_isMC;
     map_trkid_isMC.clear();
     map_trkid_index.clear();
@@ -509,7 +531,7 @@ namespace blip {
     std::map<int,std::vector<int>> planehitsMap;
     int nhits_untracked = 0;
 
-    //std::cout<<"Looping over the hits... "<<hitlist.size()<<"\n";
+    if( fDebugMode ) std::cout<<"Looping over "<<hitlist.size()<<" hits...\n";
     for(size_t i=0; i<hitlist.size(); i++){
       auto const& thisHit = hitlist[i];
       int   chan    = thisHit->Channel();
@@ -857,7 +879,7 @@ namespace blip {
       
       }
     }
-
+    if( fDebugMode ) std::cout<<"Created "<<hitclust.size()<<" hit clusters...\n";
 
     // =============================================================================
     // Plane matching and 3D blip formation
@@ -1092,7 +1114,10 @@ namespace blip {
             blips.push_back(newBlip);
             for(auto& hc : hcGroup ) {
               hitclust[hc.ID].BlipID = newBlip.ID;
-              for( auto& h : hc.HitIDs ) hitinfo[h].blipid = newBlip.ID;
+              for( auto h : hc.HitIDs ) {
+                hitinfo[h].blipid = newBlip.ID;
+                map_blip_hitids[newBlip.ID].push_back(h);
+              }
             }
 
   
@@ -1100,6 +1125,8 @@ namespace blip {
         }//endloop over caloplane ("Plane A") clusters
       }//endif calo plane has clusters
     }//endloop over TPCs
+    
+    if( fDebugMode ) std::cout<<"Created "<<blips.size()<<" 3D blips...\n";
 
     // Re-index the clusters after removing unmatched
     //if( !keepAllClusts ) {
@@ -1122,7 +1149,6 @@ namespace blip {
     for(size_t i=0; i<hitlist.size(); i++){
       if (hitinfo[i].trkid >= 0 ) continue;
       h_chan_nhits->Fill(wireReadout.PlaneWireToChannel(geo::WireID(0, 0, hitinfo[i].plane, hitinfo[i].wire)));
-      
       int clustid = hitinfo[i].clustid;
       if( clustid >= 0 ) {
         if( hitclust[clustid].NWires > 1 ) continue;
@@ -1133,7 +1159,149 @@ namespace blip {
       //h_chan_nclusts->Fill(wireReadout.PlaneWireToChannel(hitinfo[i].plane,hitinfo[i].wire));
     }
 
+
+
+
+    //*************************************************************************
+    // Additional blip-level calculations
+    //*************************************************************************
+    for(size_t i=0; i<blips.size(); i++){
+      auto& blip = blips[i];
+     
+
+      //=====================================================
+      // Determine if blip shares hits with any tracks
+      //=====================================================
+      map_blip_trkID[blip.ID] = -9;
+      map_blip_trkIDfrac[blip.ID] = -9;
+      int nhits = map_blip_hitids[blip.ID].size();
+      int nbtids = 0;
+      if( nhits==0 ) continue;
+      std::map<int,int> map_btid_count;
+      for(auto bh : map_blip_hitids[blip.ID] ) {
+        if( hitinfo[bh].trkid < 0 ) continue;
+        nbtids++;
+        map_btid_count[hitinfo[bh].trkid]++;
+      }
+      auto max_val_it = std::max_element(std::begin(map_btid_count), std::end(map_btid_count),
+        [](const std::pair<int, int>& p1, const std::pair<int, int>& p2) { return p1.second < p2.second;});
+      if (nbtids>0 && max_val_it != std::end(map_btid_count)) {
+        map_blip_trkID[blip.ID] = max_val_it->first;
+        map_blip_trkIDfrac[blip.ID] = float(max_val_it->second) / nhits;
+      }
+     
+
+      // ================================================
+      // Save the true blip into the object;
+      // each cluster must match to the same energy dep
+      // ================================================
+      std::set<int> set_edepids;
+      for(auto& hc : blip.clusters ) {
+        if( !hc.isValid ) continue; 
+        if( hc.EdepID < 0 ) break;
+        set_edepids.insert( hc.EdepID );
+      }
+     
+      map_blip_primaryG4ID[blip.ID] = -9;
+      map_blip_primaryPDG[blip.ID]  = 0;
+
+      if( set_edepids.size() == 1 ){
+        
+        // save the true blip into the object
+        blip.truth = trueblips[*set_edepids.begin()];
+
+        // trace ancestry of this blip
+        auto part = BlipUtils::ReturnMCParticle(blip.truth.LeadG4ID);
+        int blipPDG = part.PdgCode();
+        auto blipProc = part.Process();
+        auto ancestors = BlipUtils::ReturnAllAncestors(blip.truth.LeadG4ID);
+        //std::cout<<"Blip "<<blip.ID<<" (PDG "<<part.PdgCode()<<", "<<part.Process()<<") has "<<ancestors.size()<<" ancestors: \n";
+        for(auto& p : ancestors) {
+          //std::cout<<"   "<<p.TrackId()<<"    PDG "<<p.PdgCode()<<"   process? "<<p.Process()<<"\n";
+          if( p.Process() == "primary" ) { 
+            map_blip_primaryPDG[blip.ID] = p.PdgCode();
+            map_blip_primaryG4ID[blip.ID] = p.TrackId();
+          }
+        }
+       
+        ///========================================
+        // Categories for neutron-based studies
+        //=========================================
+        //  -9 = no truth match (data/overlay)
+        //  0  = truth-matched, but not falling in category
+        //  1  = primary (n,1p)
+        //  2  = primary (n,Np)
+        //  3  = secondary (n,1p)
+        //  4  = secondary (n,Np)
+        //  5  = primary (n,gamma)
+        //  6  = secondary (n,gamma)
+        //  7  = ncapture gamma
+        //  8  = EM shower from an electron, pi0, etc
+        map_blip_ncategory[blip.ID]   = -9;
+        if( ancestors.size() > 0 ) {
+          map_blip_ncategory[blip.ID] = 0;
+          
+          //----------------------------------------------
+          // inelastic (n,p) - categories 1-4
+          bool primaryneut = false;
+          if( blipPDG == 2212 && blipProc == "neutronInelastic"){
+            if( ancestors[0].Process() == "primary" ) primaryneut = true; 
+            // figure out how many daughter protons this neutron made 
+            int np = 0;
+            int mothern = ancestors[0].TrackId();
+            for(size_t i=map_g4trkid_index[mothern]+1; i<pinfo.size(); i++){
+              if( pinfo[i].particle.Mother() == mothern && pinfo[i].particle.PdgCode() == 2212 ) np++;
+            }
+            //std::cout<<"Blip "<<blip.ID<<" came from neutron that made "<<np<<" protons    "<<primaryneut<<"\n";
+            if      ( primaryneut && np == 1 )  map_blip_ncategory[blip.ID] = 1;
+            else if ( primaryneut && np > 1  )  map_blip_ncategory[blip.ID] = 2;
+            else if ( !primaryneut && np == 1 ) map_blip_ncategory[blip.ID] = 3; 
+            else if ( !primaryneut && np > 1 )  map_blip_ncategory[blip.ID] = 4;
+          } 
+          
+          //----------------------------------------------
+          // electron-based blips from gammas
+          else if ( abs(blipPDG) == 11 && blipProc != "primary" && ancestors.size() >= 2 ) {
+            
+            // if the immediate ancestor is a photon...
+            if( ancestors[0].PdgCode() == 22 ) {
+              
+              // Loop back over ancestors
+              for(size_t k=0; k<ancestors.size(); k++){
+                auto& a = ancestors[k];
+                if( a.Process() == "nCapture" ) { 
+                  map_blip_ncategory[blip.ID] = 7; 
+                  break;
+                }
+                if( a.PdgCode() == 22 && a.Process() == "muMinusCaptureAtRest" ) {
+                  map_blip_ncategory[blip.ID] = 8; 
+                  break;
+                }
+                if( a.PdgCode() == 22 && a.Process() == "neutronInelastic" ) { 
+                  map_blip_ncategory[blip.ID] = (ancestors[k+1].Process() == "primary") ? 5 : 6; 
+                  break;
+                }
+              }
+            }
+          }//endif blip type
+
+        }//end blip ancestry
+        //std::cout<<"BLIP CATEGORY = "<<map_blip_ncategory[blip.ID]
+        //<<", primary ancestor PDG "<<map_blip_primaryPDG[blip.ID]<<" -------------------------\n";
+
+      }//endif blip has true edep 
     
+    }//endloop over blips
+
+
+
+
+
+
+
+
+
+
     //*************************************************************************
     // Loop over the vector of blips and perform calorimetry calculation.
     // Here we fill:
@@ -1217,22 +1385,11 @@ namespace blip {
       // METHOD 2 (TODO)
       //std::cout<<"Calculating ESTAR energy dep...  "<<depEl<<", "<<Efield<<"\n";
       //blips[i].EnergyESTAR = ESTAR->Interpolate(depEl, Efield); 
-      
-      // ================================================
-      // Save the true blip into the object;
-      // each cluster must match to the same energy dep
-      // ================================================
-      std::set<int> set_edepids;
-      for(auto& hc : blip.clusters ) {
-        if( !hc.isValid ) continue; 
-        if( hc.EdepID < 0 ) break;
-        set_edepids.insert( hc.EdepID );
-      }
-      if( set_edepids.size() == 1 )
-        blip.truth = trueblips[*set_edepids.begin()];
-      
     
     }//endloop over blip vector
+    
+
+
 
   }//End main blip reco function
  
