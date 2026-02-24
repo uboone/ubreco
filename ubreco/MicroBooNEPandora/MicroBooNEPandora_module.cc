@@ -388,7 +388,9 @@ void MicroBooNEPandora::ReprocessSlices(const art::Event &evt, const SliceVector
             }
         }
 
-        LArPandoraInput::CreatePandoraHits2D(evt, m_inputSettings, m_driftVolumeMap, artHits, idToHitMap);
+        HitToScores hitToScores;
+        HitToScoreLabels hitToScoreLabels;
+        LArPandoraInput::CreatePandoraHits2D(evt, m_inputSettings, m_driftVolumeMap, artHits, hitToScores, hitToScoreLabels, idToHitMap);
         m_inputSettings.m_hitCounterOffset += artHits.size();
 
         if (m_enableMCParticles && !evt.isRealData())
