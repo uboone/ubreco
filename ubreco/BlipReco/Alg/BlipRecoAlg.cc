@@ -1228,7 +1228,7 @@ namespace blip {
         //  5  = primary (n,gamma)
         //  6  = secondary (n,gamma)
         //  7  = ncapture gamma
-        //  8  = EM shower from an electron, pi0, etc
+        //  8  = gamma from mu capture
         if( ancestors.size() > 0 ) {
           map_blip_ncategory[blip.ID] = 0;
           
