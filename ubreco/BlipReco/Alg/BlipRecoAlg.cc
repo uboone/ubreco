@@ -46,15 +46,6 @@ namespace blip {
     
     EvtBadChanCount = 0;
    
-    // RNN configuration
-    //if( fEnableRNNDirection ) {
-    //  std::cout << "Initializing blip RNN model... \n";
-      // make new instance
-    //  fRNNAlg = new blip::BlipRNNAlg( pset.get<fhicl::ParameterSet>("RNN") );
-    //  fRNNAlg->loadModel();
-    //}
-
-
     printf("******************************************\n");
     printf("Initializing BlipRecoAlg...\n");
     printf("  - Efield: %.4f kV/cm\n",detProp.Efield());
@@ -1202,8 +1193,9 @@ namespace blip {
         set_edepids.insert( hc.EdepID );
       }
      
-      map_blip_primaryG4ID[blip.ID] = -9;
       map_blip_primaryPDG[blip.ID]  = 0;
+      map_blip_primaryG4ID[blip.ID] = -9;
+      map_blip_ncategory[blip.ID]   = -9;
 
       if( set_edepids.size() == 1 ){
         
@@ -1237,7 +1229,6 @@ namespace blip {
         //  6  = secondary (n,gamma)
         //  7  = ncapture gamma
         //  8  = EM shower from an electron, pi0, etc
-        map_blip_ncategory[blip.ID]   = -9;
         if( ancestors.size() > 0 ) {
           map_blip_ncategory[blip.ID] = 0;
           
@@ -1292,14 +1283,6 @@ namespace blip {
       }//endif blip has true edep 
     
     }//endloop over blips
-
-
-
-
-
-
-
-
 
 
     //*************************************************************************
