@@ -2,9 +2,9 @@
 
 # Skip this test if libtorch is not set up.
 
-if [ x$LIBTORCH_DIR = x ]; then
-  exit 0
-fi
+#if [ x$LIBTORCH_DIR = x ]; then
+#  exit 0
+#fi
 
 # Loop over all installed fcl files.
 
