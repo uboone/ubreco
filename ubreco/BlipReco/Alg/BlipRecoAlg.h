@@ -120,7 +120,7 @@ namespace blip {
     float   kNominalEfield;
     float   kDriftVelocity;
     float   kTickPeriod;
-    int     kNumChannels;
+    //int     kNumChannels;
     float   kLifetime;
 
     art::InputTag     fHitProducer;

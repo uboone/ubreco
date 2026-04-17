@@ -19,7 +19,7 @@ namespace blip {
     kTickPeriod           = clockData.TPCClock().TickPeriod();
     kNominalRecombFactor  = ModBoxRecomb(fCalodEdx,kNominalEfield);
     kWion                 = 1000./util::kGeVToElectrons;
-    
+
     // initialize channel list
     fBadChanMask       .resize(8256,false);
     fBadChanMaskPerEvt = fBadChanMask;
@@ -429,6 +429,9 @@ namespace blip {
     auto const& lifetime_provider   = art::ServiceHandle<lariov::UBElectronLifetimeService>()->GetProvider();
     auto const& tpcCalib_provider   = art::ServiceHandle<lariov::TPCEnergyCalibService>()->GetProvider();
     auto const& chanFilt            = art::ServiceHandle<lariov::ChannelStatusService>()->GetProvider();
+    
+    // lifetime (ms)
+    kLifetime = lifetime_provider.Lifetime();
     
     //====================================================
     // Update map of bad channels for this event
@@ -1193,9 +1196,13 @@ namespace blip {
         set_edepids.insert( hc.EdepID );
       }
      
+      // initialize some dummy values
       map_blip_primaryPDG[blip.ID]  = 0;
       map_blip_primaryG4ID[blip.ID] = -9;
       map_blip_ncategory[blip.ID]   = -9;
+      blip.truth.LeadG4PDG    = 0;
+      blip.truth.LeadG4ID     = -9;
+      blip.truth.LeadG4Index  = -9;
 
       if( set_edepids.size() == 1 ){
         
@@ -1318,10 +1325,10 @@ namespace blip {
       // --- Lifetime correction ---
       // Note: Without knowing real T0 of a blip, this correction is meaningless.
       //       Units of 'ms', not microseconds, hence the 1E-3 conversion factor.
-      if( fLifetimeCorr && blip.Time>0 ) {
-        float t = blip.Time*1e-3;
-        float tau = lifetime_provider.Lifetime();
-        blip.ChargeCorr = std::max(0.,(double)blip.Charge) * exp( t / tau ); 
+      if( fLifetimeCorr && blip.Time>0 && kLifetime > 0 ) {
+        //float t = blip.Time*1e-3;
+        //float tau = lifetime_provider.Lifetime();
+        blip.ChargeCorr = std::max(0.,(double)blip.Charge) * exp( blip.Time*1e-3 / kLifetime ); 
       }
       
       // --- SCE corrections ---
