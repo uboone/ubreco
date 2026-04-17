@@ -63,7 +63,6 @@
 #include <math.h>
 #include <limits>
 
-
 namespace blip {
 
   //--------------------------------------------
@@ -108,7 +107,8 @@ namespace blip {
     //TH1D*   h_recoWireEff_num;
     //TH1D*   h_recoWireEffQ_denom;
     //TH1D*   h_recoWireEffQ_num;
-    
+   
+    std::map<int,int>                     map_g4trkid_index;
     std::map<int,int>                     map_g4trkid_pdg;
     std::map<int, std::set<int>>          map_g4trkid_chan;
     std::map<int, std::map<int,double> >  map_g4trkid_chan_energy;
@@ -120,10 +120,23 @@ namespace blip {
     float   kNominalEfield;
     float   kDriftVelocity;
     float   kTickPeriod;
-    int     kNumChannels;
+    //int     kNumChannels;
     float   kLifetime;
 
     art::InputTag     fHitProducer;
+    
+    // Map of blip hit IDs    
+    std::map<int,std::vector<int>> map_blip_hitids;
+    
+    // TrackID for every blip (if there's a pandora track that shares hits)
+    std::map<int,int>   map_blip_trkID;
+    std::map<int,float> map_blip_trkIDfrac;
+  
+    // Primary particle that blip descends from
+    std::map<int,int>   map_blip_primaryPDG;
+    std::map<int,int>   map_blip_primaryG4ID;
+    std::map<int,int>   map_blip_ncategory;
+    
 
    private:
       
@@ -137,7 +150,7 @@ namespace blip {
     std::string         fSimDepProducer;
     std::string         fSimChanProducer;
     float               fSimGainFactor;
-    //bool                fDebugMode;
+    bool                fDebugMode;
     float               fTrueBlipMergeDist;
     bool                fDoHitFiltering;
     float               fMaxHitTrkLength;
@@ -177,6 +190,8 @@ namespace blip {
     
     //bool                keepAllClusts;
     //bool                fKeepAllClusts[kNplanes];
+   
+    //blip::BlipRNNAlg*   fRNNAlg;
 
     // --- Calorimetry configs ---
     int                 fCaloPlane;
@@ -187,7 +202,6 @@ namespace blip {
     float               fModBoxA;
     float               fModBoxB;
     
- 
 
     // --- Histograms ---
     //TH1D*   h_chanstatus;
