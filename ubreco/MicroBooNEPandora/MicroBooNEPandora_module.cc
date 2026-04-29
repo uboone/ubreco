@@ -357,6 +357,7 @@ void MicroBooNEPandora::ReprocessSlices(const art::Event &evt, const SliceVector
         RawMCParticleVector generatorArtMCParticleVector;
         MCTruthToMCParticles artMCTruthToMCParticles;
         MCParticlesToMCTruth artMCParticlesToMCTruth;
+        TrackIDToEDepSims artTrackIDToEDepSims;
 
         bool areSimChannelsValid(false);
 
@@ -395,7 +396,7 @@ void MicroBooNEPandora::ReprocessSlices(const art::Event &evt, const SliceVector
 
         if (m_enableMCParticles && !evt.isRealData())
         {
-            LArPandoraInput::CreatePandoraMCParticles(m_inputSettings, artMCTruthToMCParticles, artMCParticlesToMCTruth, generatorArtMCParticleVector);
+            LArPandoraInput::CreatePandoraMCParticles(m_inputSettings, artMCTruthToMCParticles, artMCParticlesToMCTruth, generatorArtMCParticleVector, artTrackIDToEDepSims);
             LArPandoraInput::CreatePandoraMCLinks2D(m_inputSettings, idToHitMap, artHitsToTrackIDEs);
         }
 
