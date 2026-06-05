@@ -82,6 +82,7 @@ cet_build_plugin(
 
 add_subdirectory(Utils)
 add_subdirectory(Alg)
+add_subdirectory(RNN)
 add_subdirectory(job)
 install_fhicl()
 install_source()

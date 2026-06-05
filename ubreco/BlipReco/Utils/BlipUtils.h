@@ -30,11 +30,16 @@
 #include <vector>
 #include <map>
 
-#include "ubobj/Blip/DataTypes.h"
+// BlipReco data types
+#include "ubreco/BlipReco/Utils/BlipCore.h"
+
+// ROOT
 #include "TH1D.h"
 
 
 typedef std::vector<art::Ptr<sim::SimEnergyDeposit>> SEDVec_t;
+typedef std::vector<simb::MCParticle> MCPVec_t;
+typedef simb::MCParticle MCP_t;
 
 namespace BlipUtils {
  
@@ -68,19 +73,22 @@ namespace BlipUtils {
   //bool    G4IdToMCTruth( int const, art::Ptr<simb::MCTruth>&);
   double  PathLength(const simb::MCParticle&, TVector3&, TVector3&);
   double  PathLength(const simb::MCParticle&);
-  bool    IsAncestorOf(int, int, bool);
+  bool    IsAncestorOf(int, int, bool breakAtPhots=false);
   double  DistToBoundary(const recob::Track::Point_t&);
   double  DistToLine(TVector3&, TVector3&, TVector3&);
   double  DistToLine2D(TVector2&, TVector2&, TVector2&);
   void    GetGeoBoundaries(double&,double&,double&,double&,double&,double&);
-  bool    IsPointInAV(float,float,float);
-  bool    IsPointInAV(TVector3&);
+  bool    IsPointInAV(float x,float y,float z,float margin=0);
+  bool    IsPointInAV(TVector3& p,float margin=0);
   bool    IsPointAtBnd(float,float,float);
   bool    IsPointAtBnd(TVector3&);
   void    NormalizeHist(TH1D*);
   float   FindMedian(std::vector<float>&);
   float   FindMean(std::vector<float>&);
-  
+  MCP_t   ReturnMCParticle(int);
+
+  MCPVec_t ReturnAllAncestors(int);
+  //MCPVec_t ReturnAllDaughters(int); 
 }
 
 #endif
