@@ -198,10 +198,9 @@ MicroBooNEPandora::~MicroBooNEPandora()
 
 void MicroBooNEPandora::produce(art::Event &evt)
 {
-
     if (!m_processExistingSlices)
-
     {
+        this->SetPandoraEventInformation(evt);
         IdToHitMap idToHitMap;
         this->CreatePandoraInput(evt, idToHitMap);
         this->RunPandoraInstances();
