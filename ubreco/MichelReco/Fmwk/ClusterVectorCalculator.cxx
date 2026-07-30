@@ -285,12 +285,12 @@ namespace michel {
 	   << "r: "  << r <<  std::endl;
 	Print(msg::kDEBUG,__FUNCTION__,ss.str());
       }
-      if(isnan(r)) r = 0.0; 
+      if(std::isnan(r)) r = 0.0; 
       R.push_back(r);
       
 
       // if(R.size() != 1 && R.size() != hits.size())
-      // 	if(isnan(r)) Print(msg::kEXCEPTION,__FUNCTION__,"Covariance is nan not on edge");
+      // 	if(std::isnan(r)) Print(msg::kEXCEPTION,__FUNCTION__,"Covariance is nan not on edge");
       
       X.clear(); Y.clear();
     }    
