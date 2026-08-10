@@ -907,22 +907,22 @@ void sys::WireModifier::ModifyROI(std::vector<float> & roi_data,
       
     }
     
-    if(isnan(q_orig)) {
+    if(std::isnan(q_orig)) {
       std::cout << "WARNING: obtained q_orig = NaN... setting to zero" << std::endl;
       q_orig = 0.;
     }
-    if(isnan(q_mod)) {
+    if(std::isnan(q_mod)) {
       std::cout << "WARNING: obtained q_mod = NaN... setting to zero" << std::endl;
       q_mod = 0.;
     }
     
     scale_ratio = q_mod / q_orig;
     
-    if(isnan(scale_ratio)) {
+    if(std::isnan(scale_ratio)) {
       std::cout << "WARNING: obtained scale_ratio = " << q_mod << " / " << q_orig << " = NaN... setting to 1" << std::endl;
       scale_ratio = 1.;
     }
-    if(isinf(scale_ratio)) {
+    if(std::isinf(scale_ratio)) {
       std::cout << "WARNING: obtained scale_ratio = " << q_mod << " / " << q_orig << " = inf... setting to 1" << std::endl;
       scale_ratio = 1.0;
     }

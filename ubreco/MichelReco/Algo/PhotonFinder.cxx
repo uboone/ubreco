@@ -52,9 +52,9 @@ namespace michel {
     // fit michel to a straight line
     auto fitinfo = _clusterCalc.GetLinearFit(michel);
 
-    if ( isnan(fitinfo.first) == true)
+    if ( std::isnan(fitinfo.first) == true)
       return true;
-    if (isnan(fitinfo.second) == true)
+    if (std::isnan(fitinfo.second) == true)
       return true;
 
     auto start = michel._start;
