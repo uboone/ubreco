@@ -147,7 +147,6 @@ namespace BlipUtils {
       float w2 = pinfo.depEnergy/totE;
       tblip.Position    = w1*tblip.Position + w2*pinfo.position;
       tblip.Time        = w1*tblip.Time     + w2*pinfo.time;
-      tblip.LeadCharge  = pinfo.depElectrons;
     // ... if the particle isn't a match, show's over
     } else {
       return;
@@ -158,8 +157,7 @@ namespace BlipUtils {
     tblip.NumElectrons+= std::max(0.,pinfo.numElectrons);
 
     auto const detProp   = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob();
-    float driftVel = detProp.DriftVelocity(detProp.Efield(0),detProp.Temperature());
-    tblip.DriftTime = tblip.Position.X() / driftVel;
+    tblip.DriftTime = tblip.Position.X() / detProp.DriftVelocity(detProp.Efield(0),detProp.Temperature());
 
     tblip.G4ChargeMap[part.TrackId()] += pinfo.depElectrons;
     if(pinfo.depElectrons > tblip.LeadCharge ) {

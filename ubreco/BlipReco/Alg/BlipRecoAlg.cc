@@ -1,4 +1,5 @@
 #include "ubreco/BlipReco/Alg/BlipRecoAlg.h"
+#include "lardataobj/AnalysisBase/Calorimetry.h"
 #include <fstream>
 
 namespace blip {
@@ -196,8 +197,8 @@ namespace blip {
     
     fMinMatchedPlanes   = pset.get<int>           ("MinMatchedPlanes",    2);
     fPickyBlips         = pset.get<bool>          ("PickyBlips",          false);
-    fApplyTrkCylinderCut= pset.get<bool>          ("ApplyTrkCylinderCut", false);
-    fCylinderRadius     = pset.get<float>         ("CylinderRadius",      15);
+    //fApplyTrkCylinderCut= pset.get<bool>          ("ApplyTrkCylinderCut", false);
+    //fCylinderRadius     = pset.get<float>         ("CylinderRadius",      15);
     fIgnoreDataTrks     = pset.get<bool>          ("IgnoreDataTrks",      false);
 
     fCaloPlane          = pset.get<int>           ("CaloPlane",           2);
@@ -474,7 +475,8 @@ namespace blip {
     // -- associations
     art::FindManyP<recob::Track> fmtrk(hitHandle,evt,fTrkProducer);
     art::FindManyP<recob::Track> fmtrkOG(hitHandleOG,evt,fTrkProducer);
-    
+    art::FindManyP<anab::Calorimetry> fmcal(tracklistHandle,evt,"pandoracaliInit");
+
     //===============================================================
     // Map of each hit to its gaushit index (needed if the provided
     // hit collection is some filtered subset of gaushit, in order to
@@ -1058,46 +1060,82 @@ namespace blip {
 
             
             // ----------------------------------------
-            // apply cylinder cut 
-            for(auto& trk : tracklist ){
+            // Loop over all >5cm tracks in the event, find point
+            // of closest approach
+            //for(auto& trk : tracklist ){
+            for (size_t itrk = 0; itrk<tracklist.size(); itrk++){
+              auto &trk = tracklist[itrk];
               if( trk->Length() < fMaxHitTrkLength ) continue;
               if( fIgnoreDataTrks && !map_trkid_isMC[trk->ID()] ) continue;
               auto& a = trk->Vertex();
               auto& b = trk->End();
               TVector3 p1(a.X(), a.Y(), a.Z() );
               TVector3 p2(b.X(), b.Y(), b.Z() );
-              // TO-DO: if this track starts or ends at a TPC boundary, 
-              // we should extend p1 or p2 to outside the AV to avoid blind spots
-              TVector3 bp = newBlip.Position;
-              float dToLine = BlipUtils::DistToLine(p1,p2,bp);
-              float d = dToLine;
-              if( dToLine < 0 ) d = std::min( (bp-p1).Mag(), (bp-p2).Mag() );
-              if( d > 0 ) {
+              float L = (p2-p1).Mag();
+              
+              float d = -9;
+
+              // First determine if the blip is closer to an interior point
+              // of the track, or to one of the endpoints
+              float d1 = (newBlip.Position-p1).Mag();
+              float d2 = (newBlip.Position-p2).Mag();
+              if( fabs( pow(d1,2) - pow(d2,2) ) > pow(L,2) ){
+                d = std::min(d1,d2);
+              
+              // if closer to an interior point, check track spacepoints
+              // and look for closest approach
+              } else if (fmcal.isValid()) {
+                float closestApproach = 9999;
+                //float maxDeviation = 0;
+                std::vector<art::Ptr<anab::Calorimetry> > caloObjs = fmcal.at(itrk);
+                for(auto &caloObj : caloObjs ) {
+                  //std::cout<<"  found "<<caloObj->XYZ().size()<<" 3D points for a track length of "<<trk->Length()<<" ("<<caloObj->XYZ().size()/trk->Length()<<")\n";
+                  for(auto &xyz : caloObj->XYZ() ) {
+                    TVector3 sp(xyz.X(),xyz.Y(),xyz.Z());
+                    float dist = (newBlip.Position-sp).Mag();
+                    if( dist < closestApproach) closestApproach = dist;
+                    //float deviation = BlipUtils::DistToLine(p1,p2,sp);
+                    //if( deviation > maxDeviation ) maxDeviation = deviation;
+                  }
+                }
                 
-                // update closest trkdist
-                if( newBlip.ProxTrkDist < 0 || d < newBlip.ProxTrkDist ) {
+                d = closestApproach;
+              
+
+              // if no spacepoints available, just project a line between start/end
+              // of the track and calculate the point of closest approach algebraically
+              } else {
+                d = BlipUtils::DistToLine(p1,p2,newBlip.Position);
+              }
+              
+              if (d<0) continue;
+
+              // update closest trkdist
+              if( newBlip.ProxTrkDist < 0 || d < newBlip.ProxTrkDist ) {
                   newBlip.ProxTrkDist = d;
                   newBlip.ProxTrkID = trk->ID();
-                }
+              }
+                
                 // need to do some math to figure out if this is in
                 // the 45 degreee "cone" relative to the start/end
-                if( dToLine > 0 && !newBlip.inCylinder && d < fCylinderRadius ) {
-                  float angle1 = asin( d / (p1-bp).Mag() ) * 180./3.14159;
-                  float angle2 = asin( d / (p2-bp).Mag() ) * 180./3.14159;
-                  if( angle1 < 45. && angle2 < 45. ) newBlip.inCylinder = true;
-                }
-              }
+                //if( dToLine > 0 && !newBlip.inCylinder && d < fCylinderRadius ) {
+                //  float angle1 = asin( d / (p1-bp).Mag() ) * 180./3.14159;
+                //  float angle2 = asin( d / (p2-bp).Mag() ) * 180./3.14159;
+                //  if( angle1 < 45. && angle2 < 45. ) newBlip.inCylinder = true;
+                //}
+              
+            
             }//endloop over trks
-           
-            if( fApplyTrkCylinderCut && newBlip.inCylinder ) continue;
+            
+            //if( fApplyTrkCylinderCut && newBlip.inCylinder ) continue;
             
             // In the case that a cluster appeared to be touching a track in 
             // one of the 3 views, but after 3D evaluation is found to be positioned
             // far away from that track, we must update the "TouchTrk" status.
             if( (newBlip.ProxTrkID != newBlip.TouchTrkID )
-            //    || (newBlip.ProxTrkDist > 1.5*newBlip.dX ) 
-            //    || (newBlip.ProxTrkDist > 1.5*newBlip.dYZ ) ) 
-            ) {
+                || (newBlip.ProxTrkDist > 1.5*newBlip.dX ) 
+                || (newBlip.ProxTrkDist > 1.5*newBlip.dYZ ) ) 
+            {
               newBlip.TouchTrkID = -9;
             }
 
@@ -1198,11 +1236,11 @@ namespace blip {
      
       // initialize some dummy values
       map_blip_primaryPDG[blip.ID]  = 0;
-      map_blip_primaryG4ID[blip.ID] = -9;
+      map_blip_primaryG4ID[blip.ID] = -99;
       map_blip_ncategory[blip.ID]   = -9;
       blip.truth.LeadG4PDG    = 0;
-      blip.truth.LeadG4ID     = -9;
-      blip.truth.LeadG4Index  = -9;
+      blip.truth.LeadG4ID     = -99;
+      blip.truth.LeadG4Index  = -99;
 
       if( set_edepids.size() == 1 ){
         
@@ -1236,9 +1274,21 @@ namespace blip {
         //  6  = secondary (n,gamma)
         //  7  = ncapture gamma
         //  8  = gamma from mu capture
+        if( fDebugMode ) std::cout<<"Determining neutron ancestors... blip PDG is "<<blipPDG<<"   with process "<<blipProc<<"\n";
         if( ancestors.size() > 0 ) {
           map_blip_ncategory[blip.ID] = 0;
           
+          for(auto p : ancestors ) {
+            double x1 = p.Vx();
+            double y1 = p.Vy();
+            double z1 = p.Vz();
+            double x2 = p.EndX();
+            double y2 = p.EndY();
+            double z2 = p.EndZ();
+            if(fDebugMode) std::cout<<"      - G4TrkID: "<<p.TrackId()<<"     PDG: "<<p.PdgCode()<<"    Process: "<<p.Process()
+                                     <<", start: ("<<x1<<", "<<y1<<", "<<z1<<")   end: ("<<x2<<", "<<y2<<", "<<z2<<")\n";
+          }
+
           //----------------------------------------------
           // inelastic (n,p) - categories 1-4
           bool primaryneut = false;
@@ -1250,7 +1300,7 @@ namespace blip {
             for(size_t i=map_g4trkid_index[mothern]+1; i<pinfo.size(); i++){
               if( pinfo[i].particle.Mother() == mothern && pinfo[i].particle.PdgCode() == 2212 ) np++;
             }
-            //std::cout<<"Blip "<<blip.ID<<" came from neutron that made "<<np<<" protons    "<<primaryneut<<"\n";
+            //std::cout<<"Blip "<<blip.ID<<" came from immediate ancestor "<<ancestors[0].PdgCode()<<", that made "<<np<<" protons    "<<primaryneut<<"\n";
             if      ( primaryneut && np == 1 )  map_blip_ncategory[blip.ID] = 1;
             else if ( primaryneut && np > 1  )  map_blip_ncategory[blip.ID] = 2;
             else if ( !primaryneut && np == 1 ) map_blip_ncategory[blip.ID] = 3; 
@@ -1282,6 +1332,8 @@ namespace blip {
               }
             }
           }//endif blip type
+          
+          if(fDebugMode) std::cout<<"ncategory assigned: "<< map_blip_ncategory[blip.ID] <<"\n";
 
         }//end blip ancestry
         //std::cout<<"BLIP CATEGORY = "<<map_blip_ncategory[blip.ID]
@@ -1422,8 +1474,8 @@ namespace blip {
     printf("  Charge ratio maximum      : %.1f\n",        fMatchMaxQRatio);    
     printf("  Minimum match score       : %.2f\n",        fMatchMinScore);
     printf("  Ignoring data tracks?     : %i\n",          fIgnoreDataTrks);
-    printf("  Track-cylinder radius     : %.1f cm\n",     fCylinderRadius);
-    printf("  Applying cylinder cut?    : %i\n",          fApplyTrkCylinderCut);
+    //printf("  Track-cylinder radius     : %.1f cm\n",     fCylinderRadius);
+    //printf("  Applying cylinder cut?    : %i\n",          fApplyTrkCylinderCut);
     
     /*
     printf("  Min cluster overlap       : ");

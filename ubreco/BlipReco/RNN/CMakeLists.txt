@@ -13,5 +13,5 @@ install_headers()
 install_fhicl()
 install_source()
 
-file(GLOB model_file *.ps)
+file(GLOB model_file *.pt)
 install_fw(LIST ${model_file})

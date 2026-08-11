@@ -292,7 +292,7 @@ class BlipAnaTreeDataStruct
   int   blip_proxtrkid[kMaxBlips];    // index of nearest trk
   bool  blip_touchtrk[kMaxBlips];     // is blip touching track?
   int   blip_touchtrkid[kMaxBlips];   // track ID of touched track
-  bool  blip_incylinder[kMaxBlips];   // is blip within a cylinder near a track
+  //bool  blip_incylinder[kMaxBlips];   // is blip within a cylinder near a track
   int   blip_clustid[kNplanes][kMaxBlips];     // cluster ID per plane
 
   // --- Reconstructed neutrino slice information (Pandora) --
@@ -483,7 +483,7 @@ class BlipAnaTreeDataStruct
     FillWith(blip_proxtrkid,  -9);
     FillWith(blip_touchtrk,   false);
     FillWith(blip_touchtrkid,  -9);
-    FillWith(blip_incylinder, false);
+    //FillWith(blip_incylinder, false);
     FillWith(blip_edepid,     -9);
     FillWith(blip_g4id,     -9);
     for(int i=0; i<kNplanes; i++){ 
@@ -609,7 +609,7 @@ class BlipAnaTreeDataStruct
     evtTree->Branch("blip_energy",blip_energy,"blip_energy[nblips]/F");
     evtTree->Branch("blip_yzcorr",blip_yzcorr,"blip_yzcorr[nblips]/F");
     //evtTree->Branch("blip_energyTrue",blip_energyTrue,"blip_energyTrue[nblips]/F");
-    evtTree->Branch("blip_incylinder",blip_incylinder,"blip_incylinder[nblips]/O");
+    //evtTree->Branch("blip_incylinder",blip_incylinder,"blip_incylinder[nblips]/O");
     evtTree->Branch("blip_proxtrkdist",blip_proxtrkdist,"blip_proxtrkdist[nblips]/F");
     evtTree->Branch("blip_touchtrk",blip_touchtrk,"blip_touchtrk[nblips]/O");
     if( saveTrkInfo ) {
@@ -2205,7 +2205,7 @@ void BlipAna::analyze(const art::Event& evt)
     fData->blip_proxtrkid[i]  = blp.ProxTrkID;
     fData->blip_touchtrk[i]   = (blp.TouchTrkID >= 0 );
     fData->blip_touchtrkid[i] = blp.TouchTrkID;
-    fData->blip_incylinder[i] = blp.inCylinder;
+    //fData->blip_incylinder[i] = blp.inCylinder;
     fData->blip_charge[i]     = blp.Charge;
     fData->blip_energy[i]     = blp.Energy;
     fData->blip_yzcorr[i]     = tpcCalib.YZdqdxCorrection(fCaloPlane,blp.Position.Y(),blp.Position.Z());
