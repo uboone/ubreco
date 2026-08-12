@@ -161,7 +161,7 @@ namespace blip {
     fHitProducerOverlay = pset.get<art::InputTag> ("HitProducerOverlay", "gaushit::OverlayStage1a");
     if( fHitProducerOG=="" ) fHitProducerOG = fHitProducerData;
     if( fHitProducer=="" )   fHitProducer   = fHitProducerData;
-    fHitTruthMatch      = pset.get<art::InputTag> ("HitTruthMatch",     "gaushitTruthMatch::OverlayRecoStage1b");
+    fHitTruthMatch      = pset.get<art::InputTag> ("HitTruthMatch",     ""); //"gaushitTruthMatch::OverlayRecoStage1b");
     fTrkProducer        = pset.get<std::string>   ("TrkProducer",       "pandoraInit");
     fGeantProducer      = pset.get<std::string>   ("GeantProducer",     "largeant");
     fSimDepProducer     = pset.get<std::string>   ("SimEDepProducer",   "ionization");
@@ -372,10 +372,7 @@ namespace blip {
       }
     }
 
-    
-
-
-  }
+  }// RunBlipTruth
   
   
 
@@ -577,9 +574,46 @@ namespace blip {
     //========================================
     if( pinfo.size() ) {
       
+      // If specific association tag label was not provided, check which ones are 
+      // in the event and identify which is most compatible with the hit collection. 
+      // This allows (for example) the wiremod workflow to not require a separate FCL
+      // configuration file specifying a different association label.
+      //
+      // If a valid association is found, fHitTruthMatch is updated, so this check
+      // is done only once. This assumes the data files being analyzed all have consistent
+      // data product labels.
+      //
+      if( fHitTruthMatch.label() == "" ) {
+
+        int best_match_count = 0;
+
+        // Find all MCParticle <-> Hit association products in the event
+        auto tags = evt.getInputTags<art::Assns<simb::MCParticle,recob::Hit,anab::BackTrackerHitMatchingData>>();
+        for (auto &tag : tags) {
+          if( tag.label() != "gaushitTruthMatch") continue;
+          art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> fmhh(hitHandleOG,evt,tag);
+
+          // is it valid?
+          if( !fmhh.isValid() ) continue;
+
+          // how many matches are there?
+          int nmatches = 0;
+          for(size_t i=0; i<hitlist.size(); i++) nmatches+=fmhh.at(map_gh[i]).size();
+          if( nmatches <= best_match_count ) continue;
+
+          // if we are good so far, update the tag 
+          best_match_count = nmatches;
+          fHitTruthMatch = tag;
+        }
+
+        if (fDebugMode) std::cout<<"*** Found valid MCP <--> hit assn:  "<<fHitTruthMatch.label()<<"::"<<fHitTruthMatch.process()<<" ***\n";      
+
+      }
+      if (fDebugMode) std::cout<<"Doing hit truth-matching with assn: "<<fHitTruthMatch.label()<<"::"<<fHitTruthMatch.process()<<"\n";      
+
       // Get backtracker associations
       art::FindMany<simb::MCParticle,anab::BackTrackerHitMatchingData> fmhh(hitHandleOG,evt,fHitTruthMatch);
-    
+
       // Loop the hits
       for(size_t i=0; i<hitlist.size(); i++){
         
@@ -1333,7 +1367,7 @@ namespace blip {
             }
           }//endif blip type
           
-          if(fDebugMode) std::cout<<"ncategory assigned: "<< map_blip_ncategory[blip.ID] <<"\n";
+          if(fDebugMode) std::cout<<"      category assigned: "<< map_blip_ncategory[blip.ID] <<"\n";
 
         }//end blip ancestry
         //std::cout<<"BLIP CATEGORY = "<<map_blip_ncategory[blip.ID]
