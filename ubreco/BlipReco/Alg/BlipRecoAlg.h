@@ -146,6 +146,7 @@ namespace blip {
     art::InputTag       fHitProducerOG;
     art::InputTag       fHitTruthMatch;
     std::string         fTrkProducer;
+    std::string         fTrkProducerCal;
     std::string         fGeantProducer;
     std::string         fSimDepProducer;
     std::string         fSimChanProducer;

@@ -163,6 +163,7 @@ namespace blip {
     if( fHitProducer=="" )   fHitProducer   = fHitProducerData;
     fHitTruthMatch      = pset.get<art::InputTag> ("HitTruthMatch",     ""); //"gaushitTruthMatch::OverlayRecoStage1b");
     fTrkProducer        = pset.get<std::string>   ("TrkProducer",       "pandoraInit");
+    fTrkProducerCal     = pset.get<std::string>   ("TrkProducerCal",    "pandoracaliInit");
     fGeantProducer      = pset.get<std::string>   ("GeantProducer",     "largeant");
     fSimDepProducer     = pset.get<std::string>   ("SimEDepProducer",   "ionization");
     fSimChanProducer    = pset.get<std::string>   ("SimChanProducer",   "driftWC:simpleSC");
@@ -472,7 +473,7 @@ namespace blip {
     // -- associations
     art::FindManyP<recob::Track> fmtrk(hitHandle,evt,fTrkProducer);
     art::FindManyP<recob::Track> fmtrkOG(hitHandleOG,evt,fTrkProducer);
-    art::FindManyP<anab::Calorimetry> fmcal(tracklistHandle,evt,"pandoracaliInit");
+    art::FindManyP<anab::Calorimetry> fmcal(tracklistHandle,evt,fTrkProducerCal);
 
     //===============================================================
     // Map of each hit to its gaushit index (needed if the provided
