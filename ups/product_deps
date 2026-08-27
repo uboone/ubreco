@@ -252,6 +252,7 @@ larpandora	v10_00_16	-
 larreco		v10_01_09	-
 swtrigger	v02_03_00i	-
 ubsim		v10_04_07_26	-
+torch_scatter   v2_1_2a         -	optional
 cetmodules	v3_24_01	-	only_for_build
 end_product_list
 ####################################
@@ -307,15 +308,11 @@ end_product_list
 #   case it is optional.
 #
 ####################################
-qualifier	ubsim		larreco		larpandora	swtrigger
-c14:debug       c14:debug       c14:debug       c14:debug       c14:debug
-c14:prof        c14:prof        c14:prof        c14:prof        c14:prof
-c7:debug	c7:debug	c7:debug	c7:debug	c7:debug
-c7:prof		c7:prof		c7:prof		c7:prof		c7:prof
-e26:debug       e26:debug       e26:debug       e26:debug       e26:debug
-e26:prof        e26:prof        e26:prof        e26:prof        e26:prof
-e20:debug	e20:debug	e20:debug	e20:debug	e20:debug
-e20:prof	e20:prof	e20:prof	e20:prof	e20:prof
+qualifier	ubsim		larreco		larpandora	swtrigger	torch_scatter
+c14:debug       c14:debug       c14:debug       c14:debug       c14:debug	c14
+c14:prof        c14:prof        c14:prof        c14:prof        c14:prof	c14
+e26:debug       e26:debug       e26:debug       e26:debug       e26:debug	e26
+e26:prof        e26:prof        e26:prof        e26:prof        e26:prof	e26
 end_qualifier_list
 ####################################
 
