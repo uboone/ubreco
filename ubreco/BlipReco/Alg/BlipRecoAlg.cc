@@ -624,40 +624,44 @@ namespace blip {
         // the truth-matching metadata is stored in the event
         //--------------------------------------------------
         int igh = map_gh[i];
-        if( fmhh.at(igh).size() ) {
-          std::vector<simb::MCParticle const*> pvec;
-          std::vector<anab::BackTrackerHitMatchingData const*> btvec;
-          fmhh.get(igh,pvec,btvec);
-          hitinfo[i].g4energy = 0;
-          hitinfo[i].g4charge = 0;
-          float maxQ = -9;
-          for(size_t j=0; j<pvec.size(); j++){
-            hitinfo[i].g4energy += btvec.at(j)->energy;
-            hitinfo[i].g4charge += btvec.at(j)->numElectrons;
-            if( btvec.at(j)->numElectrons <= maxQ ) continue;
-            maxQ = btvec.at(j)->numElectrons;
-            hitinfo[i].g4trkid  = pvec.at(j)->TrackId();
-            hitinfo[i].g4pdg    = pvec.at(j)->PdgCode();
-            hitinfo[i].g4frac   = btvec.at(j)->ideNFraction;
-          }
+        if( fmhh.isValid() ) {
           
-          // ###      uB behavior as of Nov 2022              ###
-          // WireCell's detsim implements its gain "fudge factor" 
-          // by scaling the SimChannel electrons instead of the gain
-          // response. So we need to correct for this effect to get 
-          // accurate count of 'true' electrons collected on channel.
-          if( fSimGainFactor > 0 ) hitinfo[i].g4charge /= fSimGainFactor;
-         
-          /* 
-          // Some old code to measure wire-by-wire thresholds
-          if( map_g4trkid_chan_energy[hitinfo[i].g4trkid][chan] > 0 ) {
-            double trueEnergyDep = map_g4trkid_chan_energy[hitinfo[i].g4trkid][chan];
-            h_recoWireEff_num->Fill(trueEnergyDep);}
-          if( map_g4trkid_chan_charge[hitinfo[i].g4trkid][chan] > 0 ) {
-            double trueChargeDep = map_g4trkid_chan_charge[hitinfo[i].g4trkid][chan];
-            h_recoWireEffQ_num->Fill(trueChargeDep);}
-          */
-        }
+          if( fmhh.at(igh).size() ) {
+            std::vector<simb::MCParticle const*> pvec;
+            std::vector<anab::BackTrackerHitMatchingData const*> btvec;
+            fmhh.get(igh,pvec,btvec);
+            hitinfo[i].g4energy = 0;
+            hitinfo[i].g4charge = 0;
+            float maxQ = -9;
+            for(size_t j=0; j<pvec.size(); j++){
+              hitinfo[i].g4energy += btvec.at(j)->energy;
+              hitinfo[i].g4charge += btvec.at(j)->numElectrons;
+              if( btvec.at(j)->numElectrons <= maxQ ) continue;
+              maxQ = btvec.at(j)->numElectrons;
+              hitinfo[i].g4trkid  = pvec.at(j)->TrackId();
+              hitinfo[i].g4pdg    = pvec.at(j)->PdgCode();
+              hitinfo[i].g4frac   = btvec.at(j)->ideNFraction;
+            }
+            
+            // ###      uB behavior as of Nov 2022              ###
+            // WireCell's detsim implements its gain "fudge factor" 
+            // by scaling the SimChannel electrons instead of the gain
+            // response. So we need to correct for this effect to get 
+            // accurate count of 'true' electrons collected on channel.
+            if( fSimGainFactor > 0 ) hitinfo[i].g4charge /= fSimGainFactor;
+           
+            /* 
+            // Some old code to measure wire-by-wire thresholds
+            if( map_g4trkid_chan_energy[hitinfo[i].g4trkid][chan] > 0 ) {
+              double trueEnergyDep = map_g4trkid_chan_energy[hitinfo[i].g4trkid][chan];
+              h_recoWireEff_num->Fill(trueEnergyDep);}
+            if( map_g4trkid_chan_charge[hitinfo[i].g4trkid][chan] > 0 ) {
+              double trueChargeDep = map_g4trkid_chan_charge[hitinfo[i].g4trkid][chan];
+              h_recoWireEffQ_num->Fill(trueChargeDep);}
+            */
+          }
+
+        }//fmhh isValid
         
         // IF this hit was (a) matched to a track, and (b) matched to a truth
         // energy deposit, then keep the tally
