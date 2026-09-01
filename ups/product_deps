@@ -313,6 +313,8 @@ c14:debug       c14:debug       c14:debug       c14:debug       c14:debug	c14
 c14:prof        c14:prof        c14:prof        c14:prof        c14:prof	c14
 e26:debug       e26:debug       e26:debug       e26:debug       e26:debug	e26
 e26:prof        e26:prof        e26:prof        e26:prof        e26:prof	e26
+e28:debug       e28:debug       e28:debug       e28:debug       e28:debug	e28
+e28:prof        e28:prof        e28:prof        e28:prof        e28:prof	e28
 end_qualifier_list
 ####################################
 
