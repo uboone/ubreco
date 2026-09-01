@@ -29,6 +29,10 @@ find_package(larreco REQUIRED)
 find_package(nugen REQUIRED)
 find_package(nutools REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package( Torch QUIET EXPORT)
+if(Torch_FOUND)
+  find_package( TorchScatter QUIET EXPORT)
+endif()
 
 cet_cmake_module_directories(Modules BINARY)
 

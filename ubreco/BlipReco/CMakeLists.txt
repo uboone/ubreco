@@ -82,6 +82,9 @@ cet_build_plugin(
 
 add_subdirectory(Utils)
 add_subdirectory(Alg)
+if(Torch_FOUND)
+  add_subdirectory(RNN)
+endif()
 add_subdirectory(job)
 install_fhicl()
 install_source()

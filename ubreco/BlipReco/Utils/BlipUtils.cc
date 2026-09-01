@@ -147,7 +147,6 @@ namespace BlipUtils {
       float w2 = pinfo.depEnergy/totE;
       tblip.Position    = w1*tblip.Position + w2*pinfo.position;
       tblip.Time        = w1*tblip.Time     + w2*pinfo.time;
-      tblip.LeadCharge  = pinfo.depElectrons;
     // ... if the particle isn't a match, show's over
     } else {
       return;
@@ -158,8 +157,7 @@ namespace BlipUtils {
     tblip.NumElectrons+= std::max(0.,pinfo.numElectrons);
 
     auto const detProp   = art::ServiceHandle<detinfo::DetectorPropertiesService>()->DataForJob();
-    float driftVel = detProp.DriftVelocity(detProp.Efield(0),detProp.Temperature());
-    tblip.DriftTime = tblip.Position.X() / driftVel;
+    tblip.DriftTime = tblip.Position.X() / detProp.DriftVelocity(detProp.Efield(0),detProp.Temperature());
 
     tblip.G4ChargeMap[part.TrackId()] += pinfo.depElectrons;
     if(pinfo.depElectrons > tblip.LeadCharge ) {
@@ -434,12 +432,42 @@ namespace BlipUtils {
     return newblip;
     
   }
+ 
+  MCP_t ReturnMCParticle(int particleID){
+    art::ServiceHandle<cheat::ParticleInventoryService> pi_serv;
+    return pi_serv->TrackIdToParticle(particleID);
+  }
+
+  MCPVec_t ReturnAllAncestors(int particleID) {
+    MCPVec_t out;
+    art::ServiceHandle<cheat::ParticleInventoryService> pi_serv;
+    const sim::ParticleList& plist = pi_serv->ParticleList();
+    if( !plist.HasParticle(particleID) )  return out;
+    auto p = pi_serv->TrackIdToParticle(particleID);
+    while( particleID > 0 ){
+      if( !plist.HasParticle(p.Mother() ) ) { return out; }
+      p = pi_serv->TrackIdToParticle(p.Mother());
+      out.push_back(p);
+    }
+    return out;
+  }
+ 
+  /*
+  MCPVec_t ReturnAllDaughters(int particleID) {
+    MCPVec_t out;
+    art::ServiceHandle<cheat::ParticleInventoryService> pi_serv;
+    const sim::ParticleList& plist = pi_serv->ParticleList();
+    // under construction
+    for(
+    return out; 
+  }
+  */
 
 
   //====================================================================
   // Function to determine if a particle descended from another particle.
   // Allows option to break lineage at photons for contiguous parentage.
-  bool IsAncestorOf(int particleID, int ancestorID, bool breakAtPhots = false){
+  bool IsAncestorOf(int particleID, int ancestorID, bool breakAtPhots){
     art::ServiceHandle<cheat::ParticleInventoryService> pi_serv;
     const sim::ParticleList& plist = pi_serv->ParticleList();
     if( particleID == ancestorID  )       return true;
@@ -671,12 +699,19 @@ namespace BlipUtils {
   }
 
   //===========================================================================
-  bool IsPointInAV(float x, float y, float z){
+  bool IsPointInAV(float x, float y, float z, float margin){
     
     // Get geo boundaries
     double xmin, xmax, ymin, ymax, zmin, zmax;
     GetGeoBoundaries(xmin,xmax,ymin,ymax,zmin,zmax);
-      
+     
+    // add 2cm margin
+    if(margin){
+      xmin += margin; xmax -= margin;
+      ymin += margin; ymax -= margin;
+      zmin += margin; zmax -= margin;
+    }
+
     if(     x >= xmin && x <= xmax
         &&  y >= ymin && y <= ymax
         &&  z >= zmin && z <= zmax ) {
@@ -687,8 +722,8 @@ namespace BlipUtils {
     
   }
   
-  bool IsPointInAV(TVector3& v){
-    return IsPointInAV(v.X(), v.Y(), v.Z());
+  bool IsPointInAV(TVector3& v,float margin){
+    return IsPointInAV(v.X(), v.Y(), v.Z(), margin);
   }
   
   
