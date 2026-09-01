@@ -12,7 +12,6 @@
 #include <string>
 #include <vector>
 #include <fstream>
-using namespace std;
 #include "art/Framework/Core/EDAnalyzer.h"
 #include "art/Framework/Core/EDProducer.h"
 #include "art/Framework/Core/ModuleMacros.h"

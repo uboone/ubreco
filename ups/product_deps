@@ -87,7 +87,7 @@
 #>  define_pythonpath
 ####################################
 parent		ubreco
-defaultqual	e20
+defaultqual	e26
 ####################################
 
 ####################################
@@ -248,8 +248,8 @@ fwdir	product_dir	scripts
 #
 ####################################
 product		version		qual	flags		<table_format=2>
-larpandora	v10_05_00	-
-larreco		v10_06_08	-
+larpandora	v10_05_01	-
+larreco		v10_06_09	-
 swtrigger	v02_03_00i	-
 ubsim		v10_23_00	-
 cetmodules	v3_24_01	-	only_for_build
@@ -310,12 +310,10 @@ end_product_list
 qualifier	ubsim		larreco		larpandora	swtrigger
 c14:debug       c14:debug       c14:debug       c14:debug       c14:debug
 c14:prof        c14:prof        c14:prof        c14:prof        c14:prof
-c7:debug	c7:debug	c7:debug	c7:debug	c7:debug
-c7:prof		c7:prof		c7:prof		c7:prof		c7:prof
 e26:debug       e26:debug       e26:debug       e26:debug       e26:debug
 e26:prof        e26:prof        e26:prof        e26:prof        e26:prof
-e20:debug	e20:debug	e20:debug	e20:debug	e20:debug
-e20:prof	e20:prof	e20:prof	e20:prof	e20:prof
+e28:debug       e28:debug       e28:debug       e28:debug       e28:debug
+e28:prof        e28:prof        e28:prof        e28:prof        e28:prof
 end_qualifier_list
 ####################################
 
