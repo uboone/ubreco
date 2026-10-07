@@ -1,10 +1,8 @@
 #! /bin/bash
 
-# Skip this test if libtorch is not set up.
+# Spack / mpd
 
-#if [ x$LIBTORCH_DIR = x ]; then
-#  exit 0
-#fi
+source /cvmfs/uboone.opensciencegrid.org/bin/mpdsetenv.sh
 
 # Loop over all installed fcl files.
 
