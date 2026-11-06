@@ -414,8 +414,8 @@ void MicroBooNEPandora::ReprocessSlices(const art::Event &evt, const SliceVector
 
 void MicroBooNEPandora::CreateExternalVertex(art::Ptr<recob::Vertex> const& vtx_ptr)
 {
-    lar_content::LArCaloHitFactory caloHitFactory;
-    lar_content::LArCaloHitParameters caloHitParameters;
+    lar_content::LArHitFactory caloHitFactory;
+    lar_content::LArHitParameters caloHitParameters;
 
     caloHitParameters.m_positionVector = pandora::CartesianVector(vtx_ptr->position().X(),
 								  vtx_ptr->position().Y(),
